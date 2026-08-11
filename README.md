@@ -240,13 +240,35 @@ Regla de la casa: si no tiene fuente y fecha comprobables, no entra.
 
 ## Despliegue
 
-Cada push a `main` compila y publica automáticamente
+> ## ⚠️ PASO OBLIGATORIO, UNA SOLA VEZ
+>
+> En GitHub: **Settings → Pages → Source → `GitHub Actions`**
+>
+> Si está en *"Deploy from a branch"*, GitHub publica el **repositorio en
+> crudo** en lugar del build. El `index.html` de la raíz apunta a
+> `/src/main.js`, que sin compilar no existe, y como el CSS se importa desde
+> el JS **no carga nada: pantalla en blanco.**
+>
+> Se reconoce porque en la pestaña Actions aparece un workflow llamado
+> *"pages build and deployment"* que nadie escribió: ese es el desplegador
+> antiguo, y solo corre en modo rama.
+
+Hecho eso, cada push a `main` compila y publica automáticamente
 (`.github/workflows/deploy.yml`).
 
-**Configuración necesaria una sola vez:**
-Settings → Pages → Source: **GitHub Actions**
+La base del build sale de `vite.config.js`: en GitHub Actions es
+`/estadodecepcion/` y en local `/`. Si el repositorio cambia de nombre, hay que
+actualizarla ahí.
 
-Sin ese paso el workflow corre pero no publica nada.
+### Si aparece la pantalla en blanco
+
+`index.html` lleva una red de seguridad: si el juego no arranca en 8 segundos,
+sustituye el blanco por una pantalla que explica qué pasó. Si dice *"El
+servidor está publicando el código fuente"*, es exactamente el caso de arriba.
+
+El despliegue puede tardar: una vez el job de publicación estuvo **48 minutos**
+en cola por congestión de GitHub, con el build ya terminado. Eso no es un
+fallo; se ve en Actions si el job "Desplegar" está en `queued`.
 
 La base del build sale de `vite.config.js`: en GitHub Actions es
 `/estadodecepcion/` y en local `/`. Si el repositorio cambia de nombre, hay que

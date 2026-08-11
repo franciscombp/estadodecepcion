@@ -31,5 +31,63 @@
   <div id="ui"></div>
 
   <script type="module" src="/src/main.js"></script>
+
+  <!--
+    RED DE SEGURIDAD CONTRA LA PANTALLA EN BLANCO
+    ---------------------------------------------
+    Si el módulo principal no arranca, sin esto la página se queda en blanco
+    sin decir por qué. Pasó de verdad: GitHub Pages estaba configurado para
+    servir el repositorio en crudo en vez del build, así que este mismo
+    archivo se publicaba tal cual y /src/main.js no existía compilado.
+
+    Va inline y sin módulos a propósito: tiene que funcionar precisamente
+    cuando lo demás no ha cargado.
+  -->
+  <script>
+    (function () {
+      var ESPERA = 8000;
+
+      setTimeout(function () {
+        if (window.__arranco) return;
+
+        var enSubcarpeta = location.pathname.replace(/\/[^/]*$/, '/');
+        var sirviendoFuente = !!document.querySelector('script[src="/src/main.js"]');
+
+        document.body.innerHTML =
+          '<div style="position:fixed;inset:0;display:flex;align-items:center;' +
+          'justify-content:center;padding:24px;background:#05070c;color:#eef2fa;' +
+          'font-family:system-ui,sans-serif;text-align:center">' +
+          '<div style="max-width:460px">' +
+          '<div style="font-size:.66rem;letter-spacing:.3em;color:#8b95ad;' +
+          'margin-bottom:10px">EL MERCIO</div>' +
+          '<h1 style="font-size:2rem;font-weight:900;color:#ff3355;' +
+          'margin-bottom:10px">NO CARGÓ</h1>' +
+          '<p style="color:#8b95ad;line-height:1.5;margin-bottom:18px">' +
+          (sirviendoFuente
+            ? 'El servidor está publicando el código fuente en vez de la ' +
+              'versión compilada.'
+            : 'El juego no llegó a arrancar.') +
+          '</p>' +
+          (sirviendoFuente
+            ? '<p style="color:#4a5468;font-size:.78rem;line-height:1.6;' +
+              'text-align:left;background:rgba(255,255,255,.04);padding:13px;' +
+              'border-radius:10px;border:1px solid rgba(255,255,255,.08)">' +
+              'Para quien mantiene el sitio: en GitHub, ' +
+              '<b style="color:#ffcf3f">Settings → Pages → Source</b> tiene que ' +
+              'estar en <b style="color:#ffcf3f">GitHub Actions</b>, no en ' +
+              '“Deploy from a branch”. El workflow de despliegue ya existe y ' +
+              'compila correctamente; solo hay que decirle a Pages que use su ' +
+              'resultado.</p>'
+            : '<button onclick="location.reload()" style="font-family:inherit;' +
+              'font-size:.9rem;font-weight:900;letter-spacing:.08em;' +
+              'text-transform:uppercase;padding:14px 26px;border:0;' +
+              'border-radius:12px;background:#ffcf3f;color:#1a1204;' +
+              'cursor:pointer">Reintentar</button>') +
+          '<div style="margin-top:16px;font-size:.6rem;color:#2f3746">' +
+          enSubcarpeta + '</div>' +
+          '</div></div>';
+      }, ESPERA);
+    })();
+  </script>
 </body>
 </html>

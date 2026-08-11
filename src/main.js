@@ -85,6 +85,11 @@ function pantallaError(titulo, mensaje, reintentar = true) {
 // ---------------------------------------------------------------------------
 
 async function arrancar() {
+  // Señal para la red de seguridad de index.html: si esto no se ejecuta en
+  // 8 segundos, el HTML pinta una pantalla explicando qué falló en vez de
+  // dejar la página en blanco.
+  window.__arranco = true;
+
   const carga = mostrarCarga();
 
   const lienzo = document.getElementById('lienzo');
