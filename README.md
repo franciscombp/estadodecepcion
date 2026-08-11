@@ -48,6 +48,7 @@ Requiere Node 20 o superior.
 src/
 ├── config/
 │   ├── balance.js      ← TODOS los pesos de juego. Empieza por aquí.
+│   ├── publicaciones.js← Los reportajes REALES del Archivo ⚠️ hay que rellenarlo
 │   ├── estilo.js       ← Tokens visuales (ver docs/ESTILO.md)
 │   ├── escenarios.js   ← Los 4 escenarios y el mapa del loop
 │   └── textos.js       ← Microcopy, remates y fichas del cuaderno
@@ -59,7 +60,8 @@ src/
 │   ├── Track.js        ← Suelo infinito reciclable
 │   ├── Stamina.js      ← Barra e ítems por escenario
 │   ├── Chaser.js       ← Noboa + Reimberg
-│   ├── Roulette.js     ← Bifurcaciones institucionales
+│   ├── Bifurcacion.js  ← El desvío en pista (el carril decide)
+│   ├── Roulette.js     ← La ruleta de la vía institucional
 │   └── Notebook.js     ← Meta-progreso en localStorage
 ├── scenes/
 │   ├── BaseScene.js    ← Luces, niebla y decorado lateral
@@ -106,6 +108,8 @@ Lo que se toca más a menudo:
 | Estamina agobiante | `ESTAMINA.DRENAJE`, `ESTAMINA.DISTANCIA_ENTRE_ITEMS` |
 | Perseguidor pesado | `PERSEGUIDOR.ACERCAMIENTO_POR_GOLPE`, `PERSEGUIDOR.ALEJAMIENTO` |
 | Tramos largos/cortos | `TRAMO.LONGITUD` |
+| Poco tiempo para elegir ruta | `TRAMO.DISTANCIA_AVISO` |
+| El agacharse no responde | `AGACHARSE.DURACION`, `AGACHARSE.VELOCIDAD_POSE` |
 
 El salto usa física balística: `altura_pico = v₀²/(2g)` y
 `tiempo_aire = 2·v₀/g`. Con los valores actuales (v₀=11, g=27.5) el pico son
@@ -126,8 +130,15 @@ navegador para trastear en vivo.
         └─ CARONDELET ┘
 ```
 
-Al final de cada tramo eliges izquierda o derecha para ir a un vecino, o sigues
-de frente hacia la institución y giras la ruleta.
+**La bifurcación ocurre corriendo, no en un menú.** Al final de cada tramo
+aparece un pórtico con un cartel por carril, y el carril en el que lo cruces
+decide la ruta —como en Temple Run:
+
+- **Izquierda / derecha** → el escenario vecino, sin parar el juego
+- **Centro** → la institución, que abre la ruleta
+
+El corredor de aproximación se vacía de obstáculos a propósito: obligar a
+esquivar mientras decides convierte una decisión en un accidente.
 
 | Escenario | Tema | Estamina | Institución | Éxito |
 |---|---|---|---|---|
@@ -178,6 +189,29 @@ const cache = new AssetCache();
 await cache.abrir();
 const buffer = await cache.obtenerOBajar('noboa.glb', '/assets/models/noboa.glb');
 ```
+
+---
+
+## El Archivo: reportajes reales
+
+Lo que se desbloquea gastando papeles **no es ficción**: son reportajes
+publicados de verdad por El Mercio, con su titular, su firma, su fecha y su
+enlace. El juego es sátira; el premio por jugarlo es periodismo.
+
+⚠️ **Hay que rellenarlo.** `src/config/publicaciones.js` viene con nueve huecos
+marcados `pendiente: true`, cada uno con el tema que le corresponde según el
+escenario. No inventé titulares ni enlaces: un reportaje falso con pinta de
+real es exactamente lo que este juego critica, y bastaría una captura para que
+circulara como si El Mercio lo hubiera publicado.
+
+Mientras un hueco siga pendiente, el Archivo muestra su tema y un sello de
+"EN PREPARACIÓN" en vez de fingir contenido. Para cargar una pieza real:
+
+1. Pon `pendiente: false`
+2. Rellena `titular`, `bajada`, `autoria`, `fecha` y `url`
+3. Ajusta `costo` si quieres cambiar el precio en papeles
+
+Regla de la casa: si no tiene enlace comprobable, no entra.
 
 ---
 

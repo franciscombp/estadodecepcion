@@ -1,9 +1,10 @@
 // ============================================================================
-// CUADERNO DE EXPEDIENTES — Meta-progreso persistente
+// ARCHIVO — Meta-progreso persistente
 // ============================================================================
 // Lo único que sobrevive entre partidas. Guarda en localStorage:
 //   · Papeles acumulados (la moneda de meta-progreso)
-//   · Fichas desbloqueadas
+//   · Reportajes desbloqueados (publicaciones REALES de El Mercio;
+//     ver config/publicaciones.js)
 //   · Evidencias encontradas
 //   · Récords y el árbol de rutas recorridas
 //
@@ -13,13 +14,13 @@
 // ============================================================================
 
 import { PROGRESO } from '../config/balance.js';
-import { FICHAS_CUADERNO } from '../config/textos.js';
+import { PUBLICACIONES } from '../config/publicaciones.js';
 
 const ESTADO_INICIAL = {
   version: 1,
   totalPapeles: 0,        // Papeles disponibles para gastar
   papelesHistoricos: 0,   // Total acumulado de siempre (nunca baja)
-  fichasDesbloqueadas: [],
+  publicacionesDesbloqueadas: [],
   evidenciasEncontradas: [],
   mejorDistancia: 0,
   mejorPuntaje: 0,
@@ -87,7 +88,7 @@ export class Notebook {
    * Cierra una partida y consolida su resultado.
    * @param {{papeles:number, distancia:number, puntaje:number,
    *          evidencias:string[], ruta:string[]}} resultado
-   * @returns {{fichasNuevas:Array}} Lo que se desbloqueó con esta partida
+   * @returns {{publicacionesNuevas:Array}} Lo que se desbloqueó con esta partida
    */
   registrarPartida(resultado) {
     this.estado.totalPapeles += resultado.papeles;
@@ -113,25 +114,24 @@ export class Notebook {
     }
 
     // Desbloqueo automático por acumulación histórica.
-    const fichasNuevas = this._desbloquearPorAcumulacion();
+    const publicacionesNuevas = this._desbloquearPorAcumulacion();
 
     this.guardar();
-    return { fichasNuevas };
+    return { publicacionesNuevas };
   }
 
   /**
-   * Desbloquea las fichas gratuitas que correspondan al total histórico.
-   * Las fichas con costo se compran aparte, desde el cuaderno.
+   * Desbloquea las publicaciones gratuitas. Las de costo se compran aparte,
+   * desde el Archivo.
    */
   _desbloquearPorAcumulacion() {
     const nuevas = [];
 
-    for (const ficha of FICHAS_CUADERNO) {
-      if (this.estado.fichasDesbloqueadas.includes(ficha.id)) continue;
-      // Las de costo 0 se abren solas la primera vez.
-      if (ficha.costo === 0) {
-        this.estado.fichasDesbloqueadas.push(ficha.id);
-        nuevas.push(ficha);
+    for (const pub of PUBLICACIONES) {
+      if (this.estado.publicacionesDesbloqueadas.includes(pub.id)) continue;
+      if (pub.costo === 0) {
+        this.estado.publicacionesDesbloqueadas.push(pub.id);
+        nuevas.push(pub);
       }
     }
 
@@ -139,41 +139,41 @@ export class Notebook {
   }
 
   // -------------------------------------------------------------------------
-  // FICHAS
+  // PUBLICACIONES
   // -------------------------------------------------------------------------
 
-  /** ¿Está desbloqueada esta ficha? */
-  estaDesbloqueada(idFicha) {
-    return this.estado.fichasDesbloqueadas.includes(idFicha);
+  /** ¿Está desbloqueado este reportaje? */
+  estaDesbloqueada(idPublicacion) {
+    return this.estado.publicacionesDesbloqueadas.includes(idPublicacion);
   }
 
   /**
-   * Gasta papeles para desbloquear una ficha.
+   * Gasta papeles para desbloquear un reportaje.
    * @returns {{exito:boolean, motivo?:string}}
    */
-  desbloquearFicha(idFicha) {
-    const ficha = FICHAS_CUADERNO.find((f) => f.id === idFicha);
-    if (!ficha) return { exito: false, motivo: 'La ficha no existe.' };
-    if (this.estaDesbloqueada(idFicha)) return { exito: false, motivo: 'Ya la tienes.' };
+  desbloquearPublicacion(idPublicacion) {
+    const pub = PUBLICACIONES.find((p) => p.id === idPublicacion);
+    if (!pub) return { exito: false, motivo: 'No existe.' };
+    if (this.estaDesbloqueada(idPublicacion)) return { exito: false, motivo: 'Ya lo tienes.' };
 
-    if (this.estado.totalPapeles < ficha.costo) {
-      const faltan = ficha.costo - this.estado.totalPapeles;
+    if (this.estado.totalPapeles < pub.costo) {
+      const faltan = pub.costo - this.estado.totalPapeles;
       return { exito: false, motivo: `Te faltan ${faltan} papeles.` };
     }
 
-    this.estado.totalPapeles -= ficha.costo;
-    this.estado.fichasDesbloqueadas.push(idFicha);
+    this.estado.totalPapeles -= pub.costo;
+    this.estado.publicacionesDesbloqueadas.push(idPublicacion);
     this.guardar();
 
     return { exito: true };
   }
 
-  /** Lista completa de fichas con su estado, para pintar el cuaderno. */
-  listarFichas() {
-    return FICHAS_CUADERNO.map((ficha) => ({
-      ...ficha,
-      desbloqueada: this.estaDesbloqueada(ficha.id),
-      alcanzable: this.estado.totalPapeles >= ficha.costo,
+  /** Lista completa de reportajes con su estado, para pintar el Archivo. */
+  listarPublicaciones() {
+    return PUBLICACIONES.map((pub) => ({
+      ...pub,
+      desbloqueada: this.estaDesbloqueada(pub.id),
+      alcanzable: this.estado.totalPapeles >= pub.costo,
     }));
   }
 
@@ -195,12 +195,11 @@ export class Notebook {
     this.guardar();
   }
 
-  /** Cuántos papeles faltan para la siguiente ficha comprable. */
-  proximaFicha() {
-    const pendientes = FICHAS_CUADERNO
-      .filter((f) => !this.estaDesbloqueada(f.id))
-      .sort((a, b) => a.costo - b.costo);
-    return pendientes[0] ?? null;
+  /** El siguiente reportaje comprable, para orientar al jugador. */
+  proximaPublicacion() {
+    return PUBLICACIONES
+      .filter((p) => !this.estaDesbloqueada(p.id))
+      .sort((a, b) => a.costo - b.costo)[0] ?? null;
   }
 
   /** Borra todo el progreso. Pide confirmación quien la llame. */

@@ -8,9 +8,12 @@
 // Máquina de estados:
 //   menu → jugando ⇄ pausa
 //            ↓
-//        bifurcacion → ruleta → (jugando | gameover)
-//            ↓
-//        gameover → menu
+//         gameover → menu
+//
+// La BIFURCACIÓN no es un estado: ocurre dentro de 'jugando'. El pórtico
+// viene hacia el jugador y el carril en el que lo cruce decide la ruta, sin
+// parar el juego (ver game/Bifurcacion.js). Solo la ruleta abre pantalla,
+// porque el sorteo es un momento que hay que ver.
 // ============================================================================
 
 import * as THREE from 'three';
@@ -26,12 +29,13 @@ import { CoinManager } from './Coin.js';
 import { StaminaManager } from './Stamina.js';
 import { Chaser } from './Chaser.js';
 import { Roulette } from './Roulette.js';
+import { Bifurcacion } from './Bifurcacion.js';
 
 import { crearEscenario } from '../scenes/index.js';
 import { obtenerEscenario } from '../config/escenarios.js';
 import { Controles } from '../utils/controls.js';
 import { remateCaptura, remateExhausto, citaVerificada } from '../config/textos.js';
-import { VELOCIDAD, TRAMO, CAMARA, JUGADOR, ESTAMINA } from '../config/balance.js';
+import { VELOCIDAD, TRAMO, CAMARA, JUGADOR, ESTAMINA, CARRILES } from '../config/balance.js';
 import { BLOOM, CALIDAD } from '../config/estilo.js';
 import { VigilanteRendimiento } from '../utils/calidad.js';
 
@@ -73,6 +77,9 @@ export class Game {
 
     // Sacudida de cámara al chocar.
     this.sacudida = 0;
+
+    // ¿Estamos en el corredor previo al pórtico de bifurcación?
+    this.enAproximacion = false;
 
     // Callbacks hacia la UI. Los rellena main.js.
     this.alCambiarEstado = () => {};
@@ -192,6 +199,7 @@ export class Game {
     this.estamina = new StaminaManager(this.escenaThree);
     this.perseguidor = new Chaser(this.escenaThree);
     this.ruleta = new Roulette();
+    this.bifurcacion = new Bifurcacion(this.escenaThree);
 
     this.escenario = null;
     this._cambiarEscenario(this.escenarioActual, false);
@@ -321,8 +329,10 @@ export class Game {
     this.combo = 0;
     this.temporizadorCombo = 0;
     this.sacudida = 0;
+    this.enAproximacion = false;
 
     this.jugador.reiniciar();
+    this.bifurcacion.reiniciar();
     this.obstaculos.reiniciar();
     this.papeles.reiniciar();
     this.estamina.reiniciar();
@@ -372,7 +382,7 @@ export class Game {
 
     const puntaje = this.papelesPartida + Math.floor(this.distanciaTotal / 10);
 
-    const { fichasNuevas } = this.cuaderno.registrarPartida({
+    const { publicacionesNuevas } = this.cuaderno.registrarPartida({
       papeles: this.papelesPartida,
       distancia: Math.floor(this.distanciaTotal),
       puntaje,
@@ -389,7 +399,7 @@ export class Game {
       puntaje,
       evidencias: this.evidenciasPartida,
       ruta: this.rutaPartida,
-      fichasNuevas,
+      publicacionesNuevas,
       esRecord: puntaje >= this.cuaderno.mejorPuntaje,
     });
   }
@@ -398,27 +408,59 @@ export class Game {
   // BIFURCACIÓN
   // -------------------------------------------------------------------------
 
-  _entrarBifurcacion() {
+  /**
+   * Empieza la aproximación: aparece el pórtico y se deja de generar
+   * obstáculos.
+   *
+   * El corredor se vacía a propósito. Obligar al jugador a esquivar mientras
+   * decide su ruta convierte una decisión en un accidente: acabaría eligiendo
+   * el carril que le tocó esquivar, no el que quería.
+   */
+  _iniciarAproximacionBifurcacion() {
+    this.enAproximacion = true;
     this.obstaculos.generacionPausada = true;
-    this._establecerEstado('bifurcacion', {
-      escenario: this.escenarioActual,
-      config: obtenerEscenario(this.escenarioActual),
-      institucion: this.ruleta.datosInstitucion(this.escenarioActual),
-      destinos: {
-        izquierda: obtenerEscenario(this.ruleta.resolverRuta(this.escenarioActual, 'izquierda')),
-        derecha: obtenerEscenario(this.ruleta.resolverRuta(this.escenarioActual, 'derecha')),
-      },
+
+    // Vaciar el corredor de verdad. Pausar la generación no basta: lo ya
+    // creado sigue llegando durante más de 200 unidades. El límite en -40
+    // deja intacto lo que el jugador tiene encima y borra el resto donde la
+    // niebla tapa la desaparición.
+    this.obstaculos.limpiarAdelante(-40);
+
+    const distancia = TRAMO.LONGITUD - this.distanciaTramo;
+    this.bifurcacion.preparar(
+      this.escenarioActual,
+      this.escenario.obtenerColores(),
+      distancia,
+    );
+
+    const esc = obtenerEscenario(this.escenarioActual);
+    this.alMostrarAviso({
+      tipo: 'bifurcacion',
+      titulo: 'ELIGE CARRIL',
+      subtitulo: esc.frenteEsMuerte
+        ? 'El centro es el cerco. No lleva a ninguna parte.'
+        : 'El carril en el que cruces decide la ruta',
     });
   }
 
   /**
-   * Resuelve la decisión del jugador en la bifurcación.
-   * @param {'izquierda'|'derecha'|'frente'} direccion
+   * El jugador acaba de cruzar el pórtico. El carril decide.
+   * @param {number} carril 0 izquierda, 1 centro, 2 derecha
    */
-  elegirRuta(direccion) {
-    if (this.estado !== 'bifurcacion') return;
+  _cruzarBifurcacion(carril) {
+    this.enAproximacion = false;
+    this.bifurcacion.iniciarViraje(carril);
+    this.audio.cambioEscenario();
 
-    if (direccion === 'frente') {
+    const esc = obtenerEscenario(this.escenarioActual);
+
+    // --- Centro: la vía institucional --------------------------------------
+    if (carril === CARRILES.CENTRO) {
+      if (esc.frenteEsMuerte) {
+        this.terminarPartida('cerco', esc.textoFrente);
+        return;
+      }
+      // La ruleta sí es un momento de interfaz: hay que ver el sorteo.
       this._establecerEstado('ruleta', {
         escenario: this.escenarioActual,
         institucion: this.ruleta.datosInstitucion(this.escenarioActual),
@@ -426,15 +468,23 @@ export class Game {
       return;
     }
 
+    // --- Laterales: sigues corriendo, sin menú -----------------------------
+    const direccion = carril === CARRILES.IZQUIERDA ? 'izquierda' : 'derecha';
     const destino = this.ruleta.resolverRuta(this.escenarioActual, direccion);
+    this._entrarEnTramo(destino);
+  }
+
+  /** Limpia la pista y arranca un tramo nuevo en el escenario indicado. */
+  _entrarEnTramo(destino) {
     this.obstaculos.limpiar();
     this.papeles.limpiar();
     this.estamina.limpiar();
+    this.bifurcacion.limpiar();
     this.papeles.nuevoTramo();
     this.obstaculos.generacionPausada = false;
+    this.enAproximacion = false;
 
     this._cambiarEscenario(destino, true);
-    this._establecerEstado('jugando');
   }
 
   /** Ejecuta el giro de la ruleta y aplica el resultado. */
@@ -460,14 +510,7 @@ export class Game {
 
     // Sales por donde entraste: la vía institucional te devuelve a la calle.
     const destino = this.ruleta.resolverRuta(this.escenarioActual, 'derecha');
-
-    this.obstaculos.limpiar();
-    this.papeles.limpiar();
-    this.estamina.limpiar();
-    this.papeles.nuevoTramo();
-    this.obstaculos.generacionPausada = false;
-
-    this._cambiarEscenario(destino, true);
+    this._entrarEnTramo(destino);
     this._establecerEstado('jugando');
   }
 
@@ -631,19 +674,17 @@ export class Game {
     }
 
     // ---- Bifurcación ------------------------------------------------------
-    if (this.distanciaTramo >= TRAMO.LONGITUD) {
-      this._entrarBifurcacion();
-      return;
+    // A diferencia de todo lo demás, esto NO abre un menú: el pórtico viene
+    // hacia el jugador y el carril en el que lo cruce decide la ruta.
+    const restante = TRAMO.LONGITUD - this.distanciaTramo;
+
+    if (!this.enAproximacion && restante <= TRAMO.DISTANCIA_AVISO) {
+      this._iniciarAproximacionBifurcacion();
     }
 
-    // Aviso previo, una sola vez por tramo.
-    const restante = TRAMO.LONGITUD - this.distanciaTramo;
-    if (restante < TRAMO.DISTANCIA_AVISO && !this._avisoBifurcacionMostrado) {
-      this._avisoBifurcacionMostrado = true;
-      this.alMostrarAviso({ tipo: 'bifurcacion', titulo: 'BIFURCACIÓN', subtitulo: 'Prepárate para elegir' });
-    }
-    if (restante >= TRAMO.DISTANCIA_AVISO) {
-      this._avisoBifurcacionMostrado = false;
+    if (this.bifurcacion.actualizar(dt, avance)) {
+      this._cruzarBifurcacion(this.jugador.carril);
+      return;
     }
 
     // ---- HUD --------------------------------------------------------------
@@ -662,6 +703,8 @@ export class Game {
       linterna: this.escenarioActual === 'apagon' ? this.escenario.fraccionLinterna() : null,
       // El HUD pinta una ficha por tipo de evidencia con su contador.
       evidencias: this.evidenciasPartida,
+      // Destello blanco que tapa el corte de escenario al tomar un desvío.
+      destello: this.bifurcacion.destello(),
     });
   }
 
@@ -693,6 +736,11 @@ export class Game {
       CAMARA.MIRA.y + this.jugador.y * 0.2,
       CAMARA.MIRA.z,
     );
+
+    // Banqueo al tomar un desvío. lookAt reescribe la orientación entera, así
+    // que el balanceo se aplica DESPUÉS: si no, se pierde.
+    const banqueo = this.bifurcacion.banqueoCamara();
+    if (banqueo !== 0) this.camara.rotateZ(banqueo);
   }
 
   // -------------------------------------------------------------------------
@@ -712,8 +760,10 @@ export class Game {
     this.papeles.reiniciar();
     this.estamina.reiniciar();
     this.perseguidor.reiniciar();
+    this.bifurcacion.reiniciar();
     this.velocidad = VELOCIDAD.INICIAL;
     this.velocidadBase = VELOCIDAD.INICIAL;
+    this.enAproximacion = false;
     this._establecerEstado('menu');
   }
 }

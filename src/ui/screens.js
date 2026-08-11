@@ -12,6 +12,7 @@
 // ============================================================================
 
 import { obtenerEscenario, ORDEN_ESCENARIOS } from '../config/escenarios.js';
+import { hayPendientes } from '../config/publicaciones.js';
 import * as Icono from './iconos.js';
 
 // ---------------------------------------------------------------------------
@@ -129,7 +130,7 @@ export class Pantallas {
       this.audio.reanudar();
       this.juego.iniciarPartida(elegido);
     }));
-    botones.appendChild(boton('Cuaderno de expedientes', '', () => {
+    botones.appendChild(boton('Archivo de El Mercio', '', () => {
       this.mostrar(this.notebook());
     }));
     contenido.appendChild(botones);
@@ -181,87 +182,6 @@ export class Pantallas {
     contenido.appendChild(pie);
 
     return pantalla;
-  }
-
-  // -------------------------------------------------------------------------
-  // BIFURCACIÓN
-  // -------------------------------------------------------------------------
-
-  bifurcacion(datos) {
-    const { pantalla, contenido } = pantallaBase();
-    const config = datos.config;
-
-    contenido.appendChild(marca('FIN DEL TRAMO'));
-    contenido.appendChild(el('h1', 'titulo', '¿POR DÓNDE?'));
-
-    const rutas = el('div', 'bifurcacion');
-
-    rutas.appendChild(this._tarjetaRuta(
-      'Izquierda', datos.destinos.izquierda, 'izquierda',
-      () => this.juego.elegirRuta('izquierda'),
-    ));
-
-    // --- De frente ---------------------------------------------------------
-    if (config.frenteEsMuerte) {
-      // Carondelet: se avisa claramente de que es letal. La decisión debe ser
-      // informada; el chiste no es engañar al jugador.
-      const mortal = el('button', 'ruta ruta--mortal');
-      mortal.type = 'button';
-      const flecha = el('span', 'ruta__flecha');
-      flecha.innerHTML = Icono.flecha('arriba', 20);
-      mortal.appendChild(flecha);
-      const cuerpo = el('span', 'ruta__cuerpo');
-      cuerpo.appendChild(el('span', 'ruta__direccion', 'De frente'));
-      cuerpo.appendChild(el('span', 'ruta__nombre', 'CRUZAR EL CERCO'));
-      cuerpo.appendChild(el('span', 'ruta__desc',
-        'No hay trámite, no hay ruleta, no hay vuelta. Aquí se acaba la corrida.'));
-      cuerpo.appendChild(el('span', 'ruta__probabilidad', '0% de salir'));
-      mortal.appendChild(cuerpo);
-      mortal.addEventListener('click', () => this.juego.elegirRuta('frente'));
-      rutas.appendChild(mortal);
-    } else if (datos.institucion) {
-      const inst = el('button', 'ruta ruta--institucion');
-      inst.type = 'button';
-      const flecha = el('span', 'ruta__flecha');
-      flecha.innerHTML = Icono.flecha('arriba', 20);
-      inst.appendChild(flecha);
-      const cuerpo = el('span', 'ruta__cuerpo');
-      cuerpo.appendChild(el('span', 'ruta__direccion', 'De frente'));
-      cuerpo.appendChild(el('span', 'ruta__nombre', datos.institucion.nombre));
-      cuerpo.appendChild(el('span', 'ruta__desc',
-        'La vía institucional. Gira la ruleta: si sale, pagan bien.'));
-      cuerpo.appendChild(el('span', 'ruta__probabilidad',
-        `${datos.institucion.porcentaje}% de éxito`));
-      inst.appendChild(cuerpo);
-      inst.addEventListener('click', () => this.juego.elegirRuta('frente'));
-      rutas.appendChild(inst);
-    }
-
-    rutas.appendChild(this._tarjetaRuta(
-      'Derecha', datos.destinos.derecha, 'derecha',
-      () => this.juego.elegirRuta('derecha'),
-    ));
-
-    contenido.appendChild(rutas);
-    return pantalla;
-  }
-
-  _tarjetaRuta(direccion, destino, iconoDir, alPulsar) {
-    const ruta = el('button', 'ruta');
-    ruta.type = 'button';
-
-    const flecha = el('span', 'ruta__flecha');
-    flecha.innerHTML = Icono.flecha(iconoDir, 20);
-    ruta.appendChild(flecha);
-
-    const cuerpo = el('span', 'ruta__cuerpo');
-    cuerpo.appendChild(el('span', 'ruta__direccion', direccion));
-    cuerpo.appendChild(el('span', 'ruta__nombre', destino.nombre));
-    cuerpo.appendChild(el('span', 'ruta__desc', destino.subtitulo));
-    ruta.appendChild(cuerpo);
-
-    ruta.addEventListener('click', alPulsar);
-    return ruta;
   }
 
   // -------------------------------------------------------------------------
@@ -402,14 +322,17 @@ export class Pantallas {
       contenido.appendChild(lista);
     }
 
-    // --- Fichas desbloqueadas ---------------------------------------------
-    if (datos.fichasNuevas?.length > 0) {
+    // --- Reportajes desbloqueados -----------------------------------------
+    if (datos.publicacionesNuevas?.length > 0) {
+      const lista = el('div', 'lista');
+      lista.appendChild(el('div', 'lista__titulo', 'Desbloqueaste en el Archivo'));
+      contenido.appendChild(lista);
+
       const fichas = el('div', 'fichas');
-      for (const ficha of datos.fichasNuevas) {
-        const f = el('div', 'ficha ficha--abierta');
-        f.appendChild(el('div', 'ficha__titulo', `NUEVO · ${ficha.titulo}`));
-        f.appendChild(el('div', 'ficha__texto', ficha.texto));
-        fichas.appendChild(f);
+      for (const pub of datos.publicacionesNuevas) {
+        fichas.appendChild(this._recorte({
+          ...pub, desbloqueada: true, alcanzable: true,
+        }));
       }
       contenido.appendChild(fichas);
     }
@@ -417,7 +340,7 @@ export class Pantallas {
     const botones = el('div', 'botones');
     botones.appendChild(boton('Volver a correr', 'boton--principal',
       () => this.juego.iniciarPartida()));
-    botones.appendChild(boton('Cuaderno de expedientes', '',
+    botones.appendChild(boton('Archivo de El Mercio', '',
       () => this.mostrar(this.notebook())));
     botones.appendChild(boton('Menú principal', 'boton--tenue',
       () => this.juego.volverAlMenu()));
@@ -435,6 +358,86 @@ export class Pantallas {
     return fila;
   }
 
+  /**
+   * Pinta un reportaje como recorte de prensa.
+   *
+   * Tres estados posibles:
+   *   · desbloqueado y cargado → titular, bajada, firma y enlace al artículo
+   *   · desbloqueado pero PENDIENTE → el tema, con aviso de que falta cargarlo
+   *   · bloqueado → solo el tema y el precio en papeles
+   *
+   * El estado "pendiente" existe porque no se inventan reportajes: si la pieza
+   * real todavía no está enlazada, el Archivo lo dice en vez de fingirla.
+   */
+  _recorte(pub) {
+    const abierta = pub.desbloqueada;
+    const recorte = el('article',
+      `recorte ${abierta ? 'recorte--abierto' : 'recorte--cerrado'}`);
+
+    // Cintillo: sección (escenario) y fecha.
+    const cintillo = el('div', 'recorte__cintillo');
+    cintillo.appendChild(el('span', 'recorte__seccion',
+      obtenerEscenario(pub.escenario).nombre));
+    if (abierta && !pub.pendiente && pub.fecha) {
+      cintillo.appendChild(el('span', 'recorte__fecha', pub.fecha));
+    }
+    recorte.appendChild(cintillo);
+
+    if (!abierta) {
+      // Bloqueado: se enseña el tema para que el jugador sepa qué compra.
+      recorte.appendChild(el('h3', 'recorte__titular recorte__titular--oculto',
+        pub.tema));
+      recorte.appendChild(el('p', 'recorte__bajada',
+        'Sin desbloquear. Hacen falta papeles.'));
+
+      const pie = el('div', 'recorte__pie');
+      pie.appendChild(el('span', 'recorte__costo',
+        `${pub.costo.toLocaleString('es-EC')} papeles`));
+
+      const btn = boton('Desbloquear', 'boton--comprar', () => {
+        const res = this.cuaderno.desbloquearPublicacion(pub.id);
+        if (res.exito) {
+          this.audio.evidencia();
+          this.mostrar(this.notebook());
+        } else {
+          btn.textContent = res.motivo;
+          setTimeout(() => { btn.textContent = 'Desbloquear'; }, 1800);
+        }
+      });
+      btn.disabled = !pub.alcanzable;
+      pie.appendChild(btn);
+      recorte.appendChild(pie);
+      return recorte;
+    }
+
+    if (pub.pendiente) {
+      // Desbloqueado pero la pieza real aún no está cargada.
+      recorte.appendChild(el('h3', 'recorte__titular', pub.tema));
+      recorte.appendChild(el('p', 'recorte__bajada',
+        'Reportaje por publicar. Cuando salga, aparecerá aquí con su enlace.'));
+      recorte.appendChild(el('span', 'recorte__sello', 'EN PREPARACIÓN'));
+      return recorte;
+    }
+
+    // Desbloqueado y cargado: la pieza real.
+    recorte.appendChild(el('h3', 'recorte__titular', pub.titular));
+    if (pub.bajada) recorte.appendChild(el('p', 'recorte__bajada', pub.bajada));
+
+    const pie = el('div', 'recorte__pie');
+    if (pub.autoria) pie.appendChild(el('span', 'recorte__firma', pub.autoria));
+
+    if (pub.url) {
+      const enlace = el('a', 'recorte__enlace', 'Leer en El Mercio →');
+      enlace.href = pub.url;
+      enlace.target = '_blank';
+      enlace.rel = 'noopener noreferrer';
+      pie.appendChild(enlace);
+    }
+    recorte.appendChild(pie);
+
+    return recorte;
+  }
+
   // -------------------------------------------------------------------------
   // CUADERNO DE EXPEDIENTES
   // -------------------------------------------------------------------------
@@ -443,8 +446,9 @@ export class Pantallas {
     const { pantalla, contenido } = pantallaBase();
 
     contenido.appendChild(marca('EL MERCIO'));
-    contenido.appendChild(el('h1', 'titulo', 'CUADERNO'));
-    contenido.appendChild(el('p', 'subtitulo', 'Lo que lograste sacar'));
+    contenido.appendChild(el('h1', 'titulo', 'ARCHIVO'));
+    contenido.appendChild(el('p', 'subtitulo',
+      'El juego es sátira. Los reportajes que desbloqueas, no.'));
 
     // --- Papeles -----------------------------------------------------------
     const cabecera = el('div', 'cuaderno-cabecera');
@@ -460,41 +464,21 @@ export class Pantallas {
     }
     contenido.appendChild(cabecera);
 
-    // --- Fichas ------------------------------------------------------------
+    // --- Reportajes --------------------------------------------------------
     const fichas = el('div', 'fichas');
 
-    for (const ficha of this.cuaderno.listarFichas()) {
-      const f = el('div', `ficha ${ficha.desbloqueada ? 'ficha--abierta' : 'ficha--cerrada'}`);
-      f.appendChild(el('div', 'ficha__titulo', ficha.titulo));
-
-      if (ficha.desbloqueada) {
-        f.appendChild(el('div', 'ficha__texto', ficha.texto));
-      } else {
-        f.appendChild(el('div', 'ficha__bloqueada',
-          'Sin desbloquear. Hacen falta papeles.'));
-
-        const pie = el('div', 'ficha__pie');
-        pie.appendChild(el('span', 'ficha__costo',
-          `${ficha.costo.toLocaleString('es-EC')} papeles`));
-
-        const btn = boton('Desbloquear', 'boton--comprar', () => {
-          const res = this.cuaderno.desbloquearFicha(ficha.id);
-          if (res.exito) {
-            this.audio.evidencia();
-            this.mostrar(this.notebook()); // Repintamos con el nuevo estado.
-          } else {
-            btn.textContent = res.motivo;
-            setTimeout(() => { btn.textContent = 'Desbloquear'; }, 1800);
-          }
-        });
-        btn.disabled = !ficha.alcanzable;
-        pie.appendChild(btn);
-        f.appendChild(pie);
-      }
-
-      fichas.appendChild(f);
+    for (const pub of this.cuaderno.listarPublicaciones()) {
+      fichas.appendChild(this._recorte(pub));
     }
     contenido.appendChild(fichas);
+
+    // Aviso para el equipo: quedan huecos por rellenar con reportajes reales.
+    if (hayPendientes()) {
+      contenido.appendChild(el('div', 'nota',
+        'Hay reportajes por cargar. Se rellenan en src/config/publicaciones.js ' +
+        'con titular, autoría, fecha y enlace reales. Mientras tanto el Archivo ' +
+        'muestra el tema del hueco, pero no inventa la pieza.'));
+    }
 
     // --- Evidencias encontradas -------------------------------------------
     if (this.cuaderno.evidencias.length > 0) {

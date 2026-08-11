@@ -51,6 +51,10 @@ export class Player {
     // Si pulsas saltar poco antes de aterrizar, el salto se guarda y se ejecuta
     // en cuanto tocas el suelo. Sin esto, el juego se siente injusto.
     this.bufferSalto = 0;
+    // La agachada usa una petición que dura todo el vuelo en vez de un buffer
+    // con caducidad (ver agachar()), más la bandera de caída rápida.
+    this.agacharAlAterrizar = false;
+    this.caidaRapida = false;
 
     // ---- Daño e invulnerabilidad -----------------------------------------
     this.golpes = 0;
@@ -91,9 +95,10 @@ export class Player {
     if (!this.estaEnElAire) {
       this.velocidadY = SALTO.VELOCIDAD_INICIAL;
       this.estaEnElAire = true;
-      // Saltar cancela la agachada.
+      // Saltar cancela la agachada, activa y pendiente.
       this.estaAgachado = false;
       this.temporizadorAgachado = 0;
+      this.agacharAlAterrizar = false;
       return true;
     }
 
@@ -106,8 +111,17 @@ export class Player {
     if (!this.vivo) return false;
 
     if (this.estaEnElAire) {
-      // En el aire, abajo = caída rápida (el "fast-fall" del original).
-      this.velocidadY -= SALTO.GRAVEDAD * SALTO.MULTIPLICADOR_CAIDA_RAPIDA * 0.05;
+      // En el aire, abajo hace DOS cosas:
+      //   1. Activa la caída rápida, para bajar antes.
+      //   2. Deja pedida la agachada para el aterrizaje.
+      //
+      // Lo segundo NO usa el buffer con caducidad del salto, y es a propósito.
+      // El gesto natural es saltar, ver el pórtico que viene y pulsar abajo
+      // en pleno vuelo: si esa intención caducara a los 0.18 s, la pulsación
+      // se perdería en cualquier salto largo y aterrizarías de pie contra el
+      // obstáculo. Mientras dure el vuelo, la petición se respeta.
+      this.caidaRapida = true;
+      this.agacharAlAterrizar = true;
       return false;
     }
 
@@ -136,7 +150,14 @@ export class Player {
 
     // ---- Salto y gravedad -------------------------------------------------
     if (this.estaEnElAire) {
-      this.velocidadY -= SALTO.GRAVEDAD * dt;
+      // La caída rápida multiplica la gravedad de forma CONTINUA mientras
+      // desciende. Antes era un impulso fijo por pulsación, así que machacar
+      // la tecla te mandaba al suelo de golpe.
+      const gravedad = (this.caidaRapida && this.velocidadY < 0)
+        ? SALTO.GRAVEDAD * SALTO.MULTIPLICADOR_CAIDA_RAPIDA
+        : SALTO.GRAVEDAD;
+
+      this.velocidadY -= gravedad * dt;
       this.y += this.velocidadY * dt;
 
       if (this.y <= 0) {
@@ -144,12 +165,20 @@ export class Player {
         this.y = 0;
         this.velocidadY = 0;
         this.estaEnElAire = false;
+        this.caidaRapida = false;
 
-        // ¿Había un salto en el buffer? Lo ejecutamos ahora.
+        // Los buffers se resuelven aquí, en orden de prioridad.
+        // El salto manda sobre la agachada: si el jugador pidió las dos cosas,
+        // saltar es lo que le saca de más apuros.
         if (this.bufferSalto > 0) {
           this.velocidadY = SALTO.VELOCIDAD_INICIAL;
           this.estaEnElAire = true;
           this.bufferSalto = 0;
+          this.agacharAlAterrizar = false;
+        } else if (this.agacharAlAterrizar) {
+          this.estaAgachado = true;
+          this.temporizadorAgachado = AGACHARSE.DURACION;
+          this.agacharAlAterrizar = false;
         }
       }
     }
@@ -162,10 +191,14 @@ export class Player {
       if (this.temporizadorAgachado <= 0) this.estaAgachado = false;
     }
 
-    // Suavizamos la pose visual hacia el estado lógico.
+    // Pose visual. Va deprisa a propósito: la caja de colisión se encoge al
+    // instante, así que la imagen tiene que alcanzarla en un par de fotogramas.
     const objetivoAgachado = this.estaAgachado ? 1 : 0;
-    const ta = 1 - Math.exp(-18 * dt);
+    const ta = 1 - Math.exp(-AGACHARSE.VELOCIDAD_POSE * dt);
     this.factorAgachado += (objetivoAgachado - this.factorAgachado) * ta;
+    if (Math.abs(objetivoAgachado - this.factorAgachado) < 0.02) {
+      this.factorAgachado = objetivoAgachado;
+    }
 
     // ---- Invulnerabilidad -------------------------------------------------
     if (this.invulnerabilidad > 0) this.invulnerabilidad -= dt;
@@ -252,6 +285,8 @@ export class Player {
     this.temporizadorAgachado = 0;
     this.factorAgachado = 0;
     this.bufferSalto = 0;
+    this.agacharAlAterrizar = false;
+    this.caidaRapida = false;
     this.golpes = 0;
     this.invulnerabilidad = 0;
     this.vivo = true;

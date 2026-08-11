@@ -154,12 +154,6 @@ async function arrancar() {
         pantallas.mostrar(pantallas.pausa());
         break;
 
-      case 'bifurcacion':
-        hud.ocultar();
-        hud.limpiarAvisos();
-        pantallas.mostrar(pantallas.bifurcacion(datos));
-        break;
-
       case 'ruleta':
         pantallas.mostrar(pantallas.ruleta(datos));
         break;

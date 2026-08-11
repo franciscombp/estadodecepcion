@@ -144,6 +144,9 @@ export class HUD {
 
       <!-- Tinte de peligro en los bordes cuando aprietan -->
       <div class="tinte-peligro" data-campo="tinte"></div>
+
+      <!-- Destello que tapa el corte de escenario al tomar un desvío -->
+      <div class="destello" data-campo="destello"></div>
     `;
 
     this.contenedor.appendChild(this.raiz);
@@ -169,6 +172,7 @@ export class HUD {
       avisos: q('avisos'),
       hint: q('hint'),
       tinte: q('tinte'),
+      destello: q('destello'),
     };
 
     this._construirIntentos();
@@ -313,6 +317,13 @@ export class HUD {
       c.cercania = pctCercania;
     }
 
+    // --- Destello de transición -------------------------------------------
+    // Sin caché: dura menos de un segundo y su valor cambia cada fotograma,
+    // así que comparar saldría más caro que escribir.
+    if (datos.destello !== undefined) {
+      this.ref.destello.style.opacity = String(datos.destello * 0.75);
+    }
+
     // --- Evidencias --------------------------------------------------------
     const nEvidencias = datos.evidencias?.length ?? 0;
     if (nEvidencias !== c.evidencias) {
@@ -395,5 +406,6 @@ export class HUD {
   limpiarAvisos() {
     if (this.ref?.avisos) this.ref.avisos.innerHTML = '';
     if (this.ref?.tinte) this.ref.tinte.style.opacity = '0';
+    if (this.ref?.destello) this.ref.destello.style.opacity = '0';
   }
 }

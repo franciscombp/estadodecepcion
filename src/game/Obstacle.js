@@ -333,6 +333,34 @@ export class ObstacleManager {
     this.pool.clear();
   }
 
+  /**
+   * Quita los obstáculos que estén MÁS ALLÁ de una Z dada, dejando intactos
+   * los que el jugador ya tiene encima.
+   *
+   * Lo usa la bifurcación para vaciar el corredor de decisión. Pausar la
+   * generación no basta: los obstáculos ya creados siguen llegando durante
+   * más de 200 unidades, y el jugador acabaría eligiendo el carril que le
+   * tocó esquivar en vez del que quería.
+   *
+   * El límite se pone lo bastante lejos como para que la niebla tape la
+   * desaparición: nada se esfuma delante de los ojos del jugador.
+   *
+   * @param {number} zLimite Se borra todo con z menor que este valor
+   */
+  limpiarAdelante(zLimite) {
+    for (let i = this.activos.length - 1; i >= 0; i--) {
+      const o = this.activos[i];
+      if (o.z >= zLimite) continue;
+
+      this.grupo.remove(o.malla);
+      o.malla.traverse((n) => {
+        if (n.geometry) n.geometry.dispose();
+        if (n.material) n.material.dispose();
+      });
+      this.activos.splice(i, 1);
+    }
+  }
+
   /** Quita todos los obstáculos de la pista. */
   limpiar() {
     for (const o of this.activos) {

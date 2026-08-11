@@ -59,82 +59,13 @@ export const REMATES_EXHAUSTO = [
 ];
 
 // ---------------------------------------------------------------------------
-// FICHAS DEL CUADERNO DE EXPEDIENTES
+// NOTA: LAS FICHAS FICTICIAS SE ELIMINARON
 // ---------------------------------------------------------------------------
-// Se desbloquean cada N papeles acumulados (ver PROGRESO en balance.js).
-// Son microcopys filosos en voz de El Mercio, no denuncias con nombre propio.
-export const FICHAS_CUADERNO = [
-  {
-    id: 'f01',
-    titulo: 'Expediente 01 — El archivo que camina',
-    costo: 0,
-    texto:
-      'Todo expediente incómodo desarrolla, con el tiempo, la capacidad de moverse solo. Entra por Fiscalía y sale por una ventana que nadie recuerda haber abierto.',
-  },
-  {
-    id: 'f02',
-    titulo: 'Expediente 02 — Cadena de custodia',
-    costo: 100,
-    texto:
-      'La cadena de custodia es un documento que certifica quién tocó la prueba. Cuando la prueba desaparece, el documento sobrevive. Es el único que sobrevive.',
-  },
-  {
-    id: 'f03',
-    titulo: 'Expediente 03 — Estado de excepción',
-    costo: 200,
-    texto:
-      'Figura jurídica que suspende derechos por un plazo definido. El plazo se renueva. La definición, no.',
-  },
-  {
-    id: 'f04',
-    titulo: 'Expediente 04 — Falla técnica',
-    costo: 300,
-    texto:
-      'Explicación oficial de cualquier interrupción cuyo momento resulte demasiado conveniente. Se aplica a sistemas eléctricos, sistemas de conteo y transmisiones en vivo.',
-  },
-  {
-    id: 'f05',
-    titulo: 'Expediente 05 — Campaña anticipada',
-    costo: 400,
-    texto:
-      'Actividad proselitista realizada antes del plazo legal. Se sanciona con una multa que cuesta menos que un spot de treinta segundos.',
-  },
-  {
-    id: 'f06',
-    titulo: 'Expediente 06 — Fuente reservada',
-    costo: 500,
-    texto:
-      'Persona que te cuenta lo que sabe a cambio de que nunca se sepa que lo sabe. El último recurso del periodismo y el primero que se persigue.',
-  },
-  {
-    id: 'f07',
-    titulo: 'Expediente 07 — Comisión investigadora',
-    costo: 600,
-    texto:
-      'Grupo conformado para esclarecer un hecho. Su producto final es un informe. El destino del informe es otra comisión.',
-  },
-  {
-    id: 'f08',
-    titulo: 'Expediente 08 — Cerco perimetral',
-    costo: 700,
-    texto:
-      'Perímetro de seguridad instalado para proteger una institución. Protege a la institución de las preguntas, principalmente.',
-  },
-  {
-    id: 'f09',
-    titulo: 'Expediente 09 — Vocería oficial',
-    costo: 800,
-    texto:
-      'Formato de comunicación en el que se entrega información sin admitir preguntas. También llamado, en otros contextos, comunicado.',
-  },
-  {
-    id: 'f10',
-    titulo: 'Expediente 10 — Archivo definitivo',
-    costo: 1000,
-    texto:
-      'Última etapa de todo caso relevante. No implica que se haya resuelto: implica que se dejó de contar. Por eso corres.',
-  },
-];
+// El meta-progreso ya no desbloquea definiciones satíricas inventadas, sino
+// REPORTAJES REALES publicados por El Mercio. Viven en config/publicaciones.js.
+//
+// El cambio es de fondo, no de forma: el juego es sátira, pero lo que ganas
+// por jugarlo es periodismo de verdad, con su enlace y su firma.
 
 // ---------------------------------------------------------------------------
 // CITAS VERIFICADAS — vacío a propósito

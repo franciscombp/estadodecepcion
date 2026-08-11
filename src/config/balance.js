@@ -69,7 +69,9 @@ export const SALTO = {
   // Ventana de "input anticipado": si presionas saltar hasta 0.15 s antes de
   // tocar suelo, el salto se ejecuta igual. Sin esto el juego se siente injusto.
   BUFFER_ENTRADA: 0.15,
-  // Caída rápida al presionar abajo en el aire (el "fast-fall" del original).
+  // Multiplicador de gravedad mientras cae con la caída rápida activa.
+  // Se aplica de forma CONTINUA, no como un empujón por pulsación: así el
+  // descenso se acelera de verdad en vez de dar tirones.
   MULTIPLICADOR_CAIDA_RAPIDA: 2.6,
 };
 
@@ -80,6 +82,18 @@ export const AGACHARSE = {
   DURACION: 0.55,     // Cuánto permanece agachado antes de volver a erguirse.
   ALTURA_NORMAL: 1.8, // Altura de la caja de colisión de pie.
   ALTURA_AGACHADO: 0.9,
+
+  // Mismo margen de entrada anticipada que el salto. Sin esto, pulsar abajo
+  // mientras estás en el aire perdía la intención: aterrizabas de pie y
+  // chocabas contra el pórtico que querías esquivar.
+  BUFFER_ENTRADA: 0.18,
+
+  // Velocidad del lerp de la pose visual. Va MUY por encima del resto de
+  // interpolaciones a propósito: la caja de colisión se encoge al instante,
+  // así que la imagen tiene que alcanzarla en un par de fotogramas. Con un
+  // valor bajo el personaje se ve de pie mientras ya está agachado, y eso se
+  // lee como que atraviesa el obstáculo.
+  VELOCIDAD_POSE: 34,
 };
 
 // ---------------------------------------------------------------------------

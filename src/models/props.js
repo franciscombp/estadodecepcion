@@ -885,6 +885,174 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
   return g;
 }
 
+// ---------------------------------------------------------------------------
+// BIFURCACIÓN
+// ---------------------------------------------------------------------------
+
+/**
+ * Cartel de destino, con el nombre escrito en una textura de canvas.
+ * Aquí SÍ va texto de verdad: el jugador tiene que poder leer a dónde lleva
+ * cada carril con tiempo para colocarse, y unas barras abstractas no sirven.
+ */
+function crearCartelDestino(texto, colorAcento, esPeligro = false) {
+  const g = new THREE.Group();
+
+  const tex = textura(`cartel:${texto}:${colorAcento}:${esPeligro}`, (ctx, w, h) => {
+    // Fondo
+    ctx.fillStyle = esPeligro ? '#2a0a10' : '#0d1220';
+    ctx.fillRect(0, 0, w, h);
+
+    // Marco
+    ctx.strokeStyle = esPeligro ? '#ff1030' : `#${colorAcento.toString(16).padStart(6, '0')}`;
+    ctx.lineWidth = 8;
+    ctx.strokeRect(4, 4, w - 8, h - 8);
+
+    // Texto. Se reduce el tamaño hasta que quepa: los nombres de escenario
+    // varían mucho de largo ("BAHÍA" contra "LAS ELECCIONES").
+    ctx.fillStyle = esPeligro ? '#ff4d66' : '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    let tam = 60;
+    do {
+      ctx.font = `900 ${tam}px system-ui, sans-serif`;
+      tam -= 2;
+    } while (ctx.measureText(texto).width > w - 40 && tam > 14);
+
+    ctx.fillText(texto, w / 2, h / 2);
+  }, 512, 160);
+
+  const panel = new THREE.Mesh(
+    new THREE.BoxGeometry(2.05, 0.64, 0.09),
+    new THREE.MeshStandardMaterial({
+      map: tex,
+      emissive: 0xffffff,
+      emissiveMap: tex,
+      emissiveIntensity: 0.85,
+      roughness: 0.4,
+      toneMapped: false,
+      // Los carteles NO se atenúan con la niebla. Es lo mismo que pasa con la
+      // señalización iluminada de verdad: corta la bruma. Sin esto el jugador
+      // no puede leer los destinos hasta tenerlos a 30 m, que a velocidad de
+      // crucero es poco más de un segundo para decidir.
+      fog: false,
+    }),
+  );
+  g.add(panel);
+
+  return g;
+}
+
+/**
+ * PÓRTICO DE BIFURCACIÓN — el cartel que anuncia hacia dónde va cada carril.
+ *
+ * Es la pieza clave del sistema: aquí NO hay menú, el carril en el que estés
+ * al cruzarlo decide la ruta. Por eso el pórtico tiene que leerse con mucha
+ * antelación y sin ambigüedad —un cartel por carril, alineado exactamente
+ * sobre él.
+ *
+ * @param {{izquierda:string, centro:string, derecha:string}} destinos
+ * @param {boolean} centroEsPeligro Si ir de frente mata (Carondelet)
+ */
+export function crearPorticoBifurcacion(destinos, colores, centroEsPeligro = false) {
+  const g = new THREE.Group();
+  const anchoTotal = CARRILES.ANCHO * 3 + 1.4;
+  const altoPortico = 5;
+
+  // Columnas.
+  for (const s of [-1, 1]) {
+    const columna = new THREE.Mesh(
+      new THREE.BoxGeometry(0.34, altoPortico, 0.34),
+      mat(COLOR3D.metal, 0.06, 0.85),
+    );
+    columna.position.set(s * (anchoTotal / 2), altoPortico / 2, 0);
+    g.add(columna);
+
+    // Tira de neón vertical: enmarca el pórtico y lo hace visible de lejos.
+    const tira = new THREE.Mesh(
+      new THREE.BoxGeometry(0.09, altoPortico * 0.85, 0.09),
+      neon(colores.acento ?? COLOR3D.dorado, 1.7),
+    );
+    tira.position.set(s * (anchoTotal / 2), altoPortico / 2, 0.2);
+    g.add(tira);
+  }
+
+  // Viga superior.
+  const viga = new THREE.Mesh(
+    new THREE.BoxGeometry(anchoTotal + 0.34, 0.4, 0.4),
+    mat(COLOR3D.metal, 0.06, 0.85),
+  );
+  viga.position.y = altoPortico;
+  g.add(viga);
+
+  // Un cartel por carril, alineado exactamente sobre él.
+  const carteles = [
+    { texto: destinos.izquierda, carril: 0, peligro: false },
+    { texto: destinos.centro, carril: 1, peligro: centroEsPeligro },
+    { texto: destinos.derecha, carril: 2, peligro: false },
+  ];
+
+  for (const c of carteles) {
+    const cartel = crearCartelDestino(
+      c.texto,
+      c.peligro ? 0xff1030 : (colores.acento ?? COLOR3D.dorado),
+      c.peligro,
+    );
+    cartel.position.set(CARRILES.POSICIONES[c.carril], altoPortico - 0.62, 0.12);
+    g.add(cartel);
+
+    // Flecha bajo el cartel, apuntando a su carril.
+    const flecha = new THREE.Mesh(
+      new THREE.ConeGeometry(0.2, 0.4, 3),
+      neon(c.peligro ? NEON.rojo : (colores.acento ?? COLOR3D.dorado), 1.9),
+    );
+    flecha.position.set(CARRILES.POSICIONES[c.carril], altoPortico - 1.18, 0.12);
+    flecha.rotation.z = Math.PI; // Apunta hacia abajo.
+    if (c.carril === 0) flecha.rotation.z = Math.PI * 0.75;   // Izquierda
+    if (c.carril === 2) flecha.rotation.z = Math.PI * 1.25;   // Derecha
+    g.add(flecha);
+  }
+
+  return g;
+}
+
+/**
+ * Flecha pintada en el asfalto. Marca en el suelo lo mismo que dice el cartel,
+ * para que el jugador no tenga que levantar la vista mientras se coloca.
+ */
+export function crearFlechaAsfalto(direccion, color) {
+  const g = new THREE.Group();
+
+  const matFlecha = new THREE.MeshStandardMaterial({
+    color,
+    emissive: color,
+    emissiveIntensity: 1.2,
+    roughness: 0.5,
+    transparent: true,
+    opacity: 0.85,
+    toneMapped: false,
+  });
+
+  // Asta.
+  const asta = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 2.4), matFlecha);
+  asta.rotation.x = -Math.PI / 2;
+  g.add(asta);
+
+  // Punta.
+  const punta = new THREE.Mesh(new THREE.CircleGeometry(0.62, 3), matFlecha);
+  punta.rotation.x = -Math.PI / 2;
+  punta.rotation.z = Math.PI;
+  punta.position.z = -1.5;
+  g.add(punta);
+
+  // Las laterales se inclinan hacia su lado: refuerzan la idea de desvío.
+  if (direccion === 'izquierda') g.rotation.y = -0.42;
+  if (direccion === 'derecha') g.rotation.y = 0.42;
+
+  g.position.y = 0.03;
+  return g;
+}
+
 /** DRON de vigilancia con foco. Sobrevuela la pista. */
 export function crearDron() {
   const g = new THREE.Group();
