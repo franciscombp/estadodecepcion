@@ -34,6 +34,11 @@ export default defineConfig({
         short_name: 'Estado Decepción',
         description:
           'Corre, esquiva y documenta. Un endless runner satírico de El Mercio.',
+        // Sin esto el manifiesto declara 'en' por defecto y los lectores de
+        // pantalla leen el español con fonética inglesa.
+        lang: 'es-EC',
+        dir: 'ltr',
+        categories: ['games', 'entertainment'],
         theme_color: '#0a0e17',
         background_color: '#0a0e17',
         display: 'fullscreen',
