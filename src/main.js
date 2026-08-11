@@ -2,11 +2,12 @@
 // MAIN — Punto de entrada
 // ============================================================================
 // Conecta las tres piezas grandes:
-//   Game (lógica y render 3D) ⇄ Pantallas/HUD (interfaz DOM) ⇄ Notebook (progreso)
+//   Game (lógica y render 3D) ⇄ HUD/Pantallas (interfaz DOM) ⇄ Notebook (progreso)
 //
 // Game no sabe nada del DOM y las pantallas no saben nada de Three.js. Se
-// comunican por los callbacks que se enganchan aquí abajo. Esa separación es
-// lo que permite tocar la interfaz sin miedo a romper el juego.
+// hablan por los callbacks que se enganchan aquí abajo. Esa separación es lo
+// que permite rehacer toda la interfaz sin tocar la lógica de juego —que es
+// exactamente lo que se hizo al subir el nivel visual.
 // ============================================================================
 
 import './style.css';
@@ -14,9 +15,11 @@ import './style.css';
 import { Game } from './game/Game.js';
 import { Notebook } from './game/Notebook.js';
 import { Audio } from './utils/audio.js';
-import { HUD, Avisos } from './ui/HUD.js';
+import { HUD } from './ui/HUD.js';
 import { Pantallas } from './ui/screens.js';
 import { AssetCache } from './utils/assetCache.js';
+import { detectarCalidad } from './utils/calidad.js';
+import * as Icono from './ui/iconos.js';
 
 // ---------------------------------------------------------------------------
 // PANTALLA DE CARGA
@@ -26,23 +29,55 @@ function mostrarCarga() {
   const carga = document.createElement('div');
   carga.className = 'cargando';
   carga.innerHTML = `
-    <div class="marca">EL MERCIO PRESENTA</div>
-    <div class="titulo" style="font-size:clamp(1.5rem,7vw,2.4rem)">ESTADO DE EXCEPCIÓN</div>
+    <div class="marca">
+      <span class="marca__sello">${Icono.sello(40)}</span>
+      EL MERCIO PRESENTA
+    </div>
+    <div class="titulo" style="font-size:clamp(1.5rem,7vw,2.4rem);margin:0">
+      ESTADO DE EXCEPCIÓN
+    </div>
     <div class="cargando__barra"><div class="cargando__relleno"></div></div>
-    <div class="subtitulo" data-campo="estado" style="margin:0">Preparando la corrida…</div>
+    <div class="subtitulo" data-campo="estado" style="margin:0">
+      Preparando la corrida…
+    </div>
   `;
   document.body.appendChild(carga);
 
   return {
     progreso(fraccion, texto) {
-      carga.querySelector('.cargando__relleno').style.width = `${Math.round(fraccion * 100)}%`;
+      carga.querySelector('.cargando__relleno').style.width =
+        `${Math.round(fraccion * 100)}%`;
       if (texto) carga.querySelector('[data-campo="estado"]').textContent = texto;
     },
     cerrar() {
-      carga.classList.add('oculto');
-      setTimeout(() => carga.remove(), 450);
+      carga.classList.add('cargando--fuera');
+      setTimeout(() => carga.remove(), 380);
     },
   };
+}
+
+/** Pantalla de error a pantalla completa, con la voz de la casa. */
+function pantallaError(titulo, mensaje, reintentar = true) {
+  const ui = document.getElementById('ui');
+  if (!ui) return;
+  ui.innerHTML = `
+    <div class="pantalla"><div class="pantalla__contenido">
+      <div class="marca">
+        <span class="marca__sello">${Icono.sello(40)}</span>
+        EL MERCIO
+      </div>
+      <h1 class="titulo titulo--rojo">${titulo}</h1>
+      <p class="subtitulo">${mensaje}</p>
+      ${reintentar ? `
+        <div class="botones">
+          <button class="boton boton--principal" data-accion="recargar">
+            Reintentar
+          </button>
+        </div>` : ''}
+    </div></div>
+  `;
+  ui.querySelector('[data-accion="recargar"]')
+    ?.addEventListener('click', () => location.reload());
 }
 
 // ---------------------------------------------------------------------------
@@ -57,51 +92,45 @@ async function arrancar() {
 
   // --- Comprobación de WebGL ------------------------------------------------
   // Mejor un mensaje claro que un canvas negro sin explicación.
-  const contextoPrueba = lienzo.getContext('webgl2') || lienzo.getContext('webgl');
-  if (!contextoPrueba) {
+  const prueba = lienzo.getContext('webgl2') || lienzo.getContext('webgl');
+  if (!prueba) {
     carga.cerrar();
-    contenedorUI.innerHTML = `
-      <div class="pantalla"><div class="pantalla__contenido">
-        <div class="marca">EL MERCIO</div>
-        <h1 class="titulo">SIN WEBGL</h1>
-        <p class="subtitulo">Tu navegador no puede dibujar gráficos 3D.</p>
-        <div class="aviso-satira">
-          Prueba con Chrome, Firefox o Safari actualizados. Si estás en un móvil
-          antiguo, puede que el hardware no dé para más.
-        </div>
-      </div></div>
-    `;
+    pantallaError(
+      'SIN WEBGL',
+      'Tu navegador no puede dibujar gráficos 3D. Prueba con Chrome, Firefox o Safari actualizados.',
+      false,
+    );
     return;
   }
 
-  carga.progreso(0.25, 'Abriendo el cuaderno…');
-
-  // --- Progreso persistente -------------------------------------------------
+  carga.progreso(0.2, 'Abriendo el cuaderno…');
   const cuaderno = new Notebook();
 
-  carga.progreso(0.45, 'Afinando instrumentos…');
+  carga.progreso(0.4, 'Midiendo el equipo…');
+  // Detectamos de qué es capaz el dispositivo ANTES de montar la escena:
+  // el nivel decide si hay bloom, cuánto decorado y a qué resolución se pinta.
+  const calidad = detectarCalidad();
 
-  // --- Audio ----------------------------------------------------------------
-  // El contexto se crea suspendido; arranca con el primer toque del usuario.
+  carga.progreso(0.55, 'Afinando instrumentos…');
+  // El contexto de audio se crea suspendido; arranca con el primer toque.
   const audio = new Audio();
 
-  // --- Caché de assets ------------------------------------------------------
-  // Hoy no hay binarios que precargar (todo es procedural), pero dejamos la
-  // caché abierta y lista para cuando los haya.
+  // Caché lista para cuando haya binarios que precargar. Hoy todo es
+  // procedural, así que no hay nada que bajar.
   const cache = new AssetCache();
   await cache.abrir();
 
-  carga.progreso(0.7, 'Levantando el escenario…');
-
-  // --- Juego ----------------------------------------------------------------
-  const juego = new Game(lienzo, cuaderno, audio);
-
-  // --- Interfaz -------------------------------------------------------------
-  const hud = new HUD(contenedorUI);
-  const avisos = new Avisos(contenedorUI);
-  const pantallas = new Pantallas(contenedorUI, juego, cuaderno, audio);
+  carga.progreso(0.75, 'Levantando el escenario…');
+  const juego = new Game(lienzo, cuaderno, audio, calidad);
 
   carga.progreso(0.9, 'Últimos ajustes…');
+  const hud = new HUD(contenedorUI);
+  const pantallas = new Pantallas(contenedorUI, juego, cuaderno, audio);
+
+  hud.alPulsarPausa(() => juego.pausar());
+
+  // El hint de deslizar solo se enseña las tres primeras partidas.
+  if (cuaderno.partidasJugadas >= 3) hud.ocultarHint();
 
   // -------------------------------------------------------------------------
   // CABLEADO: juego → interfaz
@@ -111,13 +140,13 @@ async function arrancar() {
     switch (estado) {
       case 'menu':
         hud.ocultar();
-        avisos.limpiar();
+        hud.limpiarAvisos();
         pantallas.mostrar(pantallas.menu());
         break;
 
       case 'jugando':
         pantallas.ocultar();
-        hud.invalidar(); // Fuerza repintado completo tras volver de una pantalla.
+        hud.invalidar(); // Repintado completo al volver de una pantalla.
         hud.mostrar();
         break;
 
@@ -127,7 +156,7 @@ async function arrancar() {
 
       case 'bifurcacion':
         hud.ocultar();
-        avisos.limpiar();
+        hud.limpiarAvisos();
         pantallas.mostrar(pantallas.bifurcacion(datos));
         break;
 
@@ -137,14 +166,15 @@ async function arrancar() {
 
       case 'gameover':
         hud.ocultar();
-        avisos.limpiar();
+        hud.limpiarAvisos();
+        if (cuaderno.partidasJugadas >= 3) hud.ocultarHint();
         pantallas.mostrar(pantallas.gameOver(datos));
         break;
     }
   };
 
   juego.alActualizarHUD = (datos) => hud.actualizar(datos);
-  juego.alMostrarAviso = (datos) => avisos.mostrar(datos);
+  juego.alMostrarAviso = (datos) => hud.mostrarAviso(datos);
 
   // -------------------------------------------------------------------------
   // COMPORTAMIENTOS DEL NAVEGADOR
@@ -153,13 +183,11 @@ async function arrancar() {
   // Pausa automática al cambiar de pestaña o bloquear el teléfono. Sin esto,
   // al volver el jugador se encuentra la partida perdida sin haber jugado.
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && juego.estado === 'jugando') {
-      juego.pausar();
-    }
+    if (document.hidden && juego.estado === 'jugando') juego.pausar();
   });
 
-  // El primer gesto del usuario desbloquea el audio (requisito de los
-  // navegadores móviles). Se registra una sola vez.
+  // El primer gesto desbloquea el audio (requisito de los navegadores
+  // móviles). Se registra una sola vez.
   const desbloquearAudio = () => {
     audio.iniciar();
     audio.reanudar();
@@ -175,7 +203,6 @@ async function arrancar() {
     ultimoToque = ahora;
   }, { passive: false });
 
-  // Bloquea el menú contextual al mantener pulsado sobre el canvas.
   lienzo.addEventListener('contextmenu', (e) => e.preventDefault());
 
   // -------------------------------------------------------------------------
@@ -184,19 +211,23 @@ async function arrancar() {
 
   carga.progreso(1, 'Listo');
 
-  // Arrancamos el bucle de render ya, para que el menú tenga la escena 3D
-  // moviéndose de fondo en lugar de un rectángulo negro.
+  // Arrancamos el bucle ya, para que el menú tenga la escena 3D moviéndose
+  // de fondo en lugar de un rectángulo negro.
   juego.iniciarBucle();
   juego.alCambiarEstado('menu', {});
 
-  setTimeout(() => carga.cerrar(), 320);
+  setTimeout(() => carga.cerrar(), 300);
 
-  // Exponemos las piezas en consola para depurar desde el navegador.
-  // Es deliberado: el equipo de El Mercio puede toquetear el balance en vivo.
+  // Piezas expuestas en consola para depurar desde el navegador. Es
+  // deliberado: el equipo de El Mercio puede tocar el balance en vivo.
   if (import.meta.env?.DEV) {
     window.__juego = juego;
     window.__cuaderno = cuaderno;
-    console.info('[Estado de Excepción] Modo desarrollo: usa window.__juego para depurar.');
+    window.__hud = hud;
+    console.info(
+      `[Estado de Excepción] Modo desarrollo. Calidad detectada: ${calidad.nivel}. ` +
+      'Usa window.__juego para depurar.',
+    );
   }
 }
 
@@ -204,23 +235,10 @@ async function arrancar() {
 // SERVICE WORKER
 // ---------------------------------------------------------------------------
 // vite-plugin-pwa genera y registra el service worker en el build de
-// producción. En desarrollo no se registra (devOptions.enabled = false).
+// producción. En desarrollo no se registra.
 
 arrancar().catch((error) => {
   console.error('[Estado de Excepción] Fallo al arrancar:', error);
-
-  const ui = document.getElementById('ui');
-  if (ui) {
-    ui.innerHTML = `
-      <div class="pantalla"><div class="pantalla__contenido">
-        <div class="marca">EL MERCIO</div>
-        <h1 class="titulo">SE CAYÓ EL SISTEMA</h1>
-        <p class="subtitulo">Qué casualidad tan puntual.</p>
-        <div class="botones">
-          <button class="boton boton--principal" onclick="location.reload()">Reintentar</button>
-        </div>
-      </div></div>
-    `;
-  }
   document.querySelector('.cargando')?.remove();
+  pantallaError('SE CAYÓ EL SISTEMA', 'Qué casualidad tan puntual.');
 });

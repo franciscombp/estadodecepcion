@@ -14,6 +14,10 @@
 // ============================================================================
 
 import * as THREE from 'three';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 
 import { Player } from './Player.js';
 import { Track } from './Track.js';
@@ -28,6 +32,8 @@ import { obtenerEscenario } from '../config/escenarios.js';
 import { Controles } from '../utils/controls.js';
 import { remateCaptura, remateExhausto, citaVerificada } from '../config/textos.js';
 import { VELOCIDAD, TRAMO, CAMARA, JUGADOR, ESTAMINA } from '../config/balance.js';
+import { BLOOM, CALIDAD } from '../config/estilo.js';
+import { VigilanteRendimiento } from '../utils/calidad.js';
 
 // Tope de delta time. Si la pestaña estuvo en segundo plano, dt puede valer
 // varios segundos; sin este tope el jugador aparecería atravesando obstáculos.
@@ -38,11 +44,18 @@ export class Game {
    * @param {HTMLCanvasElement} lienzo
    * @param {Notebook} cuaderno
    * @param {Audio} audio
+   * @param {object} calidad Nivel gráfico detectado (utils/calidad.js)
    */
-  constructor(lienzo, cuaderno, audio) {
+  constructor(lienzo, cuaderno, audio, calidad = { nivel: 'alta', ...CALIDAD.alta }) {
     this.lienzo = lienzo;
     this.cuaderno = cuaderno;
     this.audio = audio;
+    this.calidad = calidad;
+
+    // Si el framerate no llega, baja el nivel gráfico en caliente.
+    this.vigilante = new VigilanteRendimiento((nivel) => this._aplicarCalidad(nivel));
+    this.vigilante.establecerNivel(calidad.nivel);
+    this.vigilante.nivelForzado = !!calidad.forzada;
 
     // ---- Estado -----------------------------------------------------------
     this.estado = 'menu';
@@ -93,13 +106,82 @@ export class Game {
 
     this.renderizador = new THREE.WebGLRenderer({
       canvas: this.lienzo,
-      antialias: window.devicePixelRatio < 2, // En pantallas densas no hace falta.
+      // Con bloom activo el antialias del contexto no se aplica (se pinta a
+      // un buffer intermedio), así que solo lo pedimos cuando no hay bloom.
+      antialias: !this.calidad.bloom && window.devicePixelRatio < 2,
       powerPreference: 'high-performance',
     });
     this.renderizador.setSize(window.innerWidth, window.innerHeight);
-    // Tope de 2: por encima, el coste de píxeles no compensa en móvil.
-    this.renderizador.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderizador.shadowMap.enabled = false; // Las sombras son el mayor coste; no las usamos.
+    this.renderizador.setPixelRatio(
+      Math.min(window.devicePixelRatio, this.calidad.pixelRatioMaximo),
+    );
+    // Las sombras son el mayor coste del pipeline y con esta estética no
+    // aportan: el volumen lo da el flatShading y el contraste de la niebla.
+    this.renderizador.shadowMap.enabled = false;
+
+    // Tonemapping cinematográfico: comprime los altos para que el neón se
+    // sature sin quemarse a blanco puro.
+    this.renderizador.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderizador.toneMappingExposure = 1.15;
+
+    this._configurarPostproceso();
+  }
+
+  /**
+   * Cadena de post-procesado. El bloom es lo que convierte los materiales
+   * emisivos planos en neón de verdad: sin él, un cartel "encendido" es solo
+   * un rectángulo de color.
+   *
+   * Es también el efecto más caro del pipeline, así que en calidad baja se
+   * omite entero y se pinta directo a pantalla.
+   */
+  _configurarPostproceso() {
+    if (!this.calidad.bloom) {
+      this.compositor = null;
+      return;
+    }
+
+    this.compositor = new EffectComposer(this.renderizador);
+    this.compositor.setSize(window.innerWidth, window.innerHeight);
+    this.compositor.setPixelRatio(
+      Math.min(window.devicePixelRatio, this.calidad.pixelRatioMaximo),
+    );
+
+    this.compositor.addPass(new RenderPass(this.escenaThree, this.camara));
+
+    // El umbral alto es deliberado: solo debe brillar lo que emite luz.
+    // Si se baja, el asfalto se lava y se pierde el contraste que hace
+    // legibles los obstáculos.
+    this.pasadaBloom = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      BLOOM.intensidad,
+      BLOOM.radio,
+      BLOOM.umbral,
+    );
+    this.compositor.addPass(this.pasadaBloom);
+
+    // OutputPass aplica tonemapping y conversión de espacio de color al final
+    // de la cadena. Sin él, los colores salen lavados respecto al render directo.
+    this.compositor.addPass(new OutputPass());
+  }
+
+  /**
+   * Cambia el nivel gráfico en caliente. Lo llama el vigilante cuando el
+   * framerate no llega.
+   */
+  _aplicarCalidad(nivel) {
+    this.calidad = { nivel, ...CALIDAD[nivel] };
+
+    this.renderizador.setPixelRatio(
+      Math.min(window.devicePixelRatio, this.calidad.pixelRatioMaximo),
+    );
+
+    if (!this.calidad.bloom && this.compositor) {
+      // Soltamos los buffers del compositor: son varios render targets a
+      // resolución de pantalla y liberarlos se nota en memoria de GPU.
+      this.compositor.dispose?.();
+      this.compositor = null;
+    }
   }
 
   _configurarSubsistemas() {
@@ -152,7 +234,14 @@ export class Game {
         this.camara.aspect = ancho / alto;
         this.camara.updateProjectionMatrix();
         this.renderizador.setSize(ancho, alto);
-        this.renderizador.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderizador.setPixelRatio(
+          Math.min(window.devicePixelRatio, this.calidad.pixelRatioMaximo),
+        );
+
+        // El compositor tiene sus propios render targets: si no se
+        // redimensionan, la imagen sale estirada tras girar el móvil.
+        this.compositor?.setSize(ancho, alto);
+        this.pasadaBloom?.setSize(ancho, alto);
       }, 120);
     };
 
@@ -184,7 +273,7 @@ export class Game {
     if (this.escenario) this.escenario.destruir();
 
     this.escenarioActual = id;
-    this.escenario = crearEscenario(id, this.escenaThree);
+    this.escenario = crearEscenario(id, this.escenaThree, this.calidad);
 
     const config = obtenerEscenario(id);
     const colores = this.escenario.obtenerColores();
@@ -406,15 +495,23 @@ export class Game {
 
     if (this.estado === 'jugando') {
       this._actualizarJuego(dt);
+      // Solo vigilamos el rendimiento durante el juego: en los menús el
+      // framerate baja por motivos que no dicen nada del hardware.
+      this.vigilante.registrar(dt);
     } else {
       // En pausa/menú seguimos animando al jugador y al perseguidor para que
       // la escena no se vea congelada, pero sin avanzar el mundo.
       this.jugador.actualizar(dt, this.velocidad);
       this.perseguidor.actualizar(dt, this.jugador, false);
+      // El escenario sigue vivo de fondo: es el telón del menú.
+      this.escenario?.actualizar(dt, 0, this.jugador, this.velocidad);
     }
 
     this._actualizarCamara(dt);
-    this.renderizador.render(this.escenaThree, this.camara);
+
+    // Con bloom vamos por el compositor; sin él, directo a pantalla.
+    if (this.compositor) this.compositor.render();
+    else this.renderizador.render(this.escenaThree, this.camara);
   };
 
   _actualizarJuego(dt) {
@@ -563,6 +660,8 @@ export class Game {
       escenario: this.escenarioActual,
       progresoTramo: this.distanciaTramo / TRAMO.LONGITUD,
       linterna: this.escenarioActual === 'apagon' ? this.escenario.fraccionLinterna() : null,
+      // El HUD pinta una ficha por tipo de evidencia con su contador.
+      evidencias: this.evidenciasPartida,
     });
   }
 

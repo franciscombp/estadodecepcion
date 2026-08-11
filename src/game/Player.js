@@ -26,6 +26,10 @@ export class Player {
     // ---- Modelo visual ----------------------------------------------------
     this.modelo = personaje === 'alondra' ? crearAlondra() : crearChochologo();
     this.modelo.position.set(0, 0, 0);
+    // Media vuelta: el personaje se construye mirando a +Z (con las gafas y la
+    // credencial delante), pero corre hacia -Z. Sin esta rotación veríamos su
+    // cara todo el rato y la mochila PRENSA quedaría oculta detrás.
+    this.modelo.rotation.y = Math.PI;
     escena.add(this.modelo);
 
     // ---- Estado de carril -------------------------------------------------
@@ -171,8 +175,10 @@ export class Player {
     this.modelo.position.y = this.y;
 
     // Inclinación lateral al cambiar de carril: peso visual.
+    // Va negada porque el modelo está girado media vuelta sobre Y: sin el
+    // signo, el personaje se inclinaría en contra de su propio movimiento.
     const desvio = this.xObjetivo - this.x;
-    this.modelo.rotation.z = THREE.MathUtils.clamp(desvio * 0.22, -0.3, 0.3);
+    this.modelo.rotation.z = -THREE.MathUtils.clamp(desvio * 0.22, -0.3, 0.3);
 
     // Animación de carrera: la cadencia sube con la velocidad.
     const cadencia = 6 + (velocidad / 42) * 8;
@@ -250,7 +256,8 @@ export class Player {
     this.invulnerabilidad = 0;
     this.vivo = true;
     this.modelo.visible = true;
-    this.modelo.rotation.set(0, 0, 0);
+    // Se conserva la media vuelta: el personaje sigue corriendo de espaldas.
+    this.modelo.rotation.set(0, Math.PI, 0);
     this.modelo.scale.set(1, 1, 1);
   }
 
@@ -269,6 +276,7 @@ export class Player {
   cambiarPersonaje(nombre) {
     this.escena.remove(this.modelo);
     this.modelo = nombre === 'alondra' ? crearAlondra() : crearChochologo();
+    this.modelo.rotation.y = Math.PI;
     this.escena.add(this.modelo);
     this.reiniciar();
   }

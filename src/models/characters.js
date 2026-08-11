@@ -135,29 +135,98 @@ function crearHumanoide({ colorPiel, colorRopa, colorPantalon, corpulencia = 1 }
 // ---------------------------------------------------------------------------
 
 /**
- * CHOCHÓLOGO — sombrero de ala y gafas.
+ * Sombrero de paja con banda tricolor.
+ * Es la pieza que más identifica al personaje: se ve desde atrás, que es como
+ * el jugador lo ve el 100% del tiempo.
+ */
+function anclarSombreroDePaja(cabeza) {
+  const ala = cilindro(0.36, 0.36, 0.045, 0xe8cd8f, 0.06);
+  ala.position.y = 0.19;
+  cabeza.add(ala);
+
+  const copa = cilindro(0.21, 0.235, 0.2, 0xdfc07c, 0.06);
+  copa.position.y = 0.3;
+  cabeza.add(copa);
+
+  const remate = cilindro(0.215, 0.215, 0.03, 0xd4b268, 0.06);
+  remate.position.y = 0.4;
+  cabeza.add(remate);
+
+  // Banda tricolor. Tres anillos finos apilados: amarillo, azul, rojo.
+  const banda = [
+    [0xffcf3f, 0.212],
+    [0x1d4ed8, 0.244],
+    [0xef4444, 0.276],
+  ];
+  for (const [color, y] of banda) {
+    const anillo = cilindro(0.242, 0.242, 0.032, color, 0.35);
+    anillo.position.y = y;
+    cabeza.add(anillo);
+  }
+}
+
+/**
+ * Mochila de prensa. Va anclada al torso, así que acompaña el rebote de la
+ * carrera y la inclinación al agacharse.
+ */
+function anclarMochilaPrensa(torso, anchoTorso) {
+  const mochila = caja(anchoTorso * 0.82, 0.5, 0.22, 0x1c2028, 0.03);
+  mochila.position.set(0, -0.02, -0.26);
+  torso.add(mochila);
+
+  // Parche blanco: se lee "PRENSA" aunque no haya texto. El contraste del
+  // rectángulo claro sobre la mochila oscura basta a esta distancia.
+  const parche = caja(anchoTorso * 0.5, 0.17, 0.03, 0xf2f2f2, 0.28);
+  parche.position.set(0, 0.04, -0.38);
+  torso.add(parche);
+
+  // Franjas reflectantes.
+  for (const y of [-0.16, 0.2]) {
+    const franja = caja(anchoTorso * 0.84, 0.035, 0.03, 0xffcf3f, 0.55);
+    franja.position.set(0, y, -0.375);
+    torso.add(franja);
+  }
+
+  // Tirantes por delante.
+  for (const s of [-1, 1]) {
+    const tirante = caja(0.07, 0.44, 0.05, 0x1c2028, 0.03);
+    tirante.position.set(s * anchoTorso * 0.28, 0, 0.15);
+    torso.add(tirante);
+  }
+}
+
+/** Cámara de fotos colgando de la cadera. */
+function anclarCamara(cadera) {
+  const cuerpo = caja(0.19, 0.13, 0.09, 0x14161c, 0.04);
+  cuerpo.position.set(0.2, -0.04, 0.12);
+  cadera.add(cuerpo);
+
+  const objetivo = cilindro(0.055, 0.055, 0.07, 0x2a2f3d, 0.06);
+  objetivo.rotation.x = Math.PI / 2;
+  objetivo.position.set(0.2, -0.04, 0.19);
+  cadera.add(objetivo);
+
+  const lente = cilindro(0.035, 0.035, 0.02, 0x9fe8ff, 0.8);
+  lente.rotation.x = Math.PI / 2;
+  lente.position.set(0.2, -0.04, 0.23);
+  cadera.add(lente);
+}
+
+/**
+ * CHOCHÓLOGO — sombrero de paja, gafas y libreta.
  * El periodista veterano que ya vio esta película antes.
  */
 export function crearChochologo() {
   const g = crearHumanoide({
     colorPiel: 0xd9a06b,
-    colorRopa: 0x7cffb2,   // Verde menta neón — color del jugador
+    colorRopa: 0x22c55e,       // Verde de camisa, más natural que el neón puro
     colorPantalon: 0x2a3550,
   });
   const p = g.userData.partes;
 
-  // Sombrero: ala + copa, anclados a la cabeza para que acompañen el cabeceo.
-  const ala = cilindro(0.32, 0.32, 0.04, 0x3a2f26, 0.1);
-  ala.position.y = 0.2;
-  p.cabeza.add(ala);
-
-  const copa = cilindro(0.2, 0.22, 0.22, 0x3a2f26, 0.1);
-  copa.position.y = 0.32;
-  p.cabeza.add(copa);
-
-  const cinta = cilindro(0.225, 0.225, 0.06, 0xffcf3f, 0.5);
-  cinta.position.y = 0.24;
-  p.cabeza.add(cinta);
+  anclarSombreroDePaja(p.cabeza);
+  anclarMochilaPrensa(p.torso, 0.52);
+  anclarCamara(p.cadera);
 
   // Gafas
   const gafas = caja(0.3, 0.08, 0.04, 0x0a0e17, 0.0);
@@ -168,10 +237,17 @@ export function crearChochologo() {
   brilloGafa.position.set(0, 0.035, 0.19);
   p.cabeza.add(brilloGafa);
 
-  // Credencial de prensa colgando del cuello.
-  const credencial = caja(0.14, 0.18, 0.02, 0xffffff, 0.4);
-  credencial.position.set(0, -0.1, 0.17);
-  p.torso.add(credencial);
+  // Libreta en la mano derecha. Va en el pivote del brazo para que la
+  // acompañe en todo el ciclo de carrera.
+  const libreta = caja(0.16, 0.2, 0.025, 0xf2f2f2, 0.3);
+  libreta.position.set(0, -0.6, 0.1);
+  libreta.rotation.x = -0.5;
+  p.brazoDer.add(libreta);
+
+  const espiral = caja(0.17, 0.025, 0.035, 0xb9c6d4, 0.4);
+  espiral.position.set(0, -0.51, 0.13);
+  espiral.rotation.x = -0.5;
+  p.brazoDer.add(espiral);
 
   g.userData.nombre = 'Chochólogo';
   return g;
@@ -184,10 +260,13 @@ export function crearChochologo() {
 export function crearAlondra() {
   const g = crearHumanoide({
     colorPiel: 0xc98b5e,
-    colorRopa: 0x7cffb2,
+    colorRopa: 0x14b8a6,       // Verde azulado, para distinguirla de Chochólogo
     colorPantalon: 0x3d2a4a,
   });
   const p = g.userData.partes;
+
+  anclarMochilaPrensa(p.torso, 0.52);
+  anclarCamara(p.cadera);
 
   // Cabello rizado: racimo de esferas alrededor del cráneo.
   const rizos = [
@@ -211,13 +290,15 @@ export function crearAlondra() {
   mastil.position.y = 0.28;
   uku.add(mastil);
 
-  uku.position.set(0, -0.02, -0.22);
-  uku.rotation.z = 0.5;
+  // Va colgado por fuera de la mochila y ladeado, para que ambos se lean
+  // como dos objetos y no como una masa en la espalda.
+  uku.position.set(-0.26, -0.06, -0.34);
+  uku.rotation.set(0, 0, 0.75);
   p.torso.add(uku);
 
-  // Credencial de prensa.
+  // Credencial de prensa al cuello.
   const credencial = caja(0.14, 0.18, 0.02, 0xffffff, 0.4);
-  credencial.position.set(0.1, -0.1, 0.16);
+  credencial.position.set(0.1, -0.1, 0.17);
   p.torso.add(credencial);
 
   g.userData.nombre = 'Alondra';

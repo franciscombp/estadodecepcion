@@ -21,8 +21,8 @@ import { BaseScene } from './BaseScene.js';
 const densidadParaRadio = (radio) => 1.8 / Math.max(4, radio);
 
 export class ApagonScene extends BaseScene {
-  constructor(escena, config) {
-    super(escena, config);
+  constructor(escena, config, calidad) {
+    super(escena, config, calidad);
 
     this.oscuridad = config.oscuridad;
     this.tiempoLinterna = 0;      // Segundos restantes de visión ampliada.

@@ -15,8 +15,8 @@ import * as THREE from 'three';
 import { BaseScene } from './BaseScene.js';
 
 export class CarondeletScene extends BaseScene {
-  constructor(escena, config) {
-    super(escena, config);
+  constructor(escena, config, calidad) {
+    super(escena, config, calidad);
     this._crearHumo();
     this._crearVigilancia();
   }

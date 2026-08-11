@@ -48,6 +48,7 @@ Requiere Node 20 o superior.
 src/
 ├── config/
 │   ├── balance.js      ← TODOS los pesos de juego. Empieza por aquí.
+│   ├── estilo.js       ← Tokens visuales (ver docs/ESTILO.md)
 │   ├── escenarios.js   ← Los 4 escenarios y el mapa del loop
 │   └── textos.js       ← Microcopy, remates y fichas del cuaderno
 ├── game/
@@ -71,10 +72,12 @@ src/
 │   └── props.js        ← Obstáculos, recolectables y decorado
 ├── ui/
 │   ├── HUD.js          ← Interfaz durante la partida
+│   ├── iconos.js       ← Set de iconos SVG inline
 │   └── screens.js      ← Menú, bifurcación, ruleta, game over, cuaderno
 └── utils/
     ├── controls.js     ← Teclado + swipe
     ├── collision.js    ← AABB
+    ├── calidad.js      ← Detección de hardware y ajuste adaptativo
     ├── audio.js        ← Efectos sintetizados con Web Audio
     └── assetCache.js   ← Envoltorio de IndexedDB
 ```
@@ -217,22 +220,62 @@ actualizarla ahí.
 
 ---
 
+## Estilo visual
+
+El lenguaje visual está documentado en **[docs/ESTILO.md](docs/ESTILO.md)** y
+los valores viven en `src/config/estilo.js`. Léelo antes de añadir pantallas,
+iconos o props.
+
+Lo esencial: **el color es semántico, nunca decorativo.** Verde eres tú, dorado
+es lo que recoges, rojo es el peligro, cian es información, naranja es
+evidencia. Si algo nuevo no encaja en esos cinco significados, va en gris.
+
+Los iconos son SVG inline (`src/ui/iconos.js`): cero peticiones de red, escalan
+sin pixelarse y el juego arranca sin conexión.
+
+---
+
 ## Rendimiento
 
-Presupuesto actual: **~225 draw calls** y ~2 700 triángulos por fotograma.
+Presupuesto: **~230 draw calls** y ~2 700 triángulos por fotograma.
 
-Las dos decisiones que más pesaron:
+Las decisiones que más pesaron:
 
 - **Las líneas de carril van pintadas en la textura del asfalto**, no montadas
   como mallas. Como segmentos sueltos costaban más de cien draw calls.
 - **Cada papel es una sola malla con textura**, no un grupo de cuatro. Con
   hasta 90 papeles en pista, la diferencia eran más de 200 draw calls.
+- Geometrías y materiales **compartidos** entre instancias, pool de objetos
+  para obstáculos y recolectables (nada se crea ni se destruye durante la
+  partida), y sombras desactivadas.
 
-Además: geometrías y materiales compartidos entre instancias, pool de objetos
-para obstáculos y recolectables (nada se crea ni se destruye durante la
-partida), y sombras desactivadas.
+### Calidad adaptativa
 
-Si añades elementos, vigila `renderizador.info.render.calls` en la consola.
+El juego mide el dispositivo al arrancar (`src/utils/calidad.js`) y elige entre
+tres niveles. Si el framerate no llega a 45 FPS de forma sostenida, baja de
+nivel en caliente.
+
+| Nivel | Bloom | Pixel ratio | Decorado |
+|---|---|---|---|
+| alta | sí | hasta 2× | 16 por lado |
+| media | sí | hasta 1.5× | 12 por lado |
+| baja | no | 1× | 8 por lado |
+
+Para probar un nivel concreto en cualquier dispositivo:
+`?calidad=alta`, `?calidad=media` o `?calidad=baja` en la URL. Con el nivel
+forzado, el vigilante no lo cambia.
+
+El **bloom** es lo que convierte los materiales emisivos en neón de verdad, y
+es también el efecto más caro: por eso se apaga entero en calidad baja.
+
+> **Ojo con el neón.** Multiplicar un color impuro por un factor alto le
+> desplaza el matiz: `#ff3355 × 2.8` se recorta a rosa, no a rojo. Los colores
+> de neón se declaran en `props.js` con los canales secundarios bajos y la
+> intensidad acotada a 2. El brillo lo pone el bloom, no la saturación.
+
+Si añades elementos, vigila `renderizador.info.render.calls` en consola —
+con bloom activo esa cifra deja de ser útil, así que mídela con
+`?calidad=baja`.
 
 ---
 

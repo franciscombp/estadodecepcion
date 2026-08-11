@@ -26,12 +26,13 @@ const CLASES = {
  * Construye la escena correspondiente a un id.
  * @param {string} id
  * @param {THREE.Scene} escenaThree
+ * @param {object} calidad Nivel gráfico (utils/calidad.js)
  * @returns {BaseScene}
  */
-export function crearEscenario(id, escenaThree) {
+export function crearEscenario(id, escenaThree, calidad) {
   const config = obtenerEscenario(id);
   const Clase = CLASES[id] ?? BahiaScene;
-  return new Clase(escenaThree, config);
+  return new Clase(escenaThree, config, calidad);
 }
 
 export { BahiaScene, ApagonScene, EleccionesScene, CarondeletScene };
