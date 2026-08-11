@@ -382,7 +382,7 @@ export class Game {
 
     const puntaje = this.papelesPartida + Math.floor(this.distanciaTotal / 10);
 
-    const { publicacionesNuevas } = this.cuaderno.registrarPartida({
+    const { paginasNuevas } = this.cuaderno.registrarPartida({
       papeles: this.papelesPartida,
       distancia: Math.floor(this.distanciaTotal),
       puntaje,
@@ -399,7 +399,7 @@ export class Game {
       puntaje,
       evidencias: this.evidenciasPartida,
       ruta: this.rutaPartida,
-      publicacionesNuevas,
+      paginasNuevas,
       esRecord: puntaje >= this.cuaderno.mejorPuntaje,
     });
   }

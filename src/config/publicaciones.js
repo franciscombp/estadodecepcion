@@ -1,34 +1,39 @@
 // ============================================================================
-// PUBLICACIONES — Los reportajes reales de El Mercio
+// PUBLICACIONES — El periódico que vas armando
 // ============================================================================
-// Lo que se desbloquea en el Archivo NO es ficción: son reportajes publicados
-// de verdad. El juego es sátira, pero el premio por jugarlo es periodismo real.
-// Esa es toda la idea.
+// El Archivo no es una lista de premios: es un ejemplar de El Mercio que el
+// jugador monta página a página. Cada página cuesta papeles y trae reportajes
+// REALES, publicados de verdad, con su firma y su enlace.
+//
+// El juego es sátira. El periódico que desbloqueas, no. Ese contraste es el
+// remate de todo el proyecto.
 //
 // ⚠️ AVISO PARA EL EQUIPO DE EL MERCIO — HAY QUE RELLENAR ESTO
 // ------------------------------------------------------------
-// Las entradas de abajo son PLANTILLAS VACÍAS, marcadas con `pendiente: true`.
-// No inventé titulares ni enlaces: un reportaje falso con pinta de real es
-// exactamente lo que este juego critica, y bastaría una captura para que
-// circulara como si El Mercio lo hubiera publicado.
+// Los artículos vienen marcados con `pendiente: true` y sin titular. No
+// inventé ninguno: un reportaje falso con pinta de real es exactamente lo que
+// este juego critica, y bastaría una captura para que circulara como si El
+// Mercio lo hubiera publicado.
 //
-// Mientras `pendiente` sea true, el Archivo muestra el hueco con su tema y un
-// aviso de "por publicar" en vez de fingir contenido.
+// Mientras un artículo siga pendiente, el periódico lo maqueta como un hueco
+// con su tema y el sello "EN PREPARACIÓN" —igual que un diario que reserva
+// espacio para una pieza que aún no cierra.
 //
 // PARA CARGAR UN REPORTAJE REAL:
-//   1. Pon `pendiente: false`
+//   1. `pendiente: false`
 //   2. Rellena titular, bajada, autoria, fecha y url con los datos reales
-//   3. Ajusta `costo` si quieres cambiar cuántos papeles cuesta
+//   3. Si es la pieza principal de la página, déjale `destacado: true`
 //
 // Ejemplo ya relleno:
 //
 //   {
-//     id: 'p01',
-//     escenario: 'bahia',
-//     costo: 0,
+//     id: 'a01',
+//     destacado: true,
 //     pendiente: false,
+//     tema: 'Contratación pública',
 //     titular: 'El contrato que nadie firmó pero todos cobraron',
-//     bajada: 'Seis meses de facturas a una empresa constituida tres días antes del concurso.',
+//     bajada: 'Seis meses de facturas a una empresa constituida tres días ' +
+//             'antes del concurso.',
 //     autoria: 'Redacción El Mercio',
 //     fecha: '2025-03-14',
 //     url: 'https://elmercio.com/el-contrato-que-nadie-firmo',
@@ -37,128 +42,152 @@
 // REGLA DE LA CASA: si no tiene enlace comprobable, no entra.
 // ============================================================================
 
-export const PUBLICACIONES = [
+/** Cabecera del ejemplar. Se pinta en la portada. */
+export const CABECERA = {
+  nombre: 'EL MERCIO',
+  lema: 'La verdad, aunque duela — y suele',
+  edicion: 'EDICIÓN ESPECIAL',
+  precio: 'GRATIS PARA QUIEN CORRE',
+  sitio: 'elmercio.com',
+};
+
+export const PAGINAS = [
+  // -------------------------------------------------------------------------
   {
-    id: 'p01',
-    escenario: 'bahia',
-    costo: 0, // Gratis: es la primera, se abre sola al terminar una partida.
-    pendiente: true,
-    tema: 'Contratación pública y sobreprecios',
-    titular: '',
-    bajada: '',
-    autoria: '',
-    fecha: '',
-    url: '',
+    numero: 1,
+    nombre: 'PORTADA',
+    seccion: 'Primera plana',
+    costo: 0, // Se abre sola al terminar la primera partida.
+    articulos: [
+      {
+        id: 'a01',
+        destacado: true,
+        pendiente: true,
+        tema: 'Contratación pública y sobreprecios',
+        titular: '', bajada: '', autoria: '', fecha: '', url: '',
+      },
+      {
+        id: 'a02',
+        pendiente: true,
+        tema: 'Cadena de custodia y pruebas desaparecidas',
+        titular: '', bajada: '', autoria: '', fecha: '', url: '',
+      },
+      {
+        id: 'a03',
+        pendiente: true,
+        tema: 'Qué se sabe del caso y qué sigue sin saberse',
+        titular: '', bajada: '', autoria: '', fecha: '', url: '',
+      },
+    ],
   },
+
+  // -------------------------------------------------------------------------
   {
-    id: 'p02',
-    escenario: 'bahia',
-    costo: 100,
-    pendiente: true,
-    tema: 'Cadena de custodia y pruebas desaparecidas',
-    titular: '',
-    bajada: '',
-    autoria: '',
-    fecha: '',
-    url: '',
+    numero: 2,
+    nombre: 'ENERGÍA',
+    seccion: 'El apagón',
+    costo: 150,
+    articulos: [
+      {
+        id: 'a04',
+        destacado: true,
+        pendiente: true,
+        tema: 'Contratos de generación eléctrica',
+        titular: '', bajada: '', autoria: '', fecha: '', url: '',
+      },
+      {
+        id: 'a05',
+        pendiente: true,
+        tema: 'Los informes técnicos que advirtieron el apagón',
+        titular: '', bajada: '', autoria: '', fecha: '', url: '',
+      },
+    ],
   },
+
+  // -------------------------------------------------------------------------
   {
-    id: 'p03',
-    escenario: 'apagon',
-    costo: 200,
-    pendiente: true,
-    tema: 'Crisis eléctrica: contratos de generación y responsables',
-    titular: '',
-    bajada: '',
-    autoria: '',
-    fecha: '',
-    url: '',
-  },
-  {
-    id: 'p04',
-    escenario: 'apagon',
+    numero: 3,
+    nombre: 'POLÍTICA',
+    seccion: 'Las elecciones',
     costo: 300,
-    pendiente: true,
-    tema: 'Informes técnicos que advirtieron el apagón',
-    titular: '',
-    bajada: '',
-    autoria: '',
-    fecha: '',
-    url: '',
+    articulos: [
+      {
+        id: 'a06',
+        destacado: true,
+        pendiente: true,
+        tema: 'Campaña anticipada y gasto electoral',
+        titular: '', bajada: '', autoria: '', fecha: '', url: '',
+      },
+      {
+        id: 'a07',
+        pendiente: true,
+        tema: 'Nombramientos y parentescos en el CNE',
+        titular: '', bajada: '', autoria: '', fecha: '', url: '',
+      },
+    ],
   },
+
+  // -------------------------------------------------------------------------
   {
-    id: 'p05',
-    escenario: 'elecciones',
-    costo: 400,
-    pendiente: true,
-    tema: 'Campaña anticipada y gasto electoral',
-    titular: '',
-    bajada: '',
-    autoria: '',
-    fecha: '',
-    url: '',
-  },
-  {
-    id: 'p06',
-    escenario: 'elecciones',
+    numero: 4,
+    nombre: 'DERECHOS',
+    seccion: 'Carondelet',
     costo: 500,
-    pendiente: true,
-    tema: 'Nombramientos y parentescos en el CNE',
-    titular: '',
-    bajada: '',
-    autoria: '',
-    fecha: '',
-    url: '',
+    articulos: [
+      {
+        id: 'a08',
+        destacado: true,
+        pendiente: true,
+        tema: 'Estado de excepción: alcance y prórrogas',
+        titular: '', bajada: '', autoria: '', fecha: '', url: '',
+      },
+      {
+        id: 'a09',
+        pendiente: true,
+        tema: 'Restricciones al ejercicio periodístico',
+        titular: '', bajada: '', autoria: '', fecha: '', url: '',
+      },
+    ],
   },
+
+  // -------------------------------------------------------------------------
   {
-    id: 'p07',
-    escenario: 'carondelet',
-    costo: 600,
-    pendiente: true,
-    tema: 'Estado de excepción: alcance y prórrogas',
-    titular: '',
-    bajada: '',
-    autoria: '',
-    fecha: '',
-    url: '',
-  },
-  {
-    id: 'p08',
-    escenario: 'carondelet',
+    numero: 5,
+    nombre: 'SEGUIMIENTO',
+    seccion: 'La última',
     costo: 800,
-    pendiente: true,
-    tema: 'Restricciones al ejercicio periodístico',
-    titular: '',
-    bajada: '',
-    autoria: '',
-    fecha: '',
-    url: '',
-  },
-  {
-    id: 'p09',
-    escenario: 'carondelet',
-    costo: 1000,
-    pendiente: true,
-    tema: 'Seguimiento: qué pasó con los casos que abrimos',
-    titular: '',
-    bajada: '',
-    autoria: '',
-    fecha: '',
-    url: '',
+    articulos: [
+      {
+        id: 'a10',
+        destacado: true,
+        pendiente: true,
+        tema: 'Qué pasó con los casos que abrimos',
+        titular: '', bajada: '', autoria: '', fecha: '', url: '',
+      },
+    ],
   },
 ];
 
-/** Publicaciones ya cargadas con datos reales. */
-export function publicacionesListas() {
-  return PUBLICACIONES.filter((p) => !p.pendiente);
+// ---------------------------------------------------------------------------
+// CONSULTAS
+// ---------------------------------------------------------------------------
+
+/** Todos los artículos de todas las páginas, aplanados. */
+export function todosLosArticulos() {
+  return PAGINAS.flatMap((p) => p.articulos);
 }
 
-/** ¿Queda algo por rellenar? Lo usa el Archivo para avisar al equipo. */
+/** ¿Queda algo por rellenar? Lo usa el periódico para avisar al equipo. */
 export function hayPendientes() {
-  return PUBLICACIONES.some((p) => p.pendiente);
+  return todosLosArticulos().some((a) => a.pendiente);
 }
 
-/** Busca una publicación por su id. */
-export function obtenerPublicacion(id) {
-  return PUBLICACIONES.find((p) => p.id === id) ?? null;
+/** Cuántos artículos están ya cargados con datos reales. */
+export function cuantosListos() {
+  return todosLosArticulos().filter((a) => !a.pendiente).length;
+}
+
+/** Busca una página por su número. */
+export function obtenerPagina(numero) {
+  return PAGINAS.find((p) => p.numero === numero) ?? null;
 }

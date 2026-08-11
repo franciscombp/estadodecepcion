@@ -3,7 +3,7 @@
 // ============================================================================
 // Lo único que sobrevive entre partidas. Guarda en localStorage:
 //   · Papeles acumulados (la moneda de meta-progreso)
-//   · Reportajes desbloqueados (publicaciones REALES de El Mercio;
+//   · Páginas desbloqueadas del periódico (reportajes REALES de El Mercio;
 //     ver config/publicaciones.js)
 //   · Evidencias encontradas
 //   · Récords y el árbol de rutas recorridas
@@ -14,13 +14,13 @@
 // ============================================================================
 
 import { PROGRESO } from '../config/balance.js';
-import { PUBLICACIONES } from '../config/publicaciones.js';
+import { PAGINAS } from '../config/publicaciones.js';
 
 const ESTADO_INICIAL = {
   version: 1,
   totalPapeles: 0,        // Papeles disponibles para gastar
   papelesHistoricos: 0,   // Total acumulado de siempre (nunca baja)
-  publicacionesDesbloqueadas: [],
+  paginasDesbloqueadas: [],
   evidenciasEncontradas: [],
   mejorDistancia: 0,
   mejorPuntaje: 0,
@@ -88,7 +88,7 @@ export class Notebook {
    * Cierra una partida y consolida su resultado.
    * @param {{papeles:number, distancia:number, puntaje:number,
    *          evidencias:string[], ruta:string[]}} resultado
-   * @returns {{publicacionesNuevas:Array}} Lo que se desbloqueó con esta partida
+   * @returns {{paginasNuevas:Array}} Lo que se desbloqueó con esta partida
    */
   registrarPartida(resultado) {
     this.estado.totalPapeles += resultado.papeles;
@@ -113,25 +113,24 @@ export class Notebook {
       }
     }
 
-    // Desbloqueo automático por acumulación histórica.
-    const publicacionesNuevas = this._desbloquearPorAcumulacion();
+    // Desbloqueo automático: las páginas gratuitas se abren solas.
+    const paginasNuevas = this._desbloquearPorAcumulacion();
 
     this.guardar();
-    return { publicacionesNuevas };
+    return { paginasNuevas };
   }
 
   /**
-   * Desbloquea las publicaciones gratuitas. Las de costo se compran aparte,
-   * desde el Archivo.
+   * Abre las páginas gratuitas. Las de costo se compran desde el periódico.
    */
   _desbloquearPorAcumulacion() {
     const nuevas = [];
 
-    for (const pub of PUBLICACIONES) {
-      if (this.estado.publicacionesDesbloqueadas.includes(pub.id)) continue;
-      if (pub.costo === 0) {
-        this.estado.publicacionesDesbloqueadas.push(pub.id);
-        nuevas.push(pub);
+    for (const pagina of PAGINAS) {
+      if (this.estado.paginasDesbloqueadas.includes(pagina.numero)) continue;
+      if (pagina.costo === 0) {
+        this.estado.paginasDesbloqueadas.push(pagina.numero);
+        nuevas.push(pagina);
       }
     }
 
@@ -139,42 +138,47 @@ export class Notebook {
   }
 
   // -------------------------------------------------------------------------
-  // PUBLICACIONES
+  // PÁGINAS DEL PERIÓDICO
   // -------------------------------------------------------------------------
 
-  /** ¿Está desbloqueado este reportaje? */
-  estaDesbloqueada(idPublicacion) {
-    return this.estado.publicacionesDesbloqueadas.includes(idPublicacion);
+  /** ¿Está desbloqueada esta página? */
+  estaDesbloqueada(numeroPagina) {
+    return this.estado.paginasDesbloqueadas.includes(numeroPagina);
   }
 
   /**
-   * Gasta papeles para desbloquear un reportaje.
+   * Gasta papeles para desbloquear una página del periódico.
    * @returns {{exito:boolean, motivo?:string}}
    */
-  desbloquearPublicacion(idPublicacion) {
-    const pub = PUBLICACIONES.find((p) => p.id === idPublicacion);
-    if (!pub) return { exito: false, motivo: 'No existe.' };
-    if (this.estaDesbloqueada(idPublicacion)) return { exito: false, motivo: 'Ya lo tienes.' };
+  desbloquearPagina(numeroPagina) {
+    const pagina = PAGINAS.find((p) => p.numero === numeroPagina);
+    if (!pagina) return { exito: false, motivo: 'No existe.' };
+    if (this.estaDesbloqueada(numeroPagina)) return { exito: false, motivo: 'Ya la tienes.' };
 
-    if (this.estado.totalPapeles < pub.costo) {
-      const faltan = pub.costo - this.estado.totalPapeles;
-      return { exito: false, motivo: `Te faltan ${faltan} papeles.` };
+    if (this.estado.totalPapeles < pagina.costo) {
+      const faltan = pagina.costo - this.estado.totalPapeles;
+      return { exito: false, motivo: `Te faltan ${faltan} papeles` };
     }
 
-    this.estado.totalPapeles -= pub.costo;
-    this.estado.publicacionesDesbloqueadas.push(idPublicacion);
+    this.estado.totalPapeles -= pagina.costo;
+    this.estado.paginasDesbloqueadas.push(numeroPagina);
     this.guardar();
 
     return { exito: true };
   }
 
-  /** Lista completa de reportajes con su estado, para pintar el Archivo. */
-  listarPublicaciones() {
-    return PUBLICACIONES.map((pub) => ({
-      ...pub,
-      desbloqueada: this.estaDesbloqueada(pub.id),
-      alcanzable: this.estado.totalPapeles >= pub.costo,
+  /** Todas las páginas con su estado, para maquetar el periódico. */
+  listarPaginas() {
+    return PAGINAS.map((pagina) => ({
+      ...pagina,
+      desbloqueada: this.estaDesbloqueada(pagina.numero),
+      alcanzable: this.estado.totalPapeles >= pagina.costo,
     }));
+  }
+
+  /** Cuántas páginas lleva abiertas, para el resumen del ejemplar. */
+  get paginasAbiertas() {
+    return this.estado.paginasDesbloqueadas.length;
   }
 
   // -------------------------------------------------------------------------
@@ -195,10 +199,10 @@ export class Notebook {
     this.guardar();
   }
 
-  /** El siguiente reportaje comprable, para orientar al jugador. */
-  proximaPublicacion() {
-    return PUBLICACIONES
-      .filter((p) => !this.estaDesbloqueada(p.id))
+  /** La siguiente página comprable, para orientar al jugador. */
+  proximaPagina() {
+    return PAGINAS
+      .filter((p) => !this.estaDesbloqueada(p.numero))
       .sort((a, b) => a.costo - b.costo)[0] ?? null;
   }
 

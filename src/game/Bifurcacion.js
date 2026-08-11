@@ -23,7 +23,11 @@
 
 import * as THREE from 'three';
 import { CARRILES } from '../config/balance.js';
-import { crearPorticoBifurcacion, crearFlechaAsfalto } from '../models/props.js';
+import {
+  crearPorticoBifurcacion,
+  crearFlechaAsfalto,
+  crearCaminosBifurcacion,
+} from '../models/props.js';
 import { obtenerEscenario } from '../config/escenarios.js';
 import { COLOR3D } from '../config/estilo.js';
 
@@ -35,6 +39,7 @@ export class Bifurcacion {
 
     this.activa = false;       // ¿Hay un pórtico en pista?
     this.portico = null;
+    this.caminos = null;       // Los tres ramales que se abren
     this.flechas = [];
     this.z = 0;                // Posición del pórtico
 
@@ -80,9 +85,23 @@ export class Bifurcacion {
       centroEsPeligro,
     );
 
+    // Los tres ramales físicos. Arrancan justo donde está el pórtico: al
+    // cruzarlo, el jugador ya está sobre uno de ellos.
+    this.caminos = crearCaminosBifurcacion(
+      {
+        izquierda: izquierda.nombre,
+        centro: textoCentro,
+        derecha: derecha.nombre,
+      },
+      colores,
+      centroEsPeligro,
+    );
+
     this.z = -distancia;
     this.portico.position.z = this.z;
+    this.caminos.position.z = this.z;
     this.grupo.add(this.portico);
+    this.grupo.add(this.caminos);
 
     // Flechas en el asfalto, repartidas por el corredor de aproximación.
     // Se repiten cada 14 unidades para que siempre haya una a la vista.
@@ -129,6 +148,7 @@ export class Bifurcacion {
 
     this.z += avance;
     this.portico.position.z = this.z;
+    if (this.caminos) this.caminos.position.z = this.z;
 
     for (const flecha of this.flechas) {
       flecha.position.z += avance;
@@ -179,13 +199,15 @@ export class Bifurcacion {
   // -------------------------------------------------------------------------
 
   limpiar() {
-    if (this.portico) {
-      this.grupo.remove(this.portico);
-      this.portico.traverse((o) => {
+    for (const clave of ['portico', 'caminos']) {
+      const obj = this[clave];
+      if (!obj) continue;
+      this.grupo.remove(obj);
+      obj.traverse((o) => {
         if (o.geometry) o.geometry.dispose();
         if (o.material) o.material.dispose();
       });
-      this.portico = null;
+      this[clave] = null;
     }
 
     for (const flecha of this.flechas) {

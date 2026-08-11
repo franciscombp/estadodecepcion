@@ -130,12 +130,19 @@ navegador para trastear en vivo.
         └─ CARONDELET ┘
 ```
 
-**La bifurcación ocurre corriendo, no en un menú.** Al final de cada tramo
-aparece un pórtico con un cartel por carril, y el carril en el que lo cruces
-decide la ruta —como en Temple Run:
+**La bifurcación ocurre corriendo, no en un menú.** Al final de cada tramo la
+calle **se abre físicamente en tres ramales**, con isletas de hormigón
+separándolos y un pórtico con un cartel por carril. El carril en el que lo
+cruces decide la ruta —como en Temple Run:
 
-- **Izquierda / derecha** → el escenario vecino, sin parar el juego
-- **Centro** → la institución, que abre la ruleta
+- **Izquierda / derecha** → el ramal se va en ángulo hacia el escenario vecino
+- **Centro** → sigue recto y termina en la fachada de la institución, que abre
+  la ruleta
+
+Que el ramal central acabe en un edificio resuelve dos cosas: la calle recta
+tiene un final visible en vez de perderse en la niebla, y queda claro que ir
+de frente es *entrar a un sitio*, no seguir corriendo. En Carondelet ese
+edificio es un cerco militar.
 
 El corredor de aproximación se vacía de obstáculos a propósito: obligar a
 esquivar mientras decides convierte una decisión en un accidente.
@@ -192,24 +199,39 @@ const buffer = await cache.obtenerOBajar('noboa.glb', '/assets/models/noboa.glb'
 
 ---
 
-## El Archivo: reportajes reales
+## El Archivo: el periódico que armas
 
-Lo que se desbloquea gastando papeles **no es ficción**: son reportajes
-publicados de verdad por El Mercio, con su titular, su firma, su fecha y su
-enlace. El juego es sátira; el premio por jugarlo es periodismo.
+El Archivo no es una lista de premios: es **un ejemplar de El Mercio que el
+jugador monta página a página**. Cada página cuesta papeles y trae reportajes
+**reales**, publicados de verdad, con su firma y su enlace.
 
-⚠️ **Hay que rellenarlo.** `src/config/publicaciones.js` viene con nueve huecos
-marcados `pendiente: true`, cada uno con el tema que le corresponde según el
-escenario. No inventé titulares ni enlaces: un reportaje falso con pinta de
-real es exactamente lo que este juego critica, y bastaría una captura para que
-circulara como si El Mercio lo hubiera publicado.
+Rompe a propósito con la estética del resto del juego —papel crema y
+tipografía con remates, en vez de neón sobre negro—. Es lo único que no es
+sátira, y el cambio de piel lo dice sin explicarlo.
 
-Mientras un hueco siga pendiente, el Archivo muestra su tema y un sello de
-"EN PREPARACIÓN" en vez de fingir contenido. Para cargar una pieza real:
+Cinco páginas: Portada (gratis), Energía (150), Política (300), Derechos (500)
+y Seguimiento (800).
+
+⚠️ **Hay que rellenarlo.** Los diez artículos vienen marcados
+`pendiente: true` y sin titular. No inventé ninguno: un reportaje falso con
+pinta de real es exactamente lo que este juego critica, y bastaría una captura
+para que circulara como si El Mercio lo hubiera publicado.
+
+Mientras un artículo siga pendiente, el periódico **reserva su espacio** con el
+tema y un sello — igual que un diario que guarda hueco para una pieza que aún
+no cierra. Para cargar una real, en `src/config/publicaciones.js`:
 
 1. Pon `pendiente: false`
 2. Rellena `titular`, `bajada`, `autoria`, `fecha` y `url`
-3. Ajusta `costo` si quieres cambiar el precio en papeles
+3. Si es la pieza principal de su página, déjale `destacado: true`
+
+En desarrollo puedes probar un titular sin comitearlo:
+
+```js
+Object.assign(__paginas[0].articulos[0], {
+  pendiente: false, titular: '…', bajada: '…', url: '…',
+})
+```
 
 Regla de la casa: si no tiene enlace comprobable, no entra.
 

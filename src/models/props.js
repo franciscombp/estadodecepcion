@@ -1017,6 +1017,266 @@ export function crearPorticoBifurcacion(destinos, colores, centroEsPeligro = fal
 }
 
 /**
+ * LOS TRES CAMINOS — el desvío físico.
+ *
+ * La carretera se abre de verdad en tres ramales que divergen, con isletas
+ * de hormigón separándolos. No son tres carriles pintados: son tres calles.
+ *
+ * El ramal CENTRAL sigue recto y termina en la fachada de la institución
+ * (Fiscalía, Asamblea, CNE…), lo que resuelve dos problemas de golpe:
+ *   · la calle recta tiene un final visible en vez de perderse en la niebla
+ *   · queda claro que ir de frente es entrar a un edificio, no seguir corriendo
+ *
+ * Los laterales se van en ángulo y se pierden en la niebla, que es justo la
+ * sensación que se busca: no sabes qué hay allá, solo a dónde lleva.
+ *
+ * @param {{izquierda:string, centro:string, derecha:string}} destinos
+ * @param {boolean} centroEsPeligro Si ir de frente mata (Carondelet)
+ */
+export function crearCaminosBifurcacion(destinos, colores, centroEsPeligro = false) {
+  const g = new THREE.Group();
+
+  const ANGULO = 0.34;          // ~19°: se lee como desvío sin desaparecer.
+  const LARGO = 95;
+  const ANCHO_RAMAL = CARRILES.ANCHO * 1.35;
+
+  const matAsfalto = new THREE.MeshStandardMaterial({
+    color: colores.calle ?? COLOR3D.asfalto,
+    roughness: 0.92,
+    metalness: 0.05,
+  });
+
+  const matBordillo = mat(0x3a4152, 0.04, 0.9);
+  const matLinea = neon(colores.acento ?? COLOR3D.dorado, 1.2);
+
+  // --- Los tres ramales ----------------------------------------------------
+  const ramales = [
+    { signo: -1, x: CARRILES.POSICIONES[0] },
+    { signo: 0, x: 0 },
+    { signo: 1, x: CARRILES.POSICIONES[2] },
+  ];
+
+  for (const r of ramales) {
+    const ramal = new THREE.Group();
+
+    const calzada = new THREE.Mesh(
+      new THREE.PlaneGeometry(ANCHO_RAMAL, LARGO),
+      matAsfalto,
+    );
+    calzada.rotation.x = -Math.PI / 2;
+    // El plano se ancla por su centro: lo empujamos media longitud hacia -Z
+    // para que arranque exactamente en el punto de bifurcación.
+    calzada.position.z = -LARGO / 2;
+    ramal.add(calzada);
+
+    // Bordillos a los lados del ramal.
+    for (const s of [-1, 1]) {
+      const bordillo = new THREE.Mesh(
+        new THREE.BoxGeometry(0.34, 0.3, LARGO),
+        matBordillo,
+      );
+      bordillo.position.set(s * (ANCHO_RAMAL / 2), 0.15, -LARGO / 2);
+      ramal.add(bordillo);
+    }
+
+    // Eje central discontinuo, para que el ramal se lea como calle.
+    for (let i = 0; i < 14; i++) {
+      const trazo = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 2.4), matLinea);
+      trazo.rotation.x = -Math.PI / 2;
+      trazo.position.set(0, 0.03, -4 - i * 6.5);
+      ramal.add(trazo);
+    }
+
+    ramal.position.x = r.x;
+    ramal.rotation.y = r.signo * ANGULO;
+    g.add(ramal);
+  }
+
+  // --- Isletas entre ramales -----------------------------------------------
+  // Cuñas de hormigón que ocupan el hueco que dejan los ramales al abrirse.
+  // Además de separar, tapan la calle recta que sigue por debajo.
+  for (const signo of [-1, 1]) {
+    const isleta = new THREE.Group();
+
+    // OJO CON EL SIGNO. Al girar la forma -90° sobre X, su eje Y se mapea a
+    // -Z del mundo: un vértice en Y negativa acaba DETRÁS del jugador. Por eso
+    // el lado ancho de la cuña se define en Y positiva.
+    const forma = new THREE.Shape();
+    forma.moveTo(0, 0);
+    forma.lineTo(2.1, LARGO * 0.72);
+    forma.lineTo(-2.1, LARGO * 0.72);
+    forma.closePath();
+
+    const cuna = new THREE.Mesh(
+      new THREE.ShapeGeometry(forma),
+      mat(0x2a3040, 0.03, 0.95),
+    );
+    cuna.rotation.x = -Math.PI / 2;
+    cuna.position.y = 0.06;
+    isleta.add(cuna);
+
+    // Morro de la isleta: lo primero que ve el jugador del desvío.
+    const morro = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.42, 0.5, 0.85, 7),
+      mat(0xd8d2c4, 0.12, 0.85),
+    );
+    morro.position.y = 0.42;
+    isleta.add(morro);
+
+    const franjaMorro = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.52, 0.52, 0.16, 7),
+      neon(NEON.ambar, 1.8),
+    );
+    franjaMorro.position.y = 0.55;
+    isleta.add(franjaMorro);
+
+    // Balizas en fila, marcando el filo de la isleta.
+    for (let i = 1; i <= 6; i++) {
+      const baliza = new THREE.Mesh(
+        new THREE.SphereGeometry(0.13, 6, 5),
+        neon(NEON.ambar, 1.6),
+      );
+      baliza.position.set(0, 0.5, -i * 9);
+      isleta.add(baliza);
+    }
+
+    // Palmeras en la isleta: es Ecuador, hasta las medianas tienen palmeras.
+    for (let i = 0; i < 2; i++) {
+      const palmera = crearPalmera(4 + Math.random() * 2);
+      palmera.scale.setScalar(0.8);
+      palmera.position.set(0, 0, -14 - i * 22);
+      isleta.add(palmera);
+    }
+
+    isleta.position.x = signo * (CARRILES.ANCHO / 2 + 0.35);
+    isleta.position.z = -1.5;
+    g.add(isleta);
+  }
+
+  // --- Fachada de la institución al fondo del ramal central -----------------
+  const fachada = crearFachadaInstitucion(
+    destinos.centro,
+    colores,
+    centroEsPeligro,
+  );
+  fachada.position.z = -LARGO * 0.82;
+  g.add(fachada);
+
+  return g;
+}
+
+/**
+ * Fachada del edificio institucional que cierra el ramal central.
+ * En Carondelet no es un edificio sino un cerco militar: mismo papel visual
+ * —cerrar la calle— pero con lectura opuesta.
+ */
+function crearFachadaInstitucion(nombre, colores, esCerco) {
+  const g = new THREE.Group();
+  const ancho = 16;
+  const alto = esCerco ? 4.5 : 11;
+
+  const cuerpo = new THREE.Mesh(
+    new THREE.BoxGeometry(ancho, alto, 4),
+    mat(esCerco ? 0x2a2228 : 0x3b3f4d, 0.04, 0.92),
+  );
+  cuerpo.position.y = alto / 2;
+  g.add(cuerpo);
+
+  if (esCerco) {
+    // Muro bajo con concertina y luces de emergencia. No se entra.
+    for (let i = -3; i <= 3; i++) {
+      const rollo = new THREE.Mesh(
+        new THREE.TorusGeometry(0.45, 0.06, 4, 10),
+        mat(0x9aa4b8, 0.3, 0.4),
+      );
+      rollo.position.set(i * 2.1, alto + 0.4, 1.6);
+      rollo.rotation.y = Math.PI / 2;
+      g.add(rollo);
+    }
+    for (const s of [-1, 1]) {
+      const luz = new THREE.Mesh(
+        new THREE.BoxGeometry(1.1, 0.22, 0.3),
+        neon(NEON.rojo, 1.9),
+      );
+      luz.position.set(s * 5, alto * 0.7, 2.05);
+      g.add(luz);
+    }
+  } else {
+    // Edificio institucional: columnas, escalinata y rótulo iluminado.
+    for (let i = -3; i <= 3; i++) {
+      const columna = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.42, 0.46, alto * 0.62, 8),
+        mat(0xd8d2c4, 0.1, 0.85),
+      );
+      columna.position.set(i * 2.2, alto * 0.31, 2.1);
+      g.add(columna);
+    }
+
+    // Frontón.
+    const fronton = new THREE.Mesh(
+      new THREE.BoxGeometry(ancho * 0.92, 1.1, 1.4),
+      mat(0xd8d2c4, 0.1, 0.85),
+    );
+    fronton.position.set(0, alto * 0.68, 2.1);
+    g.add(fronton);
+
+    // Escalinata.
+    for (let i = 0; i < 3; i++) {
+      const peldano = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho * 0.8 - i * 0.6, 0.18, 1.2 - i * 0.3),
+        mat(0xc4bfb2, 0.08, 0.9),
+      );
+      peldano.position.set(0, 0.09 + i * 0.18, 3.4 - i * 0.35);
+      g.add(peldano);
+    }
+
+    // Rótulo con el nombre de la institución. Ignora la niebla, como los
+    // carteles del pórtico: tiene que leerse desde lejos.
+    const tex = textura(`fachada:${nombre}`, (ctx, w, h) => {
+      ctx.fillStyle = '#0d1220';
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#ffcf3f';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      let tam = 74;
+      do {
+        ctx.font = `900 ${tam}px system-ui, sans-serif`;
+        tam -= 2;
+      } while (ctx.measureText(nombre).width > w - 50 && tam > 16);
+      ctx.fillText(nombre, w / 2, h / 2);
+    }, 640, 140);
+
+    const rotulo = new THREE.Mesh(
+      new THREE.BoxGeometry(ancho * 0.78, 1.5, 0.12),
+      new THREE.MeshStandardMaterial({
+        map: tex,
+        emissive: 0xffffff,
+        emissiveMap: tex,
+        emissiveIntensity: 0.9,
+        roughness: 0.4,
+        toneMapped: false,
+        fog: false,
+      }),
+    );
+    rotulo.position.set(0, alto * 0.86, 2.15);
+    g.add(rotulo);
+
+    // Ventanas encendidas: a estas horas siempre hay alguien trabajando.
+    const matVentana = neon(0xffe9b0, 1.2);
+    for (let fila = 0; fila < 2; fila++) {
+      for (let col = -3; col <= 3; col++) {
+        if (Math.random() > 0.55) continue;
+        const v = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.9, 0.06), matVentana);
+        v.position.set(col * 2.2, alto * 0.42 + fila * 1.5, 2.02);
+        g.add(v);
+      }
+    }
+  }
+
+  return g;
+}
+
+/**
  * Flecha pintada en el asfalto. Marca en el suelo lo mismo que dice el cartel,
  * para que el jugador no tenga que levantar la vista mientras se coloca.
  */

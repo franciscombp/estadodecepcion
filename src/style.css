@@ -1453,125 +1453,361 @@ html, body {
   .panel--hint { display: none; }
 }
 
+
 /* ==========================================================================
-   RECORTES DE PRENSA — El Archivo
+   EL PERIÓDICO — El Archivo
    ==========================================================================
-   Los reportajes se pintan como recortes de periódico. La tipografía cambia a
-   serif a propósito: es lo único del juego que NO es sátira, y el contraste
-   con el resto de la interfaz lo señala sin necesidad de explicarlo.
+   Rompe a propósito con el resto del juego: papel crema y tipografía con
+   remates, en vez de neón sobre negro.
+
+   Es el único sitio donde el contenido NO es sátira —son reportajes reales—
+   y el cambio de piel lo dice sin tener que explicarlo. El jugador pasa de
+   la calle al papel.
    ========================================================================== */
 
-.recorte {
-  padding: 16px 17px;
-  border-radius: var(--r);
-  border: 2px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  text-align: left;
+:root {
+  --papel: #f2ece0;
+  --papel-sombra: #e2d9c8;
+  --tinta: #14110c;
+  --tinta-media: #4a4338;
+  --tinta-tenue: #857b6c;
+  --rojo-diario: #b3121f;
+  --serif: Georgia, 'Times New Roman', 'Iowan Old Style', serif;
 }
 
-.recorte--abierto {
-  border-color: rgba(var(--dorado-rgb), 0.3);
+/* Sobre el fondo oscuro, el papel se lee como un objeto físico encima. */
+.pantalla--periodico {
   background:
-    linear-gradient(180deg, rgba(var(--dorado-rgb), 0.06), transparent 60%),
-    rgba(255, 255, 255, 0.035);
+    radial-gradient(ellipse at 50% 0%, rgba(0, 0, 0, .5), transparent 60%),
+    linear-gradient(165deg, #12100c, #070604);
 }
 
-.recorte__cintillo {
+.diario {
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: var(--serif);
+  padding: clamp(16px, 5vw, 26px);
+  border-radius: 3px;
+  text-align: left;
+  /* Sombra dura y baja: papel apoyado, no tarjeta flotante. */
+  box-shadow:
+    0 2px 0 var(--papel-sombra),
+    0 18px 44px rgba(0, 0, 0, .65);
+  /* Grano sutil: sin esto el papel se ve como un rectángulo de color. */
+  background-image:
+    radial-gradient(rgba(90, 76, 52, .05) 1px, transparent 1px),
+    radial-gradient(rgba(90, 76, 52, .04) 1px, transparent 1px);
+  background-size: 7px 7px, 11px 11px;
+  background-position: 0 0, 3px 4px;
+  animation: papel-entra var(--t-medio) var(--rebote);
+}
+
+@keyframes papel-entra {
+  from { opacity: 0; transform: translateY(10px) rotate(-.35deg); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* --- Mancheta ------------------------------------------------------------- */
+
+.diario__cabecera {
+  border-bottom: 3px double var(--tinta);
+  padding-bottom: 10px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.diario__nombre {
+  font-family: var(--serif);
+  font-size: clamp(2.1rem, 11vw, 3.6rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin: 4px 0;
+  /* Las mayúsculas con mucho peso son la firma de una cabecera de diario. */
+  text-transform: uppercase;
+}
+
+.diario__lema {
+  font-size: clamp(.56rem, 2.3vw, .68rem);
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--tinta-media);
+  font-family: var(--tipo);
+  font-weight: 700;
+}
+
+.diario__franja {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  gap: 10px;
-  padding-bottom: 8px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
-}
-
-.recorte__seccion {
-  font-size: clamp(0.46rem, 1.9vw, 0.56rem);
-  font-weight: 800;
-  letter-spacing: 0.18em;
+  gap: 8px;
+  margin-top: 9px;
+  padding-top: 7px;
+  border-top: 1px solid var(--tinta);
+  font-family: var(--tipo);
+  font-size: clamp(.5rem, 2vw, .6rem);
+  letter-spacing: .1em;
   text-transform: uppercase;
-  color: var(--dorado);
+  color: var(--tinta-media);
+  font-weight: 700;
 }
 
-.recorte__fecha {
-  font-size: clamp(0.46rem, 1.9vw, 0.56rem);
+.diario__franja--interior { border-top: 0; padding-top: 0; }
+
+.diario__seccion {
+  font-size: clamp(1.1rem, 5vw, 1.5rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-top: 6px;
+  color: var(--rojo-diario);
+}
+
+/* --- Artículos ------------------------------------------------------------ */
+
+.diario__cuerpo { display: flex; flex-direction: column; gap: 16px; }
+
+.diario__columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--tinta-tenue);
+}
+
+/* Filete entre columnas, como en una página real. */
+.diario__columnas .articulo + .articulo {
+  border-left: 1px solid var(--tinta-tenue);
+  padding-left: 15px;
+}
+
+@media (max-width: 480px) {
+  .diario__columnas .articulo + .articulo {
+    border-left: 0;
+    padding-left: 0;
+    border-top: 1px solid var(--tinta-tenue);
+    padding-top: 14px;
+  }
+}
+
+.articulo__antetitulo {
+  font-family: var(--tipo);
+  font-size: clamp(.5rem, 2vw, .6rem);
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--rojo-diario);
+  margin-bottom: 5px;
+}
+
+.articulo__titular {
+  font-family: var(--serif);
+  font-size: clamp(1.05rem, 4.6vw, 1.3rem);
   font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--texto-debil);
+  line-height: 1.18;
+  margin-bottom: 7px;
+}
+
+.articulo--destacado .articulo__titular {
+  font-size: clamp(1.5rem, 7.5vw, 2.2rem);
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+}
+
+.articulo__bajada {
+  font-size: clamp(.84rem, 3.4vw, .96rem);
+  line-height: 1.52;
+  color: var(--tinta-media);
+}
+
+/* Capitular en la pieza principal: el gesto más reconocible del papel. */
+.articulo--destacado .articulo__bajada::first-letter {
+  float: left;
+  font-size: 3.1em;
+  line-height: .82;
+  padding: 3px 7px 0 0;
+  font-weight: 700;
+  color: var(--rojo-diario);
+}
+
+.articulo__firma {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 9px;
+  font-family: var(--tipo);
+  font-size: clamp(.54rem, 2.2vw, .64rem);
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--tinta-tenue);
+}
+
+.articulo__enlace {
+  display: inline-block;
+  margin-top: 11px;
+  font-family: var(--tipo);
+  font-size: clamp(.68rem, 2.7vw, .78rem);
+  font-weight: 800;
+  color: var(--rojo-diario);
+  text-decoration: none;
+  border-bottom: 2px solid var(--rojo-diario);
+  padding-bottom: 1px;
+}
+
+/* Hueco reservado para una pieza que aún no cierra. Es lo que hace un diario
+   de verdad: guarda el espacio, no lo rellena con cualquier cosa. */
+.articulo__reservado {
+  display: inline-block;
+  padding: 5px 11px;
+  margin-bottom: 8px;
+  border: 1px dashed var(--tinta-tenue);
+  font-family: var(--tipo);
+  font-size: clamp(.54rem, 2.2vw, .64rem);
+  font-weight: 900;
+  letter-spacing: .14em;
+  color: var(--tinta-tenue);
+}
+
+.articulo__cuerpo {
+  font-size: clamp(.8rem, 3.2vw, .9rem);
+  line-height: 1.5;
+  color: var(--tinta-media);
+  font-style: italic;
+}
+
+/* --- Página sin recuperar ------------------------------------------------- */
+
+.pagina-cerrada {
+  text-align: center;
+  padding: clamp(20px, 7vw, 34px) 16px;
+  border: 2px dashed var(--tinta-tenue);
+  /* Papel más apagado: se ve que falta, no que esté vacío. */
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 9px,
+    rgba(133, 123, 108, .07) 9px 18px
+  );
+}
+
+.pagina-cerrada__sello {
+  display: inline-block;
+  padding: 5px 13px;
+  border: 2px solid var(--rojo-diario);
+  color: var(--rojo-diario);
+  font-family: var(--tipo);
+  font-size: clamp(.52rem, 2.1vw, .62rem);
+  font-weight: 900;
+  letter-spacing: .16em;
+  /* Sello estampado torcido, como los de archivo. */
+  transform: rotate(-4deg);
+  margin-bottom: 14px;
+}
+
+.pagina-cerrada__titulo {
+  font-family: var(--serif);
+  font-size: clamp(1.4rem, 6.5vw, 2rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.pagina-cerrada__temas {
+  list-style: none;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pagina-cerrada__temas li {
+  font-size: clamp(.8rem, 3.2vw, .9rem);
+  color: var(--tinta-media);
+  font-style: italic;
+}
+
+.pagina-cerrada__temas li::before { content: '— '; color: var(--tinta-tenue); }
+
+.pagina-cerrada__precio {
+  font-family: var(--tipo);
+  font-size: clamp(1.1rem, 5vw, 1.4rem);
+  font-weight: 900;
+  color: var(--rojo-diario);
+  margin-bottom: 12px;
   font-variant-numeric: tabular-nums;
 }
 
-.recorte__titular {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(1rem, 4.2vw, 1.24rem);
-  font-weight: 700;
-  line-height: 1.22;
-  color: var(--texto);
-  margin-bottom: 6px;
+.pagina-cerrada__ayuda {
+  margin-top: 10px;
+  font-family: var(--tipo);
+  font-size: clamp(.6rem, 2.4vw, .7rem);
+  color: var(--tinta-tenue);
 }
 
-.recorte__titular--oculto {
-  color: var(--texto-debil);
-  font-style: italic;
-  font-weight: 400;
+/* Dentro del papel, el botón se viste de tinta. */
+.diario .boton--comprar {
+  background: var(--rojo-diario);
+  border-color: var(--rojo-diario);
+  color: var(--papel);
+  font-family: var(--tipo);
+  padding: 13px 22px;
+  min-height: 46px;
 }
 
-.recorte__bajada {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(0.78rem, 3.1vw, 0.9rem);
-  line-height: 1.5;
-  color: var(--texto-tenue);
+.diario .boton--comprar:disabled { opacity: .35; }
+
+@media (hover: hover) {
+  .diario .boton--comprar:hover:not(:disabled) { background: #8d0e18; }
 }
 
-.recorte__pie {
+/* --- Paginador ------------------------------------------------------------ */
+
+.paginador {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 12px;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 3px double var(--tinta);
 }
 
-.recorte__firma {
-  font-size: clamp(0.6rem, 2.4vw, 0.7rem);
+.paginador__pag {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--tinta-tenue);
+  background: transparent;
+  color: var(--tinta-media);
+  font-family: var(--serif);
+  font-size: 1rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--texto-debil);
+  cursor: pointer;
+  transition: all var(--t-rapido);
 }
 
-.recorte__costo {
-  font-size: clamp(0.66rem, 2.6vw, 0.76rem);
-  font-weight: 800;
-  color: var(--texto-tenue);
+.paginador__pag--actual {
+  background: var(--tinta);
+  border-color: var(--tinta);
+  color: var(--papel);
 }
 
-.recorte__enlace {
-  font-size: clamp(0.7rem, 2.8vw, 0.82rem);
-  font-weight: 800;
-  color: var(--dorado);
-  text-decoration: none;
-  padding: 7px 13px;
-  border-radius: 8px;
-  border: 1px solid rgba(var(--dorado-rgb), 0.35);
-  background: rgba(var(--dorado-rgb), 0.09);
-  transition: background-color var(--t-rapido);
+/* Página cerrada: la esquina doblada dice que está por abrir. */
+.paginador__pag--cerrada {
+  color: var(--tinta-tenue);
+  border-style: dashed;
+  position: relative;
+}
+
+.paginador__pag--cerrada::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  border: 7px solid transparent;
+  border-top-color: var(--tinta-tenue);
+  border-right-color: var(--tinta-tenue);
+  opacity: .55;
 }
 
 @media (hover: hover) {
-  .recorte__enlace:hover { background: rgba(var(--dorado-rgb), 0.2); }
-}
-
-/* Sello de "en preparación": el hueco existe pero la pieza aún no. */
-.recorte__sello {
-  display: inline-block;
-  margin-top: 11px;
-  padding: 4px 11px;
-  border-radius: 5px;
-  border: 1px dashed rgba(var(--cian-rgb), 0.45);
-  color: var(--cian);
-  font-size: clamp(0.54rem, 2.2vw, 0.64rem);
-  font-weight: 900;
-  letter-spacing: 0.14em;
+  .paginador__pag:hover { border-color: var(--tinta); color: var(--tinta); }
+  .paginador__pag--actual:hover { color: var(--papel); }
 }

@@ -12,7 +12,7 @@
 // ============================================================================
 
 import { obtenerEscenario, ORDEN_ESCENARIOS } from '../config/escenarios.js';
-import { hayPendientes } from '../config/publicaciones.js';
+import { CABECERA, hayPendientes, cuantosListos } from '../config/publicaciones.js';
 import * as Icono from './iconos.js';
 
 // ---------------------------------------------------------------------------
@@ -322,19 +322,16 @@ export class Pantallas {
       contenido.appendChild(lista);
     }
 
-    // --- Reportajes desbloqueados -----------------------------------------
-    if (datos.publicacionesNuevas?.length > 0) {
+    // --- Páginas recuperadas ----------------------------------------------
+    if (datos.paginasNuevas?.length > 0) {
       const lista = el('div', 'lista');
-      lista.appendChild(el('div', 'lista__titulo', 'Desbloqueaste en el Archivo'));
-      contenido.appendChild(lista);
-
-      const fichas = el('div', 'fichas');
-      for (const pub of datos.publicacionesNuevas) {
-        fichas.appendChild(this._recorte({
-          ...pub, desbloqueada: true, alcanzable: true,
-        }));
+      lista.appendChild(el('div', 'lista__titulo', 'Recuperaste del periódico'));
+      const fila = el('div', 'lista__fila');
+      for (const pag of datos.paginasNuevas) {
+        fila.appendChild(el('span', 'nodo', `Pág. ${pag.numero} · ${pag.nombre}`));
       }
-      contenido.appendChild(fichas);
+      lista.appendChild(fila);
+      contenido.appendChild(lista);
     }
 
     const botones = el('div', 'botones');
@@ -358,195 +355,214 @@ export class Pantallas {
     return fila;
   }
 
-  /**
-   * Pinta un reportaje como recorte de prensa.
-   *
-   * Tres estados posibles:
-   *   · desbloqueado y cargado → titular, bajada, firma y enlace al artículo
-   *   · desbloqueado pero PENDIENTE → el tema, con aviso de que falta cargarlo
-   *   · bloqueado → solo el tema y el precio en papeles
-   *
-   * El estado "pendiente" existe porque no se inventan reportajes: si la pieza
-   * real todavía no está enlazada, el Archivo lo dice en vez de fingirla.
-   */
-  _recorte(pub) {
-    const abierta = pub.desbloqueada;
-    const recorte = el('article',
-      `recorte ${abierta ? 'recorte--abierto' : 'recorte--cerrado'}`);
-
-    // Cintillo: sección (escenario) y fecha.
-    const cintillo = el('div', 'recorte__cintillo');
-    cintillo.appendChild(el('span', 'recorte__seccion',
-      obtenerEscenario(pub.escenario).nombre));
-    if (abierta && !pub.pendiente && pub.fecha) {
-      cintillo.appendChild(el('span', 'recorte__fecha', pub.fecha));
-    }
-    recorte.appendChild(cintillo);
-
-    if (!abierta) {
-      // Bloqueado: se enseña el tema para que el jugador sepa qué compra.
-      recorte.appendChild(el('h3', 'recorte__titular recorte__titular--oculto',
-        pub.tema));
-      recorte.appendChild(el('p', 'recorte__bajada',
-        'Sin desbloquear. Hacen falta papeles.'));
-
-      const pie = el('div', 'recorte__pie');
-      pie.appendChild(el('span', 'recorte__costo',
-        `${pub.costo.toLocaleString('es-EC')} papeles`));
-
-      const btn = boton('Desbloquear', 'boton--comprar', () => {
-        const res = this.cuaderno.desbloquearPublicacion(pub.id);
-        if (res.exito) {
-          this.audio.evidencia();
-          this.mostrar(this.notebook());
-        } else {
-          btn.textContent = res.motivo;
-          setTimeout(() => { btn.textContent = 'Desbloquear'; }, 1800);
-        }
-      });
-      btn.disabled = !pub.alcanzable;
-      pie.appendChild(btn);
-      recorte.appendChild(pie);
-      return recorte;
-    }
-
-    if (pub.pendiente) {
-      // Desbloqueado pero la pieza real aún no está cargada.
-      recorte.appendChild(el('h3', 'recorte__titular', pub.tema));
-      recorte.appendChild(el('p', 'recorte__bajada',
-        'Reportaje por publicar. Cuando salga, aparecerá aquí con su enlace.'));
-      recorte.appendChild(el('span', 'recorte__sello', 'EN PREPARACIÓN'));
-      return recorte;
-    }
-
-    // Desbloqueado y cargado: la pieza real.
-    recorte.appendChild(el('h3', 'recorte__titular', pub.titular));
-    if (pub.bajada) recorte.appendChild(el('p', 'recorte__bajada', pub.bajada));
-
-    const pie = el('div', 'recorte__pie');
-    if (pub.autoria) pie.appendChild(el('span', 'recorte__firma', pub.autoria));
-
-    if (pub.url) {
-      const enlace = el('a', 'recorte__enlace', 'Leer en El Mercio →');
-      enlace.href = pub.url;
-      enlace.target = '_blank';
-      enlace.rel = 'noopener noreferrer';
-      pie.appendChild(enlace);
-    }
-    recorte.appendChild(pie);
-
-    return recorte;
-  }
-
   // -------------------------------------------------------------------------
-  // CUADERNO DE EXPEDIENTES
+  // EL PERIÓDICO
   // -------------------------------------------------------------------------
+  // El Archivo es un ejemplar de El Mercio que el jugador arma página a
+  // página. Rompe a propósito con la estética del resto del juego: papel
+  // crema y tipografía con remates, en vez de neón sobre negro. Es lo único
+  // que no es sátira, y el cambio de piel lo dice sin explicarlo.
 
   notebook() {
     const { pantalla, contenido } = pantallaBase();
+    pantalla.classList.add('pantalla--periodico');
 
-    contenido.appendChild(marca('EL MERCIO'));
-    contenido.appendChild(el('h1', 'titulo', 'ARCHIVO'));
-    contenido.appendChild(el('p', 'subtitulo',
-      'El juego es sátira. Los reportajes que desbloqueas, no.'));
+    const paginas = this.cuaderno.listarPaginas();
+    // Se abre por la última página desbloqueada: es lo nuevo que quiere ver.
+    const abiertas = paginas.filter((p) => p.desbloqueada);
+    let actual = abiertas.length ? abiertas[abiertas.length - 1].numero : 1;
 
-    // --- Papeles -----------------------------------------------------------
-    const cabecera = el('div', 'cuaderno-cabecera');
-    for (const [etiqueta, valor] of [
-      ['Papeles disponibles', this.cuaderno.papeles],
-      ['Acumulado histórico', this.cuaderno.papelesHistoricos],
-    ]) {
-      const bloque = el('div');
-      bloque.appendChild(el('div', 'cuaderno-cabecera__etiqueta', etiqueta));
-      bloque.appendChild(el('div', 'cuaderno-cabecera__valor',
-        valor.toLocaleString('es-EC')));
-      cabecera.appendChild(bloque);
-    }
-    contenido.appendChild(cabecera);
+    const diario = el('div', 'diario');
+    contenido.appendChild(diario);
 
-    // --- Reportajes --------------------------------------------------------
-    const fichas = el('div', 'fichas');
+    const pintar = () => {
+      diario.innerHTML = '';
+      const pagina = paginas.find((p) => p.numero === actual) ?? paginas[0];
 
-    for (const pub of this.cuaderno.listarPublicaciones()) {
-      fichas.appendChild(this._recorte(pub));
-    }
-    contenido.appendChild(fichas);
+      diario.appendChild(this._cabeceraDiario(pagina));
+      diario.appendChild(
+        pagina.desbloqueada ? this._paginaAbierta(pagina) : this._paginaCerrada(pagina, pintar),
+      );
+      diario.appendChild(this._navegadorPaginas(paginas, actual, (n) => {
+        actual = n;
+        pintar();
+      }));
+    };
+    pintar();
 
-    // Aviso para el equipo: quedan huecos por rellenar con reportajes reales.
-    if (hayPendientes()) {
-      contenido.appendChild(el('div', 'nota',
-        'Hay reportajes por cargar. Se rellenan en src/config/publicaciones.js ' +
-        'con titular, autoría, fecha y enlace reales. Mientras tanto el Archivo ' +
-        'muestra el tema del hueco, pero no inventa la pieza.'));
-    }
-
-    // --- Evidencias encontradas -------------------------------------------
-    if (this.cuaderno.evidencias.length > 0) {
-      const lista = el('div', 'lista');
-      lista.appendChild(el('div', 'lista__titulo',
-        `Evidencias encontradas (${this.cuaderno.evidencias.length})`));
-      const fila = el('div', 'lista__fila');
-      for (const ev of this.cuaderno.evidencias) {
-        fila.appendChild(el('span', 'nodo nodo--evidencia', ev));
-      }
-      lista.appendChild(fila);
-      contenido.appendChild(lista);
-    }
-
-    // --- Árbol de rutas ----------------------------------------------------
-    if (this.cuaderno.rutas.length > 0) {
-      const lista = el('div', 'lista');
-      lista.appendChild(el('div', 'lista__titulo', 'Últimas rutas recorridas'));
-      // Las más recientes primero, máximo 8 para no hacer la lista infinita.
-      for (const ruta of [...this.cuaderno.rutas].reverse().slice(0, 8)) {
-        lista.appendChild(this._pintarRuta(ruta));
-      }
-      contenido.appendChild(lista);
-    }
-
-    // --- Mapa del loop -----------------------------------------------------
-    const mapa = el('div', 'lista');
-    mapa.appendChild(el('div', 'lista__titulo', 'Los cuatro escenarios'));
-    for (const id of ORDEN_ESCENARIOS) {
-      const esc = obtenerEscenario(id);
-      const fila = el('div', 'lista__fila');
-      fila.appendChild(el('span', 'nodo', esc.nombre));
-      fila.appendChild(document.createTextNode(esc.subtitulo));
-      mapa.appendChild(fila);
-    }
-    contenido.appendChild(mapa);
-
-    // --- Botones -----------------------------------------------------------
+    // --- Salida y avisos ---------------------------------------------------
     const botones = el('div', 'botones');
     botones.appendChild(boton('Volver', 'boton--principal',
       () => this.juego.volverAlMenu()));
 
     if (this.cuaderno.partidasJugadas > 0) {
       let confirmando = false;
-      const btnBorrar = boton('Borrar progreso', 'boton--tenue boton--peligro', () => {
+      const btn = boton('Borrar progreso', 'boton--tenue boton--peligro', () => {
         if (!confirmando) {
           confirmando = true;
-          btnBorrar.textContent = '¿Seguro? Pulsa otra vez';
-          setTimeout(() => {
-            confirmando = false;
-            btnBorrar.textContent = 'Borrar progreso';
-          }, 3000);
+          btn.textContent = '¿Seguro? Pulsa otra vez';
+          setTimeout(() => { confirmando = false; btn.textContent = 'Borrar progreso'; }, 3000);
           return;
         }
         this.cuaderno.reiniciarProgreso();
         this.mostrar(this.notebook());
       });
-      botones.appendChild(btnBorrar);
+      botones.appendChild(btn);
     }
     contenido.appendChild(botones);
+
+    if (hayPendientes()) {
+      contenido.appendChild(el('div', 'nota',
+        `Redacción: ${cuantosListos()} de ${paginas.reduce((n, p) => n + p.articulos.length, 0)} ` +
+        'reportajes cargados. Los huecos se rellenan en src/config/publicaciones.js ' +
+        'con titular, autoría, fecha y enlace reales. El periódico reserva el ' +
+        'espacio, pero no inventa la pieza.'));
+    }
 
     if (!this.cuaderno.almacenamientoDisponible) {
       contenido.appendChild(el('div', 'nota',
         'Tu navegador tiene el almacenamiento bloqueado (suele pasar en modo ' +
-        'privado). Puedes jugar igual, pero el progreso no se guardará al cerrar.'));
+        'privado). Puedes jugar igual, pero el ejemplar no se guardará.'));
     }
 
     return pantalla;
+  }
+
+  /** Mancheta del diario. En portada va completa; dentro, reducida. */
+  _cabeceraDiario(pagina) {
+    const cab = el('header', 'diario__cabecera');
+
+    if (pagina.numero === 1) {
+      cab.appendChild(el('div', 'diario__lema', CABECERA.edicion));
+      cab.appendChild(el('h1', 'diario__nombre', CABECERA.nombre));
+      cab.appendChild(el('div', 'diario__lema', CABECERA.lema));
+
+      const franja = el('div', 'diario__franja');
+      franja.appendChild(el('span', '', CABECERA.sitio));
+      franja.appendChild(el('span', '', `${this.cuaderno.paginasAbiertas} pág. recuperadas`));
+      franja.appendChild(el('span', '', CABECERA.precio));
+      cab.appendChild(franja);
+    } else {
+      const franja = el('div', 'diario__franja diario__franja--interior');
+      franja.appendChild(el('span', '', CABECERA.nombre));
+      franja.appendChild(el('span', '', pagina.seccion));
+      franja.appendChild(el('span', '', `Pág. ${pagina.numero}`));
+      cab.appendChild(franja);
+      cab.appendChild(el('h2', 'diario__seccion', pagina.nombre));
+    }
+
+    return cab;
+  }
+
+  /** Contenido de una página abierta, maquetado a columnas. */
+  _paginaAbierta(pagina) {
+    const cuerpo = el('div', 'diario__cuerpo');
+
+    const destacado = pagina.articulos.find((a) => a.destacado) ?? pagina.articulos[0];
+    const resto = pagina.articulos.filter((a) => a !== destacado);
+
+    if (destacado) cuerpo.appendChild(this._articulo(destacado, true));
+
+    if (resto.length) {
+      const columnas = el('div', 'diario__columnas');
+      for (const art of resto) columnas.appendChild(this._articulo(art, false));
+      cuerpo.appendChild(columnas);
+    }
+
+    return cuerpo;
+  }
+
+  /**
+   * Un artículo maquetado. Si sigue pendiente, se reserva el espacio con su
+   * tema y un sello —como haría un diario con una pieza que aún no cierra—
+   * en lugar de inventar el titular.
+   */
+  _articulo(art, esDestacado) {
+    const nodo = el('article', `articulo ${esDestacado ? 'articulo--destacado' : ''}`.trim());
+
+    if (art.pendiente) {
+      nodo.appendChild(el('div', 'articulo__antetitulo', art.tema));
+      nodo.appendChild(el('div', 'articulo__reservado', 'ESPACIO RESERVADO'));
+      nodo.appendChild(el('p', 'articulo__cuerpo',
+        'Reportaje en preparación. Cuando se publique aparecerá aquí, con su ' +
+        'firma y su enlace.'));
+      return nodo;
+    }
+
+    nodo.appendChild(el('div', 'articulo__antetitulo', art.tema));
+    nodo.appendChild(el('h3', 'articulo__titular', art.titular));
+    if (art.bajada) nodo.appendChild(el('p', 'articulo__bajada', art.bajada));
+
+    const firma = el('div', 'articulo__firma');
+    if (art.autoria) firma.appendChild(el('span', '', art.autoria));
+    if (art.fecha) firma.appendChild(el('span', '', art.fecha));
+    nodo.appendChild(firma);
+
+    if (art.url) {
+      const enlace = el('a', 'articulo__enlace', 'Leer el reportaje completo →');
+      enlace.href = art.url;
+      enlace.target = '_blank';
+      enlace.rel = 'noopener noreferrer';
+      nodo.appendChild(enlace);
+    }
+
+    return nodo;
+  }
+
+  /** Página sin desbloquear: se ve el papel doblado y el precio. */
+  _paginaCerrada(pagina, repintar) {
+    const cerrada = el('div', 'pagina-cerrada');
+
+    cerrada.appendChild(el('div', 'pagina-cerrada__sello', 'PÁGINA SIN RECUPERAR'));
+    cerrada.appendChild(el('h3', 'pagina-cerrada__titulo', pagina.nombre));
+
+    const temas = el('ul', 'pagina-cerrada__temas');
+    for (const art of pagina.articulos) {
+      temas.appendChild(el('li', '', art.tema));
+    }
+    cerrada.appendChild(temas);
+
+    cerrada.appendChild(el('div', 'pagina-cerrada__precio',
+      `${pagina.costo.toLocaleString('es-EC')} papeles`));
+
+    const btn = boton('Recuperar la página', 'boton--comprar', () => {
+      const res = this.cuaderno.desbloquearPagina(pagina.numero);
+      if (res.exito) {
+        this.audio.evidencia();
+        this.mostrar(this.notebook());
+      } else {
+        btn.textContent = res.motivo;
+        setTimeout(() => { btn.textContent = 'Recuperar la página'; }, 1800);
+      }
+    });
+    btn.disabled = !pagina.alcanzable;
+    cerrada.appendChild(btn);
+
+    if (!pagina.alcanzable) {
+      cerrada.appendChild(el('div', 'pagina-cerrada__ayuda',
+        `Tienes ${this.cuaderno.papeles.toLocaleString('es-EC')} papeles. ` +
+        'Se consiguen corriendo.'));
+    }
+
+    return cerrada;
+  }
+
+  /** Paginador inferior, con el estado de cada página. */
+  _navegadorPaginas(paginas, actual, alElegir) {
+    const nav = el('nav', 'paginador');
+
+    for (const p of paginas) {
+      const b = el('button',
+        `paginador__pag ${p.numero === actual ? 'paginador__pag--actual' : ''} ` +
+        `${p.desbloqueada ? '' : 'paginador__pag--cerrada'}`.trim());
+      b.type = 'button';
+      b.textContent = String(p.numero);
+      b.title = p.desbloqueada ? p.nombre : `${p.nombre} · ${p.costo} papeles`;
+      b.addEventListener('click', () => alElegir(p.numero));
+      nav.appendChild(b);
+    }
+
+    return nav;
   }
 
   // -------------------------------------------------------------------------

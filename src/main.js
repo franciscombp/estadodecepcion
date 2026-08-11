@@ -19,6 +19,7 @@ import { HUD } from './ui/HUD.js';
 import { Pantallas } from './ui/screens.js';
 import { AssetCache } from './utils/assetCache.js';
 import { detectarCalidad } from './utils/calidad.js';
+import { PAGINAS } from './config/publicaciones.js';
 import * as Icono from './ui/iconos.js';
 
 // ---------------------------------------------------------------------------
@@ -223,6 +224,11 @@ async function arrancar() {
     window.__juego = juego;
     window.__cuaderno = cuaderno;
     window.__hud = hud;
+    // Las páginas del periódico, para poder probar un titular en caliente
+    // antes de escribirlo en config/publicaciones.js. Por ejemplo:
+    //   Object.assign(__paginas[0].articulos[0],
+    //     { pendiente:false, titular:'…', bajada:'…', url:'…' })
+    window.__paginas = PAGINAS;
     console.info(
       `[Estado de Excepción] Modo desarrollo. Calidad detectada: ${calidad.nivel}. ` +
       'Usa window.__juego para depurar.',
