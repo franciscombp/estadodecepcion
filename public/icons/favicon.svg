@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Favicon: a 64px solo se lee la silueta, así que va todo simplificado. -->
+  <rect width="64" height="64" rx="10" fill="#0a0e17"/>
+
+  <!-- Calle en fuga -->
+  <path d="M 20 64 L 28 28 L 36 28 L 44 64 Z" fill="#12172a"/>
+  <path d="M 26 64 L 30 28 L 32 28 L 30 64 Z" fill="#ffcf3f" opacity="0.8"/>
+  <path d="M 38 64 L 34 28 L 32 28 L 34 64 Z" fill="#ffcf3f" opacity="0.8"/>
+
+  <!-- Corredor -->
+  <g fill="#7cffb2">
+    <ellipse cx="32" cy="34" rx="8" ry="2"/>
+    <rect x="28" y="29" width="8" height="5" rx="1"/>
+    <rect x="28.5" y="35" width="7" height="6" rx="1.5"/>
+    <rect x="27" y="42" width="10" height="11" rx="2"/>
+    <rect x="28" y="53" width="3.5" height="9" rx="1.5" transform="rotate(-16 29.7 57.5)"/>
+    <rect x="33" y="53" width="3.5" height="9" rx="1.5" transform="rotate(20 34.7 57.5)"/>
+  </g>
+
+  <!-- Papel volando -->
+  <rect x="14" y="38" width="5" height="6" rx="1" fill="#ffcf3f" transform="rotate(-18 16 41)"/>
+</svg>

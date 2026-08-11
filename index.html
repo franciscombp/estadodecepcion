@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es-EC">
+<head>
+  <meta charset="UTF-8" />
+  <!-- viewport-fit=cover + user-scalable=no: pantalla completa en móvil y
+       sin zoom accidental al hacer doble tap durante la partida. -->
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0e17" />
+  <meta name="description"
+        content="EL MERCIO presenta: ESTADO DE EXCEPCIÓN. Corre, esquiva y documenta." />
+
+  <!-- Icono de pestaña. Va con ruta relativa para que funcione igual en la
+       raíz del dominio que bajo el subdirectorio de GitHub Pages. -->
+  <link rel="icon" type="image/svg+xml" href="./icons/favicon.svg" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.svg" />
+
+  <!-- Permite instalarlo como app en iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Estado Decepción" />
+
+  <title>EL MERCIO — Estado de Excepción</title>
+</head>
+<body>
+  <!-- Lienzo del juego -->
+  <canvas id="lienzo"></canvas>
+
+  <!-- Capa de interfaz. pointer-events se activa por pantalla, no globalmente,
+       para que los swipes lleguen al canvas durante la partida. -->
+  <div id="ui"></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

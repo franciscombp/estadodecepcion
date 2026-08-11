@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <!-- Versión reducida del icono. A 192px el detalle fino no se lee,
+       así que la silueta va simplificada. -->
+  <defs>
+    <linearGradient id="cielo192" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1f2e"/>
+      <stop offset="100%" stop-color="#0a0e17"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="192" height="192" fill="url(#cielo192)"/>
+
+  <!-- Calle -->
+  <path d="M 66 192 L 87 87 L 105 87 L 126 192 Z" fill="#12172a"/>
+
+  <!-- Líneas de carril -->
+  <path d="M 80 192 L 92 87 L 95 87 L 89 192 Z" fill="#ffcf3f" opacity="0.85"/>
+  <path d="M 112 192 L 100 87 L 97 87 L 103 192 Z" fill="#ffcf3f" opacity="0.85"/>
+
+  <!-- Horizonte -->
+  <rect x="45" y="85" width="102" height="3" fill="#ffcf3f" opacity="0.5"/>
+
+  <!-- Corredor simplificado -->
+  <g fill="#7cffb2">
+    <ellipse cx="96" cy="112" rx="17" ry="4"/>
+    <rect x="88" y="103" width="16" height="11" rx="2"/>
+    <rect x="89" y="114" width="14" height="13" rx="3"/>
+    <rect x="86" y="129" width="20" height="24" rx="4"/>
+    <rect x="88" y="152" width="7" height="20" rx="3" transform="rotate(-16 91 162)"/>
+    <rect x="99" y="152" width="7" height="20" rx="3" transform="rotate(20 102 162)"/>
+  </g>
+
+  <!-- Papeles -->
+  <g fill="#ffcf3f" opacity="0.9">
+    <rect x="54" y="124" width="9" height="12" rx="1" transform="rotate(-18 58 130)"/>
+    <rect x="132" y="132" width="8" height="11" rx="1" transform="rotate(22 136 137)"/>
+  </g>
+
+  <rect x="0" y="177" width="192" height="15" fill="#ff4f6d" opacity="0.28"/>
+</svg>

@@ -1,0 +1,72 @@
+# ============================================================================
+# Despliegue automático a GitHub Pages
+# ============================================================================
+# Cada push a `main` compila el juego y lo publica.
+#
+# REQUISITO DE CONFIGURACIÓN (una sola vez, a mano):
+#   Settings → Pages → Source: "GitHub Actions"
+# Sin ese paso el workflow corre pero no publica nada.
+# ============================================================================
+
+name: Desplegar a GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Permite lanzarlo a mano desde la pestaña Actions.
+  workflow_dispatch:
+
+# Permisos mínimos que necesita el despliegue.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Si se empujan dos commits seguidos, cancelamos el despliegue anterior:
+# solo interesa publicar el último.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  construir:
+    name: Construir
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        # `npm ci` en vez de `npm install`: reproducible y más rápido.
+        run: npm ci
+
+      - name: Compilar
+        # GITHUB_ACTIONS ya viene a 'true' y vite.config.js lo usa para
+        # poner la base en /estadodecepcion/.
+        run: npm run build
+
+      - name: Preparar Pages
+        uses: actions/configure-pages@v5
+
+      - name: Subir el resultado
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  desplegar:
+    name: Desplegar
+    needs: construir
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - name: Publicar en GitHub Pages
+        id: despliegue
+        uses: actions/deploy-pages@v4

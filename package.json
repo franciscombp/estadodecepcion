@@ -1,0 +1,19 @@
+{
+  "name": "estado-de-excepcion",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "EL MERCIO presenta: ESTADO DE EXCEPCIÓN (Estado Decepción) — endless runner satírico ecuatoriano",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "vite": "^7.1.5",
+    "vite-plugin-pwa": "^1.0.3"
+  }
+}
