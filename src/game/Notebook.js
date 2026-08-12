@@ -24,6 +24,10 @@ const ESTADO_INICIAL = {
   evidenciasEncontradas: [],
   mejorDistancia: 0,
   mejorPuntaje: 0,
+  // Papeles de la MEJOR corrida, que no es lo mismo que `totalPapeles` (lo que
+  // te queda por gastar) ni que `papelesHistoricos` (lo que juntaste desde
+  // siempre). Es la marca personal, y es la cifra que compite en la tabla.
+  mejorPapeles: 0,
   partidasJugadas: 0,
   rutasRecorridas: [],    // Historial de escenarios visitados
   personajePreferido: 'chochologo',
@@ -111,6 +115,7 @@ export class Notebook {
 
     this.estado.mejorDistancia = Math.max(this.estado.mejorDistancia, resultado.distancia);
     this.estado.mejorPuntaje = Math.max(this.estado.mejorPuntaje, resultado.puntaje);
+    this.estado.mejorPapeles = Math.max(this.estado.mejorPapeles ?? 0, resultado.papeles);
 
     // Evidencias: guardamos cada tipo una sola vez.
     for (const ev of resultado.evidencias ?? []) {
@@ -203,6 +208,9 @@ export class Notebook {
   get papelesHistoricos() { return this.estado.papelesHistoricos; }
   get mejorDistancia() { return this.estado.mejorDistancia; }
   get mejorPuntaje() { return this.estado.mejorPuntaje; }
+  // Con `?? 0` porque a quien ya venía jugando no se le guardó nunca: el
+  // estado se lee de localStorage y las partidas viejas no traen este campo.
+  get mejorPapeles() { return this.estado.mejorPapeles ?? 0; }
   get partidasJugadas() { return this.estado.partidasJugadas; }
   get evidencias() { return this.estado.evidenciasEncontradas; }
   get rutas() { return this.estado.rutasRecorridas; }

@@ -326,10 +326,16 @@ eso cambia en cada partida.
 > penaliza el rendimiento de todas las partidas para una foto que se toma una
 > vez.
 
-**La única métrica que se imprime grande es el puntaje.** Metros, papeles y
-evidencia bajan a una línea de datos pequeña, como los datos de una noticia. Un
-periódico no da cinco titulares del mismo tamaño; y si todo se mide, nada se
-mide.
+**La única métrica que se imprime grande son los papeles recogidos.** Metros,
+evidencia y puntaje bajan a una línea de datos pequeña, como los datos al pie
+de una noticia. Un periódico no da cinco titulares del mismo tamaño; y si todo
+se mide, nada se mide.
+
+Y son los papeles, no el puntaje. El puntaje suma papeles más metros partido
+por diez, así que puntúa igual al que documenta y al que solo corre rápido. Lo
+que este juego mide es **cuánta documentación sacaste antes de que te
+pararan**: correr es el precio, no el logro. Un periodista que llegó lejísimos
+sin un papel en la mano no tiene nada que publicar.
 
 Desde ahí se puede:
 
@@ -343,7 +349,9 @@ lugar de en un capítulo.
 ### 4 · La tabla de posiciones
 
 Debajo de la portada va **la tabla**, maquetada como la tabla de resultados de
-un diario: puesto, arroba y cifra alineada a la derecha. Primero siempre
+un diario: puesto, arroba y cifra alineada a la derecha. Se ordena **por
+papeles recogidos**, lo mismo que se imprime grande arriba —una tabla que
+midiera otra cosa que el titular sería dos juegos a la vez—. Primero siempre
 `@paquimal`, que es el director; después el hueco marcado con puntos
 suspensivos si lo hay; y luego tú, entre tus dos vecinos.
 
@@ -365,7 +373,7 @@ Dos reglas que no se negocian:
 
 ## Lo que sostiene la repetición
 
-Cuatro cosas, y solo una es la puntuación:
+Cuatro cosas, y solo una es una cifra:
 
 1. **El archivo.** Un ejemplar de El Mercio que se arma página a página con
    reportajes reales. Es lo único del juego que no es sátira, y el cambio de
@@ -373,8 +381,8 @@ Cuatro cosas, y solo una es la puntuación:
 2. **Los potenciadores.** Se abren a los 3, 6, 10, 15 y 22 tramos recorridos.
    El contador es acumulativo, así que ninguna corrida se pierde del todo.
 3. **La continuidad de escena.** Cada partida es un capítulo, no un reinicio.
-4. **El puesto en la tabla.** Es la única cifra que se imprime grande, y por
-   eso es la única que compite.
+4. **El puesto en la tabla.** Se compite por papeles recogidos, que es la
+   única cifra que se imprime grande.
 
 ---
 

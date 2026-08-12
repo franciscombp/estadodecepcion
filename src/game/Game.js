@@ -557,7 +557,11 @@ export class Game {
       puntaje,
       evidencias: this.evidenciasPartida,
       ruta: this.rutaPartida,
-      esRecord: puntaje >= this.cuaderno.mejorPuntaje,
+      // El récord que se anuncia es el de PAPELES, que es lo que mide el
+      // juego: cuánta documentación sacaste antes de que te pararan. El
+      // cuaderno ya se cerró unas líneas más arriba, así que la marca de esta
+      // corrida ya está dentro y la comparación va con `>=`.
+      esRecord: this.papelesPartida >= this.cuaderno.mejorPapeles,
       escenario: this.escenarioActual,
       ...cierre,
     };

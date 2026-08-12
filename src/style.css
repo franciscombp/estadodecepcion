@@ -2714,6 +2714,16 @@ html, body {
   border-bottom: 2px solid #16130d;
 }
 
+/* Debajo del rótulo de sección: por qué se ordena la tabla. Sin esto, una
+   columna de cifras junto a unos arrobas no dice qué se está midiendo. */
+.plana__epigrafe {
+  margin: -4px 0 8px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 0.68rem;
+  font-style: italic;
+  color: #4a4034;
+}
+
 .posiciones {
   list-style: none;
   margin: 0;

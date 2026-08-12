@@ -267,16 +267,24 @@ instante exacto en que te agarraron, y cambia en cada partida.
 > `preserveDrawingBuffer`, que penaliza todas las partidas para una foto que se
 > toma una vez.
 
-**La única métrica grande es el puntaje.** Metros, papeles y evidencia bajan a
-una línea de datos pequeña. Un periódico no da cinco titulares del mismo
-tamaño, y si todo se mide, nada se mide.
+**La única métrica grande son los papeles recogidos.** Metros, evidencia y
+puntaje bajan a una línea pequeña de datos. Un periódico no da cinco titulares
+del mismo tamaño, y si todo se mide, nada se mide.
+
+No es el puntaje, y la diferencia importa: el puntaje suma papeles más metros
+partido por diez, así que puntúa igual documentar que salir corriendo. Lo que
+mide este juego es cuánta documentación sacaste antes de que te pararan; los
+metros son el precio que pagaste, no el logro.
 
 ### La tabla de posiciones
 
 Debajo de la portada va la tabla, maquetada como la de resultados de un diario:
-puesto, arroba y cifra alineada a la derecha. Primero siempre `@paquimal`;
-después el hueco marcado con puntos suspensivos si lo hay; y luego tú, entre
-tus dos vecinos. La tabla completa está en **MARCADORES**, desde el menú.
+puesto, arroba y cifra alineada a la derecha. Se ordena **por papeles
+recogidos**, igual que el titular. Primero siempre `@paquimal`; después el
+hueco marcado con puntos suspensivos si lo hay; y luego tú, entre tus dos
+vecinos. La tabla completa está en **MARCADORES**, desde el menú, y ahí compite
+tu **mejor corrida** (`mejorPapeles` en el cuaderno), no el acumulado: el
+acumulado premia insistir, la marca personal premia una corrida buena.
 
 Enseñar los diez de golpe obliga a hacer scroll dentro de una pantalla que ya
 es larga, y el séptimo puesto no le importa a nadie: lo que dice algo es a

@@ -211,10 +211,13 @@ export class Pantallas {
     cab.appendChild(el('span', 'plana__fecha', 'DEPORTES'));
     plana.appendChild(cab);
 
-    plana.appendChild(el('div', 'plana__antetitulo', 'QUIÉN AGUANTA MÁS'));
+    plana.appendChild(el('div', 'plana__antetitulo', 'QUIÉN DOCUMENTA MÁS'));
     plana.appendChild(el('h1', 'plana__titular', 'TABLA GENERAL'));
 
-    plana.appendChild(this._tablaPosiciones(this.cuaderno.mejorPuntaje, 99));
+    // Va con la MEJOR corrida, no con lo que se lleva acumulado. El acumulado
+    // premia insistir; la marca personal premia una corrida buena, que es lo
+    // que se compara cuando dos personas hablan de este juego.
+    plana.appendChild(this._tablaPosiciones(this.cuaderno.mejorPapeles, 99));
     contenido.appendChild(plana);
 
     const botones = el('div', 'botones');
@@ -674,24 +677,29 @@ export class Pantallas {
 
     if (sentencia) plana.appendChild(el('p', 'plana__bajada', sentencia.texto));
 
-    // --- El puntaje --------------------------------------------------------
-    // La ÚNICA cifra grande. Antes había cuatro recuadros del mismo tamaño y
-    // ninguno destacaba, así que no se sabía qué se estaba puntuando. Lo que
-    // se compara con los demás es el puntaje; lo demás es contexto y va en
+    // --- Los papeles -------------------------------------------------------
+    // La ÚNICA cifra grande, y son PAPELES, no puntaje. El puntaje suma
+    // papeles y metros, así que puntúa igual documentar que salir corriendo; y
+    // lo que este juego mide es cuánta documentación sacaste antes de que te
+    // pararan. Los metros son el precio que pagaste, no el logro.
+    //
+    // Antes había cuatro recuadros del mismo tamaño y ninguno destacaba, así
+    // que no se sabía qué se estaba puntuando. El resto es contexto y va en
     // letra de pie de foto.
+    const papeles = datos.papeles ?? 0;
     const marcador = el('div', 'plana__marcador');
-    marcador.appendChild(el('span', 'plana__marcador-rotulo', 'PUNTAJE'));
+    marcador.appendChild(el('span', 'plana__marcador-rotulo', 'PAPELES RECOGIDOS'));
     marcador.appendChild(el('span', 'plana__marcador-cifra',
-      (datos.puntaje ?? 0).toLocaleString('es-EC')));
-    if (datos.esRecord && datos.puntaje > 0) {
+      papeles.toLocaleString('es-EC')));
+    if (datos.esRecord && papeles > 0) {
       marcador.appendChild(el('span', 'plana__record', 'RÉCORD PERSONAL'));
     }
     plana.appendChild(marcador);
 
     plana.appendChild(el('div', 'plana__datos',
-      `${(datos.papeles ?? 0).toLocaleString('es-EC')} papeles · `
-      + `${(datos.distancia ?? 0).toLocaleString('es-EC')} m · `
-      + `${datos.evidencias?.length ?? 0} evidencias`));
+      `${(datos.distancia ?? 0).toLocaleString('es-EC')} m corridos · `
+      + `${datos.evidencias?.length ?? 0} evidencias · `
+      + `${(datos.puntaje ?? 0).toLocaleString('es-EC')} de puntaje`));
 
     // --- El remate editorial, como pie de la nota --------------------------
     if (datos.texto) {
@@ -711,7 +719,7 @@ export class Pantallas {
     }
 
     // --- Tabla de posiciones ----------------------------------------------
-    plana.appendChild(this._tablaPosiciones(datos.puntaje ?? 0));
+    plana.appendChild(this._tablaPosiciones(papeles));
 
     // --- Lo que se desbloqueó ---------------------------------------------
     this._pintarDesbloqueos(datos, plana);
@@ -752,13 +760,14 @@ export class Pantallas {
    * un móvil obligan a hacer scroll dentro de una pantalla que ya es larga, y
    * a nadie le importa el séptimo.
    */
-  _tablaPosiciones(puntaje, alrededor = 1) {
+  _tablaPosiciones(papeles, alrededor = 1) {
     const bloque = el('section', 'plana__tabla');
     bloque.appendChild(el('h2', 'plana__seccion', 'TABLA DE POSICIONES'));
+    bloque.appendChild(el('div', 'plana__epigrafe', 'Por papeles recogidos'));
 
     const lista = el('ol', 'posiciones');
 
-    for (const fila of tablaConJugador(puntaje, alrededor)) {
+    for (const fila of tablaConJugador(papeles, alrededor)) {
       if (fila.corte) {
         lista.appendChild(el('li', 'posiciones__corte', '⋯'));
         continue;
@@ -772,7 +781,7 @@ export class Pantallas {
       if (fila.nota) quien.appendChild(el('span', 'posiciones__nota', fila.nota));
       item.appendChild(quien);
 
-      item.appendChild(el('span', 'posiciones__cifra', fila.puntaje.toLocaleString('es-EC')));
+      item.appendChild(el('span', 'posiciones__cifra', fila.papeles.toLocaleString('es-EC')));
       lista.appendChild(item);
     }
 
