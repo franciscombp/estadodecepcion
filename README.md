@@ -127,6 +127,65 @@ navegador para trastear en vivo.
 
 ---
 
+## La cámara
+
+Corta y con gran angular, como la de Subway Surfers: **ocho unidades por
+detrás** del personaje y cuatro por encima, FOV 58. Antes era casi un
+teleobjetivo (FOV 38 a 17.5 de distancia) y resolvía un problema real —los
+perseguidores van entre la cámara y el jugador, y un gran angular los dispara
+de tamaño— pero lo pagaba caro: la profundidad comprimida dejaba la calle
+plana, el personaje pequeño y la sensación de velocidad en nada.
+
+Cuatro cosas van atadas a esa distancia, y si se toca una hay que revisar las
+otras tres:
+
+**1. El FOV según la forma de la pantalla.** Three.js fija el FOV *vertical* y
+deriva el horizontal del aspecto, así que la misma cámara da imágenes muy
+distintas en un móvil y en un monitor. Hay tope por los dos lados
+(`_ajustarEncuadre`): en pantallas muy altas se abre para que los carriles
+exteriores no se salgan, y en pantallas anchas se cierra para que 58 vertical
+no se conviertan en 90 horizontales, que ya no es gran angular sino ojo de pez.
+
+**2. El seguimiento lateral, de 0.18 a 0.5.** Con la cámara corta, un jugador
+en el carril exterior (±2.4) se salía del borde en vertical. Siguiéndolo a la
+mitad se queda descentrado pero dentro. La **mira acompaña al mismo ritmo**:
+si siguiera menos, cada cambio de carril giraría el encuadre y la calle se
+vería de lado.
+
+**3. El reciclado de obstáculos, de 25 a 6.5.** Tiene que ser **menor que la Z
+de la cámara**. Con 25, los obstáculos seguían vivos mucho después de pasar al
+jugador y cruzaban el plano de la cámara; con la cámara larga y alta de antes
+eso quedaba fuera de un encuadre estrecho, pero con la corta un retén se comía
+la pantalla entera al adelantarlo. Papeles, estamina y potenciadores usan el
+mismo umbral.
+
+**4. Los perseguidores.** Ver abajo.
+
+### Por qué los perseguidores no crecen al quedarse atrás
+
+Van en Z positiva, entre la cámara y el jugador, y ahí lo más cercano a la
+cámara se dibuja más grande — o sea que atar su Z a la distancia de juego los
+haría **enormes cuando van lejos**, justo al revés de lo que hay que
+comunicar. Por eso el rango de Z es estrecho y la escala lo compensa:
+
+```
+lejos:  0.72 / 4.44 = 0.162     ← mismo tamaño aparente
+cerca:  0.95 / 5.99 = 0.159     ← en los dos extremos
+jugador: 1.0 / 8.02 = 0.125     ← un tercio más pequeño que ellos
+```
+
+Lo que cambia al acercarse es **dónde están respecto al jugador**, no su
+tamaño: suben en cuadro y el hueco se cierra.
+
+Y van **pegados a un lado**, porque de frente tapaban al personaje entero. La
+separación se calcula **en pantalla**, no en metros: lo que la perspectiva
+convierte en píxeles es la razón `x / distancia_a_la_cámara`, así que se parte
+de la razón del jugador y se le suma el hueco deseado. Con metros fijos, el
+hueco se abría solo al acercarse y se cerraba justo al cambiar de carril, que
+es cuando más falta hace que no se mueva.
+
+---
+
 ## La portada: el menú es la escena
 
 El menú **no es un menú**: es la escena de la entrevista corriendo en vivo. El
@@ -376,31 +435,44 @@ Entrar al Apagón divide la luz por cinco. Antes iba de 0.75 a 0.28 —menos de
 la mitad— y no bastaba: el apagón se nota contra la luz, no contra otra
 penumbra.
 
-### La Bahía es un mercado, no una calle con tiendas
+### La Bahía es un pasaje techado, no una calle con tiendas
 
-El decorado del sector (`crearDecorado`, caso `bahia`) no coloca locales
-sueltos: coloca **hileras de tres puestos pegados**, con toldo a rayas,
-persiana metálica, rótulo pintado y el género —ropa colgada o mercadería
-apilada— saliendo por delante de la persiana. Encima, una **bóveda de
-policarbonato** con sus cerchas y sus puntales.
+Es una **calle cubierta de punta a punta**: una bóveda traslúcida que cruza el
+ancho entero, con las hileras de puestos debajo. El techo es lo que define el
+sector, y es también lo que más cambia la sensación de correr, porque pone algo
+por encima de la cabeza del jugador y lo hace pasar de largo.
 
-Tres cosas que costó afinar:
+**La bóveda la monta la escena** (`BahiaScene`), en segmentos reciclables, no
+el decorado lateral: puesta a los lados serían dos medias bóvedas que se
+reciclan por su cuenta y no casan por el eje de la calle. Es un arco de
+circunferencia con el centro **bajo el suelo** —con el centro a ras el arranque
+sería vertical y quedaría un tubo— y se **recorta contra la fachada** de la
+bifurcación (`escenario.zTope`, que pone `Game`): sin ese recorte el techo la
+atraviesa y las cerchas salen por el otro lado.
+
+**Los puestos** (`crearDecorado`, caso `bahia`) van en hileras de tres pegados,
+con toldo a rayas, persiana metálica, rótulo pintado y el género —ropa colgada
+o mercadería apilada— saliendo por delante de la persiana. Lo que hace que se
+lea como comercio informal no es el local: es que la mercadería no cabe dentro.
+
+Dos cosas más que costó afinar:
 
 - **La hilera va alineada.** El resto del decorado se coloca con desviación
   lateral y escala al azar para que la ciudad no se repita; con eso puesto, una
   fila de mercado no se lee como desorden sino como fallo de colocación. Por
   eso el elemento puede pedir alineación (`userData.alineado`) y la escena la
   respeta, tanto al montar como al reciclar.
-- **La bóveda cubre su acera y se queda ahí.** Con radio grande y centro alto,
-  las dos aceras se juntan por arriba y el mercado se convierte en un
-  invernadero. El borde exterior tiene que caer fuera del asfalto: media pista
-  son 4.4 m y el decorado va a 7.8 del centro.
 - **La ropa y la mercadería son textura, no geometría.** A los seis metros que
   hay del carril a la vereda, una percha modelada y una percha pintada se ven
   igual, y la pintada cuesta una malla en vez de veinte. Van **tres variantes**
   de cada una: con una sola, dos puestos seguidos enseñaban exactamente la
   misma pila de cajas —el mismo azar congelado en la caché de texturas— y la
   hilera se leía como un mosaico repetido.
+
+**Las palmeras están en las Elecciones, no aquí.** Dentro de un mercado techado
+no crece una palmera, y si asomaba por encima del techo lo que decía era que no
+había techo. Elecciones es la escena de calle abierta, así que es donde toca el
+arbolado.
 
 ---
 

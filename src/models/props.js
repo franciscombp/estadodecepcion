@@ -2021,61 +2021,23 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
         g.add(puesto);
       }
 
-      // La bóveda traslúcida. Es media caña abierta hacia abajo: se construye
-      // con el eje en Y y se tumba, y el medio giro extra deja la parte llena
-      // arriba —si no, se ve el suelo cubierto y el cielo destapado.
+      // AQUÍ NO HAY TECHO NI PALMERAS, y las dos ausencias son deliberadas:
       //
-      // EL RADIO Y LA ALTURA IMPORTAN MÁS DE LO QUE PARECE. Con una bóveda
-      // grande y alta, las dos aceras se acercan por arriba, la calle queda
-      // techada y el escenario deja de ser un mercado para convertirse en un
-      // invernadero. La cubierta tapa SU acera y se queda ahí: el borde
-      // exterior tiene que caer por fuera del asfalto (media pista son 4.4 m
-      // y el decorado va a 7.8 del centro).
-      const RADIO = 2.5;
-      const Y_BOVEDA = 3.9;
-      const Z_BOVEDA = 0.5;
-      const cubierta = new THREE.Mesh(
-        new THREE.CylinderGeometry(RADIO, RADIO, largo, 14, 1, true, 0, Math.PI),
-        new THREE.MeshStandardMaterial({
-          color: 0xe6ece8,
-          transparent: true,
-          opacity: 0.3,
-          side: THREE.DoubleSide,
-          roughness: 0.35,
-          metalness: 0.05,
-          emissive: 0xdfe9e4,
-          emissiveIntensity: 0.16,
-        }),
+      //   · La bóveda cruza la calle ENTERA y la monta el escenario
+      //     (scenes/BahiaScene.js), no el decorado. Puesta a los lados serían
+      //     dos medias bóvedas que se reciclan por su cuenta y no casan por el
+      //     eje de la calle.
+      //   · Las palmeras se fueron a las Elecciones, que es la escena de
+      //     calle abierta. La Bahía es un pasaje cubierto: dentro no crece una
+      //     palmera, y si asoma por encima del techo es que el techo no está.
+      //
+      // Lo que queda aquí es lo que sí es de la acera: los puestos.
+      const puntales = new THREE.Mesh(
+        new THREE.BoxGeometry(0.16, 5.4, 0.16),
+        mat(0x9aa0a8, 0.03, 0.55),
       );
-      cubierta.rotation.z = Math.PI / 2;
-      cubierta.position.set(0, Y_BOVEDA, Z_BOVEDA);
-      g.add(cubierta);
-
-      // Las cerchas metálicas que la sostienen, y el puntal que baja al bordillo.
-      // Son lo que da escala a la bóveda: sin ellas es una lámina flotando, y
-      // sin los puntales la lámina no se apoya en ninguna parte.
-      const geoCercha = new THREE.TorusGeometry(RADIO + 0.03, 0.05, 4, 12, Math.PI);
-      const geoPuntal = new THREE.CylinderGeometry(0.075, 0.09, Y_BOVEDA, 6);
-      const matCercha = mat(0x9aa0a8, 0.03, 0.55);
-      for (let i = 0; i <= PUESTOS; i++) {
-        const x = -largo / 2 + i * ANCHO_PUESTO;
-
-        const cercha = new THREE.Mesh(geoCercha, matCercha);
-        cercha.position.set(x, Y_BOVEDA, Z_BOVEDA);
-        cercha.rotation.y = Math.PI / 2;
-        g.add(cercha);
-
-        const puntal = new THREE.Mesh(geoPuntal, matCercha);
-        puntal.position.set(x, Y_BOVEDA / 2, Z_BOVEDA + RADIO);
-        g.add(puntal);
-      }
-
-      // Una palmera de vez en cuando, asomando por encima de la bóveda.
-      if (aleatorio() > 0.72) {
-        const palmera = crearPalmera(6.5 + aleatorio() * 2);
-        palmera.position.set((aleatorio() - 0.5) * largo, 0, 3.4);
-        g.add(palmera);
-      }
+      puntales.position.set(largo / 2 - 0.4, 2.7, 3.2);
+      g.add(puntales);
 
       // La hilera va ALINEADA: ni desviación lateral ni escala al azar. Una
       // fila de puestos torcidos y de tamaños distintos no se lee como
@@ -2136,6 +2098,17 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
         );
         edificio.position.set(1.8, alto / 2, 1.5);
         g.add(edificio);
+      }
+
+      // LAS PALMERAS VIVEN AQUÍ. Estaban en la Bahía, que es un pasaje
+      // techado: una palmera dentro de un mercado cubierto no crece, y si
+      // asomaba por encima del techo lo que decía era que no había techo.
+      // Esta es la escena de calle abierta —avenida en campaña—, así que es
+      // donde toca el arbolado.
+      if (aleatorio() > 0.55) {
+        const palmera = crearPalmera(5.5 + aleatorio() * 3);
+        palmera.position.set((aleatorio() - 0.5) * 4, 0, 2.8);
+        g.add(palmera);
       }
       break;
     }

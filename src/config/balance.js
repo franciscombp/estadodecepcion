@@ -128,7 +128,17 @@ export const OBSTACULOS = {
   // Distancia a la que se generan por delante de la cámara.
   DISTANCIA_APARICION: 220,
   // Distancia por detrás a la que se reciclan.
-  DISTANCIA_RECICLADO: 25,
+  //
+  // TIENE QUE SER MENOR QUE LA Z DE LA CÁMARA (7.4). Estaba en 25, o sea que
+  // los obstáculos seguían vivos mucho después de pasar el objetivo y cruzaban
+  // el plano de la cámara. Con la cámara larga y alta de antes eso no se veía
+  // —quedaban muy por debajo de un encuadre estrecho— pero con la cámara corta
+  // un retén o un bus se comía la pantalla entera durante medio segundo al
+  // adelantarlo.
+  //
+  // A 6.5, cuando desaparecen ya solo se les ve el techo por el borde inferior
+  // del cuadro, así que se van sin que se note.
+  DISTANCIA_RECICLADO: 6.5,
   // Dónde va el PRIMER grupo al arrancar una partida o un tramo nuevo.
   // A velocidad inicial (18 u/s) son ~2.5 s para leer el primer obstáculo:
   // suficiente para colocarse, sin que se sienta que no pasa nada.
@@ -345,10 +355,45 @@ export const PERSEGUIDOR = {
   // AVANZAN hacia el jugador (suben en cuadro, se cierra el hueco entre ellos
   // y tú) manteniendo el tamaño aparente. La lectura de amenaza la da el hueco
   // que se cierra, no el tamaño.
-  Z_LEJOS: 8.8,
-  Z_CERCA: 3.8,
-  ESCALA_LEJOS: 0.68,
-  ESCALA_CERCA: 1.25,
+  //
+  // LOS NÚMEROS DEPENDEN DE LA CÁMARA y hubo que rehacerlos enteros al
+  // acortarla. Con la cámara a 17.5 había sitio de sobra detrás del jugador;
+  // con la cámara a 7.4 el hueco entero mide siete unidades y medio se lo come
+  // la perspectiva.
+  //
+  // La cuenta que los fija es el tamaño aparente, proporcional a
+  // escala / distancia_a_la_cámara (que está en (0, 4, 7.4), y el centro
+  // visual de los perseguidores a y≈1.4):
+  //
+  //     lejos:  0.72 / 4.44  =  0.162
+  //     cerca:  0.95 / 5.99  =  0.159
+  //     jugador: 1.0 / 8.02  =  0.125
+  //
+  // O sea: ocupan lo mismo en los dos extremos —no crecen al quedarse atrás,
+  // que era el problema— y son un tercio más grandes que el jugador, que es
+  // lo que corresponde a dos personas una encima de otra. Si se toca uno de
+  // los cuatro valores hay que rehacer la división.
+  Z_LEJOS: 3.8,
+  Z_CERCA: 2,
+  ESCALA_LEJOS: 0.72,
+  ESCALA_CERCA: 0.95,
+
+  // Corren PEGADOS A UN LADO del jugador, no exactamente detrás.
+  //
+  // Con la cámara corta van muy cerca del objetivo, y de frente le tapaban el
+  // cuerpo entero: se veía la espalda del perseguidor y nada más. Desplazados,
+  // el jugador queda libre y ellos siguen leyéndose como lo que van a hacer.
+  //
+  // OJO: ESTO NO SON METROS, es separación EN PANTALLA (la razón x/z, que es
+  // lo que la perspectiva convierte en píxeles). Con un desplazamiento fijo en
+  // metros el hueco cambiaba solo: al acercarse van más cerca de la cámara y
+  // el mismo metro y medio se abría de par en par, y al cambiar el jugador al
+  // carril derecho los perseguidores se le montaban encima en vez de apartarse.
+  // Fijando la razón, el hueco en pantalla es siempre el mismo.
+  //
+  // 0.185 son unos tres cuartos del semiancho visible en un móvil vertical:
+  // se les ve enteros, pegados al borde, sin tapar el carril del jugador.
+  DESVIO_EN_PANTALLA: 0.185,
 };
 
 // ---------------------------------------------------------------------------
@@ -555,35 +600,52 @@ export const PROGRESO = {
 // CÁMARA
 // ---------------------------------------------------------------------------
 export const CAMARA = {
-  // La cámara está lo bastante atrás como para que los perseguidores quepan
-  // ENTRE ella y el jugador. Sin ese hueco no hay forma de enseñarlos
-  // persiguiendo: irían siempre fuera de cuadro, por detrás del objetivo.
-  // El FOV es DELIBERADAMENTE cerrado, casi de teleobjetivo. Es lo que
-  // resuelve el problema de encuadre que abre la persecución: con la cámara
-  // atrás y los perseguidores entre ella y el jugador, un gran angular los
-  // dispara de tamaño y tapan al personaje. Una focal larga comprime la
-  // profundidad, así que ellos ocupan lo que tienen que ocupar —una franja
-  // baja del cuadro— y el jugador conserva su tamaño en pantalla.
-  FOV: 38,
-  POSICION: { x: 0, y: 6.2, z: 17.5 },
-  MIRA: { x: 0, y: 1.3, z: -8 },
+  // CÁMARA CORTA, COMO LA DE SUBWAY SURFERS. Va ocho unidades por detrás del
+  // personaje y poco más de tres por encima, con un gran angular franco.
+  //
+  // La versión anterior era casi un teleobjetivo (FOV 38 a 17.5 de distancia)
+  // y resolvía un problema real —con la cámara atrás y los perseguidores entre
+  // ella y el jugador, un gran angular los dispara de tamaño—, pero lo pagaba
+  // caro: la profundidad comprimida deja la calle plana, el personaje pequeño
+  // y la sensación de velocidad en nada. Se veía la persecución desde la
+  // tribuna en vez de correrla.
+  //
+  // Lo que hace inmersiva a la de Subway Surfers es exactamente lo contrario:
+  // estás encima del personaje, la vía se abre hacia ti y las paredes laterales
+  // pasan de largo por el borde del cuadro. El problema de los perseguidores no
+  // se resuelve con la focal, se resuelve con su rango de Z (ver PERSEGUIDOR).
+  FOV: 58,
+  POSICION: { x: 0, y: 4, z: 7.4 },
+  // La mira va ALTA —por encima de la cabeza del personaje— y eso es lo que lo
+  // baja al tercio inferior del cuadro, que es donde lo pone Subway Surfers.
+  // Con la mira a la altura del pecho, el personaje se planta en el centro y
+  // se come el sitio por donde hay que mirar.
+  MIRA: { x: 0, y: 1.9, z: -6 },
 
-  // Compensación de encuadre en pantallas verticales.
+  // Encuadre según la forma de la pantalla.
   //
-  // Three.js mantiene FIJO el FOV VERTICAL y deriva el horizontal del aspecto.
-  // En un móvil en vertical (aspecto ~0.46) eso recorta el ancho a menos de la
-  // mitad, y los carriles exteriores se salían de pantalla justo a la altura
-  // del jugador. Para un juego que es primero móvil, eso no es un detalle.
+  // Three.js mantiene FIJO el FOV VERTICAL y deriva el horizontal del aspecto,
+  // así que la misma cámara da imágenes muy distintas en un móvil vertical y
+  // en un monitor. Hay un límite por cada lado:
   //
-  // La solución estándar (Hor+): fijar el ANCHO mínimo visible y abrir el FOV
-  // vertical lo que haga falta para conseguirlo. En pantallas anchas no se
-  // toca nada, porque el mínimo ya se cumple de sobra.
-  // Semiángulo horizontal necesario, en grados, medido a la distancia del
-  // jugador: cubre los tres carriles (±2.4) más un margen de aire.
-  SEMIANGULO_HORIZONTAL: 11.2,
+  // MÍNIMO — en pantallas MUY altas el ancho se estrecha tanto que los
+  // carriles exteriores dejan de verse a tiempo. Es una red de seguridad: con
+  // el gran angular actual ni siquiera se activa en un móvil normal (aspecto
+  // ~0.46), solo en formatos extremos.
+  SEMIANGULO_HORIZONTAL: 14,
+  // MÁXIMO — en pantallas anchas pasa lo contrario: un FOV vertical de 58 en
+  // 16:9 da casi 90° horizontales, y eso ya no es gran angular, es ojo de pez.
+  // Las líneas de la calle se curvan y los laterales se estiran.
+  SEMIANGULO_HORIZONTAL_MAXIMO: 34,
   // La cámara sigue el desplazamiento lateral del jugador con retraso, lo que
   // da sensación de peso sin marear.
-  SEGUIMIENTO_LATERAL: 0.18,
+  //
+  // Subió de 0.18 a 0.5 al acortar la cámara, y no es cuestión de gusto: con
+  // la cámara a 7.4 y el gran angular, un jugador en el carril exterior (±2.4)
+  // se salía del borde de la pantalla en vertical. Siguiéndolo a la mitad se
+  // queda a media distancia del centro, que es donde debe estar: dentro, pero
+  // suficientemente descentrado como para que se note el cambio de carril.
+  SEGUIMIENTO_LATERAL: 0.5,
   AMORTIGUACION: 6,
   // Sacudida al chocar.
   SACUDIDA_GOLPE: 0.5,

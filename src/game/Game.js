@@ -186,11 +186,19 @@ export class Game {
    * nada, que es lo que se quiere: en escritorio manda la composición.
    */
   _ajustarEncuadre() {
-    const semiH = THREE.MathUtils.degToRad(CAMARA.SEMIANGULO_HORIZONTAL);
-    const necesario = THREE.MathUtils.radToDeg(
-      2 * Math.atan(Math.tan(semiH) / Math.max(0.2, this.camara.aspect)),
+    const aspecto = Math.max(0.2, this.camara.aspect);
+    const verticalPara = (semianguloEnGrados) => THREE.MathUtils.radToDeg(
+      2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(semianguloEnGrados)) / aspecto),
     );
-    this.camara.fov = Math.max(CAMARA.FOV, necesario);
+
+    // Suelo: abrir lo justo si la pantalla es tan alta que estrecha el ancho.
+    let fov = Math.max(CAMARA.FOV, verticalPara(CAMARA.SEMIANGULO_HORIZONTAL));
+    // Techo: cerrar si la pantalla es tan ancha que el gran angular se
+    // convierte en ojo de pez. En vertical este límite queda muy por encima y
+    // no toca nada; en escritorio es el que manda.
+    fov = Math.min(fov, verticalPara(CAMARA.SEMIANGULO_HORIZONTAL_MAXIMO));
+
+    this.camara.fov = fov;
     this.camara.updateProjectionMatrix();
   }
 
@@ -1131,6 +1139,11 @@ export class Game {
     // ---- Subsistemas ------------------------------------------------------
     this.pista.actualizar(avance);
 
+    // La Bahía va techada, y su bóveda no puede atravesar la fachada de la
+    // bifurcación: el escenario necesita saber dónde se acaba la calle.
+    // Cuando no hay fachada en pista, no hay tope.
+    this.escenario.zTope = this.bifurcacion.activa ? this.bifurcacion.z : null;
+
     // El Apagón necesita la velocidad para escalar la visibilidad.
     if (this.escenarioActual === 'apagon') {
       this.escenario.actualizar(dt, avance, this.jugador, velocidadEfectiva);
@@ -1372,8 +1385,12 @@ export class Game {
       this.sacudida = 0;
     }
 
+    // La mira acompaña al mismo ritmo que la posición. Si siguiera al jugador
+    // MENOS que la cámara, cada cambio de carril giraría el encuadre hacia
+    // fuera y la calle se vería de lado; si lo siguiera más, la cámara
+    // orbitaría alrededor del personaje. Van juntas.
     this.camara.lookAt(
-      this.jugador.x * 0.35,
+      this.jugador.x * CAMARA.SEGUIMIENTO_LATERAL,
       CAMARA.MIRA.y + this.jugador.y * 0.2,
       CAMARA.MIRA.z,
     );

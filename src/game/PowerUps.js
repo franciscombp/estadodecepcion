@@ -21,7 +21,7 @@
 // ============================================================================
 
 import * as THREE from 'three';
-import { CARRILES, POTENCIADORES, CATALOGO_POTENCIADORES } from '../config/balance.js';
+import { CARRILES, POTENCIADORES, CATALOGO_POTENCIADORES, OBSTACULOS } from '../config/balance.js';
 import { crearPotenciador } from '../models/props.js';
 import { crearCaja, hayColisionPlana } from '../utils/collision.js';
 
@@ -119,7 +119,8 @@ export class PowerUpManager {
         u.insignia.rotation.y = -this.tiempo * 1.1;
       }
 
-      if (p.z > 20) {
+      // Ver DISTANCIA_RECICLADO: nada sigue vivo por detrás de la cámara.
+      if (p.z > OBSTACULOS.DISTANCIA_RECICLADO) {
         this._destruir(p);
         this.activos.splice(i, 1);
       }

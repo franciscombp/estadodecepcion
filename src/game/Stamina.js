@@ -21,7 +21,7 @@
 // ============================================================================
 
 import * as THREE from 'three';
-import { CARRILES, ESTAMINA } from '../config/balance.js';
+import { CARRILES, ESTAMINA, OBSTACULOS } from '../config/balance.js';
 import { crearItemEstamina } from '../models/props.js';
 import { crearCaja, hayColisionPlana } from '../utils/collision.js';
 
@@ -122,7 +122,9 @@ export class StaminaManager {
 
       this._animar(item.malla, item.z);
 
-      if (item.z > 18) {
+      // Mismo umbral que los obstáculos: por detrás de la cámara no queda
+      // nada vivo, o al adelantarlo cruzaría el objetivo. Ver DISTANCIA_RECICLADO.
+      if (item.z > OBSTACULOS.DISTANCIA_RECICLADO) {
         this._devolver(item);
         this.activos.splice(i, 1);
       }

@@ -48,8 +48,15 @@ chiste— sino aguantando de pie el tiempo suficiente para publicar.
 | 🕴️ | **El bajito** | Persigue. Va montado sobre el grande y señala. |
 | 🧍 | **El grande** | Persigue. Corre pesado y carga al otro. |
 
-Los dos persiguen **desde atrás**, en cuadro, entre la cámara y el jugador.
-La amenaza se lee por el hueco que se cierra.
+Los dos persiguen **desde atrás**, en cuadro, entre la cámara y el jugador,
+y **pegados a un lado**: de frente le tapan al personaje el cuerpo entero.
+La amenaza se lee por el hueco que se cierra, no por el tamaño —ver la sección
+de cámara en el README para por qué no pueden crecer al quedarse atrás.
+
+La cámara es **corta y de gran angular**, la de un runner de móvil: estás
+encima del personaje, la vía se abre hacia ti y los laterales pasan de largo
+por el borde del cuadro. Se ve la persecución desde dentro, no desde la
+tribuna.
 
 ---
 
@@ -127,32 +134,40 @@ popular es un sitio diurno. Se abre a las siete y se cierra al caer el sol.
 
 ### 1 · LA BAHÍA — caso Porsche
 
-> Mediodía. A los lados, **hileras de puestos pegados unos a otros** bajo una
-> bóveda de policarbonato, con toldos a rayas, persianas metálicas, rótulos
-> pintados a mano y la mercadería apilada hasta el techo.
+> Mediodía en un **pasaje cubierto**. La calle entera va bajo una bóveda
+> traslúcida, y debajo, **hileras de puestos pegados unos a otros**: toldos a
+> rayas, persianas metálicas, rótulos pintados a mano y la mercadería apilada
+> hasta arriba.
 
-**Cómo se construye el sector** (`crearDecorado`, caso `bahia`)
+**Cómo se construye el sector**
 
 Lo que hace que se lea como comercio informal y no como «una calle con
 tiendas» son tres decisiones, y ninguna es el detalle de los modelos:
 
-1. **Los puestos van pegados.** Cada elemento de decorado no es un local: es
+1. **La calle va TECHADA de punta a punta.** No son toldos por los lados: es
+   una bóveda que cruza el ancho entero, como la del pasaje de verdad. La
+   monta el escenario (`BahiaScene`) y no el decorado, porque no es de un lado,
+   es de los dos: puesta a los lados serían dos medias bóvedas que se reciclan
+   por su cuenta y no casan por el eje de la calle. Es también lo que más
+   cambia la sensación de correr —hay algo por encima de la cabeza que pasa de
+   largo— y por eso la Bahía se siente distinta de las otras tres.
+2. **Los puestos van pegados.** Cada elemento de decorado no es un local: es
    una hilera de tres, sin un palmo entre medias, alineada a escuadra. El
    decorado del resto de escenas se coloca con desviación lateral y escala al
    azar para que la ciudad no se repita; una fila de mercado con eso puesto no
    se lee como desorden, se lee como fallo de colocación, así que la hilera
    pide alineación y el escenario se la respeta.
-2. **El género sale del local.** La ropa cuelga por delante de la persiana, la
+3. **El género sale del local.** La ropa cuelga por delante de la persiana, la
    mercadería se apila hasta arriba y el toldo invade la vereda. Un local
    ordenado, con su vitrina y su puerta, sería otro barrio.
-3. **La bóveda cubre SU acera y se queda ahí.** Con una cubierta grande las
-   dos aceras se juntan por arriba, la calle queda techada y el mercado se
-   convierte en un invernadero. El borde exterior tiene que caer por fuera del
-   asfalto.
 
 Los rótulos son **genéricos** —«AL POR MAYOR», «TODO A $1»— y nunca marcas ni
 nombres de locales reales: el decorado ambienta un sector, no señala a un
 comerciante.
+
+Y **aquí no hay palmeras**. Están en las Elecciones, que es la escena de calle
+abierta. Dentro de un pasaje techado no crece una palmera, y si asoma por
+encima del techo lo que dice es que no hay techo.
 
 **Obstáculos**
 

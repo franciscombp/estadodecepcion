@@ -45,12 +45,16 @@ const ABREVIADA = {
 // distancia deja al personaje comiéndose el cuadro entero.
 const CAMARA_ENTREVISTA = { x: 6.2, y: 2.3, z: 4.0 };
 
-// La del MENÚ es otra, y más lejos. En la cinemática el plano es cerrado
-// porque dura segundo y medio y hay que leer el gesto; en la portada el
-// personaje convive con la interfaz, y a la distancia de la cinemática le
-// quedaban las piernas detrás de los botones.
-const CAMARA_MENU = { x: 7.6, y: 2.9, z: 5.6 };
-const MIRA_MENU = 1.45;
+// La del MENÚ es otra. En la cinemática el plano es cerrado porque dura
+// segundo y medio y hay que leer el gesto; en la portada el personaje convive
+// con la interfaz y necesita algo más de aire por abajo, o las piernas le
+// quedan detrás de los botones.
+//
+// Se acercó al ensanchar el objetivo de juego (FOV 38 → 58): con el gran
+// angular, la misma distancia dejaba al personaje diminuto en medio de la
+// franja libre. Menos distancia, mismo tamaño en pantalla.
+const CAMARA_MENU = { x: 5.4, y: 2.5, z: 4.1 };
+const MIRA_MENU = 1.35;
 
 export class Intro {
   constructor() {

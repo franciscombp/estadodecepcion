@@ -16,7 +16,7 @@
 // ============================================================================
 
 import * as THREE from 'three';
-import { PERSEGUIDOR, CERCO } from '../config/balance.js';
+import { PERSEGUIDOR, CERCO, CAMARA } from '../config/balance.js';
 import { crearPerseguidores, animarPerseguidores } from '../models/characters.js';
 
 export class Chaser {
@@ -34,6 +34,7 @@ export class Chaser {
     // Posición y tamaño VISUALES, separados de la distancia de juego.
     this.zVisualActual = PERSEGUIDOR.Z_LEJOS;
     this.escalaActual = PERSEGUIDOR.ESCALA_LEJOS;
+    this.xVisualActual = PERSEGUIDOR.DESVIO_EN_PANTALLA * (CAMARA.POSICION.z - PERSEGUIDOR.Z_LEJOS);
 
     // Cerco: cuando atrapan al jugador, se abalanzan. 0..1.
     this.cercando = 0;
@@ -87,23 +88,44 @@ export class Chaser {
     let zVisual = THREE.MathUtils.lerp(PERSEGUIDOR.Z_LEJOS, PERSEGUIDOR.Z_CERCA, cerca);
     let escala = THREE.MathUtils.lerp(PERSEGUIDOR.ESCALA_LEJOS, PERSEGUIDOR.ESCALA_CERCA, cerca);
 
-    // Durante el cerco se echan encima, pero POR UN LADO. De frente taparían
-    // al personaje justo en el fotograma en el que hay que verlo rodeado.
-    let desvio = 0;
+    // Van pegados a un lado, no exactamente detrás: con la cámara corta, de
+    // frente le tapaban al jugador el cuerpo entero.
+    //
+    // El hueco se calcula EN PANTALLA, no en metros. Lo que la perspectiva
+    // convierte en píxeles es la razón x/distancia_a_la_cámara, así que se
+    // parte de la razón del jugador y se le suma la separación deseada; el
+    // resultado se devuelve a metros multiplicando por la distancia de ellos.
+    // Con metros fijos el hueco se abría al acercarse y se cerraba al cambiar
+    // de carril, que es justo cuando hace falta que no se mueva.
+    //
+    // El lado por defecto es la derecha, y se cambian a la izquierda cuando el
+    // jugador se mete en el carril derecho —si no, se saldrían de cuadro—. El
+    // salto de un lado a otro se suaviza abajo: un cambio de carril no puede
+    // teletransportarlos.
+    const lado = this.x > 1.2 ? -1 : 1;
+    const razon = this.x / CAMARA.POSICION.z
+      + lado * PERSEGUIDOR.DESVIO_EN_PANTALLA;
+    let xVisual = razon * Math.max(0.5, CAMARA.POSICION.z - zVisual);
+
+    // Durante el cerco se echan encima, pero también POR UN LADO. De frente
+    // taparían al personaje justo en el fotograma en que hay que verlo rodeado.
     if (this.cercando > 0) {
-      zVisual = THREE.MathUtils.lerp(zVisual, 2.4, this.cercando);
-      escala = THREE.MathUtils.lerp(escala, 1.2, this.cercando);
-      desvio = CERCO.DESVIO_PERSEGUIDOR * this.cercando;
+      zVisual = THREE.MathUtils.lerp(zVisual, 1.5, this.cercando);
+      escala = THREE.MathUtils.lerp(escala, 1.05, this.cercando);
+      xVisual = THREE.MathUtils.lerp(
+        xVisual, this.x + CERCO.DESVIO_PERSEGUIDOR, this.cercando,
+      );
     }
 
     // Suavizamos para que los cambios de distancia no den tirones.
     const ts = 1 - Math.exp(-5 * dt);
     this.zVisualActual += (zVisual - this.zVisualActual) * ts;
     this.escalaActual += (escala - this.escalaActual) * ts;
+    this.xVisualActual += (xVisual - this.xVisualActual) * ts;
 
     // Corren por el suelo, como todo el mundo. Ya no flotan al fondo: ahora
     // están donde tienen que estar y no hace falta disimular nada.
-    this.modelo.position.set(this.x + desvio, 0, this.zVisualActual);
+    this.modelo.position.set(this.xVisualActual, 0, this.zVisualActual);
     this.modelo.scale.setScalar(this.escalaActual);
 
     // Miran hacia el jugador, que está en -Z respecto a ellos.
@@ -161,5 +183,6 @@ export class Chaser {
     this.cercando = 0;
     this.zVisualActual = PERSEGUIDOR.Z_LEJOS;
     this.escalaActual = PERSEGUIDOR.ESCALA_LEJOS;
+    this.xVisualActual = PERSEGUIDOR.DESVIO_EN_PANTALLA * (CAMARA.POSICION.z - PERSEGUIDOR.Z_LEJOS);
   }
 }

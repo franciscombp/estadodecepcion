@@ -11,7 +11,7 @@
 // ============================================================================
 
 import * as THREE from 'three';
-import { CARRILES, PAPELES, EVIDENCIA } from '../config/balance.js';
+import { CARRILES, PAPELES, EVIDENCIA, OBSTACULOS } from '../config/balance.js';
 import { crearPapel, crearEvidencia } from '../models/props.js';
 import { crearCaja, hayColisionPlana, distanciaHorizontal } from '../utils/collision.js';
 
@@ -289,7 +289,9 @@ export class CoinManager {
       }
 
       // --- Reciclado --------------------------------------------------------
-      if (item.z > 18) {
+      // Mismo umbral que los obstáculos: por detrás de la cámara no queda
+      // nada vivo, o al adelantarlo cruzaría el objetivo. Ver DISTANCIA_RECICLADO.
+      if (item.z > OBSTACULOS.DISTANCIA_RECICLADO) {
         this._devolver(item);
         this.activos.splice(i, 1);
       }
