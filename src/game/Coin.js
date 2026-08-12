@@ -165,6 +165,64 @@ export class CoinManager {
     }
   }
 
+  /**
+   * Hilera sobre una tarima. Es el premio por tomar la rampa en vez de
+   * ignorarla, así que va densa y ocupa el tablado casi entero.
+   *
+   * No pasa por el filtro de densidad ni por el tope del tramo: esta hilera no
+   * es relleno ambiental, es la recompensa de una mecánica. En Carondelet, que
+   * tiene tope de papeles, sigue contando —pero se genera igual.
+   *
+   * @param {number} carril
+   * @param {number} zInicio Borde cercano del tablado
+   * @param {number} largo   Metros de tablado utilizables
+   * @param {number} altura  Altura de la superficie
+   */
+  generarHileraElevada(carril, zInicio, largo, altura) {
+    const x = CARRILES.POSICIONES[carril];
+    const cuantos = Math.max(2, Math.floor(largo / PAPELES.SEPARACION));
+
+    for (let i = 0; i < cuantos; i++) {
+      const zPapel = zInicio - i * PAPELES.SEPARACION;
+      const malla = this._obtenerPapel();
+      malla.visible = true;
+      const y = altura + PAPELES.ALTURA;
+      malla.position.set(x, y, zPapel);
+
+      this.activos.push({
+        malla,
+        tipo: 'papel',
+        x,
+        y,
+        z: zPapel,
+        valor: PAPELES.VALOR_MAXIMO, // Arriba se paga mejor. Para eso subiste.
+        recogido: false,
+      });
+      this.generadosEsteTramo++;
+    }
+  }
+
+  /**
+   * Planta un papel suelto en coordenadas exactas. Lo usa el trámite, que
+   * dibuja su propio patrón y no quiere que nadie se lo filtre por densidad ni
+   * se lo recorte por tope de tramo: ahí los papeles SON la prueba.
+   */
+  plantarPapel(x, y, z) {
+    const malla = this._obtenerPapel();
+    malla.visible = true;
+    malla.position.set(x, y, z);
+
+    this.activos.push({
+      malla,
+      tipo: 'papel',
+      x,
+      y,
+      z,
+      valor: PAPELES.VALOR_MINIMO,
+      recogido: false,
+    });
+  }
+
   // -------------------------------------------------------------------------
   // ACTUALIZACIÓN
   // -------------------------------------------------------------------------
@@ -186,7 +244,11 @@ export class CoinManager {
       // precisión del swipe en móvil sin regalar el juego.
       if (!item.recogido && Math.abs(item.z) < 12) {
         const d = distanciaHorizontal(item.x, item.z, jugador.x, 0);
-        if (d < PAPELES.RADIO_IMAN) {
+        // El imán también mira la ALTURA. Sin esto, un papel puesto sobre una
+        // tarima se dejaría arrastrar hasta un jugador que corre por debajo,
+        // y el premio de subir se cobraría sin subir.
+        const alcanceVertical = Math.abs(item.y - (jugador.y + 0.9)) < 1.6;
+        if (d < PAPELES.RADIO_IMAN && alcanceVertical) {
           const factor = 1 - Math.exp(-PAPELES.VELOCIDAD_IMAN * dt);
           item.x += (jugador.x - item.x) * factor;
           const yObjetivo = jugador.y + 0.9;
@@ -217,7 +279,10 @@ export class CoinManager {
 
   /**
    * Recoge todo lo que toque el jugador.
-   * @returns {{papeles: number, evidencias: Array}} Lo recogido este fotograma
+   * @returns {{papeles:number, cantidad:number, evidencias:Array}}
+   *          Valor sumado, número de piezas y evidencias de este fotograma.
+   *          La CANTIDAD importa aparte del valor: el trámite se puntúa por
+   *          piezas recogidas, no por papeles sumados.
    */
   recoger(jugador) {
     const cajaJugador = jugador.obtenerCaja();
@@ -228,6 +293,7 @@ export class CoinManager {
     );
 
     let papeles = 0;
+    let cantidad = 0;
     const evidencias = [];
 
     for (let i = this.activos.length - 1; i >= 0; i--) {
@@ -245,6 +311,7 @@ export class CoinManager {
 
         item.recogido = true;
         papeles += item.valor;
+        cantidad += 1;
         if (item.tipo === 'evidencia') {
           evidencias.push({ nombre: item.nombre, valor: item.valor });
         }
@@ -254,7 +321,7 @@ export class CoinManager {
       }
     }
 
-    return { papeles, evidencias };
+    return { papeles, cantidad, evidencias };
   }
 
   // -------------------------------------------------------------------------

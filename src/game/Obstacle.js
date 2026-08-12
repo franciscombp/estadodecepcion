@@ -40,6 +40,36 @@ export class ObstacleManager {
     // Se pone a true durante las transiciones de escenario para dejar de
     // generar (la pista se vacía antes de la bifurcación).
     this.generacionPausada = false;
+
+    // Tramos de carril vetados. Los pide el gestor de niveles elevados: una
+    // tarima ocupa 20-35 metros seguidos, o sea varios grupos, y un bloque
+    // sólido generado ahí dentro aparecería dentro de la madera.
+    this.reservas = [];
+  }
+
+  // -------------------------------------------------------------------------
+  // RESERVAS DE CARRIL
+  // -------------------------------------------------------------------------
+
+  /**
+   * Veta un carril en un tramo de Z. Las reservas se mueven con el mundo, como
+   * todo lo demás, y caducan solas al quedar atrás.
+   *
+   * @param {number} carril
+   * @param {number} zLejano  Extremo más alejado del jugador (más negativo)
+   * @param {number} zCercano Extremo más cercano
+   */
+  reservar(carril, zLejano, zCercano) {
+    this.reservas.push({ carril, zLejano, zCercano });
+  }
+
+  /** ¿Está vetado este carril en esta Z? */
+  _estaReservado(carril, z) {
+    for (const r of this.reservas) {
+      if (r.carril !== carril) continue;
+      if (z >= r.zLejano && z <= r.zCercano) return true;
+    }
+    return false;
   }
 
   // -------------------------------------------------------------------------
@@ -96,13 +126,19 @@ export class ObstacleManager {
    * carril (útil para decidir dónde poner los papeles).
    */
   _generarGrupo(z) {
+    // 0. Carriles vetados por una tarima. Si alguno lo está, es además el
+    //    candidato ideal a carril solución: por ahí se pasa seguro.
+    const vetados = [0, 1, 2].filter((c) => this._estaReservado(c, z));
+
     // 1. Elegimos el carril por el que SÍ se puede pasar.
-    const carrilSolucion = Math.floor(Math.random() * 3);
+    const carrilSolucion = vetados.length > 0
+      ? vetados[Math.floor(Math.random() * vetados.length)]
+      : Math.floor(Math.random() * 3);
 
     // 2. Decidimos qué hay en el carril solución.
     //    40% vacío, 60% algo que se libra saltando o agachándose.
     let tipoSolucion = null;
-    if (Math.random() > 0.4) {
+    if (!vetados.includes(carrilSolucion) && Math.random() > 0.4) {
       tipoSolucion = TIPOS_SUPERABLES[Math.floor(Math.random() * TIPOS_SUPERABLES.length)];
     }
 
@@ -119,13 +155,15 @@ export class ObstacleManager {
     // ¿Ponemos un "doble" (bus) que cubra los dos carriles restantes?
     // Solo cabe si los dos restantes son adyacentes, es decir, si el carril
     // solución es uno de los extremos.
-    const sonAdyacentes = Math.abs(otrosCarriles[0] - otrosCarriles[1]) === 1;
+    const sonAdyacentes = Math.abs(otrosCarriles[0] - otrosCarriles[1]) === 1
+      && !otrosCarriles.some((c) => vetados.includes(c));
 
     if (sonAdyacentes && Math.random() < OBSTACULOS.PROBABILIDAD_DOBLE) {
       this._colocar('doble', otrosCarriles, z);
       otrosCarriles.forEach((c) => carrilesOcupados.add(c));
     } else {
       for (const carril of otrosCarriles) {
+        if (vetados.includes(carril)) continue;
         const r = Math.random();
         if (r < 0.45) {
           // Bloque sólido: obliga a no estar aquí.
@@ -249,6 +287,14 @@ export class ObstacleManager {
   actualizar(avance, velocidad) {
     let ultimoGrupo = null;
 
+    // Mover y caducar las reservas de carril.
+    for (let i = this.reservas.length - 1; i >= 0; i--) {
+      const r = this.reservas[i];
+      r.zLejano += avance;
+      r.zCercano += avance;
+      if (r.zLejano > OBSTACULOS.DISTANCIA_RECICLADO) this.reservas.splice(i, 1);
+    }
+
     // Mover y reciclar.
     for (let i = this.activos.length - 1; i >= 0; i--) {
       const o = this.activos[i];
@@ -371,6 +417,7 @@ export class ObstacleManager {
       });
     }
     this.activos = [];
+    this.reservas = [];
     this.proximaZ = -OBSTACULOS.DISTANCIA_APARICION;
   }
 

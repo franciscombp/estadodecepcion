@@ -27,7 +27,7 @@
 // ============================================================================
 
 import * as THREE from 'three';
-import { CARRILES, OBSTACULOS, PALETA } from '../config/balance.js';
+import { CARRILES, OBSTACULOS, PALETA, TUNEL, ELEVADO } from '../config/balance.js';
 import { COLOR3D } from '../config/estilo.js';
 
 // ---------------------------------------------------------------------------
@@ -480,38 +480,311 @@ export function crearEvidencia() {
   return g;
 }
 
-/** ÍTEM DE ESTAMINA — cambia de color según el escenario. */
-export function crearItemEstamina(color) {
-  const g = new THREE.Group();
+// ---------------------------------------------------------------------------
+// ÍTEMS DE ESTAMINA
+// ---------------------------------------------------------------------------
+// Uno por escenario, y cada uno es un OBJETO RECONOCIBLE, no un cilindro
+// teñido. La diferencia importa más de lo que parece: la estamina es el único
+// recurso que hay que buscar activamente, así que el jugador tiene que
+// distinguirla de un papel a treinta metros y en movimiento. Una silueta
+// propia lo consigue; un color, no —el color ya lo usa todo lo demás.
+//
+// Todos comparten la misma envoltura: peana de luz en el suelo, halo que late
+// y un par de chispas en órbita. Eso es lo que dice "esto se recoge"; el
+// modelo de dentro solo dice QUÉ es.
 
-  const cuerpo = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.25, 0.3, 0.44, 9),
-    neon(color, 1.6),
-  );
-  g.add(cuerpo);
-
-  // Tapa, para que se lea como recipiente y no como cilindro suelto.
-  const tapa = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.28, 0.28, 0.07, 9),
-    mat(0xe8eef5, 0.4, 0.4),
-  );
-  tapa.position.y = 0.24;
-  g.add(tapa);
-
-  const anillo = new THREE.Mesh(
-    new THREE.TorusGeometry(0.42, 0.045, 6, 16),
+/** Peana, halo y chispas. Lo común a todos los ítems. */
+function envoltorioRecolectable(g, color) {
+  // Disco en el suelo: ancla el objeto flotante a un carril concreto. Sin él,
+  // un ítem que flota se lee ambiguo entre dos carriles.
+  const peana = new THREE.Mesh(
+    new THREE.CircleGeometry(0.55, 18),
     new THREE.MeshBasicMaterial({
       color,
       transparent: true,
-      opacity: 0.65,
+      opacity: 0.28,
+      depthWrite: false,
+      toneMapped: false,
+    }),
+  );
+  peana.rotation.x = -Math.PI / 2;
+  peana.position.y = -0.98; // A ras de asfalto: el ítem va a ESTAMINA.ALTURA.
+  g.add(peana);
+
+  const anillo = new THREE.Mesh(
+    new THREE.TorusGeometry(0.44, 0.04, 6, 18),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.7,
       toneMapped: false,
     }),
   );
   anillo.rotation.x = Math.PI / 2;
   g.add(anillo);
 
-  g.userData.tipo = 'estamina';
+  const halo = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5, 10, 8),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.12,
+      depthWrite: false,
+      toneMapped: false,
+    }),
+  );
+  g.add(halo);
+
+  const chispas = new THREE.Group();
+  const matChispa = new THREE.MeshBasicMaterial({ color, toneMapped: false });
+  for (let i = 0; i < 3; i++) {
+    const chispa = new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 4), matChispa);
+    const a = (i / 3) * Math.PI * 2;
+    chispa.position.set(Math.cos(a) * 0.52, Math.sin(a * 2) * 0.16, Math.sin(a) * 0.52);
+    chispas.add(chispa);
+  }
+  g.add(chispas);
+
   g.userData.anillo = anillo;
+  g.userData.halo = halo;
+  g.userData.chispas = chispas;
+}
+
+/** ENCEBOLLADO — La Bahía. Plato hondo, caldo humeante y cuchara. */
+function modeloEncebollado(color) {
+  const g = new THREE.Group();
+
+  const plato = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.36, 0.2, 0.24, 12),
+    mat(0xf2f0e6, 0.28, 0.5),
+  );
+  g.add(plato);
+
+  const caldo = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.32, 0.32, 0.03, 12),
+    neon(color, 1.5),
+  );
+  caldo.position.y = 0.11;
+  g.add(caldo);
+
+  // Yuca y aros de cebolla asomando: es lo que hace que se lea como comida.
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2;
+    const trozo = new THREE.Mesh(
+      new THREE.BoxGeometry(0.11, 0.07, 0.11),
+      mat(0xffe9c4, 0.3, 0.6),
+    );
+    trozo.position.set(Math.cos(a) * 0.14, 0.14, Math.sin(a) * 0.14);
+    trozo.rotation.y = a;
+    g.add(trozo);
+  }
+
+  const cuchara = new THREE.Mesh(
+    new THREE.BoxGeometry(0.04, 0.34, 0.04),
+    mat(0xd8dde6, 0.25, 0.35),
+  );
+  cuchara.position.set(0.2, 0.26, -0.06);
+  cuchara.rotation.z = 0.42;
+  g.add(cuchara);
+
+  // Vaho. Tres volutas que suben; las anima Stamina.js.
+  const vapor = new THREE.Group();
+  const matVapor = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.2,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  for (let i = 0; i < 3; i++) {
+    const nube = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 5), matVapor);
+    nube.position.set((i - 1) * 0.1, 0.2 + i * 0.12, 0);
+    vapor.add(nube);
+  }
+  g.add(vapor);
+  g.userData.vapor = vapor;
+
+  return g;
+}
+
+/** LINTERNA — El Apagón. Cuerpo, cabezal y haz de luz de verdad. */
+function modeloLinterna(color) {
+  const g = new THREE.Group();
+
+  const cuerpo = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.11, 0.13, 0.5, 10),
+    mat(0x2b3140, 0.1, 0.55),
+  );
+  cuerpo.rotation.z = Math.PI / 2;
+  g.add(cuerpo);
+
+  // Franja de agarre: rompe el cilindro y da escala al objeto.
+  const agarre = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.135, 0.135, 0.12, 10),
+    mat(0x141821, 0.05, 0.85),
+  );
+  agarre.rotation.z = Math.PI / 2;
+  agarre.position.x = -0.08;
+  g.add(agarre);
+
+  const cabezal = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.22, 0.13, 0.2, 10),
+    mat(0x3d4557, 0.12, 0.5),
+  );
+  cabezal.rotation.z = -Math.PI / 2;
+  cabezal.position.x = 0.33;
+  g.add(cabezal);
+
+  const lente = new THREE.Mesh(
+    new THREE.CircleGeometry(0.2, 12),
+    neon(color, 2),
+  );
+  lente.rotation.y = Math.PI / 2;
+  lente.position.x = 0.435;
+  g.add(lente);
+
+  // El haz. Es lo que convierte "una linterna" en "LUZ", que es exactamente
+  // lo que el jugador está buscando en ese tramo.
+  const haz = new THREE.Mesh(
+    new THREE.ConeGeometry(0.4, 1.5, 10, 1, true),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.16,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      toneMapped: false,
+    }),
+  );
+  haz.rotation.z = -Math.PI / 2;
+  haz.position.x = 1.18;
+  g.add(haz);
+
+  return g;
+}
+
+/** MICRÓFONO — Las Elecciones. Rejilla, mango y cable suelto. */
+function modeloMicrofono(color) {
+  const g = new THREE.Group();
+
+  const rejilla = new THREE.Mesh(
+    new THREE.SphereGeometry(0.2, 10, 8),
+    new THREE.MeshStandardMaterial({
+      color: 0xb8c2d4,
+      roughness: 0.35,
+      metalness: 0.55,
+      emissive: color,
+      emissiveIntensity: 0.35,
+      flatShading: true,
+    }),
+  );
+  rejilla.position.y = 0.22;
+  g.add(rejilla);
+
+  const cuello = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.075, 0.09, 0.42, 10),
+    mat(0x22283a, 0.08, 0.6),
+  );
+  cuello.position.y = -0.1;
+  g.add(cuello);
+
+  const aro = new THREE.Mesh(
+    new THREE.TorusGeometry(0.095, 0.022, 5, 12),
+    neon(color, 1.7),
+  );
+  aro.rotation.x = Math.PI / 2;
+  aro.position.y = 0.05;
+  g.add(aro);
+
+  // Cable colgando. Un micrófono sin cable parece un helado.
+  const cable = new THREE.Mesh(
+    new THREE.TorusGeometry(0.13, 0.022, 5, 14, Math.PI * 1.4),
+    mat(0x1a1f2b, 0.05, 0.8),
+  );
+  cable.position.set(0.05, -0.36, 0);
+  cable.rotation.set(Math.PI / 2, 0, 0.6);
+  g.add(cable);
+
+  return g;
+}
+
+/** CANELAZO — Carondelet. Jarro de barro, vapor y la rama de canela. */
+function modeloCanelazo(color) {
+  const g = new THREE.Group();
+
+  const jarro = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.22, 0.17, 0.42, 12),
+    mat(0x9a5a3c, 0.16, 0.75),
+  );
+  g.add(jarro);
+
+  const liquido = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.19, 0.19, 0.03, 12),
+    neon(color, 1.6),
+  );
+  liquido.position.y = 0.19;
+  g.add(liquido);
+
+  const asa = new THREE.Mesh(
+    new THREE.TorusGeometry(0.12, 0.032, 5, 12, Math.PI * 1.1),
+    mat(0x9a5a3c, 0.16, 0.75),
+  );
+  asa.position.set(0.24, 0.02, 0);
+  asa.rotation.set(0, Math.PI / 2, -Math.PI / 2);
+  g.add(asa);
+
+  const canela = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.022, 0.022, 0.34, 6),
+    mat(0x7a4520, 0.2, 0.8),
+  );
+  canela.position.set(0.07, 0.3, 0.04);
+  canela.rotation.z = 0.35;
+  g.add(canela);
+
+  const vapor = new THREE.Group();
+  const matVapor = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.22,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  for (let i = 0; i < 3; i++) {
+    const nube = new THREE.Mesh(new THREE.SphereGeometry(0.085, 6, 5), matVapor);
+    nube.position.set((i - 1) * 0.08, 0.28 + i * 0.13, 0);
+    vapor.add(nube);
+  }
+  g.add(vapor);
+  g.userData.vapor = vapor;
+
+  return g;
+}
+
+const MODELOS_ESTAMINA = {
+  encebollado: modeloEncebollado,
+  linterna: modeloLinterna,
+  microfono: modeloMicrofono,
+  canelazo: modeloCanelazo,
+};
+
+/**
+ * ÍTEM DE ESTAMINA.
+ * @param {number} color Color del escenario
+ * @param {string} tipo  Clave del modelo (ver MODELOS_ESTAMINA)
+ */
+export function crearItemEstamina(color, tipo = 'encebollado') {
+  const g = new THREE.Group();
+
+  const constructor = MODELOS_ESTAMINA[tipo] ?? modeloEncebollado;
+  const modelo = constructor(color);
+  g.add(modelo);
+
+  envoltorioRecolectable(g, color);
+
+  g.userData.tipo = 'estamina';
+  // El vapor lo declara el modelo interior; lo subimos al grupo para que
+  // Stamina.js no tenga que saber cómo está montado por dentro.
+  if (modelo.userData.vapor) g.userData.vapor = modelo.userData.vapor;
   return g;
 }
 
@@ -944,72 +1217,244 @@ function crearCartelDestino(texto, colorAcento, esPeligro = false) {
 }
 
 /**
- * PÓRTICO DE BIFURCACIÓN — el cartel que anuncia hacia dónde va cada carril.
+ * LOS TRES TÚNELES — el desvío físico.
  *
- * Es la pieza clave del sistema: aquí NO hay menú, el carril en el que estés
- * al cruzarlo decide la ruta. Por eso el pórtico tiene que leerse con mucha
- * antelación y sin ambigüedad —un cartel por carril, alineado exactamente
- * sobre él.
+ * La calle no se abre en ramales al aire libre: termina contra una fachada con
+ * tres bocas de túnel, una por carril. El túnel resuelve de golpe lo que el
+ * desvío hacía a medias:
+ *
+ *   · Una boca tiene BORDE. Se lee a 200 metros como una figura recortada,
+ *     mientras que dos calles que divergen en la niebla son una mancha.
+ *   · Entrar es un gesto inequívoco. No hay "casi tomé el desvío": o pasas por
+ *     el hueco o te comes el muro.
+ *   · Lo que hay dentro no se ve, y ese es justo el punto: sabes a qué
+ *     temporada vas porque lo dice el rótulo, no porque la veas.
+ *
+ * El túnel del CENTRO es la vía institucional. Cuando el escenario no tiene
+ * institución (Carondelet) esa boca está tapiada: es el cerco.
  *
  * @param {{izquierda:string, centro:string, derecha:string}} destinos
  * @param {boolean} centroEsPeligro Si ir de frente mata (Carondelet)
  */
-export function crearPorticoBifurcacion(destinos, colores, centroEsPeligro = false) {
+export function crearTunelesBifurcacion(destinos, colores, centroEsPeligro = false) {
   const g = new THREE.Group();
-  const anchoTotal = CARRILES.ANCHO * 3 + 1.4;
-  const altoPortico = 5;
 
-  // Columnas.
-  for (const s of [-1, 1]) {
-    const columna = new THREE.Mesh(
-      new THREE.BoxGeometry(0.34, altoPortico, 0.34),
-      mat(COLOR3D.metal, 0.06, 0.85),
-    );
-    columna.position.set(s * (anchoTotal / 2), altoPortico / 2, 0);
-    g.add(columna);
+  const acento = colores.acento ?? COLOR3D.dorado;
+  const medioAncho = TUNEL.ANCHO_BOCA / 2;
+  const grosorPilar = CARRILES.ANCHO - TUNEL.ANCHO_BOCA; // 0.3 con los valores actuales
 
-    // Tira de neón vertical: enmarca el pórtico y lo hace visible de lejos.
-    const tira = new THREE.Mesh(
-      new THREE.BoxGeometry(0.09, altoPortico * 0.85, 0.09),
-      neon(colores.acento ?? COLOR3D.dorado, 1.7),
-    );
-    tira.position.set(s * (anchoTotal / 2), altoPortico / 2, 0.2);
-    g.add(tira);
-  }
+  const matMuro = mat(0x2b3040, 0.03, 0.94);
+  const matInterior = mat(0x151a26, 0.02, 0.96);
 
-  // Viga superior.
-  const viga = new THREE.Mesh(
-    new THREE.BoxGeometry(anchoTotal + 0.34, 0.4, 0.4),
-    mat(COLOR3D.metal, 0.06, 0.85),
-  );
-  viga.position.y = altoPortico;
-  g.add(viga);
-
-  // Un cartel por carril, alineado exactamente sobre él.
-  const carteles = [
+  const bocas = [
     { texto: destinos.izquierda, carril: 0, peligro: false },
     { texto: destinos.centro, carril: 1, peligro: centroEsPeligro },
     { texto: destinos.derecha, carril: 2, peligro: false },
   ];
 
-  for (const c of carteles) {
-    const cartel = crearCartelDestino(
-      c.texto,
-      c.peligro ? 0xff1030 : (colores.acento ?? COLOR3D.dorado),
-      c.peligro,
+  // --- Fachada -------------------------------------------------------------
+  // Se compone por partes en vez de agujerear una caja: dintel arriba, pilares
+  // entre bocas y dos machones a los lados. Sale más barato que cualquier CSG
+  // y además deja los bordes exactamente donde interesa.
+  const altoDintel = TUNEL.ALTO_FACHADA - TUNEL.ALTO_BOCA;
+  const dintel = new THREE.Mesh(
+    new THREE.BoxGeometry(TUNEL.ANCHO_FACHADA, altoDintel, 1.8),
+    matMuro,
+  );
+  dintel.position.y = TUNEL.ALTO_BOCA + altoDintel / 2;
+  g.add(dintel);
+
+  // Pilares interiores, entre boca y boca.
+  for (const x of [-CARRILES.ANCHO / 2, CARRILES.ANCHO / 2]) {
+    const pilar = new THREE.Mesh(
+      new THREE.BoxGeometry(grosorPilar, TUNEL.ALTO_BOCA, 1.8),
+      matMuro,
     );
-    cartel.position.set(CARRILES.POSICIONES[c.carril], altoPortico - 0.62, 0.12);
+    pilar.position.set(x, TUNEL.ALTO_BOCA / 2, 0);
+    g.add(pilar);
+  }
+
+  // Machones exteriores: cierran la calle a los lados. Sin ellos el jugador
+  // podría leer que hay sitio por fuera, y no lo hay.
+  const bordeExterior = CARRILES.ANCHO + medioAncho;
+  const anchoMachon = TUNEL.ANCHO_FACHADA / 2 - bordeExterior;
+  for (const s of [-1, 1]) {
+    const machon = new THREE.Mesh(
+      new THREE.BoxGeometry(anchoMachon, TUNEL.ALTO_BOCA, 1.8),
+      matMuro,
+    );
+    machon.position.set(s * (bordeExterior + anchoMachon / 2), TUNEL.ALTO_BOCA / 2, 0);
+    g.add(machon);
+  }
+
+  // --- Cada boca -----------------------------------------------------------
+  for (const b of bocas) {
+    const x = CARRILES.POSICIONES[b.carril];
+    const color = b.peligro ? NEON.rojo : acento;
+
+    // Tubo: dos paredes, techo y calzada. El interior va casi negro para que
+    // la boca se lea como un hueco y no como un panel pintado.
+    for (const s of [-1, 1]) {
+      const pared = new THREE.Mesh(
+        new THREE.BoxGeometry(0.25, TUNEL.ALTO_BOCA, TUNEL.LARGO),
+        matInterior,
+      );
+      pared.position.set(x + s * medioAncho, TUNEL.ALTO_BOCA / 2, -TUNEL.LARGO / 2);
+      g.add(pared);
+    }
+
+    const techo = new THREE.Mesh(
+      new THREE.BoxGeometry(TUNEL.ANCHO_BOCA, 0.25, TUNEL.LARGO),
+      matInterior,
+    );
+    techo.position.set(x, TUNEL.ALTO_BOCA, -TUNEL.LARGO / 2);
+    g.add(techo);
+
+    const calzada = new THREE.Mesh(
+      new THREE.PlaneGeometry(TUNEL.ANCHO_BOCA, TUNEL.LARGO),
+      new THREE.MeshStandardMaterial({
+        color: colores.calle ?? COLOR3D.asfalto,
+        roughness: 0.94,
+        metalness: 0.04,
+      }),
+    );
+    calzada.rotation.x = -Math.PI / 2;
+    calzada.position.set(x, 0.02, -TUNEL.LARGO / 2);
+    g.add(calzada);
+
+    // Marco de neón alrededor del hueco. Es lo que hace que la boca se
+    // distinga de lejos: un rectángulo de luz sobre una fachada apagada.
+    const matMarco = neon(color, 1.9);
+    const marcoH = new THREE.BoxGeometry(TUNEL.ANCHO_BOCA + 0.3, 0.16, 0.16);
+    const marcoV = new THREE.BoxGeometry(0.16, TUNEL.ALTO_BOCA, 0.16);
+    for (const y of [0.1, TUNEL.ALTO_BOCA - 0.08]) {
+      const barra = new THREE.Mesh(marcoH, matMarco);
+      barra.position.set(x, y, 0.95);
+      g.add(barra);
+    }
+    for (const s of [-1, 1]) {
+      const barra = new THREE.Mesh(marcoV, matMarco);
+      barra.position.set(x + s * (medioAncho + 0.07), TUNEL.ALTO_BOCA / 2, 0.95);
+      g.add(barra);
+    }
+
+    // Luminarias del interior, en fuga. Dan profundidad al tubo y confirman
+    // que hay algo dentro: sin ellas, la boca se lee como un rectángulo negro
+    // pegado a la pared.
+    const matLuz = neon(b.peligro ? NEON.rojo : NEON.blanco, 1.5);
+    for (let i = 1; i <= 9; i++) {
+      const luz = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.1, 0.28), matLuz);
+      luz.position.set(x, TUNEL.ALTO_BOCA - 0.22, -i * (TUNEL.LARGO / 10));
+      g.add(luz);
+    }
+
+    // Resplandor justo dentro del hueco. Sin esto la boca es un rectángulo
+    // negro pegado a la pared; con esto se lee que ahí dentro hay sitio.
+    const resplandor = new THREE.Mesh(
+      new THREE.PlaneGeometry(TUNEL.ANCHO_BOCA, TUNEL.ALTO_BOCA),
+      new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.16,
+        depthWrite: false,
+        toneMapped: false,
+        fog: false,
+      }),
+    );
+    resplandor.position.set(x, TUNEL.ALTO_BOCA / 2, -1.6);
+    g.add(resplandor);
+
+    // Rótulo sobre la boca, alineado con su carril.
+    const cartel = crearCartelDestino(b.texto, color, b.peligro);
+    cartel.scale.setScalar(1.12);
+    cartel.position.set(x, TUNEL.ALTO_BOCA + 0.75, 0.98);
     g.add(cartel);
 
-    // Flecha bajo el cartel, apuntando a su carril.
-    const flecha = new THREE.Mesh(
-      new THREE.ConeGeometry(0.2, 0.4, 3),
-      neon(c.peligro ? NEON.rojo : (colores.acento ?? COLOR3D.dorado), 1.9),
+    if (b.peligro) {
+      // La boca del centro en Carondelet está tapiada con concertina. Sigue
+      // siendo un hueco —el jugador puede meterse— pero se ve que no es una
+      // salida, es una trampa.
+      for (let i = 0; i < 4; i++) {
+        const rollo = new THREE.Mesh(
+          new THREE.TorusGeometry(0.5, 0.06, 4, 10),
+          mat(0x9aa4b8, 0.3, 0.4),
+        );
+        rollo.position.set(x, 0.55 + i * 0.85, 0.6);
+        rollo.rotation.y = Math.PI / 2;
+        g.add(rollo);
+      }
+    }
+  }
+
+  // --- Cornisa iluminada ---------------------------------------------------
+  // Una línea de luz que recorre el dintel de lado a lado. Ata las tres bocas
+  // en una sola pieza y remata la silueta contra la niebla.
+  const cornisa = new THREE.Mesh(
+    new THREE.BoxGeometry(TUNEL.ANCHO_FACHADA, 0.2, 0.24),
+    neon(acento, 1.5),
+  );
+  cornisa.position.set(0, TUNEL.ALTO_FACHADA - 0.5, 0.95);
+  g.add(cornisa);
+
+  return g;
+}
+
+/**
+ * CARTEL DE AVISO — el que se ve venir desde lejos.
+ *
+ * Es un pórtico de señalización de autopista: dos postes, una viga y tres
+ * paneles. Se planta a 230, 150 y 80 metros de la boca, de modo que siempre
+ * haya uno legible en cuadro mientras el jugador se coloca.
+ *
+ * No está alineado con los carriles al milímetro como el pórtico antiguo: aquí
+ * lo que importa es leerlo, y por eso los paneles van grandes y muy arriba,
+ * donde nada los tapa.
+ */
+export function crearAvisoBifurcacion(destinos, colores, centroEsPeligro = false) {
+  const g = new THREE.Group();
+  const acento = colores.acento ?? COLOR3D.dorado;
+  const ancho = 12.4;
+  const alto = 7.4;
+
+  for (const s of [-1, 1]) {
+    const poste = new THREE.Mesh(
+      new THREE.BoxGeometry(0.3, alto, 0.3),
+      mat(COLOR3D.metal, 0.06, 0.85),
     );
-    flecha.position.set(CARRILES.POSICIONES[c.carril], altoPortico - 1.18, 0.12);
-    flecha.rotation.z = Math.PI; // Apunta hacia abajo.
-    if (c.carril === 0) flecha.rotation.z = Math.PI * 0.75;   // Izquierda
-    if (c.carril === 2) flecha.rotation.z = Math.PI * 1.25;   // Derecha
+    poste.position.set(s * (ancho / 2), alto / 2, 0);
+    g.add(poste);
+  }
+
+  const viga = new THREE.Mesh(
+    new THREE.BoxGeometry(ancho + 0.3, 0.32, 0.34),
+    mat(COLOR3D.metal, 0.06, 0.85),
+  );
+  viga.position.y = alto;
+  g.add(viga);
+
+  const paneles = [
+    { texto: destinos.izquierda, dir: 'izquierda', x: -3.6, peligro: false },
+    { texto: destinos.centro, dir: 'centro', x: 0, peligro: centroEsPeligro },
+    { texto: destinos.derecha, dir: 'derecha', x: 3.6, peligro: false },
+  ];
+
+  for (const p of paneles) {
+    const color = p.peligro ? NEON.rojo : acento;
+
+    const cartel = crearCartelDestino(p.texto, color, p.peligro);
+    cartel.scale.setScalar(1.5);
+    cartel.position.set(p.x, alto - 0.95, 0.1);
+    g.add(cartel);
+
+    // Flecha bajo el panel, inclinada hacia su lado.
+    const flecha = new THREE.Mesh(
+      new THREE.ConeGeometry(0.26, 0.55, 3),
+      neon(color, 1.9),
+    );
+    flecha.position.set(p.x, alto - 2.2, 0.1);
+    flecha.rotation.z = Math.PI;
+    if (p.dir === 'izquierda') flecha.rotation.z = Math.PI * 0.75;
+    if (p.dir === 'derecha') flecha.rotation.z = Math.PI * 1.25;
     g.add(flecha);
   }
 
@@ -1017,151 +1462,272 @@ export function crearPorticoBifurcacion(destinos, colores, centroEsPeligro = fal
 }
 
 /**
- * LOS TRES CAMINOS — el desvío físico.
+ * TARIMA — el nivel de arriba.
  *
- * La carretera se abre de verdad en tres ramales que divergen, con isletas
- * de hormigón separándolos. No son tres carriles pintados: son tres calles.
+ * Es la versión local de los trenes de Subway Surfers: un tablado de campaña
+ * con su rampa de acceso. Se sube corriendo por la rampa (no hay que hacer
+ * nada, el impulso lo da ella) y arriba se corre por encima de la calle.
  *
- * El ramal CENTRAL sigue recto y termina en la fachada de la institución
- * (Fiscalía, Asamblea, CNE…), lo que resuelve dos problemas de golpe:
- *   · la calle recta tiene un final visible en vez de perderse en la niebla
- *   · queda claro que ir de frente es entrar a un edificio, no seguir corriendo
+ * La lectura tiene que ser inmediata a distancia: rampa clara delante, borde
+ * de neón marcando la altura, y el faldón con la lona de campaña. Si el
+ * jugador duda de si eso se sube o se esquiva, está mal.
  *
- * Los laterales se van en ángulo y se pierden en la niebla, que es justo la
- * sensación que se busca: no sabes qué hay allá, solo a dónde lleva.
+ * El origen del grupo está en el PIE DE LA RAMPA, que es el punto donde el
+ * jugador la toca. Todo lo demás va hacia -Z.
  *
- * @param {{izquierda:string, centro:string, derecha:string}} destinos
- * @param {boolean} centroEsPeligro Si ir de frente mata (Carondelet)
+ * @param {number} largo Longitud del tablado (sin contar la rampa)
  */
-export function crearCaminosBifurcacion(destinos, colores, centroEsPeligro = false) {
+export function crearTarima(largo, colores) {
   const g = new THREE.Group();
+  const acento = colores.acento ?? COLOR3D.dorado;
+  const ancho = CARRILES.ANCHO * 0.92;
+  const h = ELEVADO.ALTURA;
 
-  const ANGULO = 0.34;          // ~19°: se lee como desvío sin desaparecer.
-  const LARGO = 95;
-  const ANCHO_RAMAL = CARRILES.ANCHO * 1.35;
+  // --- Rampa ---------------------------------------------------------------
+  // Se inclina hacia -Z: el extremo lejano es el que sube. Al girar sobre X un
+  // ángulo positivo, el vértice en -Z se levanta, que es justo lo que hace
+  // falta para que el jugador la suba de frente.
+  const anguloRampa = Math.atan2(h, ELEVADO.LARGO_RAMPA);
+  const largoInclinado = Math.hypot(h, ELEVADO.LARGO_RAMPA);
 
-  const matAsfalto = new THREE.MeshStandardMaterial({
-    color: colores.calle ?? COLOR3D.asfalto,
-    roughness: 0.92,
-    metalness: 0.05,
-  });
-
-  const matBordillo = mat(0x3a4152, 0.04, 0.9);
-  const matLinea = neon(colores.acento ?? COLOR3D.dorado, 1.2);
-
-  // --- Los tres ramales ----------------------------------------------------
-  const ramales = [
-    { signo: -1, x: CARRILES.POSICIONES[0] },
-    { signo: 0, x: 0 },
-    { signo: 1, x: CARRILES.POSICIONES[2] },
-  ];
-
-  for (const r of ramales) {
-    const ramal = new THREE.Group();
-
-    const calzada = new THREE.Mesh(
-      new THREE.PlaneGeometry(ANCHO_RAMAL, LARGO),
-      matAsfalto,
-    );
-    calzada.rotation.x = -Math.PI / 2;
-    // El plano se ancla por su centro: lo empujamos media longitud hacia -Z
-    // para que arranque exactamente en el punto de bifurcación.
-    calzada.position.z = -LARGO / 2;
-    ramal.add(calzada);
-
-    // Bordillos a los lados del ramal.
-    for (const s of [-1, 1]) {
-      const bordillo = new THREE.Mesh(
-        new THREE.BoxGeometry(0.34, 0.3, LARGO),
-        matBordillo,
-      );
-      bordillo.position.set(s * (ANCHO_RAMAL / 2), 0.15, -LARGO / 2);
-      ramal.add(bordillo);
-    }
-
-    // Eje central discontinuo, para que el ramal se lea como calle.
-    for (let i = 0; i < 14; i++) {
-      const trazo = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 2.4), matLinea);
-      trazo.rotation.x = -Math.PI / 2;
-      trazo.position.set(0, 0.03, -4 - i * 6.5);
-      ramal.add(trazo);
-    }
-
-    ramal.position.x = r.x;
-    ramal.rotation.y = r.signo * ANGULO;
-    g.add(ramal);
-  }
-
-  // --- Isletas entre ramales -----------------------------------------------
-  // Cuñas de hormigón que ocupan el hueco que dejan los ramales al abrirse.
-  // Además de separar, tapan la calle recta que sigue por debajo.
-  for (const signo of [-1, 1]) {
-    const isleta = new THREE.Group();
-
-    // OJO CON EL SIGNO. Al girar la forma -90° sobre X, su eje Y se mapea a
-    // -Z del mundo: un vértice en Y negativa acaba DETRÁS del jugador. Por eso
-    // el lado ancho de la cuña se define en Y positiva.
-    const forma = new THREE.Shape();
-    forma.moveTo(0, 0);
-    forma.lineTo(2.1, LARGO * 0.72);
-    forma.lineTo(-2.1, LARGO * 0.72);
-    forma.closePath();
-
-    const cuna = new THREE.Mesh(
-      new THREE.ShapeGeometry(forma),
-      mat(0x2a3040, 0.03, 0.95),
-    );
-    cuna.rotation.x = -Math.PI / 2;
-    cuna.position.y = 0.06;
-    isleta.add(cuna);
-
-    // Morro de la isleta: lo primero que ve el jugador del desvío.
-    const morro = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.42, 0.5, 0.85, 7),
-      mat(0xd8d2c4, 0.12, 0.85),
-    );
-    morro.position.y = 0.42;
-    isleta.add(morro);
-
-    const franjaMorro = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.52, 0.52, 0.16, 7),
-      neon(NEON.ambar, 1.8),
-    );
-    franjaMorro.position.y = 0.55;
-    isleta.add(franjaMorro);
-
-    // Balizas en fila, marcando el filo de la isleta.
-    for (let i = 1; i <= 6; i++) {
-      const baliza = new THREE.Mesh(
-        new THREE.SphereGeometry(0.13, 6, 5),
-        neon(NEON.ambar, 1.6),
-      );
-      baliza.position.set(0, 0.5, -i * 9);
-      isleta.add(baliza);
-    }
-
-    // Palmeras en la isleta: es Ecuador, hasta las medianas tienen palmeras.
-    for (let i = 0; i < 2; i++) {
-      const palmera = crearPalmera(4 + Math.random() * 2);
-      palmera.scale.setScalar(0.8);
-      palmera.position.set(0, 0, -14 - i * 22);
-      isleta.add(palmera);
-    }
-
-    isleta.position.x = signo * (CARRILES.ANCHO / 2 + 0.35);
-    isleta.position.z = -1.5;
-    g.add(isleta);
-  }
-
-  // --- Fachada de la institución al fondo del ramal central -----------------
-  const fachada = crearFachadaInstitucion(
-    destinos.centro,
-    colores,
-    centroEsPeligro,
+  const rampa = new THREE.Mesh(
+    new THREE.BoxGeometry(ancho, 0.22, largoInclinado),
+    mat(colores.props ?? COLOR3D.madera, 0.16, 0.72),
   );
-  fachada.position.z = -LARGO * 0.82;
+  rampa.rotation.x = anguloRampa;
+  rampa.position.set(0, h / 2, -ELEVADO.LARGO_RAMPA / 2);
+  g.add(rampa);
+
+  // Chevrones en la rampa: es la señal universal de "por aquí se sube".
+  const banda = new THREE.Mesh(
+    new THREE.PlaneGeometry(ancho * 0.9, largoInclinado * 0.9),
+    new THREE.MeshStandardMaterial({
+      map: texturaChevron(),
+      emissive: 0xffffff,
+      emissiveMap: texturaChevron(),
+      emissiveIntensity: 0.5,
+      roughness: 0.6,
+      toneMapped: false,
+    }),
+  );
+  banda.rotation.x = -Math.PI / 2 + anguloRampa;
+  banda.position.set(0, h / 2 + 0.13, -ELEVADO.LARGO_RAMPA / 2);
+  g.add(banda);
+
+  // --- Tablado -------------------------------------------------------------
+  const zInicio = -ELEVADO.LARGO_RAMPA;
+  const tablero = new THREE.Mesh(
+    new THREE.BoxGeometry(ancho, 0.26, largo),
+    new THREE.MeshStandardMaterial({
+      map: texturaMadera(),
+      roughness: 0.8,
+      metalness: 0.05,
+      flatShading: true,
+    }),
+  );
+  tablero.position.set(0, h - 0.13, zInicio - largo / 2);
+  g.add(tablero);
+
+  // Borde de neón a ambos lados, a la altura de la superficie. Es lo que
+  // comunica DÓNDE está el suelo nuevo: sin esta línea, desde arriba no se
+  // distingue el filo y el jugador se cae sin entender por qué.
+  const matBorde = neon(acento, 1.7);
+  for (const s of [-1, 1]) {
+    const borde = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 0.12, largo + ELEVADO.LARGO_RAMPA),
+      matBorde,
+    );
+    borde.position.set(
+      s * (ancho / 2),
+      h + 0.06,
+      zInicio - largo / 2 + ELEVADO.LARGO_RAMPA / 2,
+    );
+    g.add(borde);
+  }
+
+  // Patas de andamio. Van en pares, cada 6 metros.
+  const matPata = mat(COLOR3D.metal, 0.05, 0.85);
+  for (let z = zInicio - 1.5; z > zInicio - largo; z -= 6) {
+    for (const s of [-1, 1]) {
+      const pata = new THREE.Mesh(new THREE.BoxGeometry(0.16, h, 0.16), matPata);
+      pata.position.set(s * (ancho / 2 - 0.16), h / 2, z);
+      g.add(pata);
+    }
+  }
+
+  // Faldón del fondo, para que el tablado tenga final visible y el jugador
+  // sepa cuándo se acaba el piso.
+  const faldon = new THREE.Mesh(
+    new THREE.BoxGeometry(ancho, h, 0.2),
+    mat(0x2a3040, 0.05, 0.9),
+  );
+  faldon.position.set(0, h / 2, zInicio - largo);
+  g.add(faldon);
+
+  const remate = new THREE.Mesh(
+    new THREE.BoxGeometry(ancho, 0.14, 0.26),
+    neon(NEON.ambar, 1.8),
+  );
+  remate.position.set(0, h + 0.06, zInicio - largo);
+  g.add(remate);
+
+  return g;
+}
+
+/**
+ * GALERÍA DEL TRÁMITE — el interior del túnel central.
+ *
+ * Un pasillo de tres carriles de ancho, cerrado, con la fachada de la
+ * institución al fondo. No hay obstáculos aquí dentro y eso es deliberado: el
+ * trámite no se pierde chocando, se pierde dejando papeles en el suelo.
+ *
+ * El origen está en la BOCA (donde entra el jugador) y todo va hacia -Z.
+ *
+ * @param {number} largo Profundidad de la galería
+ * @param {string} nombre Nombre de la institución que la cierra al fondo
+ */
+export function crearGaleriaTramite(largo, colores, nombre) {
+  const g = new THREE.Group();
+  const acento = colores.acento ?? COLOR3D.dorado;
+  const ancho = CARRILES.ANCHO * 3 + 3.4;
+
+  // OJO CON LA ALTURA. La cámara va a 6.2 de alto: un techo por debajo de esa
+  // cota deja de ser un techo y pasa a ser una tapa vista desde arriba, que es
+  // literalmente lo que se veía —una mancha negra ocupando media pantalla—.
+  // El techo tiene que quedar POR ENCIMA de la cámara.
+  const alto = 9;
+
+  const matMuro = mat(0x1a2030, 0.03, 0.93);
+
+  for (const s of [-1, 1]) {
+    const pared = new THREE.Mesh(
+      new THREE.BoxGeometry(0.4, alto, largo),
+      matMuro,
+    );
+    pared.position.set(s * (ancho / 2), alto / 2, -largo / 2);
+    g.add(pared);
+  }
+
+  const techo = new THREE.Mesh(new THREE.BoxGeometry(ancho, 0.4, largo), matMuro);
+  techo.position.set(0, alto, -largo / 2);
+  g.add(techo);
+
+  const suelo = new THREE.Mesh(
+    new THREE.PlaneGeometry(ancho, largo),
+    new THREE.MeshStandardMaterial({
+      color: colores.calle ?? COLOR3D.asfalto,
+      roughness: 0.9,
+      metalness: 0.05,
+    }),
+  );
+  suelo.rotation.x = -Math.PI / 2;
+  suelo.position.set(0, 0.02, -largo / 2);
+  g.add(suelo);
+
+  // Arcos de luz cada 9 metros. Son la única referencia de avance que hay aquí
+  // dentro: sin ellos el pasillo se lee como una imagen congelada. Y como el
+  // techo tapa la luz direccional de la escena, son además casi toda la
+  // iluminación del tramo, así que van generosos.
+  const matArco = neon(acento, 1.35);
+  const geoArcoH = new THREE.BoxGeometry(ancho - 0.6, 0.18, 0.34);
+  const geoArcoV = new THREE.BoxGeometry(0.18, alto, 0.34);
+
+  for (let z = -6; z > -largo; z -= 9) {
+    const barra = new THREE.Mesh(geoArcoH, matArco);
+    barra.position.set(0, alto - 0.35, z);
+    g.add(barra);
+
+    for (const s of [-1, 1]) {
+      const lateral = new THREE.Mesh(geoArcoV, matArco);
+      lateral.position.set(s * (ancho / 2 - 0.3), alto / 2, z);
+      g.add(lateral);
+    }
+  }
+
+  // Zócalo iluminado a ras de suelo, a los dos lados. Marca el ancho
+  // transitable —que aquí no lo dicen los obstáculos, porque no hay— y evita
+  // que el asfalto se funda con las paredes en una sola mancha negra.
+  const matZocalo = neon(acento, 1.0);
+  for (const s of [-1, 1]) {
+    const zocalo = new THREE.Mesh(
+      new THREE.BoxGeometry(0.14, 0.12, largo),
+      matZocalo,
+    );
+    zocalo.position.set(s * (CARRILES.ANCHO * 1.6), 0.06, -largo / 2);
+    g.add(zocalo);
+  }
+
+  // Archivadores contra las paredes: el decorado del sitio al que has entrado.
+  const matArchivo = mat(0x39404f, 0.05, 0.88);
+  for (let z = -14; z > -largo + 20; z -= 17) {
+    for (const s of [-1, 1]) {
+      const mueble = new THREE.Mesh(new THREE.BoxGeometry(0.7, 2.2, 3.4), matArchivo);
+      mueble.position.set(s * (ancho / 2 - 0.55), 1.1, z);
+      g.add(mueble);
+    }
+  }
+
+  const fachada = crearFachadaInstitucion(nombre, colores, false);
+  fachada.position.z = -largo + 6;
+  fachada.scale.setScalar(0.72);
   g.add(fachada);
 
+  return g;
+}
+
+/**
+ * POLICÍA de cerco. No corre ni esquiva: aparece cuando ya perdiste, así que
+ * se construye para leerse de golpe —casco, visera, escudo— y nada más.
+ */
+export function crearPolicia() {
+  const g = new THREE.Group();
+
+  const matUniforme = mat(0x39415a, 0.16, 0.8);
+  const matChaleco = mat(0x4a5470, 0.18, 0.75);
+
+  const piernas = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.85, 0.34), matUniforme);
+  piernas.position.y = 0.42;
+  g.add(piernas);
+
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.7, 0.4), matChaleco);
+  torso.position.y = 1.2;
+  g.add(torso);
+
+  // Bandas reflectantes. No son decoración: el cerco pasa de noche sobre
+  // asfalto casi negro, y sin ellas cinco figuras azul oscuro sencillamente no
+  // se ven. Son lo que convierte el corro en una imagen legible.
+  const matBanda = neon(0xd8e4a0, 0.9);
+  const banda = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.11, 0.42), matBanda);
+  banda.position.y = 1.2;
+  g.add(banda);
+
+  const casco = new THREE.Mesh(new THREE.SphereGeometry(0.26, 8, 6), matUniforme);
+  casco.position.y = 1.72;
+  g.add(casco);
+
+  // Visera: el único punto brillante del modelo. Es lo que lo identifica.
+  const visera = new THREE.Mesh(
+    new THREE.BoxGeometry(0.4, 0.13, 0.06),
+    neon(0x6fd8ff, 1.4),
+  );
+  visera.position.set(0, 1.7, 0.24);
+  g.add(visera);
+
+  const escudo = new THREE.Mesh(
+    new THREE.BoxGeometry(0.62, 1.1, 0.07),
+    new THREE.MeshStandardMaterial({
+      color: 0x8fa6c4,
+      transparent: true,
+      opacity: 0.42,
+      roughness: 0.25,
+      metalness: 0.2,
+    }),
+  );
+  escudo.position.set(0.16, 1.05, 0.36);
+  escudo.rotation.y = -0.2;
+  g.add(escudo);
+
+  g.userData.escudo = escudo;
   return g;
 }
 
@@ -1170,7 +1736,7 @@ export function crearCaminosBifurcacion(destinos, colores, centroEsPeligro = fal
  * En Carondelet no es un edificio sino un cerco militar: mismo papel visual
  * —cerrar la calle— pero con lectura opuesta.
  */
-function crearFachadaInstitucion(nombre, colores, esCerco) {
+export function crearFachadaInstitucion(nombre, colores, esCerco) {
   const g = new THREE.Group();
   const ancho = 16;
   const alto = esCerco ? 4.5 : 11;
@@ -1293,8 +1859,9 @@ export function crearFlechaAsfalto(direccion, color) {
     toneMapped: false,
   });
 
-  // Asta.
-  const asta = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 2.4), matFlecha);
+  // Asta. Va ancha porque se pinta en el suelo y la cámara la mira casi de
+  // canto: una franja estrecha se escorza hasta parecer un poste de pie.
+  const asta = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 2.2), matFlecha);
   asta.rotation.x = -Math.PI / 2;
   g.add(asta);
 

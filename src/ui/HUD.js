@@ -52,6 +52,8 @@ export class HUD {
       exhausto: null,
       linterna: -1,
       evidencias: -1,
+      tramite: -1,
+      porArriba: null,
     };
   }
 
@@ -89,6 +91,25 @@ export class HUD {
         <div class="contador contador--dorado">
           <span class="contador__valor" data-campo="papeles">0</span>
           <span class="contador__icono">${Icono.papeles(26)}</span>
+        </div>
+      </div>
+
+      <!-- Marcador del expediente. Solo aparece dentro del túnel del centro,
+           donde es LA información: no hay obstáculos que mirar, solo cuántos
+           papeles llevas y cuántos faltan. -->
+      <div class="expediente expediente--oculto" data-campo="expediente">
+        <div class="expediente__institucion" data-campo="expediente-institucion"></div>
+        <div class="expediente__cuenta">
+          <span data-campo="expediente-recogidos">0</span>
+          <span class="expediente__barra">/</span>
+          <span data-campo="expediente-total">0</span>
+        </div>
+        <div class="medidor medidor--fino">
+          <span class="medidor__relleno medidor__relleno--dorado"
+                data-campo="expediente-progreso"></span>
+        </div>
+        <div class="expediente__aviso" data-campo="expediente-aviso">
+          NO SE TE PUEDE CAER NI UNO
         </div>
       </div>
 
@@ -173,6 +194,12 @@ export class HUD {
       hint: q('hint'),
       tinte: q('tinte'),
       destello: q('destello'),
+      expediente: q('expediente'),
+      expedienteInstitucion: q('expediente-institucion'),
+      expedienteRecogidos: q('expediente-recogidos'),
+      expedienteTotal: q('expediente-total'),
+      expedienteProgreso: q('expediente-progreso'),
+      expedienteAviso: q('expediente-aviso'),
     };
 
     this._construirIntentos();
@@ -324,12 +351,58 @@ export class HUD {
       this.ref.destello.style.opacity = String(datos.destello * 0.75);
     }
 
+    // --- Expediente (túnel del centro) ------------------------------------
+    this._actualizarExpediente(datos.tramite);
+
+    // --- Nivel elevado -----------------------------------------------------
+    // Correr por arriba cambia el marco de la pantalla. Es un aviso periférico
+    // de "ojo, esto se acaba" que no obliga a leer nada.
+    if (datos.porArriba !== c.porArriba) {
+      this.raiz.classList.toggle('hud--elevado', !!datos.porArriba);
+      c.porArriba = datos.porArriba;
+    }
+
     // --- Evidencias --------------------------------------------------------
     const nEvidencias = datos.evidencias?.length ?? 0;
     if (nEvidencias !== c.evidencias) {
       this._pintarEvidencias(datos.evidencias ?? []);
       c.evidencias = nEvidencias;
     }
+  }
+
+  /**
+   * Marcador del expediente. Se dibuja solo dentro del trámite; el resto del
+   * tiempo el panel ni existe en pantalla.
+   */
+  _actualizarExpediente(tramite) {
+    if (!tramite) {
+      if (this.cache.tramite !== -1) {
+        this.ref.expediente.classList.add('expediente--oculto');
+        this.cache.tramite = -1;
+      }
+      return;
+    }
+
+    if (this.cache.tramite === -1) {
+      this.ref.expediente.classList.remove('expediente--oculto');
+      this.ref.expedienteInstitucion.textContent = tramite.institucion;
+      this.ref.expedienteTotal.textContent = String(tramite.total);
+    }
+
+    if (tramite.recogidos !== this.cache.tramite) {
+      this.ref.expedienteRecogidos.textContent = String(tramite.recogidos);
+      // En cuanto se escapa el primer papel, el expediente ya está perdido.
+      // Decirlo de inmediato es más honesto que dejar que el jugador siga
+      // creyendo que va bien hasta el recuento final.
+      const perdido = tramite.recogidos < Math.round(tramite.progreso * tramite.total) - 2;
+      this.ref.expediente.classList.toggle('expediente--perdido', perdido);
+      this.ref.expedienteAviso.textContent = perdido
+        ? 'YA SE TE CAYÓ ALGUNO'
+        : 'NO SE TE PUEDE CAER NI UNO';
+      this.cache.tramite = tramite.recogidos;
+    }
+
+    this.ref.expedienteProgreso.style.width = `${Math.round(tramite.progreso * 100)}%`;
   }
 
   _pintarEvidencias(lista) {

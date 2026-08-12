@@ -27,6 +27,12 @@ const ESTADO_INICIAL = {
   partidasJugadas: 0,
   rutasRecorridas: [],    // Historial de escenarios visitados
   personajePreferido: 'chochologo',
+  // Dónde te capturaron la última vez. La partida siguiente arranca ahí:
+  // volver siempre a la Bahía rompía la continuidad de la temporada y
+  // convertía cada muerte en un reinicio del relato, no en un capítulo.
+  ultimoEscenario: 'bahia',
+  // ¿Se logró alguna vez el trámite perfecto? Es el final del juego.
+  denunciaPresentada: false,
 };
 
 export class Notebook {
@@ -196,6 +202,19 @@ export class Notebook {
   get personajePreferido() { return this.estado.personajePreferido; }
   set personajePreferido(nombre) {
     this.estado.personajePreferido = nombre;
+    this.guardar();
+  }
+
+  /** Temporada en la que retomar. Es donde te capturaron la última vez. */
+  get ultimoEscenario() { return this.estado.ultimoEscenario ?? 'bahia'; }
+  set ultimoEscenario(id) {
+    this.estado.ultimoEscenario = id;
+    this.guardar();
+  }
+
+  get denunciaPresentada() { return !!this.estado.denunciaPresentada; }
+  set denunciaPresentada(valor) {
+    this.estado.denunciaPresentada = !!valor;
     this.guardar();
   }
 

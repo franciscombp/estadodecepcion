@@ -42,6 +42,11 @@ export class Player {
     this.velocidadY = 0;
     this.estaEnElAire = false;
 
+    // Altura del suelo bajo los pies. Vale 0 en el asfalto y ELEVADO.ALTURA
+    // cuando el jugador va sobre una tarima. Lo fija Game cada fotograma a
+    // partir de lo que diga el gestor de niveles elevados.
+    this.alturaSuelo = 0;
+
     // ---- Estado de agachada ----------------------------------------------
     this.estaAgachado = false;
     this.temporizadorAgachado = 0;
@@ -93,6 +98,8 @@ export class Player {
     if (!this.vivo) return false;
 
     if (!this.estaEnElAire) {
+      // Salta desde donde esté: el impulso es el mismo arriba de una tarima
+      // que en la calle, así que la altura ganada también.
       this.velocidadY = SALTO.VELOCIDAD_INICIAL;
       this.estaEnElAire = true;
       // Saltar cancela la agachada, activa y pendiente.
@@ -160,9 +167,10 @@ export class Player {
       this.velocidadY -= gravedad * dt;
       this.y += this.velocidadY * dt;
 
-      if (this.y <= 0) {
-        // Aterrizaje
-        this.y = 0;
+      if (this.y <= this.alturaSuelo) {
+        // Aterrizaje. El suelo puede no ser el asfalto: si hay una tarima
+        // debajo, se aterriza sobre ella.
+        this.y = this.alturaSuelo;
         this.velocidadY = 0;
         this.estaEnElAire = false;
         this.caidaRapida = false;
@@ -184,6 +192,20 @@ export class Player {
     }
 
     if (this.bufferSalto > 0) this.bufferSalto -= dt;
+
+    // Salirse de una tarima por el borde: el suelo desaparece bajo los pies y
+    // se empieza a caer, sin salto y sin impulso. Es la penalización natural
+    // de correr por arriba y no bajarse a tiempo.
+    if (!this.estaEnElAire && this.y > this.alturaSuelo + 0.01) {
+      this.estaEnElAire = true;
+      this.velocidadY = 0;
+    }
+    // Y al revés: si el suelo SUBE de golpe (rampa, o una tarima que aparece
+    // bajo un jugador que corre a ras) se le pega al suelo nuevo en vez de
+    // dejarlo hundido dentro de la madera.
+    if (!this.estaEnElAire && this.y < this.alturaSuelo) {
+      this.y = this.alturaSuelo;
+    }
 
     // ---- Agachada ---------------------------------------------------------
     if (this.estaAgachado) {
@@ -237,6 +259,36 @@ export class Player {
   }
 
   // -------------------------------------------------------------------------
+  // NIVEL ELEVADO
+  // -------------------------------------------------------------------------
+
+  /**
+   * Fija la altura del suelo bajo los pies.
+   * @param {number} altura 0 en el asfalto, ELEVADO.ALTURA sobre una tarima
+   */
+  establecerSuelo(altura) {
+    this.alturaSuelo = altura;
+  }
+
+  /** Impulso de la rampa. No es un salto: el jugador no ha pulsado nada. */
+  impulsar(velocidad) {
+    if (!this.vivo) return;
+    this.velocidadY = velocidad;
+    this.estaEnElAire = true;
+    this.caidaRapida = false;
+    // La rampa cancela la agachada: subir agachado no tiene sentido y además
+    // dejaría la caja de colisión encogida en el aire.
+    this.estaAgachado = false;
+    this.temporizadorAgachado = 0;
+    this.agacharAlAterrizar = false;
+  }
+
+  /** ¿Va corriendo por encima de la calle? */
+  get vaPorArriba() {
+    return this.alturaSuelo > 0.1;
+  }
+
+  // -------------------------------------------------------------------------
   // COLISIÓN
   // -------------------------------------------------------------------------
 
@@ -281,6 +333,7 @@ export class Player {
     this.y = 0;
     this.velocidadY = 0;
     this.estaEnElAire = false;
+    this.alturaSuelo = 0;
     this.estaAgachado = false;
     this.temporizadorAgachado = 0;
     this.factorAgachado = 0;
@@ -294,6 +347,42 @@ export class Player {
     // Se conserva la media vuelta: el personaje sigue corriendo de espaldas.
     this.modelo.rotation.set(0, Math.PI, 0);
     this.modelo.scale.set(1, 1, 1);
+  }
+
+  /**
+   * Vuelta a la carrera tras zafarse del cerco.
+   *
+   * No es reiniciar(): se conservan los papeles, la distancia y el escenario.
+   * Lo que se limpia es el CUERPO —pose de derrota, golpes, estado vertical— y
+   * se regala la invulnerabilidad para que el jugador no vuelva a chocar en el
+   * primer fotograma con lo mismo que le costó la partida.
+   */
+  reiniciarTrasEscape() {
+    this.vivo = true;
+    this.golpes = 0;
+    this.invulnerabilidad = JUGADOR.INVULNERABILIDAD * 1.6;
+
+    this.y = 0;
+    this.velocidadY = 0;
+    this.estaEnElAire = false;
+    this.alturaSuelo = 0;
+    this.estaAgachado = false;
+    this.temporizadorAgachado = 0;
+    this.factorAgachado = 0;
+    this.bufferSalto = 0;
+    this.agacharAlAterrizar = false;
+    this.caidaRapida = false;
+
+    this.modelo.visible = true;
+    this.modelo.rotation.set(0, Math.PI, 0);
+    this.modelo.scale.set(1, 1, 1);
+
+    // La pose de caída dejó torso, cabeza y brazos torcidos; animarCarrera()
+    // reescribe rotation.x de todo eso en el siguiente fotograma, así que basta
+    // con devolver el torso a su sitio para que no dé un tirón.
+    const p = this.modelo.userData.partes;
+    p.torso.rotation.x = 0;
+    p.cabeza.rotation.x = 0;
   }
 
   /** Pose de derrota: el personaje se detiene y se dobla. */

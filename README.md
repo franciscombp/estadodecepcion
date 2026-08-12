@@ -60,8 +60,11 @@ src/
 │   ├── Track.js        ← Suelo infinito reciclable
 │   ├── Stamina.js      ← Barra e ítems por escenario
 │   ├── Chaser.js       ← Noboa + Reimberg
-│   ├── Bifurcacion.js  ← El desvío en pista (el carril decide)
-│   ├── Roulette.js     ← La ruleta de la vía institucional
+│   ├── Bifurcacion.js  ← Las tres bocas de túnel (el carril decide)
+│   ├── Tramite.js      ← El túnel del centro: solo recolectar
+│   ├── Elevado.js      ← Tarimas: el nivel por encima de la calle
+│   ├── Cerco.js        ← La animación de que te rodean
+│   ├── Rutas.js        ← El mapa del rombo
 │   └── Notebook.js     ← Meta-progreso en localStorage
 ├── scenes/
 │   ├── BaseScene.js    ← Luces, niebla y decorado lateral
@@ -75,7 +78,7 @@ src/
 ├── ui/
 │   ├── HUD.js          ← Interfaz durante la partida
 │   ├── iconos.js       ← Set de iconos SVG inline
-│   └── screens.js      ← Menú, bifurcación, ruleta, game over, cuaderno
+│   └── screens.js      ← Menú, escape, victoria, game over, periódico
 └── utils/
     ├── controls.js     ← Teclado + swipe
     ├── collision.js    ← AABB
@@ -131,33 +134,86 @@ navegador para trastear en vivo.
 ```
 
 **La bifurcación ocurre corriendo, no en un menú.** Al final de cada tramo la
-calle **se abre físicamente en tres ramales**, con isletas de hormigón
-separándolos y un pórtico con un cartel por carril. El carril en el que lo
-cruces decide la ruta —como en Temple Run:
+calle termina contra una fachada con **tres bocas de túnel**, una por carril.
+La boca por la que entres decide la temporada —como en Temple Run:
 
-- **Izquierda / derecha** → el ramal se va en ángulo hacia el escenario vecino
-- **Centro** → sigue recto y termina en la fachada de la institución, que abre
-  la ruleta
+- **Izquierda / derecha** → la temporada vecina
+- **Centro** → el **trámite**: la vía institucional
 
-Que el ramal central acabe en un edificio resuelve dos cosas: la calle recta
-tiene un final visible en vez de perderse en la niebla, y queda claro que ir
-de frente es *entrar a un sitio*, no seguir corriendo. En Carondelet ese
-edificio es un cerco militar.
+Son túneles y no ramales al aire libre por una razón de lectura: dos calles
+que divergen en la niebla no tienen borde y a 200 metros son una mancha. Una
+boca de túnel sí lo tiene, entrar en ella es un gesto inequívoco, y además
+justifica el corte de escenario —dentro no se ve nada, y al salir estás en
+otro sitio. En Carondelet la boca del centro está tapiada: es el cerco.
 
-El corredor de aproximación se vacía de obstáculos a propósito: obligar a
-esquivar mientras decides convierte una decisión en un accidente.
+La señalización llega **muy por delante**. Tres pórticos de autopista a 230,
+150 y 80 metros de la boca, más flechas en el asfalto, de modo que siempre
+haya un cartel legible en cuadro mientras te colocas.
 
-| Escenario | Tema | Estamina | Institución | Éxito |
+El corredor se vacía de obstáculos a los 140 metros, no antes: obligar a
+esquivar mientras decides convierte una decisión en un accidente, pero vaciar
+la pista desde el primer cartel dejaría 260 metros sin nada que hacer.
+
+### El trámite (el túnel del centro)
+
+Antes había una ruleta: un porcentaje, un giro y la suerte decidía. Funcionaba
+como chiste una vez y como mecánica ninguna, porque el jugador solo miraba.
+
+Ahora la vía institucional es una **prueba de habilidad**. Dentro del túnel no
+hay obstáculos, ni perseguidores, ni drenaje de estamina: solo 154 papeles en
+un patrón que obliga a cambiar de carril sin descanso durante 340 metros. Al
+final se cuentan.
+
+- Los recogiste **todos** → la denuncia entra. **Ganas el juego.**
+- Faltó uno → *«no alcanzaste los votos»*, se archiva, y sales a la calle.
+
+El umbral es 1. No 0.95: uno. Que sea casi imposible es exactamente el chiste.
+
+### El nivel de arriba
+
+Como los trenes de Subway Surfers, hay una capa por encima del asfalto: las
+**tarimas** de campaña, con su rampa de acceso. Se sube corriendo (el impulso
+lo da la rampa, no hay que pulsar nada), arriba están los papeles que más
+pagan, y cuando el tablado se acaba te caes. Bajarse a tiempo es la habilidad
+que se pide.
+
+Una tarima ocupa 20-35 metros seguidos, o sea varios grupos de obstáculos, así
+que **reserva su carril** en el generador mientras dura. Sin esa reserva el
+generador —que garantiza que todo grupo sea superable eligiendo un carril
+solución— pondría un bloque sólido dentro de la madera.
+
+### Cuando te alcanzan
+
+Chocar y ver la pantalla de fin de partida en el mismo fotograma convierte la
+derrota en un corte. Ahora la captura se **representa**: el mundo se para, el
+dúo te cae encima, cinco policías cierran un círculo y la cámara retrocede
+para que se vea. Solo entonces aparece la interfaz.
+
+Y lo que aparece es un **medidor de habilidad**, no una ruleta: un cursor
+recorre una barra a velocidad conocida y lo paras. Si cae en la franja verde,
+te zafas y sigues corriendo en la misma temporada. Uno por partida. Perder por
+un dado invisible después de dos minutos corriendo es lo que apaga un juego;
+perder por no llegar a tiempo, no.
+
+### Continuidad
+
+La partida siguiente arranca **en la temporada donde te capturaron**, no
+siempre en la Bahía. Volver al principio cada vez convertía cada muerte en un
+reinicio del relato en lugar de en un capítulo.
+
+| Escenario | Tema | Estamina | Institución | Cómo se gana |
 |---|---|---|---|---|
-| **Bahía** | Corrupción | Encebollado | Fiscalía | 20% |
-| **Apagón** | Crisis energética | Linterna | Asamblea Nacional | 30% |
-| **Elecciones** | Cooptación del CNE | Micrófono | CNE | 25% |
+| **Bahía** | Corrupción | Encebollado | Fiscalía | trámite perfecto |
+| **Apagón** | Crisis energética | Linterna | Asamblea Nacional | trámite perfecto |
+| **Elecciones** | Cooptación del CNE | Micrófono | CNE | trámite perfecto |
 | **Carondelet** | Censura de prensa | Canelazo | — | ir de frente es perder |
 
 **Apagón** tiene mecánica propia: la pantalla se oscurece y las linternas
 amplían la visión. El radio visible escala con la velocidad para que siempre
 tengas al menos un segundo de reacción — si fuera un valor fijo, a velocidad
-máxima los obstáculos aparecerían ya encima.
+máxima los obstáculos aparecerían ya encima. Y el tramo **regala una linterna
+al entrar** además de sembrar otra a la vista: llegar a oscuras y esperar 150
+metros a la primera no era difícil, era injugable.
 
 **Carondelet** es deliberadamente árido: máximo 3 papeles por tramo. La
 carestía es el mensaje.
@@ -360,9 +416,10 @@ con bloom activo esa cifra deja de ser útil, así que mídela con
 ## Estado
 
 Probado automáticamente con Playwright: flujo completo (menú → partida →
-bifurcación → ruleta → game over → cuaderno), recolección, colisiones, salto y
-agachada, persistencia en localStorage, y ocho cambios de escenario seguidos
-sin fuga de memoria (geometrías estables).
+túneles → trámite → cerco → escape → game over / victoria → periódico),
+recolección, colisiones, salto y agachada, rampa y tablado de las tarimas,
+persistencia en localStorage, y varios cambios de escenario seguidos sin fuga
+de memoria (geometrías estables).
 
 Pendiente de prueba en hardware móvil real — los números de FPS medidos aquí
 salen de renderizado por software y no representan el rendimiento en un GPU.

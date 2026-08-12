@@ -29,6 +29,7 @@ export class StaminaManager {
 
     this.colorItem = 0x7cffb2;
     this.nombreItem = 'Estamina';
+    this.modeloItem = 'encebollado';
 
     // Se pone a true cuando se recoge un ítem, para que Game.js dispare
     // efectos (destello de linterna en el Apagón, por ejemplo).
@@ -45,7 +46,7 @@ export class StaminaManager {
       m.visible = true;
       return m;
     }
-    const m = crearItemEstamina(this.colorItem);
+    const m = crearItemEstamina(this.colorItem, this.modeloItem);
     this.grupo.add(m);
     return m;
   }
@@ -99,19 +100,47 @@ export class StaminaManager {
       item.z += avance;
       item.malla.position.z = item.z;
 
-      // Flotación y giro.
-      item.malla.position.y = ESTAMINA.ALTURA + Math.sin(this.tiempo * 2.5 + item.z) * 0.14;
-      item.malla.rotation.y = this.tiempo * 1.8;
-      if (item.malla.userData.anillo) {
-        item.malla.userData.anillo.rotation.z = this.tiempo * 2.2;
-        const e = 1 + Math.sin(this.tiempo * 4) * 0.15;
-        item.malla.userData.anillo.scale.setScalar(e);
-      }
+      this._animar(item.malla, item.z);
 
       if (item.z > 18) {
         this._devolver(item);
         this.activos.splice(i, 1);
       }
+    }
+  }
+
+  /**
+   * Flotación, giro y vida propia del ítem.
+   *
+   * La fase depende de la Z para que dos ítems en pantalla no latan a la vez:
+   * un grupo sincronizado se lee como un bucle de vídeo, no como objetos.
+   */
+  _animar(malla, z) {
+    const u = malla.userData;
+
+    malla.position.y = ESTAMINA.ALTURA + Math.sin(this.tiempo * 2.5 + z) * 0.14;
+    malla.rotation.y = this.tiempo * 1.6;
+
+    if (u.anillo) {
+      u.anillo.rotation.z = this.tiempo * 2.2;
+      u.anillo.scale.setScalar(1 + Math.sin(this.tiempo * 4) * 0.15);
+    }
+    if (u.halo) {
+      u.halo.scale.setScalar(1 + Math.sin(this.tiempo * 3.1 + z) * 0.12);
+    }
+    if (u.chispas) {
+      u.chispas.rotation.y = -this.tiempo * 2.6;
+      u.chispas.rotation.x = Math.sin(this.tiempo * 1.7) * 0.3;
+    }
+    if (u.vapor) {
+      // El vaho sube y se desvanece, y vuelve a empezar. El ciclo es corto
+      // (1.6 s) porque el ítem pasa muy poco tiempo en pantalla.
+      u.vapor.children.forEach((nube, i) => {
+        const fase = (this.tiempo * 0.62 + i * 0.33) % 1;
+        nube.position.y = 0.2 + fase * 0.55;
+        nube.material.opacity = 0.24 * (1 - fase);
+        nube.scale.setScalar(0.6 + fase * 0.9);
+      });
     }
   }
 
@@ -126,6 +155,28 @@ export class StaminaManager {
       x: CARRILES.POSICIONES[carril],
       z,
     });
+  }
+
+  /**
+   * Coloca un ítem a mano, sin esperar al generador.
+   *
+   * Lo usa el Apagón: ese tramo depende por completo de la linterna, así que
+   * no puede empezar sin una a la vista. Va en el carril central porque es
+   * donde el jugador entra a cualquier tramo nuevo.
+   *
+   * @param {number} distancia A cuántos metros por delante
+   * @param {number} [carril]  Carril, centro por defecto
+   */
+  sembrar(distancia, carril = CARRILES.CENTRO) {
+    this._generar([carril], -Math.abs(distancia));
+    // El contador arranca desde aquí: si no, el siguiente ítem saldría antes
+    // de tiempo por lo que ya se había acumulado en el tramo anterior.
+    this.distanciaDesdeUltimo = 0;
+  }
+
+  /** Rellena la barra. Se usa al regalar un ítem al entrar en un tramo. */
+  rellenar(valor = ESTAMINA.MAXIMA) {
+    this.valor = Math.min(ESTAMINA.MAXIMA, valor);
   }
 
   /**
@@ -185,6 +236,7 @@ export class StaminaManager {
   aplicarTema(escenario) {
     this.colorItem = escenario.estamina?.color ?? 0x7cffb2;
     this.nombreItem = escenario.estamina?.nombre ?? 'Estamina';
+    this.modeloItem = escenario.estamina?.modelo ?? 'encebollado';
 
     // Vaciamos pista y pool para que los ítems se reconstruyan con el color nuevo.
     this.limpiar();

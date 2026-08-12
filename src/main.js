@@ -160,8 +160,22 @@ async function arrancar() {
         pantallas.mostrar(pantallas.pausa());
         break;
 
-      case 'ruleta':
-        pantallas.mostrar(pantallas.ruleta(datos));
+      case 'cerco':
+        // El cerco no tiene interfaz: es la animación de que te rodean. Se
+        // quita cualquier pantalla y se deja ver.
+        pantallas.ocultar();
+        hud.limpiarAvisos();
+        break;
+
+      case 'escape':
+        hud.ocultar();
+        pantallas.mostrar(pantallas.escape(datos));
+        break;
+
+      case 'victoria':
+        hud.ocultar();
+        hud.limpiarAvisos();
+        pantallas.mostrar(pantallas.victoria(datos));
         break;
 
       case 'gameover':

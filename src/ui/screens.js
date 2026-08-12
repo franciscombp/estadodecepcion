@@ -1,5 +1,5 @@
 // ============================================================================
-// PANTALLAS — Menú, bifurcación, ruleta, game over, cuaderno y pausa
+// PANTALLAS — Menú, escape, victoria, game over, periódico y pausa
 // ============================================================================
 // Cada pantalla es un método que devuelve un elemento DOM. El gestor
 // `Pantallas` monta una y desmonta la anterior.
@@ -11,7 +11,7 @@
 // Estilo en docs/ESTILO.md.
 // ============================================================================
 
-import { obtenerEscenario, ORDEN_ESCENARIOS } from '../config/escenarios.js';
+import { obtenerEscenario } from '../config/escenarios.js';
 import { CABECERA, hayPendientes, cuantosListos } from '../config/publicaciones.js';
 import * as Icono from './iconos.js';
 
@@ -82,7 +82,14 @@ export class Pantallas {
   }
 
   ocultar() {
-    if (this.actual?.parentNode) this.actual.parentNode.removeChild(this.actual);
+    if (this.actual) {
+      // Aviso a la pantalla saliente. El medidor de escape engancha un
+      // listener en window y necesita saber cuándo soltarlo: si no, cada
+      // captura deja uno vivo y a la tercera partida la barra se para sola con
+      // cualquier tecla.
+      this.actual.dispatchEvent(new CustomEvent('pantalla:desmontada'));
+      this.actual.parentNode?.removeChild(this.actual);
+    }
     this.actual = null;
   }
 
@@ -185,77 +192,166 @@ export class Pantallas {
   }
 
   // -------------------------------------------------------------------------
-  // RULETA
+  // MEDIDOR DE ESCAPE
   // -------------------------------------------------------------------------
+  // Te rodearon y te queda un intento. Un cursor recorre la barra de ida y
+  // vuelta a velocidad constante; lo paras y, si cae en la franja verde, te
+  // zafas.
+  //
+  // NO ES UNA RULETA. La diferencia importa: aquí no hay número oculto ni
+  // sorteo. El cursor está a la vista todo el tiempo, la franja también, y el
+  // resultado es exactamente lo que el jugador hizo con el pulgar. Que sea
+  // difícil está bien; que sea suerte, no —perder por un dado invisible
+  // después de dos minutos corriendo es lo que hace que se apague el juego.
 
-  ruleta(datos) {
+  escape(datos) {
     const { pantalla, contenido } = pantallaBase();
+    pantalla.classList.add('pantalla--cerco');
 
-    contenido.appendChild(marca('VÍA INSTITUCIONAL'));
-    contenido.appendChild(el('h1', 'titulo', datos.institucion?.nombre ?? 'TRÁMITE'));
+    contenido.appendChild(marca('TE RODEARON'));
+    contenido.appendChild(el('h1', 'titulo titulo--rojo', 'ÚLTIMO INTENTO'));
     contenido.appendChild(el('p', 'subtitulo',
-      `Probabilidad declarada de éxito: ${datos.institucion?.porcentaje ?? 0}%`));
+      'Para la barra en verde y te escurres entre el cerco. Es pulso, no suerte.'));
 
-    const contenedorRuleta = el('div', 'ruleta-contenedor');
-    const disco = el('div', 'ruleta-disco');
-    const centro = el('div', 'ruleta-centro', 'EXPEDIENTE');
-    const aguja = el('div', 'ruleta-aguja');
-    contenedorRuleta.append(disco, centro, aguja);
-    contenido.appendChild(contenedorRuleta);
+    // --- La barra ----------------------------------------------------------
+    const barra = el('div', 'medidor-escape');
+    const zona = el('div', 'medidor-escape__zona');
+    const cursor = el('div', 'medidor-escape__cursor');
+    barra.append(zona, cursor);
+    contenido.appendChild(barra);
+
+    // La franja no va siempre en el centro: si estuviera fija, el jugador
+    // aprendería el punto y esto dejaría de ser una prueba a la segunda vez.
+    const ancho = datos.zona ?? 0.16;
+    const centro = 0.5 + (Math.random() - 0.5) * 0.44;
+    const desde = Math.max(0, Math.min(1 - ancho, centro - ancho / 2));
+
+    zona.style.left = `${desde * 100}%`;
+    zona.style.width = `${ancho * 100}%`;
 
     const zonaResultado = el('div');
     contenido.appendChild(zonaResultado);
 
+    // --- Animación ---------------------------------------------------------
+    // Va con requestAnimationFrame y reloj real, no con una transición CSS:
+    // hace falta saber la posición EXACTA en el instante del toque, y una
+    // animación declarativa no la da sin leer estilos computados.
+    let posicion = 0;
+    let sentido = 1;
+    let anterior = performance.now();
+    let corriendo = true;
+    const velocidad = datos.velocidad ?? 1.45;
+
+    const paso = (ahora) => {
+      if (!corriendo) return;
+      const dt = Math.min(0.05, (ahora - anterior) / 1000);
+      anterior = ahora;
+
+      posicion += sentido * velocidad * dt;
+      if (posicion >= 1) { posicion = 1; sentido = -1; }
+      if (posicion <= 0) { posicion = 0; sentido = 1; }
+
+      cursor.style.left = `${posicion * 100}%`;
+      requestAnimationFrame(paso);
+    };
+    requestAnimationFrame(paso);
+
     const botones = el('div', 'botones');
     contenido.appendChild(botones);
 
-    // IMPORTANTE: el resultado se sortea ANTES de animar, y la animación se
-    // calcula para acabar donde toca. Si fuera al revés (dejar que la
-    // animación decida), la probabilidad real dependería del easing del CSS
-    // y no coincidiría con el porcentaje que anuncia el cartel.
-    const botonGirar = boton('Girar la ruleta', 'boton--principal', () => {
-      botonGirar.disabled = true;
+    const parar = () => {
+      if (!corriendo) return;
+      corriendo = false;
+      botonParar.disabled = true;
 
-      const resultado = this.juego.girarRuleta();
+      const acerto = posicion >= desde && posicion <= desde + ancho;
+      cursor.classList.add(acerto ? 'medidor-escape__cursor--bien' : 'medidor-escape__cursor--mal');
 
-      // En Carondelet ir de frente es muerte directa: Game ya terminó la
-      // partida y cambió de estado. No hay nada que animar.
-      if (resultado.muerteDirecta) return;
+      const caja = el('div', `resultado ${acerto ? 'resultado--exito' : 'resultado--fracaso'}`);
+      caja.appendChild(el('div', 'resultado__titulo', acerto ? 'TE ZAFASTE' : 'TE AGARRARON'));
+      caja.appendChild(el('div', 'resultado__texto', acerto
+        ? 'Saliste por el hueco que dejaron. Sigue corriendo.'
+        : 'No hubo hueco. Ni esta vez ni la anterior.'));
+      zonaResultado.appendChild(caja);
 
-      const { anguloFinal, vueltas } = this.juego.ruleta.anguloParaResultado(resultado.exito);
-      // Restamos porque el disco gira en sentido horario bajo una aguja fija.
-      disco.style.transform = `rotate(${vueltas * 360 + (360 - anguloFinal)}deg)`;
+      this.audio.resultadoRuleta(acerto);
 
-      // Clics durante el giro, cada vez más espaciados.
-      let retardo = 90;
-      let transcurrido = 0;
-      const clic = () => {
-        if (transcurrido > 3200) return;
-        this.audio.clicRuleta();
-        transcurrido += retardo;
-        retardo *= 1.13;
-        setTimeout(clic, retardo);
-      };
-      clic();
+      // Un respiro para leer el resultado antes de que cambie la pantalla.
+      setTimeout(() => this.juego.escapar(acerto), acerto ? 700 : 1100);
+    };
 
-      setTimeout(() => {
-        const caja = el('div',
-          `resultado ${resultado.exito ? 'resultado--exito' : 'resultado--fracaso'}`);
-        caja.appendChild(el('div', 'resultado__titulo',
-          resultado.exito ? 'PROSPERÓ' : 'SE ARCHIVÓ'));
-        caja.appendChild(el('div', 'resultado__texto', resultado.texto));
+    const botonParar = boton('PARAR', 'boton--principal', parar);
+    botones.appendChild(botonParar);
 
-        if (resultado.exito && resultado.recompensa > 0) {
-          caja.appendChild(estadisticas([[`+${resultado.recompensa}`, 'Papeles']]));
-        }
-
-        zonaResultado.appendChild(caja);
-        botones.appendChild(boton('Seguir corriendo', 'boton--principal',
-          () => this.juego.continuarTrasRuleta()));
-      }, 3500);
+    // Espacio y toque también valen: en móvil el pulgar ya está en la
+    // pantalla, y obligar a apuntar al botón le añade una dificultad que no
+    // tiene nada que ver con lo que se está midiendo.
+    const porTecla = (e) => {
+      if (e.code === 'Space' || e.code === 'Enter') {
+        e.preventDefault();
+        parar();
+      }
+    };
+    window.addEventListener('keydown', porTecla);
+    pantalla.addEventListener('pointerdown', (e) => {
+      if (e.target !== botonParar) parar();
     });
 
-    botones.appendChild(botonGirar);
+    // Se limpia el listener global cuando la pantalla desaparece.
+    pantalla.addEventListener('pantalla:desmontada', () => {
+      corriendo = false;
+      window.removeEventListener('keydown', porTecla);
+    });
+
+    return pantalla;
+  }
+
+  // -------------------------------------------------------------------------
+  // VICTORIA
+  // -------------------------------------------------------------------------
+  // El final del juego. Se llega presentando un expediente COMPLETO en el
+  // túnel del centro, que es casi imposible a propósito.
+
+  victoria(datos) {
+    const { pantalla, contenido } = pantallaBase();
+    pantalla.classList.add('pantalla--victoria');
+
+    contenido.appendChild(marca('SE PRESENTÓ LA DENUNCIA'));
+    contenido.appendChild(el('h1', 'titulo titulo--verde', 'PROSPERÓ'));
+    contenido.appendChild(el('div', 'insignia-record', datos.institucion));
+
+    const remate = el('div', 'remate');
+    remate.appendChild(document.createTextNode(datos.texto));
+    remate.appendChild(el('span', 'remate__firma', 'El Mercio'));
+    contenido.appendChild(remate);
+
+    contenido.appendChild(el('p', 'subtitulo',
+      `Entregaste los ${datos.papelesEntregados} papeles del expediente. ` +
+      'Sin que falte uno. No sabemos cómo lo lograste, pero lo lograste.'));
+
+    contenido.appendChild(estadisticas([
+      [datos.papeles.toLocaleString('es-EC'), 'Papeles'],
+      [`${datos.distancia.toLocaleString('es-EC')} m`, 'Distancia'],
+      [datos.puntaje.toLocaleString('es-EC'), 'Puntaje'],
+      [String(datos.evidencias.length), 'Evidencias'],
+    ]));
+
+    if (datos.ruta?.length > 1) {
+      const lista = el('div', 'lista');
+      lista.appendChild(el('div', 'lista__titulo', 'Ruta de esta corrida'));
+      lista.appendChild(this._pintarRuta(datos.ruta));
+      contenido.appendChild(lista);
+    }
+
+    const botones = el('div', 'botones');
+    botones.appendChild(boton('Volver a correr', 'boton--principal',
+      () => this.juego.iniciarPartida()));
+    botones.appendChild(boton('Archivo de El Mercio', '',
+      () => this.mostrar(this.notebook())));
+    botones.appendChild(boton('Menú principal', 'boton--tenue',
+      () => this.juego.volverAlMenu()));
+    contenido.appendChild(botones);
+
     return pantalla;
   }
 

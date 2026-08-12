@@ -37,9 +37,18 @@ export class ApagonScene extends BaseScene {
    * pero se intensifica al recoger un ítem.
    */
   _crearLinternaJugador() {
-    this.foco = new THREE.SpotLight(0xffe9b0, 3.2, 60, Math.PI / 5, 0.45, 1.4);
-    this.foco.position.set(0, 6, 6);
-    this.foco.target.position.set(0, 0, -16);
+    // OJO CON LA CAÍDA. Con decay 1.4 y una intensidad de 3, a veinte metros
+    // del foco llega el 1.5% de la luz: el haz alumbraba los pies del jugador
+    // y nada más, que es por lo que este tramo era literalmente injugable.
+    // Con decay ~1 y una intensidad muy superior, el cono llega hasta donde
+    // hace falta leer los obstáculos.
+    // Y ojo también con la POSICIÓN. Cuanto más cerca del jugador esté el
+    // foco, más desigual reparte: quemaba al personaje mientras el obstáculo
+    // de más allá seguía a oscuras. Colocándolo alto y atrás, la diferencia de
+    // distancia entre uno y otro se reduce y el cono ilumina parejo.
+    this.foco = new THREE.SpotLight(0xffe9b0, 150, 140, Math.PI / 4.6, 0.55, 1.0);
+    this.foco.position.set(0, 11, 14);
+    this.foco.target.position.set(0, 0, -22);
     this.grupo.add(this.foco);
     this.grupo.add(this.foco.target);
   }
@@ -110,11 +119,18 @@ export class ApagonScene extends BaseScene {
     this.foco.target.position.x = jugador.x;
     this.foco.target.updateMatrixWorld();
 
-    const intensidadObjetivo = this.tiempoLinterna > 0 ? 7.5 : 3.2;
+    const intensidadObjetivo = this.tiempoLinterna > 0 ? 430 : 150;
     this.foco.intensity += (intensidadObjetivo - this.foco.intensity) * t;
 
+    // La linterna también levanta el ambiente. Un cono aislado sobre negro
+    // absoluto se lee como un foco de teatro; lo que se busca es que el tramo
+    // ENTERO respire mientras dura la batería.
+    const ambienteBase = this.config.colores.intensidadAmbiente;
+    const ambienteObjetivo = this.tiempoLinterna > 0 ? ambienteBase * 2.6 : ambienteBase;
+    this.luzAmbiente.intensity += (ambienteObjetivo - this.luzAmbiente.intensity) * t;
+
     // Titileo sutil del foco: la batería no está en su mejor momento.
-    this.foco.intensity *= 0.97 + Math.sin(this.tiempo * 30) * 0.03;
+    this.foco.intensity *= 0.98 + Math.sin(this.tiempo * 30) * 0.02;
 
     // --- Parpadeos ---------------------------------------------------------
     for (const p of this.parpadeos) {

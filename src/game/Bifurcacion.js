@@ -1,32 +1,40 @@
 // ============================================================================
 // BIFURCACIÓN — El desvío se decide corriendo, no en un menú
 // ============================================================================
-// Como en Temple Run: el carril en el que estés al cruzar el pórtico decide
-// la ruta. No se para el juego, no aparece una pantalla; sigues corriendo y
-// eliges con el cuerpo.
+// Al final de cada tramo la calle termina contra una fachada con TRES BOCAS DE
+// TÚNEL, una por carril. El carril en el que estés al entrar decide la
+// temporada. No se para el juego, no aparece una pantalla; eliges con el
+// cuerpo, como en Temple Run.
 //
-//   carril izquierdo → escenario vecino de la izquierda
-//   carril central   → la institución (dispara la ruleta)
-//   carril derecho   → escenario vecino de la derecha
+//   túnel izquierdo → temporada vecina de la izquierda
+//   túnel central   → el trámite (la vía institucional)
+//   túnel derecho   → temporada vecina de la derecha
+//
+// POR QUÉ TÚNELES Y NO RAMALES
+// Dos calles que divergen en la niebla son una mancha: no tienen borde, y a
+// 200 metros no se distingue una de otra. Una boca de túnel sí tiene borde, y
+// entrar en ella es un gesto inequívoco —o pasas por el hueco o no—. Además
+// justifica el corte de escenario: dentro no se ve nada, y al salir estás en
+// otro sitio.
 //
 // SECUENCIA
-//   1. AVISO       Faltan ~120 m. Se deja de generar obstáculos y aparece el
-//                  pórtico al fondo con un cartel por carril.
-//   2. APROXIMACIÓN El jugador se coloca. El corredor está limpio a propósito:
-//                  obligar a esquivar mientras eliges convierte una decisión
-//                  en un accidente.
-//   3. CRUCE       Al llegar al pórtico se lee el carril y se compromete.
-//   4. VIRAJE      La cámara se inclina hacia el lado elegido y la pantalla
-//                  destella. Ese banqueo es lo que vende el giro sin tener que
-//                  construir geometría de carretera curva.
+//   1. AVISO       A 260 m aparecen los carteles de señalización, uno tras
+//                  otro, y las flechas en el asfalto. El jugador SIGUE
+//                  esquivando: la decisión se toma mientras se corre.
+//   2. LIMPIEZA    A 110 m el corredor se vacía. Obligar a esquivar en el
+//                  último tramo convertiría la decisión en un accidente:
+//                  acabarías eligiendo el carril que te tocó esquivar.
+//   3. ENTRADA     Al llegar a la fachada se lee el carril y se compromete.
+//   4. TRÁNSITO    La pantalla se va a blanco mientras se cambia de escenario.
+//                  Ese destello es lo que tapa el corte.
 // ============================================================================
 
 import * as THREE from 'three';
-import { CARRILES } from '../config/balance.js';
+import { CARRILES, TUNEL } from '../config/balance.js';
 import {
-  crearPorticoBifurcacion,
+  crearTunelesBifurcacion,
+  crearAvisoBifurcacion,
   crearFlechaAsfalto,
-  crearCaminosBifurcacion,
 } from '../models/props.js';
 import { obtenerEscenario } from '../config/escenarios.js';
 import { COLOR3D } from '../config/estilo.js';
@@ -37,13 +45,13 @@ export class Bifurcacion {
     this.grupo = new THREE.Group();
     escena.add(this.grupo);
 
-    this.activa = false;       // ¿Hay un pórtico en pista?
-    this.portico = null;
-    this.caminos = null;       // Los tres ramales que se abren
+    this.activa = false;       // ¿Hay bocas de túnel en pista?
+    this.tuneles = null;       // La fachada con las tres bocas
+    this.avisos = [];          // Pórticos de señalización, de lejos a cerca
     this.flechas = [];
-    this.z = 0;                // Posición del pórtico
+    this.z = 0;                // Posición de la fachada
 
-    // Viraje tras cruzar.
+    // Tránsito tras entrar.
     this.virando = false;
     this.direccionViraje = 0;  // -1 izquierda, 0 centro, 1 derecha
     this.tiempoViraje = 0;
@@ -55,11 +63,11 @@ export class Bifurcacion {
   // -------------------------------------------------------------------------
 
   /**
-   * Coloca el pórtico y las flechas a la distancia indicada.
+   * Coloca la fachada de túneles y su señalización.
    *
    * @param {string} idEscenario Escenario actual
    * @param {object} colores     Paleta del escenario
-   * @param {number} distancia   A cuántas unidades por delante ponerlo
+   * @param {number} distancia   A cuántas unidades por delante ponerla
    */
   preparar(idEscenario, colores, distancia) {
     this.limpiar();
@@ -68,50 +76,44 @@ export class Bifurcacion {
     const izquierda = obtenerEscenario(esc.rutas.izquierda);
     const derecha = obtenerEscenario(esc.rutas.derecha);
 
-    // Qué dice el cartel del centro depende del escenario: en Carondelet no
+    // Qué dice el rótulo del centro depende del escenario: en Carondelet no
     // hay institución, ir de frente es el cerco.
     const centroEsPeligro = !!esc.frenteEsMuerte;
-    const textoCentro = centroEsPeligro
-      ? 'EL CERCO'
-      : (esc.institucion?.nombre ?? 'DE FRENTE');
-
-    this.portico = crearPorticoBifurcacion(
-      {
-        izquierda: izquierda.nombre,
-        centro: textoCentro,
-        derecha: derecha.nombre,
-      },
-      colores,
-      centroEsPeligro,
-    );
-
-    // Los tres ramales físicos. Arrancan justo donde está el pórtico: al
-    // cruzarlo, el jugador ya está sobre uno de ellos.
-    this.caminos = crearCaminosBifurcacion(
-      {
-        izquierda: izquierda.nombre,
-        centro: textoCentro,
-        derecha: derecha.nombre,
-      },
-      colores,
-      centroEsPeligro,
-    );
+    const destinos = {
+      izquierda: izquierda.nombre,
+      centro: centroEsPeligro ? 'EL CERCO' : (esc.institucion?.nombre ?? 'DE FRENTE'),
+      derecha: derecha.nombre,
+    };
 
     this.z = -distancia;
-    this.portico.position.z = this.z;
-    this.caminos.position.z = this.z;
-    this.grupo.add(this.portico);
-    this.grupo.add(this.caminos);
 
-    // Flechas en el asfalto, repartidas por el corredor de aproximación.
-    // Se repiten cada 14 unidades para que siempre haya una a la vista.
+    this.tuneles = crearTunelesBifurcacion(destinos, colores, centroEsPeligro);
+    this.tuneles.position.z = this.z;
+    this.grupo.add(this.tuneles);
+
+    // Carteles de señalización escalonados. El primero entra en cuadro mucho
+    // antes de que haya nada que decidir, que es justo el punto: el jugador
+    // tiene que VER venir la bifurcación, no encontrársela.
+    for (const adelanto of TUNEL.AVISOS) {
+      // Solo tiene sentido plantar los que caben en el corredor disponible.
+      if (adelanto > distancia - 15) continue;
+
+      const aviso = crearAvisoBifurcacion(destinos, colores, centroEsPeligro);
+      aviso.position.z = this.z + adelanto;
+      this.grupo.add(aviso);
+      this.avisos.push(aviso);
+    }
+
+    // Flechas en el asfalto, repartidas por el corredor. Repiten en el suelo
+    // lo que dicen los carteles, para que el jugador no tenga que levantar la
+    // vista mientras se coloca.
     const direcciones = [
       { dir: 'izquierda', carril: 0, color: colores.acento ?? COLOR3D.dorado },
       { dir: 'centro', carril: 1, color: centroEsPeligro ? COLOR3D.rojo : COLOR3D.naranja },
       { dir: 'derecha', carril: 2, color: colores.acento ?? COLOR3D.dorado },
     ];
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       for (const d of direcciones) {
         const flecha = crearFlechaAsfalto(d.dir, d.color);
         flecha.position.x = CARRILES.POSICIONES[d.carril];
@@ -129,11 +131,11 @@ export class Bifurcacion {
   // -------------------------------------------------------------------------
 
   /**
-   * Mueve el pórtico hacia el jugador.
+   * Mueve la fachada y su señalización hacia el jugador.
    *
    * @param {number} dt
    * @param {number} avance
-   * @returns {boolean} true en el fotograma en que el jugador lo cruza
+   * @returns {boolean} true en el fotograma en que el jugador entra al túnel
    */
   actualizar(dt, avance) {
     if (this.virando) {
@@ -147,17 +149,18 @@ export class Bifurcacion {
     if (!this.activa) return false;
 
     this.z += avance;
-    this.portico.position.z = this.z;
-    if (this.caminos) this.caminos.position.z = this.z;
+    this.tuneles.position.z = this.z;
+
+    for (const aviso of this.avisos) aviso.position.z += avance;
 
     for (const flecha of this.flechas) {
       flecha.position.z += avance;
-      // Las flechas que quedan atrás se reenganchan por delante del pórtico,
+      // Las flechas que quedan atrás se reenganchan por delante de la fachada,
       // así el corredor nunca se queda sin señalización.
       if (flecha.position.z > 14) flecha.position.z = this.z + 10;
     }
 
-    // El cruce se detecta cuando el pórtico pasa por la posición del jugador.
+    // La entrada se detecta cuando la boca pasa por la posición del jugador.
     if (this.z >= 0) {
       this.activa = false;
       return true;
@@ -167,7 +170,7 @@ export class Bifurcacion {
   }
 
   /**
-   * Arranca el viraje de cámara hacia el carril elegido.
+   * Arranca el tránsito hacia el carril elegido.
    * @param {number} carril 0 izquierda, 1 centro, 2 derecha
    */
   iniciarViraje(carril) {
@@ -178,7 +181,8 @@ export class Bifurcacion {
 
   /**
    * Inclinación de cámara a aplicar este fotograma, en radianes.
-   * Describe una campana: entra y sale, con el pico a mitad del viraje.
+   * Describe una campana: entra y sale, con el pico a mitad del tránsito.
+   * El túnel central no inclina nada: se entra de frente.
    */
   banqueoCamara() {
     if (!this.virando || this.direccionViraje === 0) return 0;
@@ -198,26 +202,25 @@ export class Bifurcacion {
   // CICLO DE VIDA
   // -------------------------------------------------------------------------
 
-  limpiar() {
-    for (const clave of ['portico', 'caminos']) {
-      const obj = this[clave];
-      if (!obj) continue;
-      this.grupo.remove(obj);
-      obj.traverse((o) => {
-        if (o.geometry) o.geometry.dispose();
-        if (o.material) o.material.dispose();
-      });
-      this[clave] = null;
-    }
+  _destruir(objeto) {
+    this.grupo.remove(objeto);
+    objeto.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) o.material.dispose();
+    });
+  }
 
-    for (const flecha of this.flechas) {
-      this.grupo.remove(flecha);
-      flecha.traverse((o) => {
-        if (o.geometry) o.geometry.dispose();
-        if (o.material) o.material.dispose();
-      });
+  limpiar() {
+    if (this.tuneles) {
+      this._destruir(this.tuneles);
+      this.tuneles = null;
     }
+    for (const aviso of this.avisos) this._destruir(aviso);
+    this.avisos = [];
+
+    for (const flecha of this.flechas) this._destruir(flecha);
     this.flechas = [];
+
     this.activa = false;
   }
 

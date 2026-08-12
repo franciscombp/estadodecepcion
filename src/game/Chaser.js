@@ -1,20 +1,22 @@
 // ============================================================================
 // PERSEGUIDOR — Noboa haciendo caballito sobre Reimberg
 // ============================================================================
-// Va siempre detrás, visible al fondo. Su distancia es el verdadero medidor de
-// vida del juego:
+// Van DETRÁS del jugador, en cuadro, entre él y la cámara. No son un adorno de
+// fondo: son la amenaza, y se tienen que ver corriendo tras él.
+//
+// Su distancia es el verdadero medidor de vida del juego:
 //
 //   · Corres limpio          → se aleja despacio
 //   · Recibes un golpe       → salta hacia adelante de golpe
 //   · Te quedas sin estamina → se acerca de forma sostenida
 //   · Baja de DISTANCIA_CAPTURA → te atrapan, fin de la partida
 //
-// La presión es continua y legible: el jugador siempre sabe qué tan mal va con
-// solo mirar atrás por el retrovisor del HUD.
+// La presión es continua y legible: el jugador ve el hueco cerrarse por el
+// espejo del propio encuadre, y el HUD se lo confirma con la barra.
 // ============================================================================
 
 import * as THREE from 'three';
-import { PERSEGUIDOR } from '../config/balance.js';
+import { PERSEGUIDOR, CERCO } from '../config/balance.js';
 import { crearPerseguidores, animarPerseguidores } from '../models/characters.js';
 
 export class Chaser {
@@ -30,9 +32,11 @@ export class Chaser {
     this.x = 0;
 
     // Posición y tamaño VISUALES, separados de la distancia de juego.
-    this.zVisualActual = -14;
-    this.yVisualActual = 2.6;
-    this.escalaActual = 0.78;
+    this.zVisualActual = PERSEGUIDOR.Z_LEJOS;
+    this.escalaActual = PERSEGUIDOR.ESCALA_LEJOS;
+
+    // Cerco: cuando atrapan al jugador, se abalanzan. 0..1.
+    this.cercando = 0;
   }
 
   /**
@@ -61,42 +65,60 @@ export class Chaser {
     const t = 1 - Math.exp(-3 * dt);
     this.x += (jugador.x - this.x) * t;
 
-    // La distancia de JUEGO no sirve como posición visual. La cámara está a
-    // ~9 unidades por detrás del jugador, así que cualquier cosa situada a
-    // 26-34 unidades detrás cae fuera de cuadro —literalmente detrás del
-    // objetivo— y el perseguidor no se vería nunca.
-    //
-    // Por eso mapeamos el rango de juego a un rango visual estrecho que
-    // siempre queda encuadrado: lejos van pequeños y altos al fondo, cerca
-    // bajan y crecen encima del jugador. Se conserva la lectura de amenaza sin
-    // atarla a las unidades del mundo.
-    // El rango se queda SIEMPRE en Z negativa, o sea más allá del jugador en
-    // profundidad de pantalla. Así se leen como una presencia al fondo que
-    // crece, y nunca tapan al personaje —que es justo lo que el jugador
-    // necesita ver para esquivar.
+    this._colocar(dt);
+    animarPerseguidores(this.modelo, this.tiempo);
+  }
+
+  /**
+   * Traduce la distancia de juego a posición en cuadro.
+   *
+   * Van SIEMPRE en Z positiva: el jugador corre hacia -Z, la cámara está a su
+   * espalda, así que perseguir es ocupar el hueco entre la cámara y él.
+   *
+   * El rango de Z es estrecho y la escala lo compensa (ver PERSEGUIDOR en
+   * balance.js): la amenaza se lee por el hueco que se cierra, no por el
+   * tamaño. Con el rango entero atado a la distancia de juego pasaría lo
+   * contrario de lo que hay que comunicar, porque lo más cercano a la cámara
+   * —o sea, lo que va más rezagado— se dibuja más grande.
+   */
+  _colocar(dt) {
     const cerca = this.cercania();               // 0 = lejos, 1 = encima
-    const zVisual = THREE.MathUtils.lerp(-24, -4.5, cerca);
-    const yVisual = THREE.MathUtils.lerp(2.2, 0.3, cerca);
-    const escala = THREE.MathUtils.lerp(0.8, 1.2, cerca);
+
+    let zVisual = THREE.MathUtils.lerp(PERSEGUIDOR.Z_LEJOS, PERSEGUIDOR.Z_CERCA, cerca);
+    let escala = THREE.MathUtils.lerp(PERSEGUIDOR.ESCALA_LEJOS, PERSEGUIDOR.ESCALA_CERCA, cerca);
+
+    // Durante el cerco se echan encima, pero POR UN LADO. De frente taparían
+    // al personaje justo en el fotograma en el que hay que verlo rodeado.
+    let desvio = 0;
+    if (this.cercando > 0) {
+      zVisual = THREE.MathUtils.lerp(zVisual, 2.4, this.cercando);
+      escala = THREE.MathUtils.lerp(escala, 1.2, this.cercando);
+      desvio = CERCO.DESVIO_PERSEGUIDOR * this.cercando;
+    }
 
     // Suavizamos para que los cambios de distancia no den tirones.
     const ts = 1 - Math.exp(-5 * dt);
     this.zVisualActual += (zVisual - this.zVisualActual) * ts;
-    this.yVisualActual += (yVisual - this.yVisualActual) * ts;
     this.escalaActual += (escala - this.escalaActual) * ts;
 
-    this.modelo.position.set(this.x, this.yVisualActual, this.zVisualActual);
+    // Corren por el suelo, como todo el mundo. Ya no flotan al fondo: ahora
+    // están donde tienen que estar y no hace falta disimular nada.
+    this.modelo.position.set(this.x + desvio, 0, this.zVisualActual);
     this.modelo.scale.setScalar(this.escalaActual);
 
-    // Miran hacia el jugador, es decir, hacia -Z.
+    // Miran hacia el jugador, que está en -Z respecto a ellos.
     this.modelo.rotation.y = Math.PI;
+  }
 
-    // Cuando están lejos flotan un poco: refuerza que son una presencia al
-    // fondo y no un objeto apoyado en el suelo a media pista.
-    if (cerca < 0.5) {
-      this.modelo.position.y += Math.sin(this.tiempo * 1.8) * 0.18;
-    }
-
+  /**
+   * Avanza la animación de cerco. Se llama desde Game durante el estado
+   * 'cerco', cuando el mundo ya está parado.
+   * @param {number} fraccion 0..1
+   */
+  cercar(fraccion, dt) {
+    this.cercando = fraccion;
+    this.tiempo += dt;
+    this._colocar(dt);
     animarPerseguidores(this.modelo, this.tiempo);
   }
 
@@ -126,12 +148,18 @@ export class Chaser {
     this.distancia = PERSEGUIDOR.DISTANCIA_CAPTURA;
   }
 
+  /** Los devuelve a distancia de respiro tras un escape logrado. */
+  soltar(distancia) {
+    this.distancia = distancia;
+    this.cercando = 0;
+  }
+
   reiniciar() {
     this.distancia = PERSEGUIDOR.DISTANCIA_INICIAL;
     this.x = 0;
     this.tiempo = 0;
-    this.zVisualActual = -14;
-    this.yVisualActual = 2.6;
-    this.escalaActual = 0.78;
+    this.cercando = 0;
+    this.zVisualActual = PERSEGUIDOR.Z_LEJOS;
+    this.escalaActual = PERSEGUIDOR.ESCALA_LEJOS;
   }
 }

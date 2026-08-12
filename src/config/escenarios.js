@@ -41,6 +41,7 @@ export const ESCENARIOS = {
       nombre: 'Encebollado',
       descripcion: 'Cura el chuchaqui y la desesperanza',
       color: 0xff8c42,
+      modelo: 'encebollado',
     },
 
     // Etiquetas de los obstáculos, para el HUD y los mensajes de choque.
@@ -92,6 +93,14 @@ export const ESCENARIOS = {
       nombre: 'Linterna',
       descripcion: 'Batería china, esperanza nacional',
       color: 0xffe066,
+      modelo: 'linterna',
+      // El Apagón arranca a oscuras y la linterna es lo único que abre la
+      // visión. Entrar sin ninguna y esperar a que el generador de estamina
+      // suelte la primera a los 150 m no era difícil: era injugable. Así que
+      // el tramo REGALA una al entrar (se enciende sola) y siembra otra a la
+      // vista, para que el jugador entienda de inmediato de qué va esto.
+      regaloAlEntrar: true,
+      distanciaSembrada: 70,
     },
 
     obstaculos: {
@@ -109,8 +118,8 @@ export const ESCENARIOS = {
     // amplían el radio de visión además de recuperar energía.
     mecanicaEspecial: 'oscuridad',
     oscuridad: {
-      radioBase: 16,       // Distancia visible sin linterna.
-      radioConLinterna: 40,
+      radioBase: 18,       // Distancia visible sin linterna.
+      radioConLinterna: 52,
       duracionLinterna: 9, // Segundos de visión ampliada por linterna.
     },
 
@@ -147,6 +156,7 @@ export const ESCENARIOS = {
       nombre: 'Micrófono',
       descripcion: 'Tu canal de YouTube es el último medio libre',
       color: 0x7cffb2,
+      modelo: 'microfono',
     },
 
     obstaculos: {
@@ -193,6 +203,7 @@ export const ESCENARIOS = {
       nombre: 'Canelazo',
       descripcion: 'Calienta el cuerpo, no la valentía',
       color: 0xffa94d,
+      modelo: 'canelazo',
     },
 
     obstaculos: {

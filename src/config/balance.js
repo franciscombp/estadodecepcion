@@ -217,6 +217,25 @@ export const PERSEGUIDOR = {
   ACERCAMIENTO_POR_EXHAUSTO: 2.2,
   // Se aleja a este ritmo cuando corres limpio.
   ALEJAMIENTO: 1.6,
+
+  // --- Encuadre --------------------------------------------------------
+  // Van DETRÁS del jugador, o sea en Z POSITIVA: el jugador corre hacia -Z
+  // y la cámara está a su espalda, así que "detrás" es entre la cámara y él.
+  //
+  // Eso obliga a un compromiso que conviene entender antes de tocar estos
+  // números: lo que está más cerca de la cámara se dibuja MÁS GRANDE. Si
+  // atáramos la Z visual a la distancia de juego, los perseguidores se verían
+  // enormes cuando van lejos y pequeños cuando te alcanzan —justo al revés de
+  // lo que hay que comunicar.
+  //
+  // Por eso el rango de Z es estrecho y la escala lo compensa: al acercarse
+  // AVANZAN hacia el jugador (suben en cuadro, se cierra el hueco entre ellos
+  // y tú) manteniendo el tamaño aparente. La lectura de amenaza la da el hueco
+  // que se cierra, no el tamaño.
+  Z_LEJOS: 8.8,
+  Z_CERCA: 3.8,
+  ESCALA_LEJOS: 0.68,
+  ESCALA_CERCA: 1.25,
 };
 
 // ---------------------------------------------------------------------------
@@ -225,8 +244,120 @@ export const PERSEGUIDOR = {
 export const TRAMO = {
   // Distancia recorrida antes de llegar a la bifurcación, en metros.
   LONGITUD: 850,
-  // Aviso previo a la bifurcación.
-  DISTANCIA_AVISO: 120,
+  // Aviso previo a la bifurcación. A velocidad de crucero (~30 u/s) son más
+  // de 8 segundos con los carteles a la vista: tiempo de sobra para leer los
+  // tres destinos, decidir y colocarse sin que la elección sea un reflejo.
+  DISTANCIA_AVISO: 260,
+  // Dónde se vacía el corredor. Hasta aquí se sigue esquivando con normalidad;
+  // a partir de aquí la pista queda limpia para que la elección sea una
+  // decisión y no el carril que te tocó esquivar.
+  //
+  // Los dos números son distintos a propósito: si se vaciara ya en el aviso,
+  // el jugador correría 260 metros —casi nueve segundos— sin nada que hacer.
+  DISTANCIA_LIMPIEZA: 140,
+};
+
+// ---------------------------------------------------------------------------
+// TÚNELES DE BIFURCACIÓN
+// ---------------------------------------------------------------------------
+// La bifurcación son tres bocas de túnel, no tres ramales al aire libre. El
+// túnel resuelve de un golpe el problema que tenía el desvío: una boca es un
+// destino con borde, se lee desde lejos, y "entrar" es un gesto inequívoco.
+export const TUNEL = {
+  LARGO: 110,           // Profundidad del tubo. Se pierde en su propia sombra.
+  // La boca es alta y estrecha a propósito: con el ancho atado a la separación
+  // de carriles (no puede pasar de 2.1 sin comerse la de al lado), la única
+  // forma de que se lea como un túnel y no como una puerta es estirarla hacia
+  // arriba. Y la fachada se queda justo por encima, para no ser un muro negro.
+  ALTO_BOCA: 4.4,
+  ANCHO_BOCA: 2.1,      // Una boca por carril, sin que se pisen entre ellas.
+  ALTO_FACHADA: 7.8,
+  ANCHO_FACHADA: 12,
+  // A cuántos metros por delante de la boca se planta cada cartel de aviso.
+  // El primero entra en cuadro con más de 6 segundos de margen: el jugador ve
+  // a dónde va mucho antes de tener que decidir nada.
+  AVISOS: [230, 150, 80],
+};
+
+// ---------------------------------------------------------------------------
+// EL TRÁMITE — el túnel del centro
+// ---------------------------------------------------------------------------
+// Entrar de frente ya no abre una ruleta de azar: mete al jugador en un tramo
+// cerrado donde no hay obstáculos, solo papeles. Es una prueba de HABILIDAD,
+// no de suerte. Recoges todo o no entra la denuncia.
+export const TRAMITE = {
+  LONGITUD: 340,        // Metros dentro del túnel institucional.
+  // Cuántos papeles se siembran. Van en hileras exigentes que obligan a
+  // cambiar de carril sin descanso.
+  HILERAS: 22,
+  PAPELES_POR_HILERA: 7,
+  // Fracción a partir de la cual el expediente "entra". Es 1: perfecto o nada.
+  // Ese es el chiste, y también el motivo por el que ganar el juego es casi
+  // imposible.
+  UMBRAL_PERFECTO: 1,
+};
+
+// ---------------------------------------------------------------------------
+// CERCO Y ESCAPE — lo que pasa cuando te atrapan
+// ---------------------------------------------------------------------------
+export const CERCO = {
+  // Duración de la animación de cerco antes de que aparezca la interfaz.
+  DURACION: 1.9,
+  // Cuántos policías cierran el círculo.
+  POLICIAS: 5,
+  RADIO: 4.6,
+
+  // La cámara se sale de su sitio y da la vuelta para enseñar el corro. Sin
+  // esto la escena no se entiende: desde detrás, los perseguidores tapan al
+  // jugador y los policías quedan repartidos fuera de cuadro. El plano tiene
+  // que abrirse para que se vea QUÉ está pasando.
+  //
+  // La cámara NO orbita: se queda detrás y se aleja. Con un objetivo largo
+  // como el de este juego, girar alrededor del corro obliga a acercarse tanto
+  // que solo caben dos figuras. Retrocediendo y subiendo entra todo —el
+  // jugador, los cinco policías y el dúo— y encima se conserva la orientación,
+  // así que el corte no marea.
+  CAMARA: { x: 2.2, y: 8.6, z: 22 },
+  CAMARA_MIRA_Y: 1.1,
+  // Desplazamiento lateral de los perseguidores durante el cerco: se ponen a
+  // un lado en vez de encima, o taparían al personaje justo en el momento en
+  // que hay que verlo.
+  DESVIO_PERSEGUIDOR: 1.7,
+
+  // --- Medidor de habilidad ---------------------------------------------
+  // Una barra con un cursor que va y viene. Paras en la zona verde y te
+  // escapas. Es habilidad pura: no hay dado detrás.
+  ESCAPE_VELOCIDAD: 1.45,   // Recorridos completos por segundo.
+  ESCAPE_ZONA: 0.16,        // Ancho de la zona buena, en fracción de barra.
+  // Cada escape usado estrecha la zona del siguiente. Solo se permite uno por
+  // partida, pero se deja el número por si se abre la mano más adelante.
+  ESCAPE_INTENTOS: 1,
+  // Con qué estamina te devuelve a la pista un escape logrado.
+  ESTAMINA_TRAS_ESCAPE: 70,
+  // A qué distancia quedan los perseguidores tras el escape.
+  DISTANCIA_TRAS_ESCAPE: 20,
+};
+
+// ---------------------------------------------------------------------------
+// NIVELES ELEVADOS — rampas y plataformas
+// ---------------------------------------------------------------------------
+// Como los trenes de Subway Surfers: hay una capa por encima del asfalto.
+// Aquí son TARIMAS de campaña (los tablados que se montan en cada esquina) a
+// las que se sube por una rampa. Correr arriba te salta los obstáculos de la
+// calle, pero hay que bajarse antes de que la tarima se acabe.
+export const ELEVADO = {
+  ALTURA: 1.55,          // Altura de la superficie transitable.
+  LARGO_MINIMO: 16,
+  LARGO_MAXIMO: 30,
+  LARGO_RAMPA: 5.5,      // Tramo inclinado de subida.
+  // Impulso vertical que da la rampa al pisarla. Basta para superar la altura
+  // de la tarima con margen: v0 = √(2·g·h) con h = ALTURA + 0.5.
+  IMPULSO_RAMPA: 10.6,
+  // Cada cuántos metros se intenta colocar una tarima.
+  DISTANCIA_ENTRE: 190,
+  // Margen de tolerancia al aterrizar sobre la plataforma: si el jugador está
+  // cayendo y su pie queda dentro de esta franja por encima, se le engancha.
+  MARGEN_ATERRIZAJE: 0.55,
 };
 
 // ---------------------------------------------------------------------------
@@ -242,9 +373,32 @@ export const PROGRESO = {
 // CÁMARA
 // ---------------------------------------------------------------------------
 export const CAMARA = {
-  FOV: 62,
-  POSICION: { x: 0, y: 4.2, z: 8.5 },
-  MIRA: { x: 0, y: 1.6, z: -8 },
+  // La cámara está lo bastante atrás como para que los perseguidores quepan
+  // ENTRE ella y el jugador. Sin ese hueco no hay forma de enseñarlos
+  // persiguiendo: irían siempre fuera de cuadro, por detrás del objetivo.
+  // El FOV es DELIBERADAMENTE cerrado, casi de teleobjetivo. Es lo que
+  // resuelve el problema de encuadre que abre la persecución: con la cámara
+  // atrás y los perseguidores entre ella y el jugador, un gran angular los
+  // dispara de tamaño y tapan al personaje. Una focal larga comprime la
+  // profundidad, así que ellos ocupan lo que tienen que ocupar —una franja
+  // baja del cuadro— y el jugador conserva su tamaño en pantalla.
+  FOV: 38,
+  POSICION: { x: 0, y: 6.2, z: 17.5 },
+  MIRA: { x: 0, y: 1.3, z: -8 },
+
+  // Compensación de encuadre en pantallas verticales.
+  //
+  // Three.js mantiene FIJO el FOV VERTICAL y deriva el horizontal del aspecto.
+  // En un móvil en vertical (aspecto ~0.46) eso recorta el ancho a menos de la
+  // mitad, y los carriles exteriores se salían de pantalla justo a la altura
+  // del jugador. Para un juego que es primero móvil, eso no es un detalle.
+  //
+  // La solución estándar (Hor+): fijar el ANCHO mínimo visible y abrir el FOV
+  // vertical lo que haga falta para conseguirlo. En pantallas anchas no se
+  // toca nada, porque el mínimo ya se cumple de sobra.
+  // Semiángulo horizontal necesario, en grados, medido a la distancia del
+  // jugador: cubre los tres carriles (±2.4) más un margen de aire.
+  SEMIANGULO_HORIZONTAL: 11.2,
   // La cámara sigue el desplazamiento lateral del jugador con retraso, lo que
   // da sensación de peso sin marear.
   SEGUIMIENTO_LATERAL: 0.18,

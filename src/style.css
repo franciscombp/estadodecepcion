@@ -993,65 +993,80 @@ html, body {
   letter-spacing: 0.04em;
 }
 
-/* --- Ruleta --------------------------------------------------------------- */
+/* --- Medidor de escape ----------------------------------------------------
+   Sustituye a la ruleta. Todo tiene que estar a la vista: la franja buena, el
+   cursor y su velocidad. Si algo de eso quedara oculto volvería a ser suerte,
+   que es justo lo que se quitó. */
 
-.ruleta-contenedor {
+.medidor-escape {
   position: relative;
-  width: min(240px, 62vw);
-  height: min(240px, 62vw);
-  margin: 22px auto;
+  width: min(420px, 88vw);
+  height: 54px;
+  margin: 26px auto 18px;
+  border-radius: var(--r-chico);
+  background: rgba(0, 0, 0, 0.55);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.6);
 }
 
-.ruleta-disco {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, 0.14);
-  /* El sector de éxito ocupa los primeros 90°, igual que en Roulette.js. */
-  background: conic-gradient(
-    var(--verde) 0deg 90deg,
-    var(--rojo) 90deg 360deg
+/* Rayado de fondo: da referencia de recorrido sin competir con el cursor. */
+.medidor-escape::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0 2px,
+    transparent 2px 22px
   );
-  transition: transform 3.4s cubic-bezier(0.17, 0.67, 0.21, 1);
-  box-shadow:
-    0 0 40px rgba(0, 0, 0, 0.6),
-    inset 0 0 30px rgba(0, 0, 0, 0.4);
 }
 
-.ruleta-aguja {
+.medidor-escape__zona {
   position: absolute;
-  top: -14px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 12px solid transparent;
-  border-right: 12px solid transparent;
-  border-top: 24px solid var(--dorado);
-  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.6));
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(180deg,
+    rgba(var(--verde-rgb), 0.42),
+    rgba(var(--verde-rgb), 0.18));
+  border-left: 2px solid var(--verde);
+  border-right: 2px solid var(--verde);
+  box-shadow: 0 0 22px rgba(var(--verde-rgb), 0.45);
 }
 
-.ruleta-centro {
+.medidor-escape__cursor {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 36%;
-  height: 36%;
-  border-radius: 50%;
-  background: var(--noche);
-  border: 2px solid rgba(255, 255, 255, 0.14);
-  display: grid;
-  place-items: center;
-  font-size: clamp(0.48rem, 2vw, 0.6rem);
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  text-align: center;
-  color: var(--texto-tenue);
-  padding: 8px;
+  top: -4px;
+  bottom: -4px;
+  width: 6px;
+  margin-left: -3px;
+  border-radius: 3px;
+  background: var(--texto);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.9), 0 0 30px rgba(255, 255, 255, 0.4);
 }
 
-/* --- Resultado / Game over ------------------------------------------------ */
+.medidor-escape__cursor--bien {
+  background: var(--verde);
+  box-shadow: 0 0 20px rgba(var(--verde-rgb), 0.95);
+}
+
+.medidor-escape__cursor--mal {
+  background: var(--rojo);
+  box-shadow: 0 0 20px rgba(var(--rojo-rgb), 0.95);
+}
+
+/* El cerco tiñe la pantalla entera: no es un menú, es una situación. */
+.pantalla--cerco {
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(var(--rojo-rgb), 0.16), transparent 62%),
+    rgba(5, 7, 12, 0.86);
+}
+
+.pantalla--victoria {
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(var(--verde-rgb), 0.18), transparent 62%),
+    rgba(5, 7, 12, 0.9);
+}
 
 .resultado {
   padding: 18px;
@@ -1810,4 +1825,91 @@ html, body {
 @media (hover: hover) {
   .paginador__pag:hover { border-color: var(--tinta); color: var(--tinta); }
   .paginador__pag--actual:hover { color: var(--papel); }
+}
+
+
+/* --- Marcador del expediente (túnel del centro) ---------------------------
+   Solo existe dentro del trámite. Va centrado y arriba porque ahí dentro no
+   hay obstáculos que mirar: la cuenta ES la partida. */
+
+.expediente {
+  position: absolute;
+  top: 78px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(300px, 76vw);
+  padding: 10px 14px 12px;
+  border-radius: var(--r-chico);
+  background: rgba(13, 18, 32, 0.82);
+  border: 2px solid rgba(var(--dorado-rgb), 0.45);
+  box-shadow: 0 0 24px rgba(var(--dorado-rgb), 0.2);
+  text-align: center;
+  pointer-events: none;
+  transition: opacity var(--t-medio), border-color var(--t-medio);
+}
+
+.expediente--oculto {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.expediente__institucion {
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: var(--texto-tenue);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.expediente__cuenta {
+  font-family: var(--tipo-numeros);
+  font-size: clamp(1.4rem, 6vw, 1.9rem);
+  font-weight: 900;
+  color: var(--dorado);
+  line-height: 1.1;
+  text-shadow: 0 0 16px rgba(var(--dorado-rgb), 0.5);
+}
+
+.expediente__barra {
+  color: var(--texto-debil);
+  margin: 0 2px;
+}
+
+.expediente .medidor {
+  margin-top: 6px;
+}
+
+.medidor__relleno--dorado {
+  background: linear-gradient(90deg, #8a6d1f, var(--dorado));
+  box-shadow: 0 0 10px rgba(var(--dorado-rgb), 0.55);
+}
+
+.expediente__aviso {
+  margin-top: 6px;
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: var(--verde);
+}
+
+.expediente--perdido {
+  border-color: rgba(var(--rojo-rgb), 0.5);
+  box-shadow: 0 0 24px rgba(var(--rojo-rgb), 0.2);
+}
+
+.expediente--perdido .expediente__aviso { color: var(--rojo); }
+
+/* --- Nivel elevado --------------------------------------------------------
+   Un marco tenue mientras se corre por encima de la calle. Es información
+   periférica: confirma que estás arriba sin obligar a mirar nada. */
+
+.hud--elevado::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 90px rgba(var(--dorado-rgb), 0.16);
+  border-top: 2px solid rgba(var(--dorado-rgb), 0.3);
+  border-bottom: 2px solid rgba(var(--dorado-rgb), 0.3);
 }

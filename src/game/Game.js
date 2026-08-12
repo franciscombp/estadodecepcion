@@ -8,12 +8,22 @@
 // Máquina de estados:
 //   menu → jugando ⇄ pausa
 //            ↓
-//         gameover → menu
+//          cerco → escape ─(logrado)→ jugando
+//            │        └────(fallado)→ gameover → menu
+//            └──────────────────────→ gameover → menu
 //
-// La BIFURCACIÓN no es un estado: ocurre dentro de 'jugando'. El pórtico
-// viene hacia el jugador y el carril en el que lo cruce decide la ruta, sin
-// parar el juego (ver game/Bifurcacion.js). Solo la ruleta abre pantalla,
-// porque el sorteo es un momento que hay que ver.
+//   jugando → victoria   (trámite perfecto: el final del juego)
+//
+// LO QUE NO ES UN ESTADO
+// La BIFURCACIÓN ocurre dentro de 'jugando': las bocas de túnel vienen hacia
+// el jugador y aquella en la que entre decide la temporada, sin parar el juego
+// (ver game/Bifurcacion.js).
+//
+// El TRÁMITE tampoco: es un tramo especial dentro de 'jugando', sin obstáculos
+// y sin perseguidores, donde solo se recogen papeles (ver game/Tramite.js).
+//
+// El CERCO sí es un estado, porque el mundo se detiene: te rodean, y solo
+// después aparece la interfaz.
 // ============================================================================
 
 import * as THREE from 'three';
@@ -28,14 +38,19 @@ import { ObstacleManager } from './Obstacle.js';
 import { CoinManager } from './Coin.js';
 import { StaminaManager } from './Stamina.js';
 import { Chaser } from './Chaser.js';
-import { Roulette } from './Roulette.js';
+import { Rutas } from './Rutas.js';
 import { Bifurcacion } from './Bifurcacion.js';
+import { ElevadoManager } from './Elevado.js';
+import { TramiteManager } from './Tramite.js';
+import { Cerco } from './Cerco.js';
 
 import { crearEscenario } from '../scenes/index.js';
 import { obtenerEscenario } from '../config/escenarios.js';
 import { Controles } from '../utils/controls.js';
 import { remateCaptura, remateExhausto, citaVerificada } from '../config/textos.js';
-import { VELOCIDAD, TRAMO, CAMARA, JUGADOR, ESTAMINA, CARRILES } from '../config/balance.js';
+import {
+  VELOCIDAD, TRAMO, CAMARA, JUGADOR, ESTAMINA, CARRILES, CERCO,
+} from '../config/balance.js';
 import { BLOOM, CALIDAD } from '../config/estilo.js';
 import { VigilanteRendimiento } from '../utils/calidad.js';
 
@@ -78,8 +93,15 @@ export class Game {
     // Sacudida de cámara al chocar.
     this.sacudida = 0;
 
-    // ¿Estamos en el corredor previo al pórtico de bifurcación?
+    // ¿Estamos en el corredor previo a las bocas de túnel?
     this.enAproximacion = false;
+    this.corredorLimpio = false;
+
+    // Escapes de cerco disponibles esta partida.
+    this.escapesRestantes = CERCO.ESCAPE_INTENTOS;
+    // Datos del fin de partida, que se calculan al ser capturado pero solo se
+    // consumen si el jugador falla el escape.
+    this.finPendiente = null;
 
     // Callbacks hacia la UI. Los rellena main.js.
     this.alCambiarEstado = () => {};
@@ -110,6 +132,7 @@ export class Game {
     );
     this.camara.position.set(CAMARA.POSICION.x, CAMARA.POSICION.y, CAMARA.POSICION.z);
     this.camara.lookAt(CAMARA.MIRA.x, CAMARA.MIRA.y, CAMARA.MIRA.z);
+    this._ajustarEncuadre();
 
     this.renderizador = new THREE.WebGLRenderer({
       canvas: this.lienzo,
@@ -132,6 +155,28 @@ export class Game {
     this.renderizador.toneMappingExposure = 1.15;
 
     this._configurarPostproceso();
+  }
+
+  /**
+   * Ajusta el FOV vertical para garantizar un ancho mínimo visible.
+   *
+   * Three.js fija el FOV VERTICAL y deriva el horizontal del aspecto, así que
+   * en un móvil en vertical (aspecto ~0.46) el ancho se queda en menos de la
+   * mitad y los carriles exteriores se salen de pantalla justo a la altura del
+   * jugador. Para un juego que es primero móvil eso no es un detalle de
+   * encuadre, es que no ves dónde corres.
+   *
+   * Abrimos el FOV vertical lo justo para cumplir el ancho mínimo. En
+   * pantallas anchas la fórmula da menos que el FOV de diseño y no se toca
+   * nada, que es lo que se quiere: en escritorio manda la composición.
+   */
+  _ajustarEncuadre() {
+    const semiH = THREE.MathUtils.degToRad(CAMARA.SEMIANGULO_HORIZONTAL);
+    const necesario = THREE.MathUtils.radToDeg(
+      2 * Math.atan(Math.tan(semiH) / Math.max(0.2, this.camara.aspect)),
+    );
+    this.camara.fov = Math.max(CAMARA.FOV, necesario);
+    this.camara.updateProjectionMatrix();
   }
 
   /**
@@ -198,8 +243,11 @@ export class Game {
     this.papeles = new CoinManager(this.escenaThree);
     this.estamina = new StaminaManager(this.escenaThree);
     this.perseguidor = new Chaser(this.escenaThree);
-    this.ruleta = new Roulette();
+    this.rutas = new Rutas();
     this.bifurcacion = new Bifurcacion(this.escenaThree);
+    this.elevado = new ElevadoManager(this.escenaThree);
+    this.tramite = new TramiteManager(this.escenaThree);
+    this.cerco = new Cerco(this.escenaThree);
 
     this.escenario = null;
     this._cambiarEscenario(this.escenarioActual, false);
@@ -240,7 +288,7 @@ export class Game {
         const ancho = window.innerWidth;
         const alto = window.innerHeight;
         this.camara.aspect = ancho / alto;
-        this.camara.updateProjectionMatrix();
+        this._ajustarEncuadre();
         this.renderizador.setSize(ancho, alto);
         this.renderizador.setPixelRatio(
           Math.min(window.devicePixelRatio, this.calidad.pixelRatioMaximo),
@@ -290,6 +338,7 @@ export class Game {
     this.obstaculos.aplicarTema(colores);
     this.papeles.aplicarTema(config);
     this.estamina.aplicarTema(config);
+    this.elevado.aplicarTema(colores);
 
     this.rutaPartida.push(id);
     this.distanciaTramo = 0;
@@ -297,6 +346,16 @@ export class Game {
     // aplicarTema() vació la pista (los obstáculos tenían los colores viejos),
     // así que hay que volver a llenarla con la paleta nueva.
     this._precargarPista();
+
+    // Regalo de entrada. Hoy solo lo usa el Apagón, y no es un mimo: ese tramo
+    // arranca a oscuras y la linterna es lo único que abre la visión. Entrar
+    // sin ninguna y esperar 150 metros a que el generador soltase la primera
+    // no era difícil, era injugable.
+    if (config.estamina?.regaloAlEntrar) {
+      this.estamina.rellenar(ESTAMINA.MAXIMA);
+      this.escenario.alRecogerEstamina?.();
+      this.estamina.sembrar(config.estamina.distanciaSembrada ?? 70);
+    }
 
     if (anunciar) {
       this.audio.cambioEscenario();
@@ -330,6 +389,9 @@ export class Game {
     this.temporizadorCombo = 0;
     this.sacudida = 0;
     this.enAproximacion = false;
+    this.corredorLimpio = false;
+    this.escapesRestantes = CERCO.ESCAPE_INTENTOS;
+    this.finPendiente = null;
 
     this.jugador.reiniciar();
     this.bifurcacion.reiniciar();
@@ -337,8 +399,14 @@ export class Game {
     this.papeles.reiniciar();
     this.estamina.reiniciar();
     this.perseguidor.reiniciar();
+    this.elevado.reiniciar();
+    this.tramite.limpiar();
+    this.cerco.limpiar();
 
-    this._cambiarEscenario('bahia', true);
+    // CONTINUIDAD: se retoma en la temporada donde te capturaron, no siempre
+    // en la Bahía. Volver al principio cada vez convertía cada muerte en un
+    // reinicio del relato en vez de en un capítulo.
+    this._cambiarEscenario(this.cuaderno.ultimoEscenario, true);
 
     this.controles.activar();
     this._establecerEstado('jugando');
@@ -358,17 +426,23 @@ export class Game {
   }
 
   /**
-   * Fin de partida.
+   * Te alcanzaron. Esto NO abre la pantalla de fin de partida: arranca el
+   * cerco, que es la representación de lo que acaba de pasar. El resultado se
+   * calcula ya (para no recalcularlo dos veces) pero se queda en espera hasta
+   * que el jugador falle el medidor de escape.
+   *
    * @param {'captura'|'exhausto'|'cerco'} motivo
    * @param {string} [textoPersonalizado]
    */
   terminarPartida(motivo, textoPersonalizado = null) {
-    if (this.estado === 'gameover') return;
+    if (this.estado === 'gameover' || this.estado === 'cerco' || this.estado === 'escape') return;
 
     this.jugador.caer();
     this.perseguidor.atrapar();
     this.controles.desactivar();
     this.audio.captura();
+
+    this.cerco.iniciar(this.jugador.x);
 
     let texto = textoPersonalizado;
     if (!texto) {
@@ -382,6 +456,9 @@ export class Game {
 
     const puntaje = this.papelesPartida + Math.floor(this.distanciaTotal / 10);
 
+    // CONTINUIDAD: la próxima partida arranca aquí, donde te capturaron.
+    this.cuaderno.ultimoEscenario = this.escenarioActual;
+
     const { paginasNuevas } = this.cuaderno.registrarPartida({
       papeles: this.papelesPartida,
       distancia: Math.floor(this.distanciaTotal),
@@ -390,7 +467,7 @@ export class Game {
       ruta: [...this.rutaPartida],
     });
 
-    this._establecerEstado('gameover', {
+    this.finPendiente = {
       motivo,
       texto,
       cita,
@@ -401,7 +478,10 @@ export class Game {
       ruta: this.rutaPartida,
       paginasNuevas,
       esRecord: puntaje >= this.cuaderno.mejorPuntaje,
-    });
+      escenario: this.escenarioActual,
+    };
+
+    this._establecerEstado('cerco', { motivo });
   }
 
   // -------------------------------------------------------------------------
@@ -409,22 +489,12 @@ export class Game {
   // -------------------------------------------------------------------------
 
   /**
-   * Empieza la aproximación: aparece el pórtico y se deja de generar
-   * obstáculos.
-   *
-   * El corredor se vacía a propósito. Obligar al jugador a esquivar mientras
-   * decide su ruta convierte una decisión en un accidente: acabaría eligiendo
-   * el carril que le tocó esquivar, no el que quería.
+   * Empieza la aproximación: aparecen los carteles y las bocas de túnel al
+   * fondo. El juego sigue igual: aquí todavía se esquiva.
    */
   _iniciarAproximacionBifurcacion() {
     this.enAproximacion = true;
-    this.obstaculos.generacionPausada = true;
-
-    // Vaciar el corredor de verdad. Pausar la generación no basta: lo ya
-    // creado sigue llegando durante más de 200 unidades. El límite en -40
-    // deja intacto lo que el jugador tiene encima y borra el resto donde la
-    // niebla tapa la desaparición.
-    this.obstaculos.limpiarAdelante(-40);
+    this.corredorLimpio = false;
 
     const distancia = TRAMO.LONGITUD - this.distanciaTramo;
     this.bifurcacion.preparar(
@@ -436,19 +506,40 @@ export class Game {
     const esc = obtenerEscenario(this.escenarioActual);
     this.alMostrarAviso({
       tipo: 'bifurcacion',
-      titulo: 'ELIGE CARRIL',
+      titulo: 'ELIGE TÚNEL',
       subtitulo: esc.frenteEsMuerte
-        ? 'El centro es el cerco. No lleva a ninguna parte.'
-        : 'El carril en el que cruces decide la ruta',
+        ? 'El del centro es el cerco. No lleva a ninguna parte.'
+        : 'El túnel por el que entres decide la temporada',
     });
   }
 
   /**
-   * El jugador acaba de cruzar el pórtico. El carril decide.
+   * Vacía el corredor final.
+   *
+   * Se hace MÁS TARDE que el aviso, y esa separación es el punto: obligar a
+   * esquivar mientras eliges convierte una decisión en un accidente —acabarías
+   * entrando por el túnel que te tocó esquivar—, pero vaciar la pista desde el
+   * primer cartel dejaría 260 metros sin nada que hacer.
+   */
+  _limpiarCorredor() {
+    this.corredorLimpio = true;
+    this.obstaculos.generacionPausada = true;
+    this.elevado.generacionPausada = true;
+
+    // Pausar la generación no basta: lo ya creado sigue llegando durante más
+    // de 200 unidades. El límite en -40 deja intacto lo que el jugador tiene
+    // encima y borra el resto donde la niebla tapa la desaparición.
+    this.obstaculos.limpiarAdelante(-40);
+    this.elevado.limpiar();
+  }
+
+  /**
+   * El jugador acaba de entrar a un túnel. El carril decide.
    * @param {number} carril 0 izquierda, 1 centro, 2 derecha
    */
   _cruzarBifurcacion(carril) {
     this.enAproximacion = false;
+    this.corredorLimpio = false;
     this.bifurcacion.iniciarViraje(carril);
     this.audio.cambioEscenario();
 
@@ -460,17 +551,13 @@ export class Game {
         this.terminarPartida('cerco', esc.textoFrente);
         return;
       }
-      // La ruleta sí es un momento de interfaz: hay que ver el sorteo.
-      this._establecerEstado('ruleta', {
-        escenario: this.escenarioActual,
-        institucion: this.ruleta.datosInstitucion(this.escenarioActual),
-      });
+      this._entrarEnTramite();
       return;
     }
 
     // --- Laterales: sigues corriendo, sin menú -----------------------------
     const direccion = carril === CARRILES.IZQUIERDA ? 'izquierda' : 'derecha';
-    const destino = this.ruleta.resolverRuta(this.escenarioActual, direccion);
+    const destino = this.rutas.resolverRuta(this.escenarioActual, direccion);
     this._entrarEnTramo(destino);
   }
 
@@ -480,38 +567,166 @@ export class Game {
     this.papeles.limpiar();
     this.estamina.limpiar();
     this.bifurcacion.limpiar();
+    this.elevado.limpiar();
+    this.tramite.limpiar();
     this.papeles.nuevoTramo();
     this.obstaculos.generacionPausada = false;
+    this.elevado.generacionPausada = false;
     this.enAproximacion = false;
+    this.corredorLimpio = false;
 
     this._cambiarEscenario(destino, true);
   }
 
-  /** Ejecuta el giro de la ruleta y aplica el resultado. */
-  girarRuleta() {
-    const resultado = this.ruleta.girar(this.escenarioActual);
+  // -------------------------------------------------------------------------
+  // EL TRÁMITE
+  // -------------------------------------------------------------------------
 
-    if (resultado.muerteDirecta) {
-      this.terminarPartida('cerco', resultado.texto);
-      return resultado;
-    }
+  /**
+   * Entra al túnel del centro. Dentro no hay obstáculos, no hay perseguidores
+   * y no se drena estamina: solo hay papeles, y hay que recogerlos TODOS.
+   */
+  _entrarEnTramite() {
+    this.obstaculos.limpiar();
+    this.obstaculos.generacionPausada = true;
+    this.elevado.limpiar();
+    this.elevado.generacionPausada = true;
+    this.estamina.limpiar();
+    this.papeles.limpiar();
+    this.bifurcacion.limpiar();
 
-    if (resultado.exito) {
-      this.papelesPartida += resultado.recompensa;
-    }
+    const institucion = this.rutas.datosInstitucion(this.escenarioActual);
 
-    this.audio.resultadoRuleta(resultado.exito);
-    return resultado;
+    this.tramite.iniciar(
+      this.escenario.obtenerColores(),
+      institucion?.nombre ?? 'TRÁMITE',
+      this.papeles,
+    );
+
+    this.alMostrarAviso({
+      tipo: 'bifurcacion',
+      titulo: institucion?.nombre ?? 'TRÁMITE',
+      subtitulo: `Recoge los ${this.tramite.sembrados} papeles. Todos.`,
+    });
   }
 
-  /** Tras ver el resultado de la ruleta, se continúa al siguiente escenario. */
-  continuarTrasRuleta() {
-    if (this.estado === 'gameover') return;
+  /** Se acabó el túnel institucional. Aquí se cuenta el expediente. */
+  _salirDelTramite() {
+    const institucion = this.rutas.datosInstitucion(this.escenarioActual);
+    const perfecto = this.tramite.esPerfecto();
+    const recogidos = this.tramite.recogidos;
+    const sembrados = this.tramite.sembrados;
 
-    // Sales por donde entraste: la vía institucional te devuelve a la calle.
-    const destino = this.ruleta.resolverRuta(this.escenarioActual, 'derecha');
+    if (perfecto) {
+      this._ganarPartida(institucion, recogidos);
+      return;
+    }
+
+    // No entró. Sales a la calle por donde entraste y sigues corriendo.
+    this.alMostrarAviso({
+      tipo: 'golpe',
+      titulo: 'SE ARCHIVÓ',
+      subtitulo: `${recogidos} de ${sembrados}. No alcanzaste los votos.`,
+    });
+
+    const destino = this.rutas.resolverRuta(this.escenarioActual, 'derecha');
     this._entrarEnTramo(destino);
+  }
+
+  /**
+   * El expediente entró completo. Es el final del juego: no sabemos cómo lo
+   * lograste, pero lo lograste.
+   */
+  _ganarPartida(institucion, papelesEntregados) {
+    this.jugador.vivo = true;
+    this.controles.desactivar();
+    this.audio.evidencia();
+
+    const puntaje = this.papelesPartida + Math.floor(this.distanciaTotal / 10);
+
+    this.cuaderno.denunciaPresentada = true;
+    this.cuaderno.ultimoEscenario = this.escenarioActual;
+
+    const { paginasNuevas } = this.cuaderno.registrarPartida({
+      papeles: this.papelesPartida,
+      distancia: Math.floor(this.distanciaTotal),
+      puntaje,
+      evidencias: this.evidenciasPartida,
+      ruta: [...this.rutaPartida],
+    });
+
+    this._establecerEstado('victoria', {
+      institucion: institucion?.nombre ?? 'LA INSTITUCIÓN',
+      texto: institucion?.textoExito
+        ?? 'La denuncia entró. Alguien, en algún piso, la leyó.',
+      papelesEntregados,
+      papeles: this.papelesPartida,
+      distancia: Math.floor(this.distanciaTotal),
+      puntaje,
+      evidencias: this.evidenciasPartida,
+      ruta: this.rutaPartida,
+      paginasNuevas,
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // CERCO Y ESCAPE
+  // -------------------------------------------------------------------------
+
+  /**
+   * Aplica el resultado del medidor de habilidad.
+   *
+   * Es HABILIDAD, no suerte: el cursor va y viene a velocidad conocida y el
+   * jugador lo para. Quien acierta se lo ganó, y quien falla sabe por qué.
+   *
+   * @param {boolean} exito
+   */
+  escapar(exito) {
+    if (this.estado !== 'escape') return;
+
+    if (!exito) {
+      this._consumarFin();
+      return;
+    }
+
+    // Te zafaste. Vuelves a la pista en la misma temporada, con aire.
+    this.audio.evidencia();
+    this.cerco.limpiar();
+    this.finPendiente = null;
+
+    this.jugador.reiniciarTrasEscape();
+    this.perseguidor.soltar(CERCO.DISTANCIA_TRAS_ESCAPE);
+    this.estamina.rellenar(CERCO.ESTAMINA_TRAS_ESCAPE);
+    this.velocidad = VELOCIDAD.INICIAL;
+
+    // La pista quedó parada bajo los pies del jugador: hay que rellenarla.
+    this.obstaculos.limpiar();
+    this.papeles.limpiar();
+    this.elevado.limpiar();
+
+    // …salvo si te atraparon en pleno corredor de bifurcación. Ahí la pista
+    // está vacía a propósito y volver a llenarla pondría obstáculos justo
+    // donde el jugador tiene que estar eligiendo túnel.
+    if (this.corredorLimpio) {
+      this.obstaculos.generacionPausada = true;
+      this.elevado.generacionPausada = true;
+    } else {
+      this.obstaculos.generacionPausada = false;
+      this.elevado.generacionPausada = false;
+      this._precargarPista();
+    }
+
+    this.controles.activar();
+    this.relojAnterior = performance.now();
     this._establecerEstado('jugando');
+  }
+
+  /** Cierra la partida de verdad, con los datos calculados en la captura. */
+  _consumarFin() {
+    const datos = this.finPendiente;
+    this.finPendiente = null;
+    this.cerco.limpiar();
+    this._establecerEstado('gameover', datos ?? {});
   }
 
   // -------------------------------------------------------------------------
@@ -541,6 +756,8 @@ export class Game {
       // Solo vigilamos el rendimiento durante el juego: en los menús el
       // framerate baja por motivos que no dicen nada del hardware.
       this.vigilante.registrar(dt);
+    } else if (this.estado === 'cerco') {
+      this._actualizarCerco(dt);
     } else {
       // En pausa/menú seguimos animando al jugador y al perseguidor para que
       // la escena no se vea congelada, pero sin avanzar el mundo.
@@ -556,6 +773,31 @@ export class Game {
     if (this.compositor) this.compositor.render();
     else this.renderizador.render(this.escenaThree, this.camara);
   };
+
+  /**
+   * El mundo está parado y el círculo se cierra. Cuando termina la animación
+   * se decide qué interfaz sale: el medidor de escape si queda algún intento,
+   * o directamente el fin de partida.
+   */
+  _actualizarCerco(dt) {
+    const t = this.cerco.actualizar(dt);
+    // Los perseguidores se abalanzan al mismo ritmo que el cerco se cierra.
+    this.perseguidor.cercar(t, dt);
+    this.escenario?.actualizar(dt, 0, this.jugador, this.velocidad);
+
+    if (t < 1) return;
+
+    if (this.escapesRestantes > 0) {
+      this.escapesRestantes -= 1;
+      this._establecerEstado('escape', {
+        escenario: this.escenarioActual,
+        velocidad: CERCO.ESCAPE_VELOCIDAD,
+        zona: CERCO.ESCAPE_ZONA,
+      });
+    } else {
+      this._consumarFin();
+    }
+  }
 
   _actualizarJuego(dt) {
     // ---- Velocidad --------------------------------------------------------
@@ -609,10 +851,30 @@ export class Game {
       );
     }
 
+    // Niveles elevados. Devuelve la altura del suelo bajo los pies, que puede
+    // ser el asfalto o el tablado de una tarima.
+    const alturaSuelo = this.elevado.actualizar(
+      dt, avance, this.jugador, this.obstaculos, this.papeles,
+    );
+    this.jugador.establecerSuelo(alturaSuelo);
+
     this.papeles.actualizar(dt, avance, this.jugador);
-    this.estamina.actualizar(dt, avance, grupo);
+
+    // Dentro del trámite la estamina no drena y nadie persigue: es un tramo de
+    // pura recolección, y meterle presión de tiempo lo convertiría en otra
+    // cosa. Los ítems tampoco se generan ahí.
+    if (!this.tramite.activo) {
+      this.estamina.actualizar(dt, avance, grupo);
+    }
+
     this.jugador.actualizar(dt, velocidadEfectiva);
-    this.perseguidor.actualizar(dt, this.jugador, this.estamina.estaExhausto());
+
+    if (this.tramite.activo) {
+      // Se quedan a la puerta del túnel, esperando a que salgas.
+      this.perseguidor.actualizar(dt, this.jugador, false);
+    } else {
+      this.perseguidor.actualizar(dt, this.jugador, this.estamina.estaExhausto());
+    }
 
     // ---- Recolección ------------------------------------------------------
     const recogido = this.papeles.recoger(this.jugador);
@@ -621,6 +883,9 @@ export class Game {
       this.combo += 1;
       this.temporizadorCombo = 1.5;
       this.audio.papel(this.combo);
+      // El trámite se puntúa por PIEZAS, no por valor: el expediente está
+      // completo o no lo está.
+      if (this.tramite.activo) this.tramite.contar(recogido.cantidad);
     }
     for (const ev of recogido.evidencias) {
       if (!this.evidenciasPartida.includes(ev.nombre)) {
@@ -640,6 +905,18 @@ export class Game {
     if (this.temporizadorCombo > 0) {
       this.temporizadorCombo -= dt;
       if (this.temporizadorCombo <= 0) this.combo = 0;
+    }
+
+    // ---- Trámite ----------------------------------------------------------
+    // Es un tramo aparte: sin obstáculos, sin bifurcación y sin captura. Se
+    // resuelve entero aquí y se sale antes de tocar nada de lo demás.
+    if (this.tramite.activo) {
+      if (this.tramite.actualizar(avance)) {
+        this._salirDelTramite();
+        return;
+      }
+      this._publicarHUD(velocidadEfectiva);
+      return;
     }
 
     // ---- Colisiones -------------------------------------------------------
@@ -682,12 +959,26 @@ export class Game {
       this._iniciarAproximacionBifurcacion();
     }
 
+    // El corredor se vacía más tarde que el aviso, a propósito: ver
+    // _limpiarCorredor().
+    if (this.enAproximacion && !this.corredorLimpio
+        && restante <= TRAMO.DISTANCIA_LIMPIEZA) {
+      this._limpiarCorredor();
+    }
+
     if (this.bifurcacion.actualizar(dt, avance)) {
       this._cruzarBifurcacion(this.jugador.carril);
       return;
     }
 
-    // ---- HUD --------------------------------------------------------------
+    this._publicarHUD(velocidadEfectiva);
+  }
+
+  /**
+   * Vuelca el estado al HUD. Está aparte porque el trámite sale del bucle
+   * antes de llegar al final y también necesita pintar.
+   */
+  _publicarHUD(velocidadEfectiva) {
     this.alActualizarHUD({
       papeles: this.papelesPartida,
       distancia: Math.floor(this.distanciaTotal),
@@ -705,6 +996,17 @@ export class Game {
       evidencias: this.evidenciasPartida,
       // Destello blanco que tapa el corte de escenario al tomar un desvío.
       destello: this.bifurcacion.destello(),
+      // Marcador del expediente mientras se está dentro del túnel del centro.
+      tramite: this.tramite.activo
+        ? {
+          recogidos: this.tramite.recogidos,
+          total: this.tramite.sembrados,
+          progreso: this.tramite.progreso(),
+          institucion: this.tramite.institucion,
+        }
+        : null,
+      // ¿Va corriendo por arriba? El HUD lo usa para avisar del borde.
+      porArriba: this.jugador.vaPorArriba,
     });
   }
 
@@ -713,6 +1015,13 @@ export class Game {
   // -------------------------------------------------------------------------
 
   _actualizarCamara(dt) {
+    // El cerco tiene su propio plano: la cámara se sale de la espalda del
+    // jugador y da la vuelta para enseñar el corro.
+    if (this.estado === 'cerco') {
+      this._encuadrarCerco(dt);
+      return;
+    }
+
     // Sigue al jugador lateralmente con retraso: da peso sin marear.
     const xObjetivo = this.jugador.x * CAMARA.SEGUIMIENTO_LATERAL;
     const t = 1 - Math.exp(-CAMARA.AMORTIGUACION * dt);
@@ -721,6 +1030,10 @@ export class Game {
     // Sube un poco cuando el jugador salta: no lo pierde de vista.
     const yObjetivo = CAMARA.POSICION.y + this.jugador.y * 0.28;
     this.camara.position.y += (yObjetivo - this.camara.position.y) * t;
+
+    // Vuelta a la profundidad de siempre. Solo se mueve tras un cerco, pero
+    // sin esta línea el encuadre se quedaría descolocado al reanudar.
+    this.camara.position.z += (CAMARA.POSICION.z - this.camara.position.z) * t;
 
     // Sacudida por golpe, con decaimiento exponencial.
     if (this.sacudida > 0.001) {
@@ -743,6 +1056,22 @@ export class Game {
     if (banqueo !== 0) this.camara.rotateZ(banqueo);
   }
 
+  /**
+   * Plano del cerco: la cámara se abre en tres cuartos desde arriba para que
+   * se vea el círculo entero. Desde la espalda del jugador esta escena no se
+   * entiende —los perseguidores lo tapan y los policías caen fuera de cuadro—,
+   * y el sentido de la secuencia es precisamente que se vea.
+   */
+  _encuadrarCerco(dt) {
+    const t = 1 - Math.exp(-2.4 * dt);
+
+    this.camara.position.x += (this.jugador.x + CERCO.CAMARA.x - this.camara.position.x) * t;
+    this.camara.position.y += (CERCO.CAMARA.y - this.camara.position.y) * t;
+    this.camara.position.z += (CERCO.CAMARA.z - this.camara.position.z) * t;
+
+    this.camara.lookAt(this.jugador.x, CERCO.CAMARA_MIRA_Y, -0.6);
+  }
+
   // -------------------------------------------------------------------------
   // ESTADO
   // -------------------------------------------------------------------------
@@ -761,9 +1090,14 @@ export class Game {
     this.estamina.reiniciar();
     this.perseguidor.reiniciar();
     this.bifurcacion.reiniciar();
+    this.elevado.reiniciar();
+    this.tramite.limpiar();
+    this.cerco.limpiar();
     this.velocidad = VELOCIDAD.INICIAL;
     this.velocidadBase = VELOCIDAD.INICIAL;
     this.enAproximacion = false;
+    this.corredorLimpio = false;
+    this.finPendiente = null;
     this._establecerEstado('menu');
   }
 }
