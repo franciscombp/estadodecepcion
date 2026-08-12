@@ -2640,6 +2640,29 @@ html, body {
   background: #05070c;
 }
 
+/* Las tres pantallas con tinte propio también van impresas ahora, y
+   `.pantalla--plana` está declarada DESPUÉS que ellas: con la misma
+   especificidad ganaba el negro liso y el cerco perdía su rojo. Se repiten
+   aquí para que el tinte siga siendo el fondo sobre el que se apoya la hoja.
+   El papel no cambia; cambia la luz de la habitación. */
+.pantalla--plana.pantalla--cerco {
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(var(--rojo-rgb), 0.16), transparent 62%),
+    #05070c;
+}
+
+.pantalla--plana.pantalla--victoria {
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(var(--verde-rgb), 0.18), transparent 62%),
+    #05070c;
+}
+
+.pantalla--plana.pantalla--relato {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(var(--dorado-rgb), 0.12), transparent 60%),
+    #05070c;
+}
+
 .pantalla--plana .pantalla__contenido {
   padding-top: 18px;
 }
@@ -2674,6 +2697,28 @@ html, body {
   letter-spacing: 0.16em;
   color: #a3231f;
   margin-bottom: 4px;
+}
+
+/* LA CIRCULAR DE BÚSQUEDA. La pestaña de acumulado no es una tabla de méritos
+   sino una lista de perseguidos, y tenía que notarse antes de leer una sola
+   palabra: filetes gruesos arriba y abajo del bloque del título, como los
+   carteles de «se busca» de toda la vida. Es el único adorno que se permite la
+   sección; el resto de pestañas siguen siendo tabla de resultados normal. */
+.plana--circular .plana__antetitulo {
+  border-top: 4px solid #16130d;
+  border-bottom: 1px solid #16130d;
+  padding: 5px 0 3px;
+  margin-bottom: 6px;
+}
+
+.plana--circular .plana__titular--tabla {
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.plana--circular .plana__epigrafe {
+  border-bottom: 4px solid #16130d;
+  padding-bottom: 6px;
 }
 
 .plana__titular {
@@ -3149,6 +3194,195 @@ html, body {
 .plana .desbloqueo__desc { color: #4a4234; }
 .plana .desbloqueo__icono svg { filter: grayscale(1) contrast(1.2); }
 
+/* ===========================================================================
+   TODO LO DEMÁS, IMPRESO
+   ===========================================================================
+   Ajustes, pausa, el juez, el relato del trámite y la victoria pasaron a ser
+   secciones del periódico, y cada una arrastra componentes que estaban
+   pintados para fondo negro: cajas translúcidas, textos en gris claro, halos
+   de neón. Sobre papel crema, un `rgba(255,255,255,0.04)` es literalmente
+   nada y un texto en `--texto-tenue` no se lee.
+
+   Se reescriben aquí en vez de en el componente porque el componente sigue
+   saliendo en negro en la pantalla del juego: son DOS impresiones de la misma
+   pieza, no una migración. La regla es siempre la misma —tinta en vez de luz,
+   filete en vez de resplandor— y con eso basta para las cinco pantallas.
+   =========================================================================== */
+
+/* --- Chuleta de controles --- */
+.plana .instrucciones { margin: 10px 0 4px; }
+
+.plana .instruccion {
+  background: rgba(22, 19, 13, 0.045);
+  border: 1px solid rgba(22, 19, 13, 0.22);
+  border-radius: 3px;
+  color: #4a4034;
+}
+
+.plana .instruccion strong { color: #16130d; }
+
+.plana .instruccion__icono {
+  background: rgba(22, 19, 13, 0.08);
+  color: #16130d;
+  border-radius: 3px;
+}
+
+/* --- Panel de edición --- */
+.plana .edicion {
+  background: rgba(22, 19, 13, 0.045);
+  border: 1px solid rgba(22, 19, 13, 0.22);
+  border-radius: 3px;
+  margin-top: 8px;
+}
+
+.plana .edicion__estado { color: #4a4034; }
+.plana .edicion__sello,
+.plana .edicion__nota { color: #6b6152; }
+.plana .edicion__punto { background: #8a7f6a; }
+.plana .edicion--listo .edicion__punto { background: #2f6b3a; box-shadow: none; }
+.plana .edicion--listo .edicion__estado { color: #2f6b3a; }
+.plana .edicion--nueva { background: rgba(163, 35, 31, 0.07); border-color: #a3231f; }
+.plana .edicion--nueva .edicion__punto { background: #a3231f; box-shadow: none; }
+.plana .edicion--nueva .edicion__estado { color: #a3231f; }
+
+/* Los botones que viven DENTRO del papel —solo el de buscar edición— van de
+   tinta sobre crema, no de neón: dentro de la hoja, un botón encendido se lee
+   como un banner y el ojo lo salta. */
+.plana .boton--edicion {
+  background: #16130d;
+  border-color: #16130d;
+  color: #f4efe2;
+  border-radius: 3px;
+}
+
+/* --- Relato del trámite --- */
+.plana .relato__parrafo {
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #1d1a14;
+}
+
+/* El remate de El Mercio, impreso: filete grueso a la izquierda como una cita
+   destacada de prensa, sin el fondo dorado que aquí sería un subrayado. */
+.plana .remate {
+  background: none;
+  border-left: 4px solid #a3231f;
+  border-radius: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #1d1a14;
+  margin: 14px 0;
+  padding: 4px 0 4px 14px;
+}
+
+.plana .remate__firma { color: #a3231f; }
+
+/* --- Rejilla de cifras --- */
+.plana .estadistica {
+  background: none;
+  border: none;
+  border-top: 2px solid #16130d;
+  border-radius: 0;
+  padding: 7px 2px 2px;
+}
+
+.plana .estadistica__valor {
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #16130d;
+  text-shadow: none;
+}
+
+.plana .estadistica__etiqueta { color: #6b6152; }
+
+/* --- El sorteo del juez ---
+   Seis fichas sobre papel: recuadro con filete y nada más.
+   LOS ICONOS NO SE TOCAN. Aquí está la única regla que no puede saltarse el
+   cambio a papel: el juez limpio se distingue de los otros cinco POR EL COLOR
+   DE LA CAMISETA, así que pasar las fichas por `grayscale` —que es lo que pide
+   el resto de la maqueta impresa— convierte los seis en la misma silueta negra
+   y el juego deja de tener solución. La tinta manda en todo menos en lo que el
+   jugador tiene que mirar.
+   El señalado se marca con filete grueso y un punto de fondo, no invirtiendo
+   la ficha: el negativo se comía la camiseta igual que el gris. */
+.plana .tribunal {
+  width: 100%;
+  margin: 12px auto;
+}
+
+.plana .juez {
+  background: rgba(22, 19, 13, 0.04);
+  border: 1px solid rgba(22, 19, 13, 0.3);
+  border-radius: 3px;
+}
+
+.plana .juez__rotulo { color: #6b6152; }
+
+.plana .juez--senalado {
+  background: rgba(22, 19, 13, 0.12);
+  border: 3px solid #16130d;
+  box-shadow: none;
+}
+
+.plana .juez--senalado .juez__rotulo { color: #16130d; }
+
+.plana .juez--acierto,
+.plana .juez--revelado {
+  background: rgba(47, 107, 58, 0.14);
+  border-color: #2f6b3a;
+  box-shadow: none;
+}
+
+.plana .juez--acierto .juez__rotulo,
+.plana .juez--revelado .juez__rotulo { color: #2f6b3a; }
+
+.plana .juez--fallo {
+  background: rgba(163, 35, 31, 0.14);
+  border-color: #a3231f;
+  box-shadow: none;
+}
+
+.plana .juez--fallo .juez__rotulo { color: #a3231f; }
+
+/* --- Veredicto --- */
+.plana .resultado {
+  background: none;
+  border: none;
+  border-top: 3px double #16130d;
+  border-bottom: 3px double #16130d;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 10px 0;
+  margin: 12px 0 4px;
+}
+
+.plana .resultado__titulo {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1rem, 4.4vw, 1.3rem);
+}
+
+.plana .resultado--exito .resultado__titulo { color: #2f6b3a; }
+.plana .resultado--fracaso .resultado__titulo { color: #a3231f; }
+
+.plana .resultado__texto {
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #4a4034;
+}
+
+/* --- Ruta de la corrida, en la victoria --- */
+.plana .ruta {
+  background: rgba(22, 19, 13, 0.04);
+  border: 1px solid rgba(22, 19, 13, 0.24);
+  border-radius: 3px;
+  box-shadow: none;
+}
+
+.plana .ruta__nombre { color: #16130d; }
+.plana .ruta__direccion,
+.plana .ruta__desc,
+.plana .ruta__probabilidad { color: #6b6152; }
+.plana .ruta__flecha { color: #8a7f6a; }
+.plana .ruta--institucion { border-color: rgba(163, 35, 31, 0.5); }
+.plana .ruta--institucion .ruta__nombre,
+.plana .ruta--institucion .ruta__flecha { color: #a3231f; }
+
 
 
 /* --- La temporada, en una línea -------------------------------------------
@@ -3218,6 +3452,22 @@ html, body {
   font-size: clamp(0.56rem, 2.5vw, 0.7rem);
   line-height: 1.1;
 }
+
+/* La sección de cada uno, debajo del nombre y en versalitas: es lo que
+   convierte cuatro fichas de personaje en una plantilla de redacción. Va muy
+   por debajo del nombre en peso visual —se lee cuando ya elegiste, no antes—
+   porque es lore, no un dato para decidir. */
+.elector__seccion {
+  display: block;
+  margin-top: 2px;
+  font-size: clamp(0.4rem, 1.8vw, 0.48rem);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--texto-debil);
+}
+
+.elector__ficha--elegida .elector__seccion { color: inherit; opacity: 0.75; }
 
 .elector__ficha--elegida {
   border-color: var(--verde);

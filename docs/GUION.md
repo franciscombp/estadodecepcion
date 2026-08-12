@@ -41,18 +41,39 @@ chiste— sino aguantando de pie el tiempo suficiente para publicar.
 
 ### Personajes
 
-| | Quién | Qué hace |
-|---|---|---|
-| 🎩 | **Chochólogo** | Jugable. Sombrero, gafas y treinta años de oficio. |
-| 🪕 | **Alondra** | Jugable. Rizos, ukulele y todavía cree que esto sirve. |
-| 🎖️ | **Buscán** | Jugable a los 8 tramos. Boina y traje; pregunta como si ya supiera. |
-| 🛡️ | **Blanki** | Jugable a los 18 tramos. Casco de espartana; no se aparta. |
-| 🕴️ | **El bajito** | Persigue. Va montado sobre el grande y señala. |
-| 🧍 | **El grande** | Persigue. Corre pesado y carga al otro. |
+**Los cuatro jugables trabajan para EL MERCIO.** No son cuatro corredores con
+distinto sombrero: son cuatro plazas de una redacción, cada una con su sección
+y su forma de meterse en problemas. Por eso la pantalla de selección no es una
+tienda de skins, es el organigrama del periódico —debajo de cada nombre va la
+sección, y esa palabra hace todo el trabajo del lore.
 
-Los cuatro jugables son la misma redacción y llevan la misma credencial: lo que
-cambia es con qué entra cada uno a preguntar. A Buscán le abren la puerta por
-el traje; a Blanki no la cierran porque está en medio.
+| | Quién | Sección | Qué hace |
+|---|---|---|---|
+| 🎩 | **Chochólogo** | Política | Jugable. Sombrero, gafas y treinta años de oficio. Lleva en la redacción más tiempo que casi todos los ministros que ha cubierto: se acuerda. |
+| 🪕 | **Alondra** | Sociedad | Jugable. Rizos, ukulele y todavía cree que esto sirve. Pregunta lo que en la sala ya nadie pregunta, y por eso se lo contestan. |
+| 🎖️ | **Buscán** | Investigación | Jugable a los 8 tramos. Boina y traje; pregunta como si ya supiera. Trabaja con documentos y se le nota el sobre bajo el brazo. |
+| 🛡️ | **Blanki** | Calle | Jugable a los 18 tramos. Casco de espartana; no se aparta. En su sección el casco no es un chiste. |
+| 🕴️ | **El bajito** | — | Persigue. Va montado sobre el grande y señala. |
+| 🧍 | **El grande** | — | Persigue. Corre pesado y carga al otro. |
+
+Todos llevan la misma credencial: lo que cambia es con qué entra cada uno a
+preguntar. A Buscán le abren la puerta por el traje; a Blanki no la cierran
+porque está en medio.
+
+### De dónde salen, y qué no son
+
+Los cuatro están basados en **periodistas incómodos para el gobierno**. En el
+arquetipo, no en la persona: el que pregunta lo que nadie pregunta, la que
+llega joven y todavía cree que sirve, el que ya sabe la respuesta antes de
+preguntarla, la que no se aparta cuando la empujan.
+
+> **Regla editorial, y esta no se toca.** Ninguno es un periodista real con
+> otro nombre. No llevan sus rasgos, ni sus medios, ni sus casos, ni frases
+> suyas. Es la misma regla que gobierna todo el juego —se satiriza la oficina y
+> el trámite, nunca una cara— y aplica igual a los nuestros: poner a una
+> persona real a correr por una calle mientras la persiguen es meterla en un
+> chiste que no eligió contar. El homenaje es al oficio; el retrato no es de
+> nadie.
 
 Lo que los distingue en pantalla es **la silueta de espaldas**, que es como se
 les ve el 99% del tiempo: sombrero de ala, rizos, boina ladeada, casco con
@@ -76,14 +97,37 @@ tribuna.
 
 Antes de la primera zancada:
 
-1. Estás **de pie, entrevistando**. La cámara está cerca, de lado.
-2. La cámara **se aleja** y toma su posición de juego.
-3. Aparecen **los dos, al fondo**. Se acercan corriendo.
-4. **El bajito se sube al grande.**
-5. Arranca la carrera.
+1. **La entrevista.** Estás de pie, con el micrófono extendido, preguntándole a
+   un ministro de los acusados. La cámara está cerca y de lado, para que se lea
+   el gesto: no estás corriendo, estás trabajando.
+2. **El rescate.** Llegan los dos calle arriba y se lo llevan. No hay forcejeo:
+   el ministro se va con ellos como quien se acuerda de otra reunión, que es
+   exactamente lo que pasa.
+3. **La pared.** Sigues con el micrófono en alto y delante ya no hay nadie. Ni
+   el ministro ni los que se lo llevaron. La cámara no se mueve.
+4. **El retroceso.** La cámara se aleja hasta su posición de juego y, al
+   hacerlo, descubre que ahora los tienes detrás.
+5. **El caballito.** El bajito se sube al grande.
+6. Arranca la carrera.
 
-Dura poco más de cuatro segundos y se puede saltar tocando la pantalla. Solo
-se ve entera en las primeras partidas: quien ya la vio la ve abreviada.
+**La fase 3 es el chiste entero.** La cinemática podría acabar en el rescate y
+se entendería igual de bien; lo que no se entendería es *por qué corres*. El
+segundo largo en que sigues preguntándole a un sitio donde ya no hay nadie es
+lo que convierte «me interrumpieron» en «me dejaron hablando con la pared», y
+de ahí sale todo lo demás: el juego es lo que haces después de que te dejen
+hablando solo.
+
+El ministro **no es un retrato**. Traje genérico, corbata roja y un pin de
+solapa que no dice de qué es —y ese es el chiste—. Se satiriza el cargo y la
+maniobra, nunca una cara.
+
+Dura poco menos de seis segundos y se puede saltar tocando la pantalla. Solo se
+ve entera en las primeras partidas: quien ya la vio la ve abreviada, y la
+pared se acorta pero **no se quita**, porque es la fase que explica el juego.
+
+**La portada del menú es esta misma entrevista**, congelada en la fase 1 y con
+una deriva lenta de cámara. El ministro también está ahí: una entrevista sin
+nadie enfrente no es una entrevista, es alguien de pie con un micrófono.
 
 ---
 
@@ -494,13 +538,27 @@ forma de jugar:
 
 | Pestaña | Qué mide |
 |---|---|
-| **Papeles** | Todo lo recogido, partida tras partida |
+| **Más buscados** | Todo lo recogido, partida tras partida |
 | **Distancia** | Metros corridos desde la primera entrevista |
 | **Mejor corrida** | Papeles en una sola partida |
 
 Las dos primeras premian insistir; la tercera, una tarde inspirada. Quien juega
 mucho y regular manda arriba; quien tuvo una corrida buena manda abajo. Con una
 sola tabla, la mitad de los jugadores no tenía dónde salir.
+
+#### La primera no es una tabla de puntos: es una circular de búsqueda
+
+El acumulado de papeles no se titula «total de papeles» sino **LOS MÁS
+BUSCADOS**, con su antetítulo de circular y su epígrafe: *«ordenados por lo que
+llevan documentado; cuanto más arriba, más estorbas»*. La cifra es exactamente
+la misma; lo que cambia es desde qué lado del escritorio se lee.
+
+Y cambia entero lo que significa subir. No eres el que más junta: eres el que
+más le estorba a alguien. Esa lectura es la del juego —aquí documentar no te da
+prestigio, te da una carpeta con tu nombre— y por eso el puesto uno no lleva la
+coletilla «director» como en las otras dos pestañas, sino **«prioridad uno»**.
+La pestaña se imprime distinta: filete grueso arriba y abajo del bloque del
+título, como los carteles de «se busca» de toda la vida.
 
 Cada una va maquetada como la tabla de resultados de un diario: puesto, arroba
 y cifra alineada a la derecha. Primero siempre `@paquimal`, que es el director;
@@ -538,7 +596,8 @@ Cuatro cosas, y solo una es una cifra:
    El contador es acumulativo, así que ninguna corrida se pierde del todo.
 3. **La continuidad de escena.** Cada partida es un capítulo, no un reinicio.
 4. **El puesto en la tabla.** Se compite por papeles recogidos, que es la
-   única cifra que se imprime grande.
+   única cifra que se imprime grande —y que en la pestaña principal no se
+   presenta como un mérito sino como un motivo para buscarte.
 
 ---
 
@@ -556,6 +615,51 @@ personaje aparece convertido en una mancha.
 
 Al pulsar JUGAR se suelta la pose y el mismo personaje, sin corte ni carga,
 echa a correr.
+
+La portada es la única pantalla que **no** va impresa, y por una razón: es la
+ventana por la que se ve la escena. Todo lo demás sí.
+
+---
+
+## Todo lo que no es correr, va impreso
+
+Había dos mundos y no debía haberlos. El juego y sus menús iban de neón sobre
+negro, y el papel crema salía solo en el Archivo y en la primera plana del
+final. Eso dejaba al periódico como una pantalla más —en vez de como el sitio
+al que va a parar todo lo que recoges— y encima obligaba a mantener dos
+sistemas de estilo para las mismas cuatro cosas: un título, un cuerpo de texto,
+unas cifras y unos botones.
+
+Ahora **cada pantalla es una sección de El Mercio**, con su nombre en la
+mancheta:
+
+| Pantalla | Sección | Titular |
+|---|---|---|
+| Ajustes | ADMINISTRACIÓN | LA REDACCIÓN |
+| Pausa | CIERRE DE EDICIÓN | RESPIRA |
+| El hueco del trámite | CONTEXTO | *el ente de control* |
+| El sorteo del juez | JUDICIALES | LE TOCA UN JUEZ |
+| Victoria | PORTADA | PROSPERÓ |
+| Fin de partida | *la fecha* | *el titular de tu caída* |
+| Tabla de posiciones | DEPORTES | LOS MÁS BUSCADOS |
+| Archivo | *el ejemplar entero* | — |
+
+El chiste se cuenta solo: estás dentro del periódico incluso cuando estás
+toqueteando el volumen. Y las secciones no son decorativas —ADMINISTRACIÓN es
+donde un diario de verdad pone el staff y a quién reclamar, y aquí pone los
+controles y qué edición estás leyendo, que es lo mismo con otro contenido.
+
+Tres detalles de maqueta que importan:
+
+- **Los botones van fuera del papel.** Un botón dibujado encima de la hoja se
+  lee como un anuncio y el ojo lo salta.
+- **El tinte de la pantalla se queda**, detrás de la hoja: el cerco sigue rojo y
+  la victoria sigue verde. No cambia el papel, cambia la luz de la habitación.
+- **Los iconos del sorteo del juez no se pasan a gris.** El resto de la maqueta
+  impresa sí, pero ahí está la única excepción que no puede saltarse: el juez
+  limpio se distingue de los otros cinco *por el color de la camiseta*, y en
+  gris los seis son la misma silueta y el juego deja de tener solución. La
+  tinta manda en todo menos en lo que el jugador tiene que mirar.
 
 ---
 

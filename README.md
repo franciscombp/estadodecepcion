@@ -190,8 +190,42 @@ es cuando más falta hace que no se mueva.
 
 El menú **no es un menú**: es la escena de la entrevista corriendo en vivo. El
 personaje está de pie con el micrófono en la mano, en la pose del arranque de
-la cinemática, y la cámara se mece despacio a su alrededor. Al pulsar JUGAR se
-suelta la pose y el mismo personaje, sin corte ni carga, echa a correr.
+la cinemática, **y enfrente está el ministro**, porque una entrevista sin nadie
+delante no es una entrevista: es alguien de pie con un micrófono. La cámara se
+mece despacio alrededor. Al pulsar JUGAR se suelta la pose y el mismo
+personaje, sin corte ni carga, echa a correr.
+
+### La cinemática, y por qué corres
+
+`src/game/Intro.js` la reparte en cinco fases: **entrevista → rescate → pared →
+retroceso → caballito**. Estás preguntándole a un ministro de los acusados,
+llegan los dos calle arriba y se lo llevan, y te quedas con el micrófono en
+alto delante de nadie.
+
+**La fase 3 es el chiste entero.** Podría acabar en el rescate y se entendería
+igual de bien; lo que no se entendería es *por qué corres*. El segundo largo en
+que sigues preguntándole a un sitio vacío es lo que convierte «me
+interrumpieron» en «me dejaron hablando con la pared». Por eso la versión
+abreviada —a partir de la tercera partida— la acorta pero **no la quita**.
+
+Tres cosas que costaron, todas del mismo tipo: **las posiciones de la
+cinemática no son las del juego**.
+
+- Los perseguidores tienen su sitio calculado contra la cámara de carrera, que
+  va *detrás* del periodista. La de la entrevista está de lado y algo por
+  delante, y desde ahí ese sitio cae fuera de cuadro o encima del personaje.
+  `SITIO_RESCATE` está calculado a mano contra `CAMARA_ENTREVISTA`; si se toca
+  la cámara, hay que recalcularlo.
+- **Alejarse en −Z empuja la figura hacia el borde derecho** desde esa cámara.
+  La salida del rescate se hace casi toda en X para que los tres se vayan hacia
+  dentro de la imagen y encogiendo, que es como se ve a alguien marcharse.
+- Escribir `perseguidor.zVisualActual` desde la intro **no hace nada**: quien
+  traslada esos campos a `modelo.position` es `Chaser._colocar()`, y ese método
+  solo corre desde `actualizar()`, que en la cinemática no se llama. Hay que
+  escribir `modelo.position` a mano (`_plantarPerseguidores`).
+
+El ministro (`crearMinistro()` en `models/characters.js`) **no es un retrato**:
+traje genérico, corbata roja y un pin de solapa que no dice de qué es.
 
 En el estado `menu` el bucle sigue actualizando el escenario y renderizando;
 lo único que cambia es que la cámara la lleva `Intro.encuadrarMenu()` en vez
@@ -407,9 +441,18 @@ forma de jugar y aquí hay tres que valen la pena:
 
 | Pestaña | Qué mide | De dónde sale |
 |---|---|---|
-| **Papeles** | Todo lo recogido, partida tras partida | `papelesHistoricos` |
+| **Más buscados** | Todo lo recogido, partida tras partida | `papelesHistoricos` |
 | **Distancia** | Metros corridos desde la primera entrevista | `distanciaHistorica` |
 | **Mejor corrida** | Papeles en una sola partida | `mejorPapeles` |
+
+La primera **no es una tabla de puntos, es una circular de búsqueda**: mismo
+número, leído desde el otro lado del escritorio. Se titula LOS MÁS BUSCADOS,
+lleva antetítulo de circular y el puesto uno no dice «director» sino
+«prioridad uno» (`antetitulo` y `notaLider` en `config/tabla.js`, ambos por
+clasificación). Se imprime con filete grueso arriba y abajo del bloque del
+título —`.plana--circular`— como los carteles de «se busca». Cambiar solo el
+rótulo cambia entero lo que significa subir: no eres el que más junta, eres el
+que más le estorba a alguien, que es de lo que va el juego.
 
 Las dos primeras premian insistir; la tercera, una tarde inspirada. Con una
 sola tabla, la mitad de los jugadores no tenía dónde salir. Al perder se abre
@@ -432,15 +475,28 @@ satírico, aunque sea de mentira, es ponerles palabras en la boca por otra vía.
 
 ### La plantilla
 
-Cuatro personajes jugables. Dos salen de fábrica y dos se fichan
-(`config/personajes.js`):
+Cuatro personajes jugables, **los cuatro de la redacción de El Mercio**. Dos
+salen de fábrica y dos se fichan (`config/personajes.js`):
 
-| | Quién | Se ficha a los |
-|---|---|---|
-| 🎩 | **Chochólogo** — sombrero, gafas y treinta años de oficio | — |
-| 🪕 | **Alondra** — rizos, ukulele y todavía cree que esto sirve | — |
-| 🎖️ | **Buscán** — boina y traje. Pregunta como si ya supiera | 8 tramos |
-| 🛡️ | **Blanki** — casco de espartana. No se aparta | 18 tramos |
+| | Quién | Sección | Se ficha a los |
+|---|---|---|---|
+| 🎩 | **Chochólogo** — sombrero, gafas y treinta años de oficio | Política | — |
+| 🪕 | **Alondra** — rizos, ukulele y todavía cree que esto sirve | Sociedad | — |
+| 🎖️ | **Buscán** — boina y traje. Pregunta como si ya supiera | Investigación | 8 tramos |
+| 🛡️ | **Blanki** — casco de espartana. No se aparta | Calle | 18 tramos |
+
+La **sección** va impresa debajo del nombre en la ficha del menú, y es una
+palabra que hace todo el trabajo del lore: cuatro fichas que ponen Política,
+Sociedad, Investigación y Calle no se leen como cuatro skins, se leen como una
+redacción. Sin eso, que todos trabajaran para El Mercio era algo que solo sabía
+el código.
+
+Están basados en **periodistas incómodos para el gobierno**, en el arquetipo y
+no en la persona. Ninguno es un periodista real con otro nombre: no llevan sus
+rasgos, ni sus medios, ni sus casos, ni frases suyas. Es la misma regla que
+gobierna todo el juego —se satiriza la oficina y el trámite, nunca una cara— y
+aplica igual a los nuestros. El razonamiento largo está en la cabecera de
+`config/personajes.js` y en `docs/GUION.md`.
 
 **Se desbloquean por tramos, no por papeles**, y eso es una decisión: los
 papeles son la moneda del Archivo, que es la meta del juego. Meterle un segundo
@@ -785,6 +841,49 @@ actualizarla ahí.
 El lenguaje visual está documentado en **[docs/ESTILO.md](docs/ESTILO.md)** y
 los valores viven en `src/config/estilo.js`. Léelo antes de añadir pantallas,
 iconos o props.
+
+### Todas las pantallas son secciones del periódico
+
+Había dos mundos y no debía haberlos: el juego y sus menús iban de neón sobre
+negro, y el papel crema salía solo en el Archivo y en la primera plana del
+final. Eso dejaba al periódico como una pantalla más y obligaba a mantener dos
+sistemas de estilo para las mismas cuatro cosas.
+
+Ahora todo lo que no es correr sale impreso, con la mancheta de El Mercio y su
+rótulo de sección. La maqueta la reparte un solo ayudante, `seccionDiario()` en
+`src/ui/screens.js`:
+
+| Método | Sección | Titular |
+|---|---|---|
+| `ajustes()` | ADMINISTRACIÓN | LA REDACCIÓN |
+| `pausa()` | CIERRE DE EDICIÓN | RESPIRA |
+| `relato()` | CONTEXTO | *el ente de control* |
+| `escape()` | JUDICIALES | LE TOCA UN JUEZ |
+| `victoria()` | PORTADA | PROSPERÓ |
+| `gameOver()` | *la fecha* | *el titular de tu caída* |
+| `deportes()` | DEPORTES | LOS MÁS BUSCADOS |
+
+La única que no va impresa es el **menú**, porque es la ventana por la que se
+ve la escena.
+
+Al portarlas hay cuatro cosas que costaron y conviene no repetir:
+
+- **El cuerpo cuelga de `plana`; los botones, de `contenido`.** Un botón
+  dibujado encima de la hoja se lee como un anuncio y el ojo lo salta.
+- **Los componentes se reimprimen, no se migran.** `.instruccion`, `.edicion`,
+  `.remate`, `.estadistica`, `.juez`, `.resultado` y `.ruta` siguen saliendo en
+  negro dentro del juego, así que su versión de papel vive en un bloque
+  `.plana .loQueSea` al final de `style.css`. La regla es siempre la misma:
+  tinta en vez de luz, filete en vez de resplandor.
+- **El tinte de pantalla hay que repetirlo.** `.pantalla--plana` está declarada
+  *después* que `.pantalla--cerco` y compañía, así que con la misma
+  especificidad ganaba el negro liso y el cerco perdía su rojo. Están duplicadas
+  como `.pantalla--plana.pantalla--cerco` para que el tinte siga siendo el fondo
+  sobre el que se apoya la hoja.
+- **Los iconos del sorteo del juez no se pasan a gris.** Es la única excepción a
+  la maqueta impresa y no es negociable: el juez limpio se distingue de los otros
+  cinco *por el color de la camiseta*, y en gris los seis son la misma silueta y
+  el juego deja de tener solución.
 
 ### Ninguna pantalla hace scroll
 

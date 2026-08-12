@@ -4,11 +4,18 @@
 // Un endless runner que empieza contigo ya corriendo no explica nada. Este
 // empieza contigo haciendo tu trabajo, y la carrera es la consecuencia.
 //
-//   1. ENTREVISTA   Estás de pie, preguntando. La cámara está cerca y de lado.
-//   2. RETROCESO    La cámara se aleja hasta su posición de juego.
-//   3. LLEGADA      Aparecen los dos al fondo y se acercan corriendo.
-//   4. CABALLITO    El bajito se sube al grande.
-//   5. ARRANQUE     Se sueltan los controles y empieza la corrida.
+//   1. ENTREVISTA   Estás preguntándole a un ministro. Cámara cerca, de lado.
+//   2. RESCATE      Aparecen los dos por detrás y se lo llevan.
+//   3. LA PARED     Te quedas con el micrófono en alto y nadie delante.
+//   4. RETROCESO    La cámara se aleja hasta su posición de juego.
+//   5. CABALLITO    El bajito se sube al grande.
+//   6. ARRANQUE     Se sueltan los controles y empieza la corrida.
+//
+// LA FASE 3 ES EL CHISTE ENTERO. La cinemática podría acabar en el rescate y
+// se entendería igual de bien; lo que no se entendería es POR QUÉ corres. El
+// segundo largo en que sigues con el micrófono extendido hacia un sitio donde
+// ya no hay nadie es lo que convierte "me interrumpieron" en "me dejaron
+// hablando con la pared", y de ahí sale todo lo demás.
 //
 // SE PUEDE SALTAR, y esto no es negociable: son cuatro segundos, y cuatro
 // segundos repetidos treinta veces son dos minutos mirando lo mismo. Un toque
@@ -21,22 +28,56 @@
 
 import * as THREE from 'three';
 import { CAMARA, PERSEGUIDOR } from '../config/balance.js';
+import { crearMinistro } from '../models/characters.js';
 
 // Guiones de la secuencia, en segundos.
 const COMPLETA = {
-  entrevista: 1.5,
-  retroceso: 1.6,
-  llegada: 1.2,
-  caballito: 0.8,
+  entrevista: 1.6,
+  rescate: 1.2,
+  pared: 1.0,
+  retroceso: 1.4,
+  caballito: 0.7,
 };
 
 // Versión corta para quien ya la vio: el mismo relato, en un tercio.
+// La pared se acorta pero NO se quita: es la fase que explica el juego.
 const ABREVIADA = {
   entrevista: 0.35,
-  retroceso: 0.6,
-  llegada: 0.5,
-  caballito: 0.35,
+  rescate: 0.45,
+  pared: 0.4,
+  retroceso: 0.55,
+  caballito: 0.3,
 };
+
+// Dónde está el ministro. El periodista mira hacia -X (ver _poseEntrevista),
+// así que su interlocutor va ahí; y como la cámara está en +X, los dos salen
+// en cuadro uno detrás de otro en vez de tapándose.
+const SITIO_MINISTRO = { x: -2.15, y: 0, z: 0.5 };
+
+// Dónde se plantan los perseguidores DURANTE la cinemática.
+//
+// No vale usar su sitio de juego: esa posición está calculada para la cámara
+// de carrera, que va DETRÁS del periodista; la de la entrevista está de lado
+// y algo por delante, y desde ahí el sitio de carrera cae fuera de cuadro —a
+// la espalda del objetivo— o encima del periodista, según la distancia.
+//
+// Este punto está calculado a mano contra CAMARA_ENTREVISTA: queda a unos
+// trece metros del objetivo y ligeramente a la derecha del centro, o sea
+// calle arriba y al fondo. Se les ve LLEGAR, que es lo único que tienen que
+// contar en esta escena. Si se toca la cámara de la entrevista, hay que
+// recalcular esto: no es una posición cualquiera, es la que cae en cuadro.
+const SITIO_RESCATE = { x: -4.0, z: -4.0 };
+
+// De dónde vienen: calle arriba y al fondo, diminutos.
+const SITIO_APARICION = { x: -9.0, z: -12.0 };
+
+// Por dónde se van. NO es marcha atrás por donde vinieron: la salida se hace
+// casi toda en X, y el motivo es de encuadre, no de guion. Desde esta cámara,
+// alejarse en -Z empuja la figura hacia el BORDE DERECHO del cuadro —se salían
+// medio cuerpo—, mientras que alejarse en -X la lleva hacia el centro y al
+// fondo. Con esta salida los tres se van juntos, hacia dentro de la imagen y
+// encogiendo, que es como se ve a alguien marcharse.
+const SALIDA_RESCATE = { x: 4.5, z: 2.0 };
 
 // Cámara del primer plano de la entrevista. Va de lado y algo por delante:
 // desde detrás solo se le vería la espalda y el sombrero, y lo que tiene que
@@ -57,11 +98,60 @@ const CAMARA_MENU = { x: 5.4, y: 2.5, z: 4.1 };
 const MIRA_MENU = 1.35;
 
 export class Intro {
-  constructor() {
+  /** @param {THREE.Scene} escena Para poder plantar al ministro. */
+  constructor(escena = null) {
+    this.escena = escena;
     this.activa = false;
     this.tiempo = 0;
     this.guion = COMPLETA;
     this.duracion = 0;
+    this.ministro = null;
+  }
+
+  /**
+   * El ministro se crea la primera vez que hace falta y se queda.
+   * Sale en la cinemática y en la portada, así que destruirlo y rehacerlo en
+   * cada partida sería trabajo por nada.
+   */
+  _obtenerMinistro() {
+    if (!this.ministro && this.escena) {
+      this.ministro = crearMinistro();
+      // Mira hacia +X, o sea de vuelta al periodista. El signo importa: con
+      // -PI/2 miraba justo al revés y se le veía la espalda a los dos.
+      this.ministro.rotation.y = Math.PI / 2;
+      this.escena.add(this.ministro);
+    }
+    return this.ministro;
+  }
+
+  /**
+   * Coloca al ministro.
+   * @param {number} presencia 1 = ahí plantado, 0 = ya se lo llevaron
+   */
+  _colocarMinistro(presencia, tiempo = 0) {
+    const m = this._obtenerMinistro();
+    if (!m) return;
+
+    const f = THREE.MathUtils.clamp(presencia, 0, 1);
+    m.visible = f > 0.02;
+    if (!m.visible) return;
+
+    // Al llevárselo se aleja hacia atrás y de lado, y se encoge un poco: no
+    // desaparece de golpe, se lo llevan.
+    m.position.set(
+      SITIO_MINISTRO.x - (1 - f) * 3.4,
+      SITIO_MINISTRO.y,
+      SITIO_MINISTRO.z - (1 - f) * 5.2,
+    );
+    m.scale.setScalar(0.85 + f * 0.15);
+
+    // Mientras responde asiente despacio. Es lo único que lo distingue de un
+    // maniquí, y basta con eso.
+    const p = m.userData.partes;
+    if (p) {
+      p.cabeza.rotation.x = Math.sin(tiempo * 1.7) * 0.09 * f;
+      p.torso.rotation.y = Math.sin(tiempo * 0.9) * 0.06 * f;
+    }
   }
 
   /**
@@ -96,12 +186,17 @@ export class Intro {
     camara.position.set(pos.x, pos.y, pos.z);
     camara.lookAt(0, MIRA_MENU, -0.1);
     this._poseEntrevista(jugador, this.tiempo);
+    // En la portada el ministro TAMBIÉN está. La escena del menú es la
+    // entrevista, y una entrevista sin nadie enfrente no es una entrevista: es
+    // alguien de pie con un micrófono.
+    this._colocarMinistro(1, this.tiempo);
     this._perseguidoresLejos(perseguidor);
   }
 
   saltar() {
     if (!this.activa) return false;
     this.activa = false;
+    this._colocarMinistro(0);
     if (this._microfono) this._microfono.visible = false;
     return true;
   }
@@ -122,12 +217,57 @@ export class Intro {
     if (t < g.entrevista) {
       this._colocarCamara(camara, CAMARA_ENTREVISTA, jugador, 1);
       this._poseEntrevista(jugador, this.tiempo);
+      this._colocarMinistro(1, this.tiempo);
       this._perseguidoresLejos(perseguidor);
       return false;
     }
     t -= g.entrevista;
 
-    // --- Fase 2: la cámara se aleja ----------------------------------------
+    // --- Fase 2: el rescate -------------------------------------------------
+    // Llegan calle arriba y se lo llevan. No hay forcejeo ni nada parecido: el
+    // ministro se va con ellos como quien se acuerda de otra reunión, que es
+    // exactamente lo que pasa.
+    //
+    // La fase tiene dos mitades dentro: primero LLEGAN (0 → 0.45) y luego se
+    // RETIRAN con él (0.45 → 1). Que se vayan los tres a la vez y en la misma
+    // dirección es lo que hace que se lea como un rescate y no como que el
+    // ministro se esfumó por su cuenta.
+    if (t < g.rescate) {
+      const f = this._suave(t / g.rescate);
+      const llegada = THREE.MathUtils.clamp(f / 0.45, 0, 1);
+      const retirada = THREE.MathUtils.clamp((f - 0.45) / 0.55, 0, 1);
+
+      this._colocarCamara(camara, CAMARA_ENTREVISTA, jugador, 1);
+      this._poseEntrevista(jugador, this.tiempo);
+      this._colocarMinistro(1 - retirada, this.tiempo);
+
+      this._plantarPerseguidores(
+        perseguidor,
+        THREE.MathUtils.lerp(SITIO_APARICION.x, SITIO_RESCATE.x, llegada)
+          - retirada * SALIDA_RESCATE.x,
+        THREE.MathUtils.lerp(SITIO_APARICION.z, SITIO_RESCATE.z, llegada)
+          - retirada * SALIDA_RESCATE.z,
+        0, // de cara al periodista: vienen hacia él, no de espaldas
+      );
+      this._separados(perseguidor, 1);
+      return false;
+    }
+    t -= g.rescate;
+
+    // --- Fase 3: hablando con la pared -------------------------------------
+    // El micrófono sigue extendido y delante NO HAY NADIE. Ni el ministro ni
+    // los que se lo llevaron: el cuadro se queda con el periodista y la calle
+    // vacía, y la cámara no se mueve. Ese plano quieto es el juego entero.
+    if (t < g.pared) {
+      this._colocarCamara(camara, CAMARA_ENTREVISTA, jugador, 1);
+      this._poseEntrevista(jugador, this.tiempo);
+      this._colocarMinistro(0);
+      this._perseguidoresLejos(perseguidor);
+      return false;
+    }
+    t -= g.pared;
+
+    // --- Fase 4: la cámara se aleja ----------------------------------------
     if (t < g.retroceso) {
       // Suavizado en los dos extremos: arranca despacio y frena al llegar.
       const f = this._suave(t / g.retroceso);
@@ -137,31 +277,33 @@ export class Intro {
         z: THREE.MathUtils.lerp(CAMARA_ENTREVISTA.z, CAMARA.POSICION.z, f),
       };
       this._colocarCamara(camara, pos, jugador, 1 - f);
-      this._poseEntrevista(jugador, this.tiempo);
-      this._perseguidoresLejos(perseguidor);
+      this._poseEntrevista(jugador, this.tiempo, 1 - f);
+      this._colocarMinistro(0);
+      // Aquí es donde REAPARECEN, y el orden importa: no se les ve dar la
+      // vuelta, se les descubre. Estabas solo hablando con la pared, la cámara
+      // retrocede, y resulta que los tienes detrás. Plantarlos ya en su sitio
+      // de carrera durante todo el retroceso hace justo eso: al principio del
+      // movimiento quedan a la espalda del objetivo y no se ven; al final la
+      // cámara está detrás de ti y ahí están.
+      this._plantarPerseguidores(
+        perseguidor,
+        PERSEGUIDOR.DESVIO_EN_PANTALLA * 3.6,
+        PERSEGUIDOR.Z_LEJOS,
+        Math.PI,
+      );
+      this._separados(perseguidor, 1);
       return false;
     }
     t -= g.retroceso;
 
-    // --- Fase 3: llegan por detrás -----------------------------------------
-    if (t < g.llegada) {
-      const f = t / g.llegada;
-      this._colocarCamara(camara, CAMARA.POSICION, jugador, 0);
-      this._poseEntrevista(jugador, this.tiempo, 1 - f);
-
-      // Vienen desde muy atrás, fuera de cuadro, hasta su sitio de carrera.
-      perseguidor.modelo.visible = true;
-      perseguidor.zVisualActual = THREE.MathUtils.lerp(24, PERSEGUIDOR.Z_LEJOS, this._suave(f));
-      perseguidor.escalaActual = PERSEGUIDOR.ESCALA_LEJOS;
-      this._separados(perseguidor, 1 - f);
-      return false;
-    }
-    t -= g.llegada;
-
-    // --- Fase 4: el caballito ----------------------------------------------
+    // --- Fase 5: el caballito ----------------------------------------------
     if (t < g.caballito) {
       const f = this._suave(t / g.caballito);
       this._colocarCamara(camara, CAMARA.POSICION, jugador, 0);
+      this._colocarMinistro(0);
+      this._plantarPerseguidores(
+        perseguidor, PERSEGUIDOR.DESVIO_EN_PANTALLA * 3.6, PERSEGUIDOR.Z_LEJOS, Math.PI,
+      );
       this._separados(perseguidor, 1 - f);
       return false;
     }
@@ -169,6 +311,7 @@ export class Intro {
     // --- Fin ---------------------------------------------------------------
     this.activa = false;
     this._separados(perseguidor, 0);
+    this._colocarMinistro(0);
     if (this._microfono) this._microfono.visible = false;
     return true;
   }
@@ -195,6 +338,7 @@ export class Intro {
   /** Deja el modelo listo para correr, deshaciendo la pose de entrevista. */
   soltarPose(jugador) {
     this._poseEntrevista(jugador, this.tiempo, 0);
+    this._colocarMinistro(0);
     if (this._microfono) this._microfono.visible = false;
   }
 
@@ -248,6 +392,29 @@ export class Intro {
   /** Los deja fuera de cuadro, muy atrás. */
   _perseguidoresLejos(perseguidor) {
     perseguidor.modelo.visible = false;
+  }
+
+  /**
+   * Planta a los perseguidores en un sitio concreto DURANTE la cinemática.
+   *
+   * Hace falta escribir la posición del modelo a mano, y esto costó verlo:
+   * `zVisualActual` y compañía son el estado interno del perseguidor, pero
+   * quien los traslada a `modelo.position` es su propio `_colocar()`, y ese
+   * método solo corre desde `actualizar()` —que en la cinemática no se llama—.
+   * O sea que fijar los campos y esperar que se movieran no hacía nada: los
+   * dos se quedaban en su sitio de carrera, encima del periodista.
+   *
+   * De paso se dejan los campos cuadrados, para que el primer fotograma de la
+   * corrida no dé un salto.
+   */
+  _plantarPerseguidores(perseguidor, x, z, giro = Math.PI) {
+    perseguidor.modelo.visible = true;
+    perseguidor.modelo.position.set(x, 0, z);
+    perseguidor.modelo.scale.setScalar(PERSEGUIDOR.ESCALA_LEJOS);
+    perseguidor.modelo.rotation.y = giro;
+    perseguidor.zVisualActual = z;
+    perseguidor.xVisualActual = x;
+    perseguidor.escalaActual = PERSEGUIDOR.ESCALA_LEJOS;
   }
 
   /**

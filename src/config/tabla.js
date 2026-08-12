@@ -4,9 +4,16 @@
 // TRES CLASIFICACIONES, no una. Un solo marcador premia una sola forma de
 // jugar, y aquí hay tres que valen la pena y no son la misma:
 //
-//   · TOTAL DE PAPELES     la constancia. Suma de todas las partidas.
+//   · LOS MÁS BUSCADOS     la constancia. Suma de papeles de todas las partidas.
 //   · TOTAL DE DISTANCIA   el kilometraje. También acumulado.
 //   · MEJOR CORRIDA        la marca personal: papeles en una sola partida.
+//
+// LA PRIMERA NO ES UNA TABLA DE PUNTOS, ES UNA CIRCULAR DE BÚSQUEDA. Cambia
+// solo el rótulo y cambia entero lo que significa subir: no eres el que más
+// junta, eres el que más le estorba a alguien. Es la misma cifra —papeles
+// acumulados— leída desde el otro lado del escritorio, y esa lectura es
+// justamente la del juego: aquí documentar no te da prestigio, te da una
+// carpeta con tu nombre. El puesto uno no es el campeón, es la prioridad.
 //
 // El acumulado premia insistir; la marca personal premia una corrida buena.
 // Quien juega mucho y regular manda en las dos primeras; quien tiene una tarde
@@ -44,13 +51,20 @@ const ARROBAS = ['@paquimal', '@la_chulla_vida', '@ojo_de_agua', '@ni_una_menos_
  * `id` es lo que la pantalla pide; `valor(cuaderno)` saca del cuaderno la
  * cifra del jugador para esa tabla, y así la pantalla no tiene que saber qué
  * campo mira cada pestaña.
+ *
+ * `antetitulo` es el renglón de arriba de la página, y `notaLider` la coletilla
+ * del puesto uno: los dos cambian con la pestaña porque las tres tablas dicen
+ * la misma cifra desde sitios distintos. En «Más buscados» el primero no es el
+ * director del periódico, es el que encabeza la lista.
  */
 export const CLASIFICACIONES = [
   {
     id: 'papeles',
-    pestana: 'Papeles',
-    titulo: 'TOTAL DE PAPELES',
-    epigrafe: 'Todo lo recogido, partida tras partida',
+    pestana: 'Más buscados',
+    titulo: 'LOS MÁS BUSCADOS',
+    antetitulo: 'CIRCULAR DE BÚSQUEDA · ARCHIVO ACUMULADO',
+    epigrafe: 'Ordenados por lo que llevan documentado. Cuanto más arriba, más estorbas',
+    notaLider: 'prioridad uno',
     unidad: '',
     valor: (c) => c.papelesHistoricos,
     marcas: [46_820, 39_140, 34_505, 29_960, 24_340, 19_775, 15_190, 11_640, 8_020, 5_615],
@@ -59,6 +73,7 @@ export const CLASIFICACIONES = [
     id: 'distancia',
     pestana: 'Distancia',
     titulo: 'TOTAL DE DISTANCIA',
+    antetitulo: 'QUIÉN CORRE MÁS',
     epigrafe: 'Metros corridos desde la primera entrevista',
     unidad: ' m',
     valor: (c) => c.distanciaHistorica,
@@ -68,6 +83,7 @@ export const CLASIFICACIONES = [
     id: 'mejor',
     pestana: 'Mejor corrida',
     titulo: 'MEJOR CORRIDA',
+    antetitulo: 'QUIÉN DOCUMENTA MÁS DE UNA SENTADA',
     epigrafe: 'Papeles recogidos en una sola partida',
     unidad: '',
     valor: (c) => c.mejorPapeles,
@@ -99,7 +115,7 @@ export function tablaConJugador(clase, valor, alrededor = 1) {
     ...clase.marcas.map((v, i) => ({
       arroba: ARROBAS[i],
       valor: v,
-      nota: i === 0 ? 'director' : undefined,
+      nota: i === 0 ? (clase.notaLider ?? 'director') : undefined,
     })),
     { arroba: YO, valor, esTu: true },
   ]

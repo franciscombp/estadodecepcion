@@ -453,6 +453,77 @@ export function crearBlanki() {
 }
 
 /**
+ * EL MINISTRO — al que se está entrevistando cuando empieza todo.
+ *
+ * No es nadie. Es un cargo: traje azul, corbata, maletín y una insignia en la
+ * solapa, que es el uniforme de cualquier ministro de cualquier gobierno. No
+ * lleva ni un rasgo que apunte a una persona concreta, y eso no es timidez —es
+ * la regla editorial del proyecto: se satiriza el cargo y el trámite, nunca
+ * una cara (ver docs/GUION.md).
+ *
+ * Se le ve unos segundos y de perfil, así que lo que tiene que leerse es la
+ * silueta: hombros de traje, maletín colgando y esa forma de estar de pie con
+ * las manos por delante que tiene todo el que está esperando a que la pregunta
+ * termine.
+ */
+export function crearMinistro() {
+  const g = crearHumanoide({
+    colorPiel: 0xd8b08c,
+    colorRopa: 0x1f2c4a,
+    colorPantalon: 0x1a2438,
+    corpulencia: 1.18,
+  });
+  const p = g.userData.partes;
+
+  // Camisa y corbata bajo las solapas.
+  const camisa = caja(0.18, 0.32, 0.02, 0xf4f1e8, 0.24);
+  camisa.position.set(0, 0.05, 0.16);
+  p.torso.add(camisa);
+
+  const corbata = caja(0.08, 0.32, 0.025, 0x8a1c2a, 0.2);
+  corbata.position.set(0, 0.01, 0.18);
+  p.torso.add(corbata);
+
+  for (const s of [-1, 1]) {
+    const solapa = caja(0.14, 0.36, 0.03, 0x16203a, 0.04);
+    solapa.position.set(s * 0.13, 0.05, 0.165);
+    solapa.rotation.z = s * 0.28;
+    p.torso.add(solapa);
+  }
+
+  // La insignia. Un cuadradito dorado que no dice de qué es, y ese es el
+  // chiste: siempre hay una y nunca se sabe de qué.
+  const insignia = caja(0.06, 0.06, 0.02, 0xd8b45a, 0.55);
+  insignia.position.set(0.17, 0.16, 0.19);
+  p.torso.add(insignia);
+
+  // Pelo peinado con raya, en dos bloques de distinta altura.
+  const pelo = caja(0.36, 0.1, 0.34, 0x241a12, 0.03);
+  pelo.position.y = 0.2;
+  p.cabeza.add(pelo);
+  const copete = caja(0.2, 0.07, 0.3, 0x241a12, 0.03);
+  copete.position.set(-0.07, 0.26, 0);
+  p.cabeza.add(copete);
+
+  // Maletín en la mano izquierda.
+  const maletin = caja(0.34, 0.26, 0.1, 0x3a2a1c, 0.05);
+  maletin.position.set(0, -0.68, 0);
+  p.brazoIzq.add(maletin);
+
+  const asa = caja(0.12, 0.05, 0.03, 0x241a12, 0.05);
+  asa.position.set(0, -0.55, 0);
+  p.brazoIzq.add(asa);
+
+  // De pie, esperando a que la pregunta termine: brazos caídos y peso atrás.
+  p.brazoDer.rotation.x = -0.18;
+  p.brazoIzq.rotation.x = 0.1;
+  p.torso.rotation.x = -0.05;
+
+  g.userData.nombre = 'El ministro';
+  return g;
+}
+
+/**
  * Devuelve el modelo del personaje pedido.
  *
  * Existe para que nadie más tenga que saber qué constructor va con qué id:

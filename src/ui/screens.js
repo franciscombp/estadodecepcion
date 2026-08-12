@@ -54,6 +54,51 @@ function pantallaBase() {
 }
 
 /**
+ * UNA SECCIÓN DEL PERIÓDICO. La maqueta que comparten todas las pantallas que
+ * no son la corrida.
+ *
+ * Antes había dos mundos: el juego y sus menús iban de neón sobre negro, y el
+ * papel crema salía solo en el Archivo y en la primera plana del final. Eso
+ * dejaba al periódico como una pantalla más en vez de como lo que es —el sitio
+ * al que va a parar todo lo que recoges—, y encima obligaba a mantener dos
+ * sistemas de estilo para las mismas cuatro cosas: un título, un cuerpo de
+ * texto y unos botones.
+ *
+ * Ahora TODO lo que no es correr sale impreso, y cada pantalla es una sección
+ * con su nombre en la mancheta: los ajustes son ADMINISTRACIÓN, la pausa es
+ * ÚLTIMA HORA, el juez es JUDICIALES, la tabla es DEPORTES. El chiste se cuenta
+ * solo: estás dentro del periódico incluso cuando estás toqueteando el volumen.
+ *
+ * El cuerpo de la pantalla se cuelga de `plana` —va sobre papel— y los botones
+ * de `contenido`, fuera de la hoja, porque un botón dibujado encima del papel
+ * se lee como un anuncio y no como algo que se pulsa.
+ */
+function seccionDiario({ seccion, antetitulo, titular, bajada, clase }) {
+  const { pantalla, contenido } = pantallaBase();
+  pantalla.classList.add('pantalla--plana');
+  if (clase) pantalla.classList.add(clase);
+
+  const plana = el('div', 'plana');
+
+  const cab = el('header', 'plana__cabecera');
+  cab.appendChild(el('span', 'plana__nombre', CABECERA.nombre));
+  cab.appendChild(el('span', 'plana__fecha', seccion));
+  plana.appendChild(cab);
+
+  if (antetitulo) plana.appendChild(el('div', 'plana__antetitulo', antetitulo));
+  if (titular) plana.appendChild(el('h1', 'plana__titular plana__titular--tabla', titular));
+  if (bajada) plana.appendChild(el('div', 'plana__epigrafe', bajada));
+
+  contenido.appendChild(plana);
+  return { pantalla, contenido, plana };
+}
+
+/** Ladillo: el rótulo que separa bloques dentro de una sección impresa. */
+function ladillo(texto) {
+  return el('div', 'plana__seccion', texto);
+}
+
+/**
  * Numera los hijos de un contenedor para que entren EN CASCADA.
  *
  * Toda la pantalla apareciendo a la vez se lee como un cambio de diapositiva;
@@ -207,7 +252,12 @@ export class Pantallas {
       const ficha = el('button', `elector__ficha ${abierto ? '' : 'elector__ficha--cerrada'}`.trim());
       ficha.type = 'button';
       ficha.appendChild(el('span', 'elector__nombre', abierto ? def.nombre : '???'));
-      ficha.title = abierto ? def.nota : `Se ficha a los ${def.tramos} tramos`;
+      // Debajo del nombre, la SECCIÓN. Es una palabra y hace todo el trabajo
+      // del lore: cuatro fichas que ponen Política, Sociedad, Investigación y
+      // Calle no se leen como cuatro skins, se leen como una redacción. Sin
+      // esto, que todos trabajen para El Mercio era algo que solo sabía yo.
+      if (abierto) ficha.appendChild(el('span', 'elector__seccion', def.seccion));
+      ficha.title = abierto ? `${def.nombre} — ${def.nota}` : `Se ficha a los ${def.tramos} tramos`;
 
       if (!abierto) {
         ficha.appendChild(el('span', 'elector__candado', `${def.tramos} tramos`));
@@ -274,18 +324,31 @@ export class Pantallas {
   // -------------------------------------------------------------------------
   // Lo que antes colgaba del final del menú y lo alargaba: la chuleta de
   // controles, el panel de edición y el borrado de progreso.
+  //
+  // Va impreso como el resto: es la página de ADMINISTRACIÓN, la que en un
+  // diario de verdad lleva el staff, el número de depósito legal y a quién
+  // reclamar. Aquí lleva los controles y qué edición estás leyendo, que es
+  // exactamente lo mismo con otro contenido.
 
   ajustes() {
-    const { pantalla, contenido } = pantallaBase();
+    const { pantalla, contenido, plana } = seccionDiario({
+      seccion: 'ADMINISTRACIÓN',
+      antetitulo: 'CÓMO SE USA ESTE EJEMPLAR',
+      titular: 'LA REDACCIÓN',
+      bajada: 'Controles, edición y el botón de tirarlo todo a la basura',
+    });
 
-    contenido.appendChild(marca('AJUSTES'));
-    contenido.appendChild(el('h1', 'titulo', 'LA REDACCIÓN'));
+    plana.appendChild(ladillo('CONTROLES'));
+    plana.appendChild(this._pintarControles());
 
-    contenido.appendChild(el('div', 'rotulo-seccion', 'CONTROLES'));
-    contenido.appendChild(this._pintarControles());
+    plana.appendChild(ladillo('EDICIÓN'));
+    plana.appendChild(this._pintarVersion(pantalla));
 
-    contenido.appendChild(el('div', 'rotulo-seccion', 'EDICIÓN'));
-    contenido.appendChild(this._pintarVersion(pantalla));
+    // No es letra pequeña legal: es contexto, y en un periódico eso va en el
+    // pie de la página de administración, no perdido debajo de los botones.
+    plana.appendChild(el('div', 'plana__nota-tabla',
+      'Sátira política de El Mercio. Los personajes y textos son ficción y no '
+      + 'reproducen declaraciones de personas reales.'));
 
     const botones = el('div', 'botones');
     botones.appendChild(boton('Volver', 'boton--principal',
@@ -307,11 +370,6 @@ export class Pantallas {
     }
     contenido.appendChild(botones);
 
-    // No es letra pequeña legal: es contexto. Que quede claro de qué va esto.
-    contenido.appendChild(el('div', 'nota',
-      'Sátira política de El Mercio. Los personajes y textos son ficción y no '
-      + 'reproducen declaraciones de personas reales.'));
-
     const pie = el('div', 'pie');
     pie.appendChild(document.createTextNode('elmercio.com · '));
     const enlace = el('a', '', 'El Mercio');
@@ -321,7 +379,7 @@ export class Pantallas {
     pie.appendChild(enlace);
     contenido.appendChild(pie);
 
-    escalonar(contenido);
+    escalonar(plana);
     return pantalla;
   }
 
@@ -503,20 +561,25 @@ export class Pantallas {
   // quedaba era una fase rara en la que hay que recoger cosas del suelo.
 
   relato(datos) {
-    const { pantalla, contenido } = pantallaBase();
-    pantalla.classList.add('pantalla--relato');
-
     const esEntrada = datos.fase === 'entrada';
 
-    contenido.appendChild(marca(esEntrada ? 'ENTRAS AL TRÁMITE' : 'SE ACABÓ EL PASILLO'));
-    contenido.appendChild(el('h1', 'titulo titulo--dorado', datos.institucion));
+    // Va impreso, y aquí es donde más se nota por qué: esta pantalla es un
+    // ARTÍCULO —dos párrafos explicando un caso y una firma al pie— y estaba
+    // maquetada como un cartel. Sobre papel, el jugador reconoce al instante
+    // que lo que tiene delante es para leerlo.
+    const { pantalla, contenido, plana } = seccionDiario({
+      seccion: 'CONTEXTO',
+      antetitulo: esEntrada ? 'ENTRAS AL TRÁMITE' : 'SE ACABÓ EL PASILLO',
+      titular: datos.institucion,
+      clase: 'pantalla--relato',
+    });
 
     // El cuerpo: dos o tres frases, tamaño de lectura, sin prisa.
     const relato = el('div', 'relato');
     for (const parrafo of String(datos.relato ?? '').split('\n').filter(Boolean)) {
       relato.appendChild(el('p', 'relato__parrafo', parrafo.trim()));
     }
-    contenido.appendChild(relato);
+    plana.appendChild(relato);
 
     // El remate en voz de El Mercio, que es la línea que ya existía y que
     // ahora tiene sitio para leerse.
@@ -524,13 +587,13 @@ export class Pantallas {
       const remate = el('div', 'remate');
       remate.appendChild(document.createTextNode(datos.remate));
       remate.appendChild(el('span', 'remate__firma', 'El Mercio'));
-      contenido.appendChild(remate);
+      plana.appendChild(remate);
     }
 
     // A la salida, el balance. Es información de partida y va con formato de
     // dato, no de narración.
     if (!esEntrada) {
-      contenido.appendChild(estadisticas([
+      plana.appendChild(estadisticas([
         [String(datos.recuperados ?? 0), 'Recuperados'],
         [String(datos.perdidos ?? 0), 'En el suelo'],
       ]));
@@ -540,11 +603,15 @@ export class Pantallas {
         const icono = el('span', 'desbloqueo__icono');
         icono.innerHTML = Icono.usb(22);
         caja.appendChild(icono);
+        // Mismas clases que el resto de recuadros de desbloqueo. Llevaba dos
+        // propias —`__titulo` y `__nota`— que no existían en la hoja de
+        // estilos, así que el texto salía sin maquetar: se veía porque hereda,
+        // no porque estuviera pensado.
         const texto = el('span', 'desbloqueo__texto');
-        texto.appendChild(el('span', 'desbloqueo__titulo', 'PERO SALES CON ALGO'));
-        texto.appendChild(el('span', 'desbloqueo__nota', datos.hallazgo));
+        texto.appendChild(el('span', 'desbloqueo__etiqueta', 'PERO SALES CON ALGO'));
+        texto.appendChild(el('span', 'desbloqueo__nombre', datos.hallazgo));
         caja.appendChild(texto);
-        contenido.appendChild(caja);
+        plana.appendChild(caja);
       }
     }
 
@@ -556,18 +623,21 @@ export class Pantallas {
     ));
     contenido.appendChild(botones);
 
-    escalonar(contenido);
+    escalonar(plana);
     return pantalla;
   }
 
   escape(datos) {
-    const { pantalla, contenido } = pantallaBase();
-    pantalla.classList.add('pantalla--cerco');
-
-    contenido.appendChild(marca('TE RODEARON'));
-    contenido.appendChild(el('h1', 'titulo titulo--rojo', 'LE TOCA UN JUEZ'));
-    contenido.appendChild(el('p', 'subtitulo',
-      'Cinco llevan la camiseta. Para el selector en el que no la lleva.'));
+    // Sección JUDICIALES, que es exactamente donde un periódico pondría esto:
+    // a quién le tocó qué sala. Que el sorteo salga impreso en la misma página
+    // en la que mañana saldrá la sentencia es la mitad del chiste.
+    const { pantalla, contenido, plana } = seccionDiario({
+      seccion: 'JUDICIALES',
+      antetitulo: 'TE RODEARON',
+      titular: 'LE TOCA UN JUEZ',
+      bajada: 'Cinco llevan la camiseta. Para el selector en el que no la lleva.',
+      clase: 'pantalla--cerco',
+    });
 
     // --- Los seis jueces ---------------------------------------------------
     // El honesto está en un puesto distinto cada vez. Si estuviera fijo, esto
@@ -589,10 +659,10 @@ export class Pantallas {
       tribunal.appendChild(ficha);
       fichas.push(ficha);
     }
-    contenido.appendChild(tribunal);
+    plana.appendChild(tribunal);
 
     const zonaResultado = el('div');
-    contenido.appendChild(zonaResultado);
+    plana.appendChild(zonaResultado);
 
     // --- El selector -------------------------------------------------------
     // Va con requestAnimationFrame y reloj real, no con una animación CSS:
@@ -683,24 +753,28 @@ export class Pantallas {
   // túnel del centro, que es casi imposible a propósito.
 
   victoria(datos) {
-    const { pantalla, contenido } = pantallaBase();
-    pantalla.classList.add('pantalla--victoria');
-
-    contenido.appendChild(marca('SE PRESENTÓ LA DENUNCIA'));
-    contenido.appendChild(el('h1', 'titulo titulo--verde', 'PROSPERÓ'));
-    contenido.appendChild(el('div', 'insignia-record', datos.institucion));
+    // Es la única portada del juego que no habla de una derrota, así que va
+    // impresa como tal: sección PORTADA, antetítulo de última hora y el titular
+    // de una palabra que se pone cuando de verdad pasó algo.
+    const { pantalla, contenido, plana } = seccionDiario({
+      seccion: 'PORTADA',
+      antetitulo: 'SE PRESENTÓ LA DENUNCIA',
+      titular: 'PROSPERÓ',
+      bajada: datos.institucion,
+      clase: 'pantalla--victoria',
+    });
 
     const remate = el('div', 'remate');
     remate.appendChild(document.createTextNode(datos.texto));
     remate.appendChild(el('span', 'remate__firma', 'El Mercio'));
-    contenido.appendChild(remate);
+    plana.appendChild(remate);
 
-    contenido.appendChild(el('p', 'subtitulo',
+    plana.appendChild(el('p', 'plana__cuerpo',
       `Te tiraron el expediente por el suelo y lo recogiste entero: ` +
       `${datos.papelesEntregados} papeles, sin que falte uno. ` +
       'No sabemos cómo lo lograste, pero lo lograste.'));
 
-    contenido.appendChild(estadisticas([
+    plana.appendChild(estadisticas([
       [datos.papeles.toLocaleString('es-EC'), 'Papeles'],
       [`${datos.distancia.toLocaleString('es-EC')} m`, 'Distancia'],
       [datos.puntaje.toLocaleString('es-EC'), 'Puntaje'],
@@ -708,13 +782,11 @@ export class Pantallas {
     ]));
 
     if (datos.ruta?.length > 1) {
-      const lista = el('div', 'lista');
-      lista.appendChild(el('div', 'lista__titulo', 'Ruta de esta corrida'));
-      lista.appendChild(this._pintarRuta(datos.ruta));
-      contenido.appendChild(lista);
+      plana.appendChild(ladillo('RUTA DE ESTA CORRIDA'));
+      plana.appendChild(this._pintarRuta(datos.ruta));
     }
 
-    this._pintarDesbloqueos(datos, contenido);
+    this._pintarDesbloqueos(datos, plana);
 
     const botones = el('div', 'botones');
     botones.appendChild(boton('Volver a correr', 'boton--principal',
@@ -725,7 +797,7 @@ export class Pantallas {
       () => this.juego.volverAlMenu()));
     contenido.appendChild(botones);
 
-    escalonar(contenido);
+    escalonar(plana);
     return pantalla;
   }
 
@@ -777,12 +849,14 @@ export class Pantallas {
     cab.appendChild(el('span', 'plana__fecha', 'DEPORTES'));
     plana.appendChild(cab);
 
-    plana.appendChild(el('div', 'plana__antetitulo', 'QUIÉN DOCUMENTA MÁS'));
-
-    // El título y el epígrafe cambian con la pestaña, así que se guardan.
+    // El antetítulo, el título y el epígrafe cambian con la pestaña, así que
+    // se guardan. El antetítulo cambia porque «Más buscados» no es una tabla de
+    // méritos: es una circular, y tiene que anunciarse como tal.
+    const antetitulo = el('div', 'plana__antetitulo', '');
     const titular = el('h1', 'plana__titular plana__titular--tabla', '');
     const epigrafe = el('div', 'plana__epigrafe', '');
     const cuerpoTabla = el('div', 'plana__tabla');
+    plana.appendChild(antetitulo);
 
     // --- Pestañas ----------------------------------------------------------
     const pestanas = el('div', 'pestanas');
@@ -790,8 +864,12 @@ export class Pantallas {
 
     const pintar = (id) => {
       const clase = clasificacion(id);
+      antetitulo.textContent = clase.antetitulo;
       titular.textContent = clase.titulo;
       epigrafe.textContent = clase.epigrafe;
+      // La circular de búsqueda se imprime distinta del resto de la sección:
+      // filete grueso arriba y abajo, como los carteles de verdad.
+      plana.classList.toggle('plana--circular', id === 'papeles');
 
       for (const [otro, b] of botonesPestana) {
         b.classList.toggle('pestana--activa', otro === id);
@@ -1269,10 +1347,16 @@ export class Pantallas {
   // -------------------------------------------------------------------------
 
   pausa() {
-    const { pantalla, contenido } = pantallaBase();
-
-    contenido.appendChild(marca('EN PAUSA'));
-    contenido.appendChild(el('h1', 'titulo', 'RESPIRA'));
+    // Hasta la pausa es una sección: CIERRE DE EDICIÓN, que es como se llama en
+    // un periódico el rato en que todo se detiene y hay que decidir con qué se
+    // sale. Es la pantalla más tonta del juego y por eso mismo tenía que ir
+    // impresa: si esta se salvara del papel, el sistema no sería un sistema.
+    const { pantalla, contenido, plana } = seccionDiario({
+      seccion: 'CIERRE DE EDICIÓN',
+      antetitulo: 'EN PAUSA',
+      titular: 'RESPIRA',
+      bajada: 'La rotativa espera. Nadie te está persiguiendo mientras esto esté abierto.',
+    });
 
     const botones = el('div', 'botones');
     botones.appendChild(boton('Seguir corriendo', 'boton--principal',
@@ -1281,7 +1365,7 @@ export class Pantallas {
       () => this.juego.terminarPartida('captura')));
     contenido.appendChild(botones);
 
-    escalonar(contenido);
+    escalonar(plana);
     return pantalla;
   }
 }

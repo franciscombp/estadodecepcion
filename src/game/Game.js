@@ -278,7 +278,7 @@ export class Game {
     this.elevado = new ElevadoManager(this.escenaThree);
     this.tramite = new TramiteManager(this.escenaThree);
     this.cerco = new Cerco(this.escenaThree);
-    this.intro = new Intro();
+    this.intro = new Intro(this.escenaThree);
     this.potenciadores = new PowerUpManager(this.escenaThree);
     this.potenciadores.establecerDesbloqueados(this.cuaderno.potenciadoresDesbloqueados());
 

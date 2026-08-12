@@ -330,6 +330,10 @@ async function arrancar() {
     window.__juego = juego;
     window.__cuaderno = cuaderno;
     window.__hud = hud;
+    // El gestor de pantallas, para poder abrir una sola sin llegar a ella
+    // jugando. Probar la maqueta de la victoria de otro modo obliga a
+    // completar un expediente entero, que es casi imposible a propósito.
+    window.__pantallas = pantallas;
     // Las páginas del periódico, para poder probar un titular en caliente
     // antes de escribirlo en config/publicaciones.js. Por ejemplo:
     //   Object.assign(__paginas[0].articulos[0],
