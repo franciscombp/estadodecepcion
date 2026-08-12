@@ -305,6 +305,170 @@ export function crearAlondra() {
   return g;
 }
 
+/**
+ * BUSCÁN — boina y traje.
+ *
+ * El que llega con la pregunta ya hecha. Va de chaqueta y corbata porque
+ * entra donde los otros dos no entran, y lo que hay que reconocer desde
+ * atrás es esa silueta: hombros marcados y una boina plana en vez de un
+ * sombrero de ala.
+ *
+ * OJO CON LA BOINA. Es lo único que lo distingue en el 99% del tiempo de
+ * juego —que es de espaldas y a ocho metros—, así que va LADEADA y con
+ * rabillo. Una boina puesta recta, a esa distancia, es una tapa.
+ */
+export function crearBuscan() {
+  const g = crearHumanoide({
+    colorPiel: 0xcf9a70,
+    colorRopa: 0x2f3a4f,       // Chaqueta gris azulada
+    colorPantalon: 0x232a38,
+    corpulencia: 1.05,
+  });
+  const p = g.userData.partes;
+
+  anclarCamara(p.cadera);
+
+  // --- Boina ---------------------------------------------------------------
+  const boina = new THREE.Group();
+  const disco = cilindro(0.3, 0.26, 0.075, 0x8f2f3a, 0.06);
+  boina.add(disco);
+  // El rabillo, arriba y descentrado. Es medio centímetro de geometría y es
+  // lo que hace que se lea "boina" y no "gorro".
+  const rabillo = cilindro(0.025, 0.025, 0.06, 0x6f2029, 0.06);
+  rabillo.position.set(0.03, 0.06, 0);
+  boina.add(rabillo);
+
+  boina.position.set(0.03, 0.22, -0.01);
+  boina.rotation.z = -0.22;
+  p.cabeza.add(boina);
+
+  // --- Traje ---------------------------------------------------------------
+  // Solapas: dos placas finas en V sobre el pecho.
+  for (const s of [-1, 1]) {
+    const solapa = caja(0.13, 0.34, 0.03, 0x232a38, 0.04);
+    solapa.position.set(s * 0.11, 0.05, 0.16);
+    solapa.rotation.z = s * 0.3;
+    p.torso.add(solapa);
+  }
+
+  const camisa = caja(0.16, 0.3, 0.02, 0xf0ece2, 0.24);
+  camisa.position.set(0, 0.06, 0.155);
+  p.torso.add(camisa);
+
+  const corbata = caja(0.07, 0.3, 0.025, 0x9c1f2e, 0.2);
+  corbata.position.set(0, 0.02, 0.175);
+  p.torso.add(corbata);
+
+  // Bigote. Junto a la boina, es la otra pieza que lo identifica de perfil.
+  const bigote = caja(0.19, 0.045, 0.04, 0x2a1c14, 0.02);
+  bigote.position.set(0, -0.04, 0.17);
+  p.cabeza.add(bigote);
+
+  // Grabadora en la mano, en vez de libreta: entra a preguntar, no a apuntar.
+  const grabadora = caja(0.09, 0.17, 0.05, 0x14161c, 0.05);
+  grabadora.position.set(0, -0.58, 0.08);
+  p.brazoDer.add(grabadora);
+
+  const testigo = caja(0.04, 0.04, 0.02, 0xff3b3b, 0.9);
+  testigo.position.set(0, -0.52, 0.11);
+  p.brazoDer.add(testigo);
+
+  g.userData.nombre = 'Buscán';
+  return g;
+}
+
+/**
+ * BLANKI — casco de espartana.
+ *
+ * Corpulenta y plantada. La corpulencia no es un chiste sobre el cuerpo: es
+ * la silueta, y en un juego donde al personaje se le ve de espaldas y
+ * pequeño, una silueta ancha es lo único que lo distingue de una estrecha a
+ * la primera ojeada.
+ *
+ * El casco lleva CRESTA, y la cresta es transversal —de oreja a oreja, no de
+ * frente a nuca— porque es como va la de verdad y porque de espaldas se ve
+ * como una línea horizontal, que no se parece a nada más del juego.
+ */
+export function crearBlanki() {
+  const g = crearHumanoide({
+    colorPiel: 0xe0b088,
+    colorRopa: 0xb8452f,       // Túnica teja
+    colorPantalon: 0x3a3630,
+    corpulencia: 1.42,
+  });
+  const p = g.userData.partes;
+
+  anclarMochilaPrensa(p.torso, 0.52 * 1.42);
+
+  // --- Casco ---------------------------------------------------------------
+  const casco = cilindro(0.235, 0.25, 0.26, 0xb08d3a, 0.16);
+  casco.position.y = 0.13;
+  p.cabeza.add(casco);
+
+  const cupula = esfera(0.235, 0xb08d3a, 0.16);
+  cupula.position.y = 0.26;
+  cupula.scale.y = 0.7;
+  p.cabeza.add(cupula);
+
+  // Nasal y carrilleras: las tres placas que hacen la cara del casco.
+  const nasal = caja(0.055, 0.2, 0.05, 0xc79c42, 0.18);
+  nasal.position.set(0, -0.02, 0.2);
+  p.cabeza.add(nasal);
+
+  for (const s of [-1, 1]) {
+    const carrillera = caja(0.05, 0.19, 0.16, 0xc79c42, 0.18);
+    carrillera.position.set(s * 0.19, -0.04, 0.09);
+    p.cabeza.add(carrillera);
+  }
+
+  // La cresta, transversal. Cinco tacos que bajan de tamaño hacia los lados:
+  // un solo bloque se lee como una caja encima de la cabeza.
+  for (let i = -2; i <= 2; i++) {
+    const alto = 0.2 - Math.abs(i) * 0.045;
+    const taco = caja(0.085, alto, 0.1, 0x8f1f2a, 0.12);
+    taco.position.set(i * 0.085, 0.4 - (0.2 - alto) / 2, 0);
+    p.cabeza.add(taco);
+  }
+
+  // --- Escudo a la espalda -------------------------------------------------
+  // Redondo, sobre la mochila. Es la segunda silueta reconocible y va detrás
+  // porque detrás es donde se la ve.
+  const escudo = cilindro(0.34, 0.34, 0.05, 0x9a6f2c, 0.14);
+  escudo.rotation.x = Math.PI / 2;
+  escudo.position.set(0.12, -0.04, -0.42);
+  escudo.rotation.z = 0.3;
+  p.torso.add(escudo);
+
+  const umbo = esfera(0.09, 0xd8b45a, 0.3);
+  umbo.position.set(0.12, -0.04, -0.47);
+  p.torso.add(umbo);
+
+  // Credencial de prensa, que es lo que la mete en esta redacción.
+  const credencial = caja(0.15, 0.19, 0.02, 0xffffff, 0.4);
+  credencial.position.set(0.14, -0.08, 0.2);
+  p.torso.add(credencial);
+
+  g.userData.nombre = 'Blanki';
+  return g;
+}
+
+/**
+ * Devuelve el modelo del personaje pedido.
+ *
+ * Existe para que nadie más tenga que saber qué constructor va con qué id:
+ * antes había un ternario `nombre === 'alondra' ? … : …` repetido en dos
+ * sitios del jugador, y con cuatro personajes eso ya no escala.
+ */
+export function crearPersonaje(id) {
+  switch (id) {
+    case 'alondra': return crearAlondra();
+    case 'buscan': return crearBuscan();
+    case 'blanki': return crearBlanki();
+    case 'chochologo':
+    default: return crearChochologo();
+  }
+}
+
 // ---------------------------------------------------------------------------
 // PERSEGUIDORES
 // ---------------------------------------------------------------------------

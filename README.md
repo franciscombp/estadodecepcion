@@ -51,6 +51,7 @@ src/
 │   ├── publicaciones.js← Los reportajes REALES del Archivo ⚠️ hay que rellenarlo
 │   ├── estilo.js       ← Tokens visuales (ver docs/ESTILO.md)
 │   ├── escenarios.js   ← Los 4 escenarios y el mapa del loop
+│   ├── personajes.js   ← La plantilla jugable y sus desbloqueos
 │   ├── tabla.js        ← Las tres clasificaciones de muestra
 │   └── textos.js       ← Microcopy, remates y fichas del cuaderno
 ├── game/
@@ -428,6 +429,38 @@ hay servidor detrás y no se pretende que lo parezca; cuando lo haya, lo único
 que cambia es de dónde sale la lista. Los arrobas son **inventados** salvo el
 de la casa: meter cuentas reales de terceros en el marcador de un juego
 satírico, aunque sea de mentira, es ponerles palabras en la boca por otra vía.
+
+### La plantilla
+
+Cuatro personajes jugables. Dos salen de fábrica y dos se fichan
+(`config/personajes.js`):
+
+| | Quién | Se ficha a los |
+|---|---|---|
+| 🎩 | **Chochólogo** — sombrero, gafas y treinta años de oficio | — |
+| 🪕 | **Alondra** — rizos, ukulele y todavía cree que esto sirve | — |
+| 🎖️ | **Buscán** — boina y traje. Pregunta como si ya supiera | 8 tramos |
+| 🛡️ | **Blanki** — casco de espartana. No se aparta | 18 tramos |
+
+**Se desbloquean por tramos, no por papeles**, y eso es una decisión: los
+papeles son la moneda del Archivo, que es la meta del juego. Meterle un segundo
+sumidero le quita fuerza al primero y obliga a elegir entre un reportaje y un
+sombrero. Los tramos solo se acumulan, así que ahí cabe otra recompensa sin
+quitarle nada a ninguna.
+
+Los umbrales (8 y 18) **se intercalan** con los de los potenciadores (3, 6, 10,
+15, 22), para que ningún hito reparta dos cosas a la vez y luego cuatro no
+repartan nada.
+
+Los bloqueados **se enseñan igual** en el menú, apagados y con lo que falta
+escrito debajo: un personaje que no sabías que existía no tira de ti. Y el
+`personajePreferido` del cuaderno se filtra contra lo desbloqueado al leerlo —
+borrar el progreso pone los tramos a cero pero deja el preferido guardado, y sin
+ese filtro se jugaría con alguien a quien no se ha fichado.
+
+**Lo que hace reconocible a cada uno es la silueta de espaldas**, que es como se
+le ve el 99% del tiempo: la boina ladeada con su rabillo, el casco con cresta
+transversal y el escudo redondo. El detalle de la cara no lo ve nadie.
 
 ### Potenciadores
 

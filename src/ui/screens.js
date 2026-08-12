@@ -15,6 +15,7 @@ import { obtenerEscenario, ORDEN_ESCENARIOS } from '../config/escenarios.js';
 import { CABECERA, hayPendientes, cuantosListos } from '../config/publicaciones.js';
 import { CATALOGO_POTENCIADORES } from '../config/balance.js';
 import { CLASIFICACIONES, clasificacion, tablaConJugador } from '../config/tabla.js';
+import { PERSONAJES } from '../config/personajes.js';
 import * as Icono from './iconos.js';
 
 // ---------------------------------------------------------------------------
@@ -189,19 +190,31 @@ export class Pantallas {
     const abajo = el('div', 'portada__abajo');
 
     // --- Personaje ---------------------------------------------------------
-    // Dos fichas pequeñas: al que eliges se le ve en la escena, así que el
-    // texto ya no tiene que describirlo.
-    let elegido = this.cuaderno.personajePreferido;
-    const definiciones = [
-      { id: 'chochologo', nombre: 'Chochólogo' },
-      { id: 'alondra', nombre: 'Alondra' },
-    ];
+    // Fichas pequeñas: al que eliges se le ve en la escena, así que el texto no
+    // tiene que describirlo.
+    //
+    // LOS BLOQUEADOS SE ENSEÑAN IGUAL, en gris y con el candado. Un personaje
+    // que no sabías que existía no tira de ti; ver una ficha apagada con lo que
+    // falta para ficharla, sí. Es lo mismo que hace el arsenal justo debajo.
+    const abiertos = new Set(this.cuaderno.personajesDesbloqueados());
+    let elegido = abiertos.has(this.cuaderno.personajePreferido)
+      ? this.cuaderno.personajePreferido
+      : PERSONAJES[0].id;
 
     const personajes = el('div', 'elector');
-    const fichas = definiciones.map((def) => {
-      const ficha = el('button', 'elector__ficha', def.nombre);
+    const fichas = PERSONAJES.map((def) => {
+      const abierto = abiertos.has(def.id);
+      const ficha = el('button', `elector__ficha ${abierto ? '' : 'elector__ficha--cerrada'}`.trim());
       ficha.type = 'button';
-      if (def.id === elegido) ficha.classList.add('elector__ficha--elegida');
+      ficha.appendChild(el('span', 'elector__nombre', abierto ? def.nombre : '???'));
+      ficha.title = abierto ? def.nota : `Se ficha a los ${def.tramos} tramos`;
+
+      if (!abierto) {
+        ficha.appendChild(el('span', 'elector__candado', `${def.tramos} tramos`));
+        ficha.disabled = true;
+      } else if (def.id === elegido) {
+        ficha.classList.add('elector__ficha--elegida');
+      }
 
       ficha.addEventListener('click', () => {
         elegido = def.id;
@@ -992,6 +1005,24 @@ export class Pantallas {
    * que habla del futuro en vez del pasado.
    */
   _pintarDesbloqueos(datos, contenido) {
+    // Los personajes van PRIMERO. Fichar a alguien pasa cuatro veces en toda
+    // la vida del juego y un potenciador se abre cinco: de los dos avisos, el
+    // que menos se repite es el que merece ir arriba.
+    for (const per of datos.personajesNuevos ?? []) {
+      const caja = el('div', 'desbloqueo desbloqueo--personaje');
+      const icono = el('span', 'desbloqueo__icono');
+      icono.innerHTML = Icono.sello(34);
+      caja.appendChild(icono);
+
+      const texto = el('span', 'desbloqueo__texto');
+      texto.appendChild(el('span', 'desbloqueo__etiqueta', 'FICHAJE EN LA REDACCIÓN'));
+      texto.appendChild(el('span', 'desbloqueo__nombre', per.nombre));
+      texto.appendChild(el('span', 'desbloqueo__desc', per.nota));
+      caja.appendChild(texto);
+
+      contenido.appendChild(caja);
+    }
+
     for (const pot of datos.potenciadoresNuevos ?? []) {
       const caja = el('div', 'desbloqueo');
       const icono = el('span', 'desbloqueo__icono');

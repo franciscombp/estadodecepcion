@@ -48,6 +48,7 @@ import { Intro } from './Intro.js';
 import { crearEscenario } from '../scenes/index.js';
 import { obtenerEscenario } from '../config/escenarios.js';
 import { CATALOGO_POTENCIADORES } from '../config/balance.js';
+import { PERSONAJES } from '../config/personajes.js';
 import { Controles } from '../utils/controls.js';
 import { remateCaptura, remateExhausto, citaVerificada } from '../config/textos.js';
 import {
@@ -898,17 +899,21 @@ export class Game {
    */
   _cerrarEnCuaderno(resultado) {
     const antes = new Set(this.cuaderno.potenciadoresDesbloqueados());
+    const antesPersonajes = new Set(this.cuaderno.personajesDesbloqueados());
     const { paginasNuevas } = this.cuaderno.registrarPartida(resultado);
 
     const potenciadoresNuevos = CATALOGO_POTENCIADORES.filter(
       (p) => !antes.has(p.id) && this.cuaderno.tramosRecorridos >= p.tramos,
+    );
+    const personajesNuevos = PERSONAJES.filter(
+      (p) => !antesPersonajes.has(p.id) && this.cuaderno.tramosRecorridos >= p.tramos,
     );
 
     // Sin `proximoPotenciador`: la cuenta atrás de "a dos tramos de X" se
     // quitó del fin de partida. Sigue en el menú, que es donde el número tiene
     // a qué referirse —las casillas cerradas del arsenal—, y ahí lo pide la
     // pantalla directamente al cuaderno.
-    return { paginasNuevas, potenciadoresNuevos };
+    return { paginasNuevas, potenciadoresNuevos, personajesNuevos };
   }
 
   // -------------------------------------------------------------------------

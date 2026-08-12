@@ -2497,6 +2497,15 @@ html, body {
   animation: entra-efecto var(--t-lento) var(--rebote);
 }
 
+/* El fichaje de un personaje va en verde y no en cian: es de otra familia que
+   un potenciador —no cambia cómo corres, cambia quién corre— y pasa cuatro
+   veces en toda la vida del juego. */
+.desbloqueo--personaje {
+  background: rgba(var(--verde-rgb), 0.1);
+  border-color: rgba(var(--verde-rgb), 0.5);
+  box-shadow: 0 0 22px rgba(var(--verde-rgb), 0.2);
+}
+
 .desbloqueo__icono { display: flex; flex: 0 0 auto; }
 
 .desbloqueo__texto {
@@ -3183,19 +3192,31 @@ html, body {
   width: 100%;
 }
 
+/* Cuatro fichas donde antes había dos, así que se estrechan y el nombre se
+   parte si hace falta. Se prefirió apretar antes que apilar en dos filas: la
+   banda inferior de la portada es lo que le quita sitio a la escena. */
 .elector__ficha {
   flex: 1 1 0;
-  padding: 11px 8px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 4px;
   border-radius: var(--r-chico);
   background: rgba(13, 18, 32, 0.82);
   border: 2px solid var(--borde);
   color: var(--texto-tenue);
   font-family: inherit;
-  font-size: 0.72rem;
   font-weight: 900;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   cursor: pointer;
   transition: all var(--t-rapido);
+}
+
+.elector__nombre {
+  font-size: clamp(0.56rem, 2.5vw, 0.7rem);
+  line-height: 1.1;
 }
 
 .elector__ficha--elegida {
@@ -3203,6 +3224,22 @@ html, body {
   color: var(--verde);
   background: rgba(var(--verde-rgb), 0.12);
   box-shadow: 0 0 18px rgba(var(--verde-rgb), 0.24);
+}
+
+/* El que todavía no se fichó. Se enseña igual —un personaje que no sabías que
+   existía no tira de ti— pero apagado y con lo que falta escrito debajo. */
+.elector__ficha--cerrada {
+  opacity: 0.42;
+  cursor: default;
+  border-style: dashed;
+}
+
+.elector__candado {
+  font-size: clamp(0.42rem, 1.9vw, 0.5rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--texto-tenue);
+  white-space: nowrap;
 }
 
 /* En la portada el arsenal es una tira estrecha, no un bloque con título. */

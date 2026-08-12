@@ -14,6 +14,7 @@
 // ============================================================================
 
 import { PROGRESO, CATALOGO_POTENCIADORES } from '../config/balance.js';
+import { PERSONAJES } from '../config/personajes.js';
 import { PAGINAS } from '../config/publicaciones.js';
 
 const ESTADO_INICIAL = {
@@ -237,7 +238,22 @@ export class Notebook {
   get evidencias() { return this.estado.evidenciasEncontradas; }
   get rutas() { return this.estado.rutasRecorridas; }
 
-  get personajePreferido() { return this.estado.personajePreferido; }
+  /**
+   * El personaje elegido, SIEMPRE uno que esté desbloqueado.
+   *
+   * El filtro no es paranoia: borrar el progreso pone los tramos a cero pero
+   * el archivo guardado puede seguir teniendo un preferido que ya no está
+   * disponible, y entonces se jugaría con alguien a quien no se ha fichado.
+   * Se resuelve aquí y no en el menú porque el jugador se construye antes de
+   * que exista ninguna pantalla.
+   */
+  get personajePreferido() {
+    const guardado = this.estado.personajePreferido;
+    return this.personajesDesbloqueados().includes(guardado)
+      ? guardado
+      : PERSONAJES[0].id;
+  }
+
   set personajePreferido(nombre) {
     this.estado.personajePreferido = nombre;
     this.guardar();
@@ -268,6 +284,27 @@ export class Notebook {
     return CATALOGO_POTENCIADORES
       .filter((p) => this.tramosRecorridos >= p.tramos)
       .map((p) => p.id);
+  }
+
+  /**
+   * Qué personajes se pueden elegir. Mismo contador que los potenciadores
+   * —tramos recorridos— pero con umbrales intercalados, para que ningún hito
+   * reparta dos cosas a la vez y luego cuatro no repartan nada.
+   */
+  personajesDesbloqueados() {
+    return PERSONAJES
+      .filter((p) => this.tramosRecorridos >= p.tramos)
+      .map((p) => p.id);
+  }
+
+  /** El siguiente por fichar, con cuánto falta. Null si ya están todos. */
+  proximoPersonaje() {
+    const siguiente = PERSONAJES
+      .filter((p) => this.tramosRecorridos < p.tramos)
+      .sort((a, b) => a.tramos - b.tramos)[0];
+
+    if (!siguiente) return null;
+    return { ...siguiente, faltan: siguiente.tramos - this.tramosRecorridos };
   }
 
   /**

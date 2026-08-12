@@ -45,8 +45,18 @@ chiste— sino aguantando de pie el tiempo suficiente para publicar.
 |---|---|---|
 | 🎩 | **Chochólogo** | Jugable. Sombrero, gafas y treinta años de oficio. |
 | 🪕 | **Alondra** | Jugable. Rizos, ukulele y todavía cree que esto sirve. |
+| 🎖️ | **Buscán** | Jugable a los 8 tramos. Boina y traje; pregunta como si ya supiera. |
+| 🛡️ | **Blanki** | Jugable a los 18 tramos. Casco de espartana; no se aparta. |
 | 🕴️ | **El bajito** | Persigue. Va montado sobre el grande y señala. |
 | 🧍 | **El grande** | Persigue. Corre pesado y carga al otro. |
+
+Los cuatro jugables son la misma redacción y llevan la misma credencial: lo que
+cambia es con qué entra cada uno a preguntar. A Buscán le abren la puerta por
+el traje; a Blanki no la cierran porque está en medio.
+
+Lo que los distingue en pantalla es **la silueta de espaldas**, que es como se
+les ve el 99% del tiempo: sombrero de ala, rizos, boina ladeada, casco con
+cresta. El detalle de la cara no lo ve nadie.
 
 Los dos persiguen **desde atrás**, en cuadro, entre la cámara y el jugador,
 y **pegados a un lado**: de frente le tapan al personaje el cuerpo entero.

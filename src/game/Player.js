@@ -12,7 +12,7 @@
 
 import * as THREE from 'three';
 import { CARRILES, SALTO, AGACHARSE, JUGADOR } from '../config/balance.js';
-import { crearChochologo, crearAlondra, animarCarrera, aplicarPoseAgachado } from '../models/characters.js';
+import { crearPersonaje, animarCarrera, aplicarPoseAgachado } from '../models/characters.js';
 import { crearCaja } from '../utils/collision.js';
 
 export class Player {
@@ -24,7 +24,7 @@ export class Player {
     this.escena = escena;
 
     // ---- Modelo visual ----------------------------------------------------
-    this.modelo = personaje === 'alondra' ? crearAlondra() : crearChochologo();
+    this.modelo = crearPersonaje(personaje);
     this.modelo.position.set(0, 0, 0);
     // Media vuelta: el personaje se construye mirando a +Z (con las gafas y la
     // credencial delante), pero corre hacia -Z. Sin esta rotación veríamos su
@@ -558,7 +558,7 @@ export class Player {
   /** Cambia el personaje jugable en caliente. */
   cambiarPersonaje(nombre) {
     this.escena.remove(this.modelo);
-    this.modelo = nombre === 'alondra' ? crearAlondra() : crearChochologo();
+    this.modelo = crearPersonaje(nombre);
     this.modelo.rotation.y = Math.PI;
     this.escena.add(this.modelo);
     this.reiniciar();
