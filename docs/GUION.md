@@ -469,14 +469,37 @@ La continuidad importa: retomas donde te capturaron, no siempre en la Bahía.
 Volver al principio cada vez convierte cada muerte en un reinicio del relato en
 lugar de en un capítulo.
 
-### 4 · La tabla de posiciones
+### 4 · Se pasa de hoja: DEPORTES
 
-Debajo de la portada va **la tabla**, maquetada como la tabla de resultados de
-un diario: puesto, arroba y cifra alineada a la derecha. Se ordena **por
-papeles recogidos**, lo mismo que se imprime grande arriba —una tabla que
-midiera otra cosa que el titular sería dos juegos a la vez—. Primero siempre
-`@paquimal`, que es el director; después el hueco marcado con puntos
-suspensivos si lo hay; y luego tú, entre tus dos vecinos.
+La portada termina con un botón, CONTINUAR, y **se pasa de página**. La
+siguiente es la sección de deportes del mismo ejemplar: misma mancheta, mismo
+papel, la tabla de posiciones.
+
+Estaban las dos cosas en la misma página y no cabían. La portada quiere foto
+grande y una cifra enorme; la tabla quiere filas. Juntas obligaban a hacer
+scroll justo en el momento en que lo único que se quiere es volver a jugar.
+
+**Tres clasificaciones, en pestañas**, porque un solo marcador premia una sola
+forma de jugar:
+
+| Pestaña | Qué mide |
+|---|---|
+| **Papeles** | Todo lo recogido, partida tras partida |
+| **Distancia** | Metros corridos desde la primera entrevista |
+| **Mejor corrida** | Papeles en una sola partida |
+
+Las dos primeras premian insistir; la tercera, una tarde inspirada. Quien juega
+mucho y regular manda arriba; quien tuvo una corrida buena manda abajo. Con una
+sola tabla, la mitad de los jugadores no tenía dónde salir.
+
+Cada una va maquetada como la tabla de resultados de un diario: puesto, arroba
+y cifra alineada a la derecha. Primero siempre `@paquimal`, que es el director;
+después el hueco marcado con puntos suspensivos si lo hay; y luego tú, entre
+tus dos vecinos.
+
+De aquí se sale por **INTENTAR DE NUEVO** —que devuelve a la escena donde te
+capturaron— o por **VER TODO EL DIARIO**, que abre el Archivo con tus
+investigaciones.
 
 No se enseñan los diez de golpe. En un móvil eso obliga a hacer scroll dentro
 de una pantalla que ya es larga, y el séptimo puesto no le importa a nadie: lo

@@ -14,7 +14,7 @@
 import { obtenerEscenario, ORDEN_ESCENARIOS } from '../config/escenarios.js';
 import { CABECERA, hayPendientes, cuantosListos } from '../config/publicaciones.js';
 import { CATALOGO_POTENCIADORES } from '../config/balance.js';
-import { tablaConJugador } from '../config/tabla.js';
+import { CLASIFICACIONES, clasificacion, tablaConJugador } from '../config/tabla.js';
 import * as Icono from './iconos.js';
 
 // ---------------------------------------------------------------------------
@@ -50,6 +50,55 @@ function pantallaBase() {
   const contenido = el('div', 'pantalla__contenido');
   pantalla.appendChild(contenido);
   return { pantalla, contenido };
+}
+
+/**
+ * Numera los hijos de un contenedor para que entren EN CASCADA.
+ *
+ * Toda la pantalla apareciendo a la vez se lee como un cambio de diapositiva;
+ * entrando de arriba abajo con cuarenta milisegundos entre pieza se lee como
+ * algo que se está montando delante de ti, y el ojo va siguiendo. Es el truco
+ * más barato que existe para que una pantalla se sienta viva, y solo cuesta
+ * una variable CSS por hijo.
+ *
+ * El retardo se corta a los ocho elementos: más allá, quien llega el último
+ * aparece medio segundo tarde y eso ya no es cascada, es esperar.
+ */
+function escalonar(contenedor, desde = 0) {
+  [...contenedor.children].forEach((hijo, i) => {
+    hijo.style.setProperty('--i', String(Math.min(desde + i, 8)));
+    hijo.classList.add('en-cascada');
+  });
+  return contenedor;
+}
+
+/**
+ * Cuenta desde cero hasta la cifra final.
+ *
+ * Un número que aparece ya puesto es un dato; un número que sube es un premio.
+ * Es la misma razón por la que en cualquier juego de móvil el marcador nunca
+ * se limita a aparecer, y aquí encima cae bien: lo que sube son los papeles
+ * que costó recoger.
+ *
+ * Va con requestAnimationFrame y reloj real —no con una transición CSS— porque
+ * lo que se anima es el TEXTO, y eso no se puede interpolar declarativamente.
+ * Se corta sola si el elemento sale de pantalla antes de terminar.
+ */
+function contarHasta(nodo, valor, duracion = 900) {
+  if (valor <= 0) { nodo.textContent = '0'; return; }
+
+  const arranque = performance.now();
+  const paso = (ahora) => {
+    if (!nodo.isConnected) return;
+    const t = Math.min(1, (ahora - arranque) / duracion);
+    // Desaceleración fuerte: sube de golpe y frena al final, que es donde el
+    // ojo lee la cifra.
+    const suave = 1 - (1 - t) ** 3;
+    nodo.textContent = Math.round(valor * suave).toLocaleString('es-EC');
+    if (t < 1) requestAnimationFrame(paso);
+  };
+  nodo.textContent = '0';
+  requestAnimationFrame(paso);
 }
 
 /** Rejilla de estadísticas. */
@@ -189,6 +238,7 @@ export class Pantallas {
       this.mostrar(this.ajustes());
     }));
     abajo.appendChild(secundarios);
+    escalonar(abajo);
 
     contenido.appendChild(abajo);
     return pantalla;
@@ -197,35 +247,13 @@ export class Pantallas {
   // -------------------------------------------------------------------------
   // MARCADORES
   // -------------------------------------------------------------------------
-  // La tabla completa, en su propia página del periódico. En la portada de
-  // derrota solo cabe el entorno del jugador; aquí están los diez.
+  // Es la MISMA página de deportes que sale al perder, sin los datos de la
+  // partida: mismas tres pestañas y mismo papel. Tener dos tablas distintas
+  // —una desde el menú y otra al perder— era mantener dos maquetas para lo
+  // mismo, y a la segunda ya no coincidían.
 
   marcadores() {
-    const { pantalla, contenido } = pantallaBase();
-    pantalla.classList.add('pantalla--plana');
-
-    const plana = el('div', 'plana');
-
-    const cab = el('header', 'plana__cabecera');
-    cab.appendChild(el('span', 'plana__nombre', CABECERA.nombre));
-    cab.appendChild(el('span', 'plana__fecha', 'DEPORTES'));
-    plana.appendChild(cab);
-
-    plana.appendChild(el('div', 'plana__antetitulo', 'QUIÉN DOCUMENTA MÁS'));
-    plana.appendChild(el('h1', 'plana__titular', 'TABLA GENERAL'));
-
-    // Va con la MEJOR corrida, no con lo que se lleva acumulado. El acumulado
-    // premia insistir; la marca personal premia una corrida buena, que es lo
-    // que se compara cuando dos personas hablan de este juego.
-    plana.appendChild(this._tablaPosiciones(this.cuaderno.mejorPapeles, 99));
-    contenido.appendChild(plana);
-
-    const botones = el('div', 'botones');
-    botones.appendChild(boton('Volver', 'boton--principal',
-      () => this.juego.volverAlMenu()));
-    contenido.appendChild(botones);
-
-    return pantalla;
+    return this.deportes(null);
   }
 
   // -------------------------------------------------------------------------
@@ -280,6 +308,7 @@ export class Pantallas {
     pie.appendChild(enlace);
     contenido.appendChild(pie);
 
+    escalonar(contenido);
     return pantalla;
   }
 
@@ -514,6 +543,7 @@ export class Pantallas {
     ));
     contenido.appendChild(botones);
 
+    escalonar(contenido);
     return pantalla;
   }
 
@@ -682,6 +712,7 @@ export class Pantallas {
       () => this.juego.volverAlMenu()));
     contenido.appendChild(botones);
 
+    escalonar(contenido);
     return pantalla;
   }
 
@@ -699,16 +730,110 @@ export class Pantallas {
 
     contenido.appendChild(this._primeraPlana(datos));
 
+    // UN SOLO BOTÓN. La portada es una página, no un menú: aquí solo se pasa
+    // de hoja. Las tres opciones de antes —volver, archivo, menú— cabían mal y
+    // encima obligaban a decidir antes de haber terminado de leer.
     const botones = el('div', 'botones');
-    const donde = obtenerEscenario(datos.escenario ?? this.juego.escenarioActual);
-    botones.appendChild(boton(`Volver a ${donde.nombre}`, 'boton--principal',
-      () => this.juego.iniciarPartida()));
-    botones.appendChild(boton('Archivo de El Mercio', '',
-      () => this.mostrar(this.notebook())));
-    botones.appendChild(boton('Menú principal', 'boton--tenue',
-      () => this.juego.volverAlMenu()));
+    botones.appendChild(boton('CONTINUAR', 'boton--principal',
+      () => this.mostrar(this.deportes(datos))));
     contenido.appendChild(botones);
 
+    escalonar(contenido);
+    return pantalla;
+  }
+
+  // -------------------------------------------------------------------------
+  // DEPORTES — la segunda página del mismo ejemplar
+  // -------------------------------------------------------------------------
+  // Se pasa de hoja y la portada da paso a la tabla, con sus tres
+  // clasificaciones en pestañas. Es la misma edición: misma mancheta, mismo
+  // papel, otra sección.
+  //
+  // Estaban las dos cosas en la misma página y no cabían: la portada quiere
+  // foto grande y una cifra enorme, la tabla quiere filas. Juntas obligaban a
+  // hacer scroll justo en el momento en que el jugador quiere volver a jugar.
+
+  deportes(datos = null) {
+    const { pantalla, contenido } = pantallaBase();
+    pantalla.classList.add('pantalla--plana');
+
+    const plana = el('div', 'plana');
+
+    const cab = el('header', 'plana__cabecera');
+    cab.appendChild(el('span', 'plana__nombre', CABECERA.nombre));
+    cab.appendChild(el('span', 'plana__fecha', 'DEPORTES'));
+    plana.appendChild(cab);
+
+    plana.appendChild(el('div', 'plana__antetitulo', 'QUIÉN DOCUMENTA MÁS'));
+
+    // El título y el epígrafe cambian con la pestaña, así que se guardan.
+    const titular = el('h1', 'plana__titular plana__titular--tabla', '');
+    const epigrafe = el('div', 'plana__epigrafe', '');
+    const cuerpoTabla = el('div', 'plana__tabla');
+
+    // --- Pestañas ----------------------------------------------------------
+    const pestanas = el('div', 'pestanas');
+    const botonesPestana = new Map();
+
+    const pintar = (id) => {
+      const clase = clasificacion(id);
+      titular.textContent = clase.titulo;
+      epigrafe.textContent = clase.epigrafe;
+
+      for (const [otro, b] of botonesPestana) {
+        b.classList.toggle('pestana--activa', otro === id);
+      }
+
+      cuerpoTabla.innerHTML = '';
+      cuerpoTabla.appendChild(this._listaPosiciones(clase, datos));
+      this.pestanaDeportes = id;
+    };
+
+    for (const clase of CLASIFICACIONES) {
+      const b = boton(clase.pestana, 'pestana', () => {
+        this.audio.cambioCarril();
+        pintar(clase.id);
+      });
+      pestanas.appendChild(b);
+      botonesPestana.set(clase.id, b);
+    }
+
+    plana.appendChild(titular);
+    plana.appendChild(pestanas);
+    plana.appendChild(epigrafe);
+    plana.appendChild(cuerpoTabla);
+
+    // Al perder se abre SIEMPRE por la marca personal, que es la que habla de
+    // la partida que se acaba de jugar. Desde el menú se recuerda la última
+    // que se miró, porque ahí sí se está buscando algo concreto.
+    pintar(datos ? 'mejor' : (this.pestanaDeportes ?? 'papeles'));
+
+    plana.appendChild(el('div', 'plana__nota-tabla',
+      'Tabla de muestra. Todavía no hay marcadores en línea: los puestos que no '
+      + 'son el tuyo son de mentira, como tantas cosas.'));
+
+    // Lo desbloqueado va aquí y no en la portada: es lo último que se lee
+    // antes de decidir si se vuelve a correr, y habla del futuro.
+    if (datos) this._pintarDesbloqueos(datos, plana);
+
+    contenido.appendChild(plana);
+
+    const botones = el('div', 'botones');
+    if (datos) {
+      const donde = obtenerEscenario(datos.escenario ?? this.juego.escenarioActual);
+      botones.appendChild(boton(`INTENTAR DE NUEVO · ${donde.nombre}`, 'boton--principal',
+        () => this.juego.iniciarPartida()));
+      botones.appendChild(boton('Ver todo el diario', '',
+        () => this.mostrar(this.notebook())));
+      botones.appendChild(boton('Menú principal', 'boton--tenue',
+        () => this.juego.volverAlMenu()));
+    } else {
+      botones.appendChild(boton('Volver', 'boton--principal',
+        () => this.juego.volverAlMenu()));
+    }
+    contenido.appendChild(botones);
+
+    escalonar(contenido);
     return pantalla;
   }
 
@@ -758,10 +883,18 @@ export class Pantallas {
     const papeles = datos.papeles ?? 0;
     const marcador = el('div', 'plana__marcador');
     marcador.appendChild(el('span', 'plana__marcador-rotulo', 'PAPELES RECOGIDOS'));
-    marcador.appendChild(el('span', 'plana__marcador-cifra',
-      papeles.toLocaleString('es-EC')));
+
+    const cifra = el('span', 'plana__marcador-cifra', '0');
+    marcador.appendChild(cifra);
+    contarHasta(cifra, papeles);
+
     if (datos.esRecord && papeles > 0) {
-      marcador.appendChild(el('span', 'plana__record', 'RÉCORD PERSONAL'));
+      const sello = el('span', 'plana__record', 'RÉCORD PERSONAL');
+      // El sello cae DESPUÉS de que la cifra termine de subir. Apareciendo a la
+      // vez compiten, y lo que se quiere es que primero se lea el número y
+      // luego llegue la palmadita.
+      sello.style.animationDelay = '0.95s';
+      marcador.appendChild(sello);
     }
     plana.appendChild(marcador);
 
@@ -778,21 +911,10 @@ export class Pantallas {
       plana.appendChild(el('div', 'plana__firma', 'El Mercio'));
     }
 
-    // --- Cita verificada, si el equipo cargó alguna ------------------------
-    if (datos.cita) {
-      const cita = el('div', 'cita cita--plana');
-      cita.appendChild(el('div', 'cita__texto', `«${datos.cita.texto}»`));
-      cita.appendChild(el('span', 'cita__fuente',
-        `${datos.cita.autor} · ${datos.cita.fuente} · ${datos.cita.fecha}`));
-      plana.appendChild(cita);
-    }
-
-    // --- Tabla de posiciones ----------------------------------------------
-    plana.appendChild(this._tablaPosiciones(papeles));
-
-    // --- Lo que se desbloqueó ---------------------------------------------
-    this._pintarDesbloqueos(datos, plana);
-
+    // La TABLA y los DESBLOQUEOS ya no están aquí: se fueron a la página de
+    // deportes. Con todo junto la portada no cabía en una pantalla de móvil y
+    // había que hacer scroll justo cuando lo que se quiere es volver a jugar.
+    // Una portada es una portada: titular, foto, cifra y a pasar de hoja.
     return plana;
   }
 
@@ -822,21 +944,24 @@ export class Pantallas {
   }
 
   /**
-   * Tabla de posiciones, maquetada como la de un diario deportivo: puesto,
-   * nombre y cifra, alineada a la derecha y con filete entre filas.
+   * La lista de una clasificación, maquetada como la tabla de resultados de un
+   * diario: puesto, arroba y cifra alineada a la derecha, con filete entre
+   * filas.
    *
    * Solo se enseñan el primero y el entorno del jugador. Los diez completos en
    * un móvil obligan a hacer scroll dentro de una pantalla que ya es larga, y
    * a nadie le importa el séptimo.
+   *
+   * @param {object} clase  Una de CLASIFICACIONES
+   * @param {object|null} datos Resultado de la partida recién terminada
    */
-  _tablaPosiciones(papeles, alrededor = 1) {
-    const bloque = el('section', 'plana__tabla');
-    bloque.appendChild(el('h2', 'plana__seccion', 'TABLA DE POSICIONES'));
-    bloque.appendChild(el('div', 'plana__epigrafe', 'Por papeles recogidos'));
-
+  _listaPosiciones(clase, datos = null) {
+    // El valor del jugador sale del cuaderno, que ya se cerró con esta
+    // partida antes de pintar nada: no hay que sumarle el resultado a mano.
+    const mio = clase.valor(this.cuaderno);
     const lista = el('ol', 'posiciones');
 
-    for (const fila of tablaConJugador(papeles, alrededor)) {
+    for (const fila of tablaConJugador(clase, mio)) {
       if (fila.corte) {
         lista.appendChild(el('li', 'posiciones__corte', '⋯'));
         continue;
@@ -850,18 +975,13 @@ export class Pantallas {
       if (fila.nota) quien.appendChild(el('span', 'posiciones__nota', fila.nota));
       item.appendChild(quien);
 
-      item.appendChild(el('span', 'posiciones__cifra', fila.papeles.toLocaleString('es-EC')));
+      item.appendChild(el('span', 'posiciones__cifra',
+        fila.valor.toLocaleString('es-EC') + clase.unidad));
       lista.appendChild(item);
     }
 
-    bloque.appendChild(lista);
-    // El periódico dice lo que sabe. No hay servidor detrás y fingir que sí lo
-    // hay sería exactamente lo que este juego critica.
-    bloque.appendChild(el('div', 'plana__nota-tabla',
-      'Tabla de muestra. Todavía no hay marcadores en línea: los puestos que no '
-      + 'son el tuyo son de mentira, como tantas cosas.'));
-
-    return bloque;
+    escalonar(lista);
+    return lista;
   }
 
   /**
@@ -1135,6 +1255,7 @@ export class Pantallas {
       () => this.juego.terminarPartida('captura')));
     contenido.appendChild(botones);
 
+    escalonar(contenido);
     return pantalla;
   }
 }

@@ -314,7 +314,29 @@ html, body {
 }
 
 /* Contador de papeles */
+/* El «+3» que sale del contador y sube. Es la recompensa más pequeña del juego
+   y la que más veces ocurre —unas cien por partida—, y es la que enseña que
+   los papeles no valen todos lo mismo sin decirlo en ninguna parte. */
+.suma-flotante {
+  position: absolute;
+  right: 46px;
+  top: 4px;
+  font-size: clamp(0.8rem, 3.4vw, 1rem);
+  font-weight: 900;
+  color: var(--dorado);
+  text-shadow: 0 0 10px rgba(var(--dorado-rgb), 0.8);
+  pointer-events: none;
+  animation: suma-sube 0.72s cubic-bezier(0.15, 0.9, 0.3, 1) forwards;
+}
+
+@keyframes suma-sube {
+  from { opacity: 0; transform: translateY(6px) scale(0.7); }
+  22%  { opacity: 1; transform: translateY(-2px) scale(1.12); }
+  to   { opacity: 0; transform: translateY(-30px) scale(0.95); }
+}
+
 .contador {
+  position: relative;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -779,11 +801,15 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* Ajustado para que las pantallas largas —el Archivo, la portada de
+     derrota— quepan enteras en un móvil. Cada punto de relleno vertical se
+     paga dos veces, y son los últimos diez píxeles los que deciden si hay
+     barra de scroll o no. */
   padding:
-    calc(var(--seg-arriba) + 20px)
-    calc(var(--seg-der) + 18px)
-    calc(var(--seg-abajo) + 20px)
-    calc(var(--seg-izq) + 18px);
+    calc(var(--seg-arriba) + 14px)
+    calc(var(--seg-der) + 16px)
+    calc(var(--seg-abajo) + 14px)
+    calc(var(--seg-izq) + 16px);
   background:
     radial-gradient(ellipse at 50% 0%, rgba(var(--dorado-rgb), 0.08), transparent 55%),
     linear-gradient(165deg, rgba(10, 14, 23, 0.96), rgba(5, 7, 12, 0.985));
@@ -804,6 +830,65 @@ html, body {
   width: 100%;
   max-width: 540px;
   text-align: center;
+}
+
+/* SIN SCROLL EN LOS MENÚS.
+   La regla es que cada pantalla quepa entera, y el Archivo es la que anda más
+   justa: cabecera, artículos y navegador de páginas. Estos cuatro píxeles son
+   los que faltaban en un móvil de 760 de alto. */
+.pantalla--periodico .pantalla__contenido { max-width: 520px; }
+.pantalla--periodico .diario { padding: clamp(12px, 3.6vw, 20px); }
+.pantalla--periodico .diario__cuerpo { gap: 10px; }
+
+/* ==========================================================================
+   MICROINTERACCIONES
+   ==========================================================================
+   Las pantallas no aparecen: se montan. Cada pieza entra un poco después que
+   la anterior, de arriba abajo, y el ojo va siguiendo el montaje en vez de
+   encontrarse una diapositiva nueva de golpe.
+
+   El índice lo pone `escalonar()` desde JS, como variable CSS. Cuarenta
+   milisegundos por pieza y tope de ocho: más allá, quien llega el último
+   aparece medio segundo tarde y eso ya no es cascada, es esperar.
+
+   REGLA: nada de esto puede tardar tanto que estorbe. Quien acaba de perder
+   quiere volver a jugar; la animación acompaña, no retiene. */
+
+.en-cascada {
+  animation: pieza-entra 0.42s var(--rebote) backwards;
+  animation-delay: calc(var(--i, 0) * 0.04s);
+}
+
+@keyframes pieza-entra {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Flotación lenta para lo que tiene que llamar sin gritar. Un elemento que
+   respira despacio se percibe aunque no se esté mirando; uno quieto, no. */
+.flota {
+  animation: flotar 3.6s ease-in-out infinite;
+}
+
+@keyframes flotar {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-5px); }
+}
+
+/* Quien pida menos movimiento, menos movimiento. No es un adorno accesible:
+   para parte de la gente estas animaciones son mareo, no dopamina. */
+@media (prefers-reduced-motion: reduce) {
+  .en-cascada,
+  .flota,
+  .boton--principal::after,
+  .boton--jugar,
+  .plana__marcador-cifra,
+  .plana__record,
+  .pantalla--plana .posiciones__fila--tu,
+  .suma-flotante,
+  .pantalla {
+    animation: none !important;
+  }
 }
 
 /* --- Cabecera ------------------------------------------------------------- */
@@ -855,8 +940,10 @@ html, body {
 .botones {
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  margin: 18px 0;
+  gap: 8px;
+  /* Sin margen inferior: es lo último de la pantalla y ese hueco solo servía
+     para empujar el conjunto fuera del alto disponible. */
+  margin: 14px 0 0;
 }
 
 .boton {
@@ -879,13 +966,38 @@ html, body {
               border-color var(--t-rapido);
 }
 
-.boton:active { transform: scale(0.97); }
+/* El botón se hunde al pulsar y REBOTA al soltar. El rebote está en la
+   transición, no en el :active: al soltar, el navegador vuelve al estado de
+   reposo con la curva elástica y eso se siente como un muelle. Cuesta una
+   línea y es la diferencia entre pulsar un botón y tocar un cristal. */
+.boton:active { transform: scale(0.94); }
 
 @media (hover: hover) {
   .boton:hover {
     background: rgba(255, 255, 255, 0.09);
     border-color: rgba(255, 255, 255, 0.24);
+    transform: translateY(-1px);
   }
+}
+
+/* Brillo que cruza el botón principal cada pocos segundos. Es el reclamo más
+   viejo del género —el destello del botón de "jugar"— y funciona porque el ojo
+   persigue lo que se mueve: en una pantalla quieta, lo único que se mueve es
+   lo que hay que pulsar. */
+.boton--principal::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg,
+    transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: brillo-boton 3.4s ease-in-out 1.2s infinite;
+  pointer-events: none;
+}
+
+@keyframes brillo-boton {
+  0%, 62% { transform: translateX(-120%); }
+  78%, 100% { transform: translateX(120%); }
 }
 
 .boton--principal {
@@ -1582,7 +1694,7 @@ html, body {
   background: var(--papel);
   color: var(--tinta);
   font-family: var(--serif);
-  padding: clamp(16px, 5vw, 26px);
+  padding: clamp(14px, 4.4vw, 24px);
   border-radius: 3px;
   text-align: left;
   /* Sombra dura y baja: papel apoyado, no tarjeta flotante. */
@@ -1660,13 +1772,17 @@ html, body {
 
 /* --- Artículos ------------------------------------------------------------ */
 
-.diario__cuerpo { display: flex; flex-direction: column; gap: 16px; }
+/* Apretado a propósito: el Archivo es la pantalla con más contenido del juego
+   —cabecera, artículos y el navegador de páginas— y con los huecos holgados de
+   antes se salía del alto de un móvil por un pelo. Ver la regla de "sin
+   scroll" en el README. */
+.diario__cuerpo { display: flex; flex-direction: column; gap: 12px; }
 
 .diario__columnas {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 16px;
-  padding-top: 14px;
+  gap: 12px;
+  padding-top: 11px;
   border-top: 1px solid var(--tinta-tenue);
 }
 
@@ -1681,7 +1797,7 @@ html, body {
     border-left: 0;
     padding-left: 0;
     border-top: 1px solid var(--tinta-tenue);
-    padding-top: 14px;
+    padding-top: 11px;
   }
 }
 
@@ -2324,12 +2440,37 @@ html, body {
     0 0 34px rgba(var(--dorado-rgb), 0.45);
 }
 
+/* Se hunde sobre su propia sombra dura, como una tecla de verdad. El
+   `translateY` y la sombra menguante son el mismo gesto: lo que baja es el
+   botón, y lo que se acorta es el hueco que deja debajo. */
 .boton--jugar:active {
   transform: translateY(4px);
   box-shadow:
     0 2px 0 #8a6d1f,
     0 0 24px rgba(var(--dorado-rgb), 0.4);
 }
+
+/* Y respira despacio mientras nadie lo toca. En una portada quieta, lo único
+   que se mueve es lo que hay que pulsar.
+
+   LATE CON EL RESPLANDOR, NO CON LA ESCALA. Un botón que cambia de tamaño sin
+   parar es un blanco que se mueve: molesta al pulsar en un móvil y rompe
+   cualquier automatismo que espere a que el elemento esté quieto. El halo da
+   la misma sensación de "está vivo" sin mover un píxel de la caja. */
+.boton--jugar {
+  animation: late-jugar 2.6s ease-in-out 0.8s infinite;
+}
+
+@keyframes late-jugar {
+  0%, 100% {
+    box-shadow: 0 6px 0 #8a6d1f, 0 0 34px rgba(var(--dorado-rgb), 0.45);
+  }
+  50% {
+    box-shadow: 0 6px 0 #8a6d1f, 0 0 52px rgba(var(--dorado-rgb), 0.78);
+  }
+}
+
+.boton--jugar:active { animation: none; }
 
 .portada__secundarios {
   display: flex;
@@ -2485,8 +2626,8 @@ html, body {
 
 .plana {
   width: 100%;
-  padding: 18px 18px 16px;
-  margin-bottom: 16px;
+  padding: 16px 18px 14px;
+  margin-bottom: 14px;
   border-radius: 3px;
   background: #f3ecdc;
   color: #16130d;
@@ -2549,7 +2690,15 @@ html, body {
   font-weight: 700;
   line-height: 1.02;
   letter-spacing: -0.01em;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+}
+
+/* En deportes el titular cambia con la pestaña, así que va más contenido: si
+   ocupara lo mismo que el de la portada, "MEJOR CORRIDA" partiría en dos
+   líneas y la tabla se saldría de pantalla. */
+.plana__titular--tabla {
+  font-size: clamp(1.1rem, 5.4vw, 1.5rem);
+  margin-bottom: 2px;
 }
 
 .plana__bajada {
@@ -2726,7 +2875,7 @@ html, body {
 
 .plana__foto {
   position: relative;
-  margin: 12px 0 10px;
+  margin: 10px 0 8px;
   overflow: hidden;
   background: #1a1610;
   border: 1px solid rgba(0, 0, 0, 0.35);
@@ -2774,8 +2923,8 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  margin: 12px 0 6px;
-  padding: 10px 12px 12px;
+  margin: 10px 0 4px;
+  padding: 8px 12px 10px;
   border-top: 3px double #16130d;
   border-bottom: 3px double #16130d;
 }
@@ -2796,6 +2945,9 @@ html, body {
   color: #16130d;
 }
 
+/* El sello de récord CAE sobre el papel, como un tampón. Entra girado y de
+   más tamaño y se asienta con un golpe seco: es la única recompensa que da
+   esta pantalla y merece su medio segundo. */
 .plana__record {
   margin-top: 4px;
   padding: 2px 9px;
@@ -2804,6 +2956,37 @@ html, body {
   letter-spacing: 0.14em;
   color: #f3ecdc;
   background: #a3231f;
+  animation: sello-cae 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) backwards;
+}
+
+@keyframes sello-cae {
+  from { opacity: 0; transform: scale(2.4) rotate(-14deg); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: scale(1) rotate(-3deg); }
+}
+
+/* La cifra grande respira. Es el número que se está mirando cuando termina de
+   subir, y quieto se apaga en cuanto deja de contar. */
+.plana__marcador-cifra {
+  animation: respira-cifra 2.8s ease-in-out 1s infinite;
+}
+
+/* Muy poco a propósito: el navegador cuenta lo escalado dentro del área
+   desbordable, así que un latido generoso en la cifra más grande de la página
+   crea scroll donde no lo había. Dos puntos porcentuales se perciben y no
+   mueven el fondo de la pantalla. */
+@keyframes respira-cifra {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.018); }
+}
+
+.pantalla--plana .posiciones__fila--tu {
+  animation: destaca-fila 1.6s ease-in-out 0.5s 2;
+}
+
+@keyframes destaca-fila {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.025); }
 }
 
 .plana__datos {
@@ -2825,6 +3008,49 @@ html, body {
   letter-spacing: 0.2em;
   color: #16130d;
   border-bottom: 2px solid #16130d;
+}
+
+/* --- Pestañas de la página de deportes -------------------------------------
+   Tres clasificaciones. Van con aspecto de índice de sección impresa: caja
+   alta, filete abajo y la activa con la pestaña rellena, como el separador de
+   un archivador. */
+
+.pestanas {
+  display: flex;
+  gap: 4px;
+  margin: 8px 0 6px;
+  border-bottom: 2px solid #16130d;
+}
+
+.pestana {
+  flex: 1 1 0;
+  min-height: 0;
+  padding: 7px 4px 8px;
+  border: 2px solid transparent;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  background: rgba(22, 19, 13, 0.07);
+  color: #4a4034;
+  font-size: clamp(0.5rem, 2.2vw, 0.62rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@media (hover: hover) {
+  .pestana:hover {
+    background: rgba(22, 19, 13, 0.13);
+    border-color: transparent;
+    transform: none;
+  }
+}
+
+.pestana--activa {
+  background: #16130d;
+  color: #f4efe2;
+  transform: translateY(2px);
 }
 
 /* Debajo del rótulo de sección: por qué se ordena la tabla. Sin esto, una

@@ -32,6 +32,9 @@ const ESTADO_INICIAL = {
   // partir de la segunda visita solo queda la acusación de siempre. Ver
   // Game._contarInstitucion().
   institucionesContadas: [],
+  // Metros acumulados de todas las partidas. Es la segunda clasificación de la
+  // página de deportes; `mejorDistancia` es otra cosa (la mejor corrida).
+  distanciaHistorica: 0,
   partidasJugadas: 0,
   rutasRecorridas: [],    // Historial de escenarios visitados
   personajePreferido: 'chochologo',
@@ -120,6 +123,7 @@ export class Notebook {
     this.estado.mejorDistancia = Math.max(this.estado.mejorDistancia, resultado.distancia);
     this.estado.mejorPuntaje = Math.max(this.estado.mejorPuntaje, resultado.puntaje);
     this.estado.mejorPapeles = Math.max(this.estado.mejorPapeles ?? 0, resultado.papeles);
+    this.estado.distanciaHistorica = (this.estado.distanciaHistorica ?? 0) + resultado.distancia;
 
     // Evidencias: guardamos cada tipo una sola vez.
     for (const ev of resultado.evidencias ?? []) {
@@ -215,6 +219,7 @@ export class Notebook {
   // Con `?? 0` porque a quien ya venía jugando no se le guardó nunca: el
   // estado se lee de localStorage y las partidas viejas no traen este campo.
   get mejorPapeles() { return this.estado.mejorPapeles ?? 0; }
+  get distanciaHistorica() { return this.estado.distanciaHistorica ?? 0; }
 
   /** ¿Ya se contó el relato de este ente de control? */
   yaConoceInstitucion(id) {

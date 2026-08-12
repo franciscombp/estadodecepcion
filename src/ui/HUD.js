@@ -272,6 +272,7 @@ export class HUD {
         this.ref.papeles.classList.remove('late');
         void this.ref.papeles.offsetWidth; // Reinicia la animación.
         this.ref.papeles.classList.add('late');
+        this._sumarFlotante(datos.papeles - c.papeles);
       }
       c.papeles = datos.papeles;
     }
@@ -520,6 +521,27 @@ export class HUD {
         this.ref.avisos.removeChild(aviso);
       }
     }, 2400);
+  }
+
+  /**
+   * El «+3» que sale del contador y sube.
+   *
+   * Es la recompensa más pequeña del juego y la que más veces ocurre: unas
+   * cien por partida. El contador ya subía y latía, pero eso solo dice que
+   * algo cambió; el número flotante dice CUÁNTO, y sobre todo lo dice donde
+   * está pasando, sin que haya que leer el marcador.
+   *
+   * Se destruye solo al acabar la animación. No hay pool porque no hace falta:
+   * a lo sumo hay dos o tres vivos a la vez, y cada uno es un span.
+   */
+  _sumarFlotante(cantidad) {
+    if (cantidad <= 0 || !this.ref?.papeles) return;
+
+    const chip = document.createElement('span');
+    chip.className = 'suma-flotante';
+    chip.textContent = `+${cantidad}`;
+    this.ref.papeles.parentNode.appendChild(chip);
+    chip.addEventListener('animationend', () => chip.remove());
   }
 
   limpiarAvisos() {

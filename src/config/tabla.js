@@ -1,17 +1,23 @@
 // ============================================================================
-// TABLA DE POSICIONES
+// TABLA DE POSICIONES — la página de deportes
 // ============================================================================
-// Se compite por PAPELES RECOGIDOS, no por puntaje. El puntaje mezcla papeles
-// con metros corridos, y esa mezcla premia por igual al que documenta y al que
-// solo huye rápido. Lo que mide este juego es cuánta documentación sacaste
-// antes de que te pararan; correr es el precio, no el logro.
+// TRES CLASIFICACIONES, no una. Un solo marcador premia una sola forma de
+// jugar, y aquí hay tres que valen la pena y no son la misma:
+//
+//   · TOTAL DE PAPELES     la constancia. Suma de todas las partidas.
+//   · TOTAL DE DISTANCIA   el kilometraje. También acumulado.
+//   · MEJOR CORRIDA        la marca personal: papeles en una sola partida.
+//
+// El acumulado premia insistir; la marca personal premia una corrida buena.
+// Quien juega mucho y regular manda en las dos primeras; quien tiene una tarde
+// inspirada manda en la tercera. Con una sola tabla, la mitad de los jugadores
+// no tenía dónde salir.
 //
 // De momento son DATOS DE MUESTRA. No hay servidor detrás y no se pretende que
-// lo parezca: el propio periódico lo dice en el pie de la tabla.
+// lo parezca: el propio periódico lo dice al pie.
 //
-// Cuando haya backend, lo único que cambia es de dónde sale `RANKING`; la
-// función que inserta al jugador y maqueta la tabla se queda igual. Por eso
-// vive aquí y no dentro de la pantalla.
+// Cuando haya backend, lo único que cambia es de dónde salen las listas; la
+// función que inserta al jugador y maqueta la ventana se queda igual.
 //
 // NOMBRES: los arrobas son inventados salvo el primero, que es de la casa. No
 // se usan cuentas reales de terceros —ni siquiera para un marcador de
@@ -21,43 +27,83 @@
 // LAS CIFRAS salen de lo que da el generador: un grupo de obstáculos cada
 // ~28 m, con una hilera de 4-8 papeles de valor 1-5, o sea del orden de 350
 // papeles por cada mil metros recogiendo bien. Una corrida buena de verdad
-// ronda los dos mil. Si la cabeza de la tabla fuera inalcanzable, la tabla no
-// sería un objetivo sino un adorno.
+// ronda los dos mil papeles y los seis mil metros. Si la cabeza de la tabla
+// fuera inalcanzable, la tabla no sería un objetivo sino un adorno.
 // ============================================================================
-
-/** Marcadores de muestra, ya ordenados de mayor a menor. */
-export const RANKING = [
-  { arroba: '@paquimal', papeles: 3_180, nota: 'director' },
-  { arroba: '@la_chulla_vida', papeles: 2_740 },
-  { arroba: '@ojo_de_agua', papeles: 2_455 },
-  { arroba: '@ni_una_menos_ec', papeles: 2_090 },
-  { arroba: '@cronica_del_sur', papeles: 1_815 },
-  { arroba: '@el_desvelado', papeles: 1_530 },
-  { arroba: '@radio_bemba', papeles: 1_265 },
-  { arroba: '@apagon_lover', papeles: 1_010 },
-  { arroba: '@guayaco_insomne', papeles: 780 },
-  { arroba: '@notas_al_pie', papeles: 545 },
-];
 
 /** Cómo se llama el jugador en la tabla mientras no haya cuentas. */
 export const YO = '@tú';
 
+const ARROBAS = ['@paquimal', '@la_chulla_vida', '@ojo_de_agua', '@ni_una_menos_ec',
+  '@cronica_del_sur', '@el_desvelado', '@radio_bemba', '@apagon_lover',
+  '@guayaco_insomne', '@notas_al_pie'];
+
 /**
- * Mete al jugador en la tabla por sus papeles y devuelve la ventana que se
- * enseña: siempre el primero —que es a quien hay que alcanzar— y el entorno
- * inmediato del jugador, que es lo único que le dice si sube o baja.
+ * Las tres clasificaciones, cada una con su unidad y su formato.
+ *
+ * `id` es lo que la pantalla pide; `valor(cuaderno)` saca del cuaderno la
+ * cifra del jugador para esa tabla, y así la pantalla no tiene que saber qué
+ * campo mira cada pestaña.
+ */
+export const CLASIFICACIONES = [
+  {
+    id: 'papeles',
+    pestana: 'Papeles',
+    titulo: 'TOTAL DE PAPELES',
+    epigrafe: 'Todo lo recogido, partida tras partida',
+    unidad: '',
+    valor: (c) => c.papelesHistoricos,
+    marcas: [46_820, 39_140, 34_505, 29_960, 24_340, 19_775, 15_190, 11_640, 8_020, 5_615],
+  },
+  {
+    id: 'distancia',
+    pestana: 'Distancia',
+    titulo: 'TOTAL DE DISTANCIA',
+    epigrafe: 'Metros corridos desde la primera entrevista',
+    unidad: ' m',
+    valor: (c) => c.distanciaHistorica,
+    marcas: [318_400, 264_900, 221_050, 186_300, 152_700, 118_450, 92_800, 68_300, 44_900, 26_150],
+  },
+  {
+    id: 'mejor',
+    pestana: 'Mejor corrida',
+    titulo: 'MEJOR CORRIDA',
+    epigrafe: 'Papeles recogidos en una sola partida',
+    unidad: '',
+    valor: (c) => c.mejorPapeles,
+    marcas: [3_180, 2_740, 2_455, 2_090, 1_815, 1_530, 1_265, 1_010, 780, 545],
+  },
+];
+
+/** La clasificación con ese id, o la primera si no existe. */
+export function clasificacion(id) {
+  return CLASIFICACIONES.find((c) => c.id === id) ?? CLASIFICACIONES[0];
+}
+
+/**
+ * Mete al jugador en una clasificación y devuelve la ventana que se enseña:
+ * siempre el primero —que es a quien hay que alcanzar— y el entorno inmediato
+ * del jugador, que es lo único que le dice si sube o baja.
  *
  * Enseñar los diez de golpe en un móvil obliga a hacer scroll dentro de una
  * pantalla que ya es larga, y a nadie le importa el séptimo.
  *
- * @param {number} papeles
+ * @param {object} clase   Una de CLASIFICACIONES
+ * @param {number} valor   La cifra del jugador
  * @param {number} [alrededor] Cuántos enseñar por encima y por debajo
- * @returns {Array<{puesto:number, arroba:string, papeles:number,
+ * @returns {Array<{puesto:number, arroba:string, valor:number,
  *                  esTu:boolean, nota?:string, corte?:boolean}>}
  */
-export function tablaConJugador(papeles, alrededor = 1) {
-  const todos = [...RANKING, { arroba: YO, papeles, esTu: true }]
-    .sort((a, b) => b.papeles - a.papeles)
+export function tablaConJugador(clase, valor, alrededor = 1) {
+  const todos = [
+    ...clase.marcas.map((v, i) => ({
+      arroba: ARROBAS[i],
+      valor: v,
+      nota: i === 0 ? 'director' : undefined,
+    })),
+    { arroba: YO, valor, esTu: true },
+  ]
+    .sort((a, b) => b.valor - a.valor)
     .map((fila, i) => ({ ...fila, puesto: i + 1, esTu: !!fila.esTu }));
 
   const mio = todos.findIndex((f) => f.esTu);

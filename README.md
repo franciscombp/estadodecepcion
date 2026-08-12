@@ -51,7 +51,7 @@ src/
 │   ├── publicaciones.js← Los reportajes REALES del Archivo ⚠️ hay que rellenarlo
 │   ├── estilo.js       ← Tokens visuales (ver docs/ESTILO.md)
 │   ├── escenarios.js   ← Los 4 escenarios y el mapa del loop
-│   ├── tabla.js        ← Marcadores de muestra + inserción del jugador
+│   ├── tabla.js        ← Las tres clasificaciones de muestra
 │   └── textos.js       ← Microcopy, remates y fichas del cuaderno
 ├── game/
 │   ├── Game.js         ← Orquestador: bucle y máquina de estados
@@ -59,7 +59,6 @@ src/
 │   ├── Obstacle.js     ← Generación por grupos + pool de objetos
 │   ├── Coin.js         ← Papeles y evidencia
 │   ├── Track.js        ← Suelo infinito reciclable
-│   ├── Stamina.js      ← Barra e ítems por escenario
 │   ├── Chaser.js       ← Noboa + Reimberg
 │   ├── Bifurcacion.js  ← Las tres bocas de túnel (el carril decide)
 │   ├── Tramite.js      ← El túnel del centro: solo recolectar
@@ -112,7 +111,7 @@ Lo que se toca más a menudo:
 | El salto no llega | `SALTO.VELOCIDAD_INICIAL`, `SALTO.GRAVEDAD` |
 | Obstáculos injustos | `OBSTACULOS.TIEMPO_REACCION_MINIMO`, `OBSTACULOS.SEPARACION_MINIMA` |
 | Pocos/muchos papeles | `PAPELES.LARGO_HILERA_*`, `densidadPapeles` de cada escenario |
-| Estamina agobiante | `ESTAMINA.DRENAJE`, `ESTAMINA.DISTANCIA_ENTRE_ITEMS` |
+| Potenciadores escasos | `POTENCIADORES.DISTANCIA_ENTRE`, `POTENCIADORES.PROBABILIDAD` |
 | Perseguidor pesado | `PERSEGUIDOR.ACERCAMIENTO_POR_GOLPE`, `PERSEGUIDOR.ALEJAMIENTO` |
 | Tramos largos/cortos | `TRAMO.LONGITUD` |
 | Poco tiempo para elegir ruta | `TRAMO.DISTANCIA_AVISO` |
@@ -372,19 +371,51 @@ partido por diez, así que puntúa igual documentar que salir corriendo. Lo que
 mide este juego es cuánta documentación sacaste antes de que te pararan; los
 metros son el precio que pagaste, no el logro.
 
+### El diario tiene dos páginas
+
+Al perder no se llega a un panel de resultados: se llega a **la portada**, y de
+ahí se **pasa de hoja** a la página de deportes. Un solo botón en la primera
+—CONTINUAR— y las decisiones en la segunda.
+
+Estaban las dos cosas juntas y no cabían: la portada quiere foto grande y una
+cifra enorme, la tabla quiere filas. Con todo en una página había que hacer
+scroll justo en el momento en que lo único que se quiere es volver a jugar.
+
+| Página | Qué lleva | Botones |
+|---|---|---|
+| **1 · Portada** | Titular (la sentencia), foto del arresto, papeles recogidos | CONTINUAR |
+| **2 · Deportes** | Las tres clasificaciones y lo desbloqueado | Intentar de nuevo · Ver todo el diario · Menú |
+
+«Ver todo el diario» lleva al **Archivo**, que es el mismo ejemplar con tus
+investigaciones.
+
 ### La tabla de posiciones
 
-Debajo de la portada va la tabla, maquetada como la de resultados de un diario:
-puesto, arroba y cifra alineada a la derecha. Se ordena **por papeles
-recogidos**, igual que el titular. Primero siempre `@paquimal`; después el
-hueco marcado con puntos suspensivos si lo hay; y luego tú, entre tus dos
-vecinos. La tabla completa está en **MARCADORES**, desde el menú, y ahí compite
-tu **mejor corrida** (`mejorPapeles` en el cuaderno), no el acumulado: el
-acumulado premia insistir, la marca personal premia una corrida buena.
+Maquetada como la de resultados de un diario: puesto, arroba y cifra alineada a
+la derecha. Primero siempre `@paquimal`; después el hueco marcado con puntos
+suspensivos si lo hay; y luego tú, entre tus dos vecinos.
+
+**Tres clasificaciones, en pestañas**, porque un solo marcador premia una sola
+forma de jugar y aquí hay tres que valen la pena:
+
+| Pestaña | Qué mide | De dónde sale |
+|---|---|---|
+| **Papeles** | Todo lo recogido, partida tras partida | `papelesHistoricos` |
+| **Distancia** | Metros corridos desde la primera entrevista | `distanciaHistorica` |
+| **Mejor corrida** | Papeles en una sola partida | `mejorPapeles` |
+
+Las dos primeras premian insistir; la tercera, una tarde inspirada. Con una
+sola tabla, la mitad de los jugadores no tenía dónde salir. Al perder se abre
+por **mejor corrida**, que es la que habla de la partida que se acaba de jugar;
+desde el menú se recuerda la última que se miró.
 
 Enseñar los diez de golpe obliga a hacer scroll dentro de una pantalla que ya
 es larga, y el séptimo puesto no le importa a nadie: lo que dice algo es a
 quién hay que alcanzar y quién te pisa los talones.
+
+**MARCADORES**, desde el menú, es exactamente esta misma página sin los datos
+de la partida. Tener dos tablas distintas era mantener dos maquetas para lo
+mismo, y a la segunda ya no coincidían.
 
 Son **datos de muestra** —`config/tabla.js`— y el pie de la tabla lo dice. No
 hay servidor detrás y no se pretende que lo parezca; cuando lo haya, lo único
@@ -715,6 +746,44 @@ actualizarla ahí.
 El lenguaje visual está documentado en **[docs/ESTILO.md](docs/ESTILO.md)** y
 los valores viven en `src/config/estilo.js`. Léelo antes de añadir pantallas,
 iconos o props.
+
+### Ninguna pantalla hace scroll
+
+**Regla dura**: cada pantalla cabe entera en un móvil. Si no cabe, se parte en
+dos —eso es lo que llevó a separar la portada de la página de deportes— o se
+recorta, no se deja que aparezca la barra.
+
+Se comprueba midiendo `scrollHeight - clientHeight` de `.pantalla` en cada
+una. Dos cosas que engañan al medir:
+
+- **Hay que esperar a que termine la cascada de entrada.** Mientras dura, los
+  elementos vienen desplazados hacia abajo y el navegador cuenta ese
+  desplazamiento en el área desbordable.
+- **Las animaciones infinitas de escala también cuentan.** El latido de la
+  cifra grande crea desborde real mientras está en su punto máximo, y por eso
+  es de dos puntos porcentuales y no de tres y medio.
+
+### Microinteracciones
+
+Sin ellas la interfaz es correcta y está muerta. Lo que hay, y por qué:
+
+| Dónde | Qué hace | Por qué |
+|---|---|---|
+| Toda pantalla | Entra **en cascada**, 40 ms por pieza | Todo a la vez se lee como una diapositiva; escalonado se lee como algo que se monta delante de ti |
+| Cifra de papeles | **Cuenta desde cero** | Un número que aparece puesto es un dato; uno que sube es un premio |
+| Sello de récord | **Cae** girado y de más tamaño, tras la cuenta | Primero se lee el número, luego llega la palmadita |
+| Botón principal | **Brillo** que lo cruza cada pocos segundos | En una pantalla quieta, lo único que se mueve es lo que hay que pulsar |
+| JUGAR | Late con el **resplandor**, no con la escala | Un botón que cambia de tamaño es un blanco que se mueve |
+| Al pulsar | Se hunde y **rebota** al soltar | La curva elástica está en la transición, no en el `:active` |
+| Contador del HUD | **«+3»** que sale y sube | Es la recompensa más pequeña y la que más veces ocurre; dice cuánto, y lo dice donde pasa |
+| Tu fila en la tabla | Pulsa dos veces al entrar | Es la fila que se está buscando |
+
+Todo respeta `prefers-reduced-motion`. No es un adorno accesible: para parte de
+la gente esto es mareo, no dopamina.
+
+La regla que las gobierna: **acompañan, no retienen**. Quien acaba de perder
+quiere volver a jugar, así que nada de esto puede tardar lo bastante como para
+estorbar.
 
 Lo esencial: **el color es semántico, nunca decorativo.** Verde eres tú, dorado
 es lo que recoges, rojo es el peligro, cian es información, naranja es
