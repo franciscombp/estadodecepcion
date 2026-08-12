@@ -32,14 +32,90 @@
 // suficiente para una sesión larga y no molesta a nadie.
 const INTERVALO_COMPROBACION = 60 * 60 * 1000;
 
+// Cuánto se vigila como mucho tras una comprobación manual antes de soltar el
+// botón. Ver comprobar(): el service worker nuevo tiene que descargarse y
+// precachear el bundle entero, así que hay que darle margen de verdad.
+//
+// Que se acabe la espera NO significa que no haya edición nueva: la escucha
+// sigue puesta y el panel se enciende solo si llega más tarde. Por eso el
+// mensaje de "no encontré nada" está redactado sin prometer nada.
+const ESPERA_MAXIMA = 15000;
+
+/**
+ * Estados que puede reportar a la interfaz.
+ *
+ *   sin-soporte  El navegador no tiene service worker (o estamos en dev).
+ *   preparando   Descargando el juego para poder jugar sin conexión.
+ *   listo        Cacheado entero: arranca sin red.
+ *   buscando     Comprobando si hay edición nueva.
+ *   disponible   La hay, y está esperando a que sea seguro aplicarla.
+ */
+export const ESTADOS = {
+  SIN_SOPORTE: 'sin-soporte',
+  PREPARANDO: 'preparando',
+  LISTO: 'listo',
+  BUSCANDO: 'buscando',
+  DISPONIBLE: 'disponible',
+};
+
 export class Actualizador {
   constructor() {
     this.hayNueva = false;
     this.aplicando = false;
+    this.estado = ESTADOS.SIN_SOPORTE;
+
     /** Se llama cuando aparece una versión nueva, para avisar por la interfaz. */
     this.alDetectar = () => {};
+    /** Se llama en cada cambio de estado, para repintar el panel de versión. */
+    this.alCambiar = () => {};
 
     this.registro = null;
+  }
+
+  /** La edición que está corriendo ahora mismo. La inyecta el build. */
+  get version() {
+    return typeof __VERSION__ === 'string' ? __VERSION__ : '—';
+  }
+
+  get edicion() {
+    return typeof __EDICION__ === 'string' ? __EDICION__ : '—';
+  }
+
+  /**
+   * Engancha la vigilancia de novedades a un registro.
+   *
+   * Se llama con el registro inicial y con el que devuelve cada comprobación
+   * forzada, porque pueden ser objetos distintos y una escucha atada al
+   * anterior se pierde el 'updatefound' del nuevo.
+   */
+  _vigilar(registro) {
+    if (!registro || registro.__vigilado) return;
+    registro.__vigilado = true;
+    this.registro = registro;
+
+    // Al recargar con una versión ya instalada y en espera, hay que avisar
+    // igual: el service worker nuevo no vuelve a emitir 'updatefound'.
+    if (registro.waiting && navigator.serviceWorker.controller) this._marcar();
+
+    registro.addEventListener('updatefound', () => {
+      const entrante = registro.installing;
+      if (!entrante) return;
+
+      entrante.addEventListener('statechange', () => {
+        // 'installed' + hay un controlador = es un RECAMBIO, no la primera
+        // instalación. Sin la comprobación del controlador avisaríamos de una
+        // "versión nueva" a quien acaba de entrar por primera vez.
+        if (entrante.state === 'installed' && navigator.serviceWorker.controller) {
+          this._marcar();
+        }
+      });
+    });
+  }
+
+  _cambiarEstado(nuevo) {
+    if (this.estado === nuevo) return;
+    this.estado = nuevo;
+    this.alCambiar(nuevo);
   }
 
   /** Registra el service worker y empieza a vigilar. */
@@ -51,6 +127,8 @@ export class Actualizador {
     // navegador lo rechaza con un error de MIME en consola. No es un fallo
     // real, pero ensucia la consola justo donde se trabaja.
     if (!import.meta.env.PROD) return;
+
+    this._cambiarEstado(ESTADOS.PREPARANDO);
 
     const base = import.meta.env.BASE_URL ?? '/';
 
@@ -64,28 +142,17 @@ export class Actualizador {
     } catch (error) {
       // Sin service worker el juego funciona igual, solo que sin modo offline.
       console.warn('[Actualización] No se pudo registrar el service worker.', error);
+      this._cambiarEstado(ESTADOS.SIN_SOPORTE);
       return;
     }
 
-    // Al recargar con una versión ya instalada y en espera, hay que avisar
-    // igual: el service worker nuevo no vuelve a emitir 'updatefound'.
-    if (this.registro.waiting && navigator.serviceWorker.controller) {
-      this._marcar();
-    }
-
-    this.registro.addEventListener('updatefound', () => {
-      const entrante = this.registro.installing;
-      if (!entrante) return;
-
-      entrante.addEventListener('statechange', () => {
-        // 'installed' + hay un controlador = es un RECAMBIO, no la primera
-        // instalación. Sin la comprobación del controlador avisaríamos de una
-        // "versión nueva" a quien acaba de entrar por primera vez.
-        if (entrante.state === 'installed' && navigator.serviceWorker.controller) {
-          this._marcar();
-        }
-      });
+    // Cacheado del todo y controlando la pestaña: a partir de aquí el juego
+    // arranca sin red. Es lo que el panel de versión enseña como "listo".
+    navigator.serviceWorker.ready.then(() => {
+      if (this.estado === ESTADOS.PREPARANDO) this._cambiarEstado(ESTADOS.LISTO);
     });
+
+    this._vigilar(this.registro);
 
     // Cuando el service worker nuevo toma el control, el código viejo que hay
     // en memoria ya no se corresponde con nada: se recarga para que entre la
@@ -102,10 +169,77 @@ export class Actualizador {
     }, INTERVALO_COMPROBACION);
   }
 
+  /**
+   * Dispara una comprobación sin esperar su promesa.
+   *
+   * Se pide el registro en el momento en vez de reusar el guardado, y se
+   * vuelve a enganchar la vigilancia por si el navegador devuelve otro objeto:
+   * una escucha atada al anterior se perdería el 'updatefound' de esta
+   * comprobación.
+   */
+  _forzarComprobacion() {
+    navigator.serviceWorker.getRegistration()
+      .then((registro) => {
+        const r = registro ?? this.registro;
+        if (!r) return null;
+        this._vigilar(r);
+        return r.update();
+      })
+      .catch((error) => {
+        console.warn('[Actualización] No se pudo comprobar.', error);
+      });
+  }
+
   _marcar() {
+    this._cambiarEstado(ESTADOS.DISPONIBLE);
     if (this.hayNueva) return;
     this.hayNueva = true;
     this.alDetectar();
+  }
+
+  /**
+   * Comprobación a petición del jugador, desde el panel de versión.
+   *
+   * Existe porque la automática va cada hora, y en una PWA instalada eso puede
+   * significar que alguien tenga una edición vieja durante toda una sesión sin
+   * forma de enterarse. Un botón que dice «buscar» y responde algo es la
+   * diferencia entre un modo offline y un juego que se quedó congelado.
+   *
+   * @returns {Promise<boolean>} true si apareció una edición nueva
+   */
+  async comprobar() {
+    if (!this.registro) return false;
+    if (this.hayNueva) return true;
+
+    const anterior = this.estado;
+    this._cambiarEstado(ESTADOS.BUSCANDO);
+
+    // NO se espera a que update() resuelva, y esto costó encontrarlo.
+    //
+    // Su promesa puede quedarse pendiente indefinidamente —medido: más de
+    // quince segundos sin resolver— MIENTRAS el service worker nuevo se
+    // instala perfectamente por detrás. O sea que esa promesa ni indica que
+    // haya terminado ni indica que no haya nada: no sirve como señal.
+    //
+    // Quien avisa de verdad es el evento 'updatefound', que ya está enganchado
+    // en iniciar() y acaba llamando a _marcar(). Así que aquí se dispara la
+    // comprobación y se vigila la bandera.
+    // Se RE-REGISTRA en vez de llamar a update(). Volver a registrar el mismo
+    // script con el mismo ámbito es la otra forma documentada de forzar la
+    // comprobación, y aquí es la que responde: con update() a secas la
+    // promesa se quedaba pendiente y el service worker nuevo no llegaba a
+    // instalarse aunque el servidor lo estuviera sirviendo.
+    this._forzarComprobacion();
+
+    const limite = Date.now() + ESPERA_MAXIMA;
+    while (!this.hayNueva && Date.now() < limite) {
+      await new Promise((r) => setTimeout(r, 250));
+    }
+
+    if (!this.hayNueva) {
+      this._cambiarEstado(anterior === ESTADOS.BUSCANDO ? ESTADOS.LISTO : anterior);
+    }
+    return this.hayNueva;
   }
 
   /**

@@ -133,7 +133,13 @@ async function arrancar() {
 
   carga.progreso(0.9, 'Últimos ajustes…');
   const hud = new HUD(contenedorUI);
-  const pantallas = new Pantallas(contenedorUI, juego, cuaderno, audio);
+
+  // El actualizador se crea ANTES que las pantallas porque el menú pinta su
+  // estado: qué edición corre, si el juego ya está guardado para jugar sin
+  // conexión y si hay una nueva esperando.
+  const actualizador = new Actualizador();
+
+  const pantallas = new Pantallas(contenedorUI, juego, cuaderno, audio, actualizador);
 
   hud.alPulsarPausa(() => juego.pausar());
 
@@ -144,9 +150,9 @@ async function arrancar() {
   // guarda el aviso y se aplica al volver al menú o al terminar la partida.
   // Ver utils/actualizacion.js.
 
-  const actualizador = new Actualizador();
   actualizador.alDetectar = () => {
     if (aplicarSiEsSeguro()) return;
+    if (juego.estado === 'menu') return;  // El panel del menú ya lo anuncia.
     hud.mostrarAviso({
       tipo: 'consejo',
       titulo: 'EDICIÓN NUEVA',
@@ -154,12 +160,21 @@ async function arrancar() {
     });
   };
 
+  /**
+   * Dónde se aplica sola una edición nueva y dónde no.
+   *
+   * SOLO al terminar una partida. Ahí el jugador ya iba a reiniciar, así que
+   * la recarga no le cuesta nada y de paso se ahorra el paso manual.
+   *
+   * En el MENÚ deliberadamente no. Antes sí, y tenía dos problemas: abrir el
+   * juego con una edición pendiente provocaba una recarga sorpresa a los dos
+   * segundos, y el botón de instalar del panel de versión era inalcanzable
+   * —se aplicaba solo antes de que nadie pudiera tocarlo—. En el menú manda el
+   * jugador; el panel se enciende y él decide cuándo.
+   */
   function aplicarSiEsSeguro() {
     if (!actualizador.hayNueva) return false;
-    if (juego.estado === 'jugando' || juego.estado === 'cerco'
-        || juego.estado === 'escape' || juego.estado === 'pausa') {
-      return false;
-    }
+    if (juego.estado !== 'gameover' && juego.estado !== 'victoria') return false;
     return actualizador.aplicar();
   }
 
@@ -174,8 +189,8 @@ async function arrancar() {
 
   juego.alCambiarEstado = (estado, datos) => {
     // Momento seguro para recargar con la versión nueva: se acabó la partida
-    // o se volvió al menú, así que no hay nada que perder.
-    if (estado === 'menu' || estado === 'gameover' || estado === 'victoria') {
+    // y el jugador ya iba a reiniciar. Ver aplicarSiEsSeguro().
+    if (estado === 'gameover' || estado === 'victoria') {
       if (aplicarSiEsSeguro()) return;
     }
 

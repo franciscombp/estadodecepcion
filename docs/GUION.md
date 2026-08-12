@@ -141,6 +141,12 @@ medía nada.
 **iluminadas** para que se vean en la oscuridad, que es el único sitio donde el
 recolectable tiene que brillar por sí mismo.
 
+La linterna va **delante del personaje** y apunta hacia donde corre, con su haz
+dibujado. Estaba montada arriba y atrás, que repartía la luz muy pareja pero se
+leía como un foco de estadio: alumbraba la escena desde ninguna parte. Una
+linterna se sostiene y apunta, y en un tramo cuya mecánica entera es la luz eso
+no es decoración.
+
 > **Y aquí quedarse sin recurso NO te vuelve lento: te atrapan.** Es la única
 > escena con barra de aguante y la única donde llegar a cero es derrota
 > directa, y tiene su lógica —sin luz no hay nada que documentar y no ves por
@@ -328,6 +334,31 @@ Tres cosas, y ninguna es la puntuación:
 2. **Los potenciadores.** Se abren a los 3, 6, 10, 15 y 22 tramos recorridos.
    El contador es acumulativo, así que ninguna corrida se pierde del todo.
 3. **La continuidad de escena.** Cada partida es un capítulo, no un reinicio.
+
+---
+
+---
+
+## Modo offline y ediciones
+
+El menú lleva un panel que dice tres cosas: qué edición corre (versión y sello
+de compilación), si el juego ya está guardado para jugar sin conexión, y si hay
+una nueva. Existe porque todo eso era invisible: un modo offline que no se
+puede consultar es indistinguible de un juego congelado en una versión vieja.
+
+Cuándo entra una edición nueva:
+
+- **Jugando** → nunca. Recargar en mitad de una corrida la borra por un motivo
+  que no tiene nada que ver con el juego. Se avisa por el HUD y espera.
+- **Al terminar la partida** → sola. El jugador ya iba a reiniciar.
+- **En el menú** → cuando él quiera. El panel se enciende y hay un botón. Antes
+  se aplicaba sola también aquí, y eso provocaba una recarga sorpresa a los dos
+  segundos de abrir el juego.
+
+El botón de comprobar dispara la búsqueda y espera un rato acotado. Si en ese
+rato no aparece nada dice «sin novedades por ahora» y no «ya tienes la última»,
+porque no es lo mismo: la comprobación puede tardar más que la espera, y si
+llega después el panel se enciende igual.
 
 ---
 

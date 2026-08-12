@@ -68,11 +68,13 @@ function estadisticas(pares) {
 // ---------------------------------------------------------------------------
 
 export class Pantallas {
-  constructor(contenedor, juego, cuaderno, audio) {
+  constructor(contenedor, juego, cuaderno, audio, actualizador = null) {
     this.contenedor = contenedor;
     this.juego = juego;
     this.cuaderno = cuaderno;
     this.audio = audio;
+    // Puede ser null en desarrollo, donde no hay service worker.
+    this.actualizador = actualizador;
     this.actual = null;
   }
 
@@ -193,6 +195,9 @@ export class Pantallas {
     }));
     contenido.appendChild(secundarios);
 
+    // --- Versión y modo offline -------------------------------------------
+    contenido.appendChild(this._pintarVersion(pantalla));
+
     // --- Marcador ----------------------------------------------------------
     if (this.cuaderno.partidasJugadas > 0) {
       contenido.appendChild(estadisticas([
@@ -226,6 +231,104 @@ export class Pantallas {
     contenido.appendChild(pie);
 
     return pantalla;
+  }
+
+  /**
+   * Panel de edición y modo offline.
+   *
+   * Existe porque hasta ahora todo esto era invisible: el juego se cacheaba
+   * entero y se actualizaba solo, pero el jugador no tenía forma de saber si
+   * podía jugar sin conexión, qué edición estaba corriendo, ni de forzar una
+   * comprobación. Un modo offline que no se puede consultar es indistinguible
+   * de un juego que se quedó congelado en una versión vieja.
+   *
+   * La comprobación automática va cada hora. Este botón es para el resto del
+   * tiempo.
+   */
+  _pintarVersion(pantalla) {
+    const act = this.actualizador;
+    const panel = el('div', 'edicion');
+
+    const fila = el('div', 'edicion__fila');
+    const punto = el('span', 'edicion__punto');
+    const texto = el('span', 'edicion__estado');
+    fila.append(punto, texto);
+    panel.appendChild(fila);
+
+    panel.appendChild(el('div', 'edicion__sello',
+      act ? `v${act.version} · ${act.edicion}` : 'edición de desarrollo'));
+
+    // Lo que pasa sin tocar nada. El botón es para quien tiene prisa.
+    panel.appendChild(el('div', 'edicion__nota',
+      'Se comprueba sola cada hora y la edición nueva entra al terminar una '
+      + 'corrida, nunca en mitad de una.'));
+
+    // El botón tiene UN solo dueño de su texto y de si está activo: pintar().
+    // Repartir eso entre el manejador del clic y el repintado es lo que dejaba
+    // el botón deshabilitado para siempre cuando una comprobación tardaba más
+    // de lo previsto.
+    const boton_ = boton('Buscar actualización', 'boton--tenue boton--edicion', async () => {
+      if (!act) return;
+
+      if (act.estado === 'disponible') {
+        // Desde el menú el momento es seguro, así que se aplica al instante.
+        boton_.textContent = 'Instalando…';
+        boton_.disabled = true;
+        act.aplicar();
+        return;
+      }
+
+      const hay = await act.comprobar();
+      if (!hay) {
+        // OJO CON LO QUE DICE ESTE MENSAJE. Que la comprobación se agote no
+        // demuestra que no haya edición nueva: el navegador puede tardar más
+        // que la espera, y de hecho a veces tarda. La escucha sigue puesta y
+        // el panel se enciende solo si llega después, así que el rótulo
+        // informa de lo que pasó y no promete lo que no sabe.
+        boton_.textContent = 'Sin novedades por ahora';
+        setTimeout(pintar, 2600);
+      }
+    });
+
+    const ESTADOS_TEXTO = {
+      'sin-soporte': ['Sin modo offline en este navegador', 'edicion--tenue'],
+      preparando: ['Guardando el juego para jugar sin conexión…', 'edicion--espera'],
+      listo: ['Listo para jugar sin conexión', 'edicion--listo'],
+      buscando: ['Buscando edición nueva…', 'edicion--espera'],
+      disponible: ['Hay una edición nueva. Toca para instalarla', 'edicion--nueva'],
+    };
+
+    const ESTADOS_BOTON = {
+      'sin-soporte': ['Buscar actualización', true],
+      preparando: ['Buscar actualización', false],
+      listo: ['Buscar actualización', false],
+      buscando: ['Buscando…', true],
+      disponible: ['Instalar y reiniciar', false],
+    };
+
+    function pintar() {
+      const estado = act?.estado ?? 'sin-soporte';
+      const [frase, clase] = ESTADOS_TEXTO[estado] ?? ESTADOS_TEXTO['sin-soporte'];
+      texto.textContent = frase;
+      panel.className = `edicion ${clase}`;
+
+      const [rotulo, bloqueado] = ESTADOS_BOTON[estado] ?? ESTADOS_BOTON['sin-soporte'];
+      boton_.textContent = rotulo;
+      boton_.disabled = bloqueado;
+    }
+    pintar();
+
+    // El estado puede cambiar solo mientras el menú está abierto (termina de
+    // cachearse, aparece una edición nueva). El panel se entera y se repinta.
+    // La escucha se suelta al desmontar la pantalla: sin eso, cada visita al
+    // menú dejaría un callback vivo apuntando a nodos que ya no existen.
+    if (act) {
+      act.alCambiar = pintar;
+      pantalla.addEventListener('pantalla:desmontada', () => { act.alCambiar = () => {}; });
+    }
+
+    if (act) panel.appendChild(boton_);
+    return panel;
   }
 
   /** Chuleta de controles. Solo se enseña mientras hace falta. */

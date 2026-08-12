@@ -311,6 +311,16 @@ lo resuelven, y las dos costaron encontrarlas:
    con el juego. Se avisa por el HUD y se aplica en el primer momento seguro:
    menú o fin de partida.
 
+El menú lleva un **panel de edición**: versión, sello de compilación, si el
+juego ya está guardado para jugar sin conexión, y un botón para comprobar. Un
+modo offline que no se puede consultar es indistinguible de un juego congelado
+en una versión vieja.
+
+Cuándo entra una edición nueva: **nunca jugando**, **sola al terminar la
+partida** (el jugador ya iba a reiniciar) y **cuando él quiera desde el menú**
+—ahí no se aplica sola, porque provocaba una recarga sorpresa a los dos
+segundos de abrir el juego.
+
 Ver `src/utils/actualizacion.js`.
 
 ---

@@ -20,6 +20,11 @@ import { BaseScene } from './BaseScene.js';
 // Convierte un radio de visión deseado en densidad de niebla exponencial.
 const densidadParaRadio = (radio) => 1.8 / Math.max(4, radio);
 
+// Dónde va la linterna respecto al jugador. Z negativa es POR DELANTE: el
+// personaje corre hacia -Z, así que la lente le va abriendo camino.
+const ALTURA_LINTERNA = 1.35;
+const Z_LINTERNA = -1.1;
+
 export class ApagonScene extends BaseScene {
   constructor(escena, config, calidad) {
     super(escena, config, calidad);
@@ -33,24 +38,61 @@ export class ApagonScene extends BaseScene {
   }
 
   /**
-   * Foco que acompaña al jugador. Es la "linterna" diegética: siempre está,
-   * pero se intensifica al recoger un ítem.
+   * La linterna del jugador. Va DELANTE de él y apunta hacia donde corre.
+   *
+   * Estaba montada arriba y atrás, que repartía la luz muy pareja pero se leía
+   * como un foco de estadio: alumbraba la escena entera desde ninguna parte.
+   * Una linterna se sostiene y apunta, y eso significa dos cosas:
+   *
+   *   · El origen va por delante del personaje, a la altura de la mano.
+   *   · Hay un HAZ VISIBLE. Sin el cono dibujado, la luz es una propiedad del
+   *     escenario; con él, es un objeto que el jugador lleva encima —y en un
+   *     tramo cuya mecánica entera es la luz, eso no es decoración.
+   *
+   * OJO CON LA CAÍDA: con decay 1.4 y una intensidad de 3, a veinte metros del
+   * foco llega el 1.5% de la luz. El haz alumbraba los pies y nada más, que es
+   * por lo que este tramo era injugable. Decay ~1 e intensidad alta.
    */
   _crearLinternaJugador() {
-    // OJO CON LA CAÍDA. Con decay 1.4 y una intensidad de 3, a veinte metros
-    // del foco llega el 1.5% de la luz: el haz alumbraba los pies del jugador
-    // y nada más, que es por lo que este tramo era literalmente injugable.
-    // Con decay ~1 y una intensidad muy superior, el cono llega hasta donde
-    // hace falta leer los obstáculos.
-    // Y ojo también con la POSICIÓN. Cuanto más cerca del jugador esté el
-    // foco, más desigual reparte: quemaba al personaje mientras el obstáculo
-    // de más allá seguía a oscuras. Colocándolo alto y atrás, la diferencia de
-    // distancia entre uno y otro se reduce y el cono ilumina parejo.
-    this.foco = new THREE.SpotLight(0xffe9b0, 150, 140, Math.PI / 4.6, 0.55, 1.0);
-    this.foco.position.set(0, 11, 14);
-    this.foco.target.position.set(0, 0, -22);
+    this.foco = new THREE.SpotLight(0xffe9b0, 150, 140, Math.PI / 5.2, 0.5, 1.0);
+    this.foco.position.set(0, ALTURA_LINTERNA, Z_LINTERNA);
+    this.foco.target.position.set(0, 0, -34);
     this.grupo.add(this.foco);
     this.grupo.add(this.foco.target);
+
+    // El haz dibujado. Es un cono abierto por la base, sin escribir en el
+    // buffer de profundidad para que no recorte lo que hay dentro.
+    // ESTRECHO Y CORTO. Un cono ancho, visto desde detrás de su vértice, se
+    // mira a lo largo y tapa media pantalla: deja de ser un haz y pasa a ser
+    // una mancha. Y CON NIEBLA, para que se apague con la distancia en vez de
+    // llegar igual de sólido hasta el final —que es lo que lo delataba como
+    // geometría en vez de luz.
+    const largo = 18;
+    this.haz = new THREE.Mesh(
+      new THREE.ConeGeometry(2.1, largo, 14, 1, true),
+      new THREE.MeshBasicMaterial({
+        color: 0xffe9b0,
+        transparent: true,
+        opacity: 0.035,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        toneMapped: false,
+      }),
+    );
+    // El cono nace apuntando a +Y; se tumba para que salga hacia -Z, o sea
+    // hacia donde se corre.
+    this.haz.rotation.x = -Math.PI / 2;
+    this.haz.position.set(0, ALTURA_LINTERNA, Z_LINTERNA - largo / 2);
+    this.grupo.add(this.haz);
+
+    // Y la lente, para que el haz salga de algo y no del aire.
+    this.lente = new THREE.Mesh(
+      new THREE.SphereGeometry(0.13, 8, 6),
+      new THREE.MeshBasicMaterial({ color: 0xfff4d0, toneMapped: false, fog: false }),
+    );
+    this.lente.position.set(0, ALTURA_LINTERNA, Z_LINTERNA);
+    this.grupo.add(this.lente);
   }
 
   /**
@@ -115,9 +157,18 @@ export class ApagonScene extends BaseScene {
     }
 
     // --- Foco --------------------------------------------------------------
+    // Todo el conjunto acompaña al jugador de lado: la lente, el haz y el
+    // punto al que apunta. Si solo se moviera el foco, el cono dibujado se
+    // quedaría en el centro y se vería que son dos cosas distintas.
     this.foco.position.x = jugador.x;
+    this.foco.position.y = ALTURA_LINTERNA + jugador.y;
     this.foco.target.position.x = jugador.x;
     this.foco.target.updateMatrixWorld();
+
+    this.haz.position.x = jugador.x;
+    this.haz.position.y = ALTURA_LINTERNA + jugador.y;
+    this.lente.position.x = jugador.x;
+    this.lente.position.y = ALTURA_LINTERNA + jugador.y;
 
     const intensidadObjetivo = this.tiempoLinterna > 0 ? 430 : 150;
     this.foco.intensity += (intensidadObjetivo - this.foco.intensity) * t;
@@ -129,8 +180,16 @@ export class ApagonScene extends BaseScene {
     const ambienteObjetivo = this.tiempoLinterna > 0 ? ambienteBase * 2.6 : ambienteBase;
     this.luzAmbiente.intensity += (ambienteObjetivo - this.luzAmbiente.intensity) * t;
 
-    // Titileo sutil del foco: la batería no está en su mejor momento.
-    this.foco.intensity *= 0.98 + Math.sin(this.tiempo * 30) * 0.02;
+    // Titileo sutil: la batería no está en su mejor momento. El haz y la lente
+    // titilan con el foco, porque si la luz parpadea y el cono no, el cono
+    // deja de leerse como la misma linterna.
+    const titileo = 0.98 + Math.sin(this.tiempo * 30) * 0.02;
+    this.foco.intensity *= titileo;
+
+    const conLinterna = this.tiempoLinterna > 0;
+    this.haz.material.opacity += ((conLinterna ? 0.06 : 0.03) * titileo
+      - this.haz.material.opacity) * t;
+    this.lente.scale.setScalar((conLinterna ? 1.5 : 1) * titileo);
 
     // --- Parpadeos ---------------------------------------------------------
     for (const p of this.parpadeos) {

@@ -1,5 +1,15 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { readFileSync } from 'node:fs';
+
+const paquete = JSON.parse(readFileSync('./package.json', 'utf8'));
+
+// Sello de la edición. Se inyecta en tiempo de compilación porque el juego
+// tiene que poder DECIR qué versión está corriendo: sin eso, "actualiza" es un
+// botón de fe. La fecha va en el sello porque la versión de package.json no
+// cambia en cada despliegue y el jugador necesita distinguir dos builds del
+// mismo número.
+const SELLO = new Date().toISOString().slice(0, 16).replace('T', ' ');
 
 // El juego se publica en GitHub Pages bajo https://<usuario>.github.io/estadodecepcion/
 // Por eso la base debe llevar el nombre del repositorio. En desarrollo local usamos '/'.
@@ -7,6 +17,11 @@ const BASE = process.env.GITHUB_ACTIONS ? '/estadodecepcion/' : '/';
 
 export default defineConfig({
   base: BASE,
+
+  define: {
+    __VERSION__: JSON.stringify(paquete.version),
+    __EDICION__: JSON.stringify(SELLO),
+  },
 
   build: {
     // Los navegadores objetivo son móviles modernos: no hace falta transpilar a ES5.

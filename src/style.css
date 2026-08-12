@@ -2464,3 +2464,92 @@ html, body {
    `display:none` y no `opacity:0`: la fila superior es un flex y el contador
    de papeles tiene que ocupar el hueco, no dejar un vacío. */
 .pildora--oculta { display: none; }
+
+
+/* --- Panel de edición y modo offline --------------------------------------
+   Un modo offline que no se puede consultar es indistinguible de un juego
+   congelado en una versión vieja. Este panel dice tres cosas: qué edición
+   corre, si ya está guardada para jugar sin conexión, y si hay una nueva. */
+
+.edicion {
+  width: 100%;
+  margin-top: 14px;
+  padding: 11px 14px 12px;
+  border-radius: var(--r-chico);
+  background: rgba(13, 18, 32, 0.66);
+  border: 1px solid var(--borde);
+  text-align: left;
+}
+
+.edicion__fila {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+/* El punto es el semáforo: verde cacheado, ámbar trabajando, cian hay novedad.
+   Se lee sin leer, que es de lo que se trata en un pie de menú. */
+.edicion__punto {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--texto-debil);
+}
+
+.edicion__estado {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--texto-tenue);
+  line-height: 1.3;
+}
+
+.edicion__sello {
+  margin-top: 5px;
+  font-family: var(--tipo-numeros);
+  font-size: 0.56rem;
+  letter-spacing: 0.04em;
+  color: var(--texto-debil);
+}
+
+.edicion__nota {
+  margin-top: 6px;
+  font-size: 0.56rem;
+  line-height: 1.35;
+  color: var(--texto-debil);
+}
+
+.boton--edicion {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 14px;
+  font-size: 0.66rem;
+}
+
+.edicion--listo .edicion__punto {
+  background: var(--verde);
+  box-shadow: 0 0 10px rgba(var(--verde-rgb), 0.8);
+}
+.edicion--listo .edicion__estado { color: var(--verde); }
+
+.edicion--espera .edicion__punto {
+  background: var(--dorado);
+  box-shadow: 0 0 10px rgba(var(--dorado-rgb), 0.7);
+  animation: latido-punto 1.1s ease-in-out infinite;
+}
+
+.edicion--nueva {
+  border-color: rgba(var(--cian-rgb), 0.5);
+  box-shadow: 0 0 20px rgba(var(--cian-rgb), 0.16);
+}
+.edicion--nueva .edicion__punto {
+  background: var(--cian);
+  box-shadow: 0 0 12px rgba(var(--cian-rgb), 0.9);
+  animation: latido-punto 1.1s ease-in-out infinite;
+}
+.edicion--nueva .edicion__estado { color: var(--cian); }
+
+@keyframes latido-punto {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.75); }
+}
