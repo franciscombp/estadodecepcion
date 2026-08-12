@@ -186,8 +186,18 @@ async function arrancar() {
         pantallas.mostrar(pantallas.menu());
         break;
 
+      case 'intro':
+        // La cinemática se ve sin nada encima: solo el aviso de que se puede
+        // saltar. Cuatro segundos repetidos treinta veces son dos minutos
+        // mirando lo mismo, y eso hay que poder cortarlo.
+        pantallas.ocultar();
+        hud.ocultar();
+        mostrarSaltoIntro(true);
+        break;
+
       case 'jugando':
         pantallas.ocultar();
+        mostrarSaltoIntro(false);
         hud.invalidar(); // Repintado completo al volver de una pantalla.
         hud.mostrar();
         break;
@@ -225,6 +235,28 @@ async function arrancar() {
 
   juego.alActualizarHUD = (datos) => hud.actualizar(datos);
   juego.alMostrarAviso = (datos) => hud.mostrarAviso(datos);
+
+  // -------------------------------------------------------------------------
+  // CINEMÁTICA: SALTARLA
+  // -------------------------------------------------------------------------
+  // Cualquier toque o tecla la corta. No pasa por Controles porque ese módulo
+  // está desactivado durante la intro —y tiene que estarlo: un swipe ahí no
+  // debe cambiar de carril, solo empezar de una vez.
+
+  const pistaSalto = document.createElement('div');
+  pistaSalto.className = 'salto-intro';
+  pistaSalto.textContent = 'TOCA PARA EMPEZAR';
+  contenedorUI.appendChild(pistaSalto);
+
+  function mostrarSaltoIntro(visible) {
+    pistaSalto.classList.toggle('salto-intro--visible', visible);
+  }
+
+  const saltarIntro = () => {
+    if (juego.estado === 'intro') juego.arrancarCorrida();
+  };
+  window.addEventListener('pointerdown', saltarIntro);
+  window.addEventListener('keydown', saltarIntro);
 
   // -------------------------------------------------------------------------
   // COMPORTAMIENTOS DEL NAVEGADOR

@@ -275,6 +275,10 @@ export function crearObstaculoEsquivar(colores) {
   );
   cuerpo.position.y = alto / 2;
   g.add(cuerpo);
+  // Lo expone el vestido de escena para poder reteñirlo: en la Bahía este
+  // bloque es la masa detrás de un militar, no un cajón de madera.
+  g.userData.cuerpo = cuerpo;
+  g.userData.fondo = fondo;
 
   // Refuerzos del marco.
   const matMarco = mat(0x4a3220, 0.04, 0.95);
@@ -372,13 +376,337 @@ export function crearObstaculoDoble(colores) {
 }
 
 /** Fábrica única: devuelve el prop que corresponde al tipo. */
-export function crearObstaculo(tipo, colores) {
+export function crearObstaculo(tipo, colores, idEscenario = 'bahia') {
+  let g;
   switch (tipo) {
-    case 'saltar': return crearObstaculoSaltar(colores);
-    case 'agachar': return crearObstaculoAgachar(colores);
-    case 'doble': return crearObstaculoDoble(colores);
+    case 'saltar': g = crearObstaculoSaltar(colores); break;
+    case 'agachar': g = crearObstaculoAgachar(colores); break;
+    case 'doble': g = crearObstaculoDoble(colores); break;
     case 'esquivar':
-    default: return crearObstaculoEsquivar(colores);
+    default: g = crearObstaculoEsquivar(colores); break;
+  }
+
+  vestirObstaculo(g, tipo, idEscenario, colores);
+  return g;
+}
+
+// ---------------------------------------------------------------------------
+// VESTIR LOS OBSTÁCULOS
+// ---------------------------------------------------------------------------
+// En la Bahía te cierra el paso un puesto de ropa; en la central térmica, una
+// tubería reventada; en el centro histórico, una reja. Son la misma mecánica y
+// tienen que serlo, pero no pueden verse igual: si las cuatro escenas usan los
+// mismos cuatro objetos, el juego solo cambia de color cuatro veces.
+//
+// LA REGLA QUE NO SE ROMPE: la silueta base NO se toca. Lo que se salta se
+// sigue leyendo bajo y ancho, lo que se esquiva sigue siendo un bloque macizo,
+// y la franja roja sigue donde está el peligro. Encima de esa silueta se
+// añaden dos o tres piezas que dicen QUÉ es. Vestir, no rediseñar —el jugador
+// tiene medio segundo para leerlo y ese medio segundo lo compra la silueta.
+
+/** Percha con prendas colgando. La Bahía es ropa antes que nada. */
+function _ropaTendida(g, altura, ancho) {
+  const colores = [0xd94f6a, 0x4fd1ff, 0xffd94f, 0x7cffb2];
+  for (let i = 0; i < 4; i++) {
+    const prenda = new THREE.Mesh(
+      new THREE.BoxGeometry(0.3, 0.42, 0.05),
+      mat(colores[i % colores.length], 0.22, 0.85),
+    );
+    prenda.position.set(-ancho * 0.32 + i * (ancho * 0.21), altura - 0.24, 0.28);
+    prenda.rotation.z = (i % 2 ? 1 : -1) * 0.07;
+    g.add(prenda);
+  }
+}
+
+/**
+ * Aplica el vestido de la escena.
+ *
+ * @param {THREE.Group} g Obstáculo ya construido
+ * @param {string} tipo   saltar | agachar | esquivar | doble
+ * @param {string} esc    Id de la escena
+ */
+export function vestirObstaculo(g, tipo, esc, colores) {
+  const ancho = CARRILES.ANCHO * 0.88;
+
+  // --- LA BAHÍA: venta ambulante -----------------------------------------
+  if (esc === 'bahia') {
+    if (tipo === 'saltar') {
+      // Mesa de tablones con su percha y la ropa colgada.
+      const tablero = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho * 1.04, 0.12, 0.8),
+        new THREE.MeshStandardMaterial({ map: texturaMadera(), roughness: 0.85, flatShading: true }),
+      );
+      tablero.position.y = OBSTACULOS.ALTURA_SALTAR * 0.92;
+      g.add(tablero);
+      _ropaTendida(g, OBSTACULOS.ALTURA_SALTAR * 0.92, ancho);
+      return;
+    }
+    if (tipo === 'agachar') {
+      // Toldo con electrodomésticos colgando del travesaño.
+      const toldo = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho * 1.15, 0.1, 1.5),
+        mat(0xd94f6a, 0.2, 0.85),
+      );
+      toldo.position.y = OBSTACULOS.ALTURA_AGACHAR_DESDE + 1.15;
+      g.add(toldo);
+
+      for (let i = -1; i <= 1; i++) {
+        const aparato = new THREE.Mesh(
+          new THREE.BoxGeometry(0.34, 0.3, 0.26),
+          mat(0xb9c6d4, 0.16, 0.5),
+        );
+        aparato.position.set(i * 0.7, OBSTACULOS.ALTURA_AGACHAR_DESDE + 0.42, 0.35);
+        g.add(aparato);
+      }
+      return;
+    }
+    if (tipo === 'esquivar') {
+      // Militar: casco, chaleco y el fusil cruzado. Si lo tocas, te capturan.
+      _figuraDeUniforme(g, 0x4a5240, 0x2f3626);
+      return;
+    }
+    return;
+  }
+
+  // --- EL APAGÓN: central térmica ----------------------------------------
+  if (esc === 'apagon') {
+    if (tipo === 'saltar') {
+      // Tubería reventada, con su brida y el chorro de vapor.
+      const tubo = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.28, 0.28, ancho * 1.1, 10),
+        mat(0x6b7280, 0.08, 0.6),
+      );
+      tubo.rotation.z = Math.PI / 2;
+      tubo.position.y = OBSTACULOS.ALTURA_SALTAR * 0.75;
+      g.add(tubo);
+
+      for (const sx of [-0.5, 0.5]) {
+        const brida = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.34, 0.34, 0.12, 10),
+          mat(0x8a94a6, 0.1, 0.5),
+        );
+        brida.rotation.z = Math.PI / 2;
+        brida.position.set(sx * ancho * 0.5, OBSTACULOS.ALTURA_SALTAR * 0.75, 0);
+        g.add(brida);
+      }
+      return;
+    }
+    if (tipo === 'agachar') {
+      // Cable de alta tensión con sus aisladores y un chispazo.
+      const cable = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.07, 0.07, ancho * 1.2, 6),
+        mat(0x16181f, 0.04, 0.9),
+      );
+      cable.rotation.z = Math.PI / 2;
+      cable.position.y = OBSTACULOS.ALTURA_AGACHAR_DESDE + 0.24;
+      g.add(cable);
+
+      const chispa = new THREE.Mesh(
+        new THREE.SphereGeometry(0.15, 7, 6),
+        neon(0x9fe8ff, 2),
+      );
+      chispa.position.set(0.35, OBSTACULOS.ALTURA_AGACHAR_DESDE + 0.24, 0.2);
+      g.add(chispa);
+      return;
+    }
+    if (tipo === 'esquivar') {
+      // Generador parado: carcasa, rejilla de ventilación y piloto en rojo.
+      // El generador ES el bloque: en vez de añadir uno delante, se reteñe el
+      // que ya está y se le pone la chapa por fuera.
+      if (g.userData.cuerpo) {
+        g.userData.cuerpo.material = mat(0x5a6270, 0.06, 0.7);
+      }
+      const zf = (g.userData.fondo ?? 1.5) / 2 + 0.05;
+
+      for (let i = 0; i < 5; i++) {
+        const rejilla = new THREE.Mesh(
+          new THREE.BoxGeometry(ancho * 0.72, 0.09, 0.07),
+          mat(0x2a3040, 0.03, 0.9),
+        );
+        rejilla.position.set(0, 0.5 + i * 0.24, zf);
+        g.add(rejilla);
+      }
+
+      const piloto = new THREE.Mesh(new THREE.SphereGeometry(0.12, 7, 6), neon(NEON.rojo, 2));
+      piloto.position.set(ancho * 0.3, 2.1, zf);
+      g.add(piloto);
+      return;
+    }
+    return;
+  }
+
+  // --- CENTRO HISTÓRICO: el cerco ----------------------------------------
+  if (esc === 'carondelet') {
+    if (tipo === 'saltar') {
+      // Reja de contención: barrotes verticales y travesaños.
+      const matReja = mat(0x8a94a6, 0.1, 0.6);
+      for (let i = 0; i < 7; i++) {
+        const barrote = new THREE.Mesh(
+          new THREE.BoxGeometry(0.07, OBSTACULOS.ALTURA_SALTAR * 0.9, 0.07),
+          matReja,
+        );
+        barrote.position.set(-ancho * 0.45 + i * (ancho * 0.15), OBSTACULOS.ALTURA_SALTAR * 0.5, 0.12);
+        g.add(barrote);
+      }
+      for (const y of [0.35, 0.95]) {
+        const travesano = new THREE.Mesh(
+          new THREE.BoxGeometry(ancho * 1.0, 0.08, 0.08),
+          matReja,
+        );
+        travesano.position.set(0, y, 0.12);
+        g.add(travesano);
+      }
+      return;
+    }
+    if (tipo === 'agachar') {
+      // Alambre de púas: rollos de concertina tendidos a media altura.
+      for (let i = -1; i <= 1; i++) {
+        const rollo = new THREE.Mesh(
+          new THREE.TorusGeometry(0.4, 0.05, 4, 10),
+          mat(0x9aa4b8, 0.28, 0.4),
+        );
+        rollo.position.set(i * 0.75, OBSTACULOS.ALTURA_AGACHAR_DESDE + 0.45, 0);
+        rollo.rotation.y = Math.PI / 2;
+        g.add(rollo);
+      }
+      return;
+    }
+    if (tipo === 'esquivar') {
+      // Antimotines: uniforme oscuro, casco y escudo por delante.
+      _figuraDeUniforme(g, 0x232838, 0x161a26, true);
+      return;
+    }
+    return;
+  }
+
+  // --- ELECCIONES: campaña -----------------------------------------------
+  if (esc === 'elecciones') {
+    if (tipo === 'saltar') {
+      // Valla de campaña: panel liso con la franja del partido.
+      const panel = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho * 1.02, OBSTACULOS.ALTURA_SALTAR * 0.7, 0.08),
+        mat(colores.acento ?? 0xff5fa2, 0.3, 0.6),
+      );
+      panel.position.set(0, OBSTACULOS.ALTURA_SALTAR * 0.6, 0.16);
+      g.add(panel);
+
+      for (let i = 0; i < 3; i++) {
+        const franja = new THREE.Mesh(
+          new THREE.BoxGeometry(ancho * 0.7, 0.08, 0.04),
+          mat(0xf2f2f2, 0.3, 0.5),
+        );
+        franja.position.set(0, OBSTACULOS.ALTURA_SALTAR * 0.42 + i * 0.18, 0.21);
+        g.add(franja);
+      }
+      return;
+    }
+    if (tipo === 'agachar') {
+      // Pancarta colgante, con sus cuerdas.
+      const tela = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho * 1.05, 0.9, 0.05),
+        mat(colores.acento ?? 0xff5fa2, 0.28, 0.75),
+      );
+      tela.position.y = OBSTACULOS.ALTURA_AGACHAR_DESDE + 0.6;
+      g.add(tela);
+
+      for (const sx of [-0.45, 0.45]) {
+        const cuerda = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.025, 0.025, 0.9, 5),
+          mat(0xd8d2c4, 0.1, 0.8),
+        );
+        cuerda.position.set(sx * ancho, OBSTACULOS.ALTURA_AGACHAR_DESDE + 1.5, 0);
+        g.add(cuerda);
+      }
+      return;
+    }
+    if (tipo === 'esquivar') {
+      // Cartón del candidato: silueta plana de tamaño natural, y su fan
+      // revolcándose al pie. El cartón es lo que bloquea; la fan es el chiste.
+      const zc = (g.userData.fondo ?? 1.5) / 2 + 0.14;
+      if (g.userData.cuerpo) {
+        g.userData.cuerpo.material = mat(0x1e2333, 0.03, 0.9);
+      }
+
+      const carton = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho * 0.78, 2.4, 0.08),
+        mat(0xe8e2d4, 0.24, 0.7),
+      );
+      carton.position.set(0, 1.32, zc);
+      g.add(carton);
+
+      const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 6), mat(0xe0b088, 0.22, 0.6));
+      cabeza.position.set(0, 2.2, zc + 0.08);
+      g.add(cabeza);
+
+      const traje = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho * 0.54, 1.15, 0.06),
+        mat(0x2a3550, 0.16, 0.6),
+      );
+      traje.position.set(0, 1.3, zc + 0.08);
+      g.add(traje);
+
+      // La fan, revolcándose al pie del cartón. No estorba: es el chiste.
+      const fan = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.24, 0.72, 3, 7),
+        mat(0x7b3fb5, 0.2, 0.7),
+      );
+      fan.rotation.z = Math.PI / 2;
+      fan.position.set(0.15, 0.26, zc + 0.72);
+      g.add(fan);
+      g.userData.fan = fan;
+      return;
+    }
+  }
+}
+
+/**
+ * Figura de uniforme para los bloqueos de carril. Cambia el color y si lleva
+ * escudo; el resto es el mismo cuerpo, porque lo que tiene que leerse a
+ * distancia es «hay una persona ahí y no se pasa».
+ */
+function _figuraDeUniforme(g, colorRopa, colorOscuro, conEscudo = false) {
+  // OJO CON LA PROFUNDIDAD. El bloque base mide 2.6 de alto por 1.5 de fondo:
+  // una figura puesta en el centro del grupo queda DENTRO de él y no se ve
+  // nada. Va delante, sobre la cara que mira al jugador.
+  const z = (g.userData.fondo ?? 1.5) / 2 + 0.28;
+
+  // Y el bloque de detrás se reteñe: deja de ser un cajón de madera y pasa a
+  // ser la masa oscura contra la que se recorta la figura.
+  if (g.userData.cuerpo) {
+    g.userData.cuerpo.material = mat(colorOscuro, 0.03, 0.9);
+  }
+
+  const cuerpo = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.95, 0.42), mat(colorRopa, 0.12, 0.75));
+  cuerpo.position.set(0, 1.32, z);
+  g.add(cuerpo);
+
+  const piernas = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.9, 0.36), mat(colorOscuro, 0.06, 0.8));
+  piernas.position.set(0, 0.44, z);
+  g.add(piernas);
+
+  const casco = new THREE.Mesh(new THREE.SphereGeometry(0.29, 8, 6), mat(colorOscuro, 0.08, 0.7));
+  casco.position.set(0, 2.0, z);
+  g.add(casco);
+
+  const visera = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.14, 0.06), neon(0x6fd8ff, 1.4));
+  visera.position.set(0, 1.98, z + 0.26);
+  g.add(visera);
+
+  if (conEscudo) {
+    const escudo = new THREE.Mesh(
+      new THREE.BoxGeometry(0.78, 1.3, 0.07),
+      new THREE.MeshStandardMaterial({
+        color: 0x8fa6c4, transparent: true, opacity: 0.45, roughness: 0.25, metalness: 0.2,
+      }),
+    );
+    escudo.position.set(0, 1.15, z + 0.3);
+    g.add(escudo);
+  } else {
+    // Fusil cruzado al pecho.
+    const fusil = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.1, 0.1), mat(0x16181f, 0.04, 0.85));
+    fusil.position.set(0, 1.24, z + 0.26);
+    fusil.rotation.z = -0.5;
+    g.add(fusil);
   }
 }
 
@@ -665,6 +993,194 @@ function modeloLinterna(color) {
   return g;
 }
 
+/** GUATA — La Bahía. Plato hondo, guiso espeso y su cuchara. */
+function modeloGuata(color) {
+  const g = new THREE.Group();
+
+  // Plato más hondo y más estrecho que el del encebollado: son dos platos
+  // distintos y a treinta metros solo se distinguen por la silueta.
+  const plato = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.3, 0.26, 0.3, 12),
+    mat(0xe4e0d2, 0.26, 0.5),
+  );
+  g.add(plato);
+
+  const guiso = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.27, 0.27, 0.04, 12),
+    neon(color, 1.4),
+  );
+  guiso.position.y = 0.14;
+  g.add(guiso);
+
+  // Trozos asomando: es guiso, no sopa.
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + 0.4;
+    const trozo = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 0.09, 0.1),
+      mat(0xa8552e, 0.24, 0.65),
+    );
+    trozo.position.set(Math.cos(a) * 0.12, 0.17, Math.sin(a) * 0.12);
+    trozo.rotation.y = a;
+    g.add(trozo);
+  }
+
+  const cuchara = new THREE.Mesh(
+    new THREE.BoxGeometry(0.04, 0.32, 0.04),
+    mat(0xd8dde6, 0.25, 0.35),
+  );
+  cuchara.position.set(-0.18, 0.26, 0.05);
+  cuchara.rotation.z = -0.4;
+  g.add(cuchara);
+
+  const vapor = _vaho(3, 0.22);
+  g.add(vapor);
+  g.userData.vapor = vapor;
+  return g;
+}
+
+/** BOLÓN — La Bahía. Bola de verde con queso, sobre hoja. */
+function modeloBolon(color) {
+  const g = new THREE.Group();
+
+  // La bola es la silueta entera: redonda y maciza, que no se parece a nada
+  // más de los que hay en pista.
+  const bola = new THREE.Mesh(
+    new THREE.DodecahedronGeometry(0.29, 0),
+    mat(color, 0.3, 0.8),
+  );
+  bola.position.y = 0.1;
+  g.add(bola);
+
+  // Trocitos de queso y chicharrón asomando.
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    const trozo = new THREE.Mesh(
+      new THREE.BoxGeometry(0.075, 0.06, 0.075),
+      neon(i % 2 ? 0xfff2cf : 0x8a5230, 1.1),
+    );
+    trozo.position.set(
+      Math.cos(a) * 0.22,
+      0.1 + Math.sin(a * 1.7) * 0.12,
+      Math.sin(a) * 0.22,
+    );
+    trozo.rotation.set(a, a * 0.6, 0);
+    g.add(trozo);
+  }
+
+  // Hoja de plátano debajo: lo asienta y da el color local.
+  const hoja = new THREE.Mesh(
+    new THREE.CircleGeometry(0.36, 7),
+    mat(0x2f7a3c, 0.18, 0.75),
+  );
+  hoja.rotation.x = -Math.PI / 2;
+  hoja.position.y = -0.19;
+  g.add(hoja);
+
+  return g;
+}
+
+/** PILA — El Apagón. Va encendida: aquí es lo único que se ve. */
+function modeloPila(color) {
+  const g = new THREE.Group();
+
+  const cuerpo = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.17, 0.17, 0.52, 12),
+    neon(color, 1.9),
+  );
+  g.add(cuerpo);
+
+  // Franja negra con el rótulo: sin ella una pila es un cilindro amarillo.
+  const franja = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.175, 0.175, 0.17, 12),
+    mat(0x14161c, 0.05, 0.6),
+  );
+  franja.position.y = -0.06;
+  g.add(franja);
+
+  // Borne positivo.
+  const borne = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.08, 0.08, 10),
+    mat(0xc8cede, 0.3, 0.35),
+  );
+  borne.position.y = 0.3;
+  g.add(borne);
+
+  const base = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.175, 0.175, 0.05, 12),
+    mat(0xa8b0c0, 0.25, 0.4),
+  );
+  base.position.y = -0.26;
+  g.add(base);
+
+  // Resplandor propio. En el resto de escenas basta con que el ítem destaque;
+  // en esta, si no emite luz por su cuenta, sencillamente no se ve.
+  const aura = new THREE.Mesh(
+    new THREE.SphereGeometry(0.46, 10, 8),
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.22,
+      depthWrite: false,
+      toneMapped: false,
+      fog: false,
+    }),
+  );
+  g.add(aura);
+
+  const luz = new THREE.PointLight(color, 9, 12, 2);
+  g.add(luz);
+
+  return g;
+}
+
+/** MOTE — El centro histórico. Cuenco de mote, comida de la sierra. */
+function modeloMote(color) {
+  const g = new THREE.Group();
+
+  const cuenco = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.31, 0.2, 0.26, 12),
+    mat(0x9a5a3c, 0.16, 0.72),
+  );
+  g.add(cuenco);
+
+  // Los granos son el modelo: un montoncito irregular que se lee de lejos.
+  const matGrano = neon(color, 1.2);
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * Math.PI * 2 * 1.6;
+    const r = 0.06 + (i % 3) * 0.07;
+    const grano = new THREE.Mesh(new THREE.SphereGeometry(0.075, 6, 5), matGrano);
+    grano.position.set(
+      Math.cos(a) * r,
+      0.14 + (i % 2) * 0.06,
+      Math.sin(a) * r,
+    );
+    g.add(grano);
+  }
+
+  const vapor = _vaho(2, 0.2);
+  g.add(vapor);
+  g.userData.vapor = vapor;
+  return g;
+}
+
+/** Volutas de vaho compartidas. Las anima Stamina.js. */
+function _vaho(cuantas, opacidad) {
+  const vapor = new THREE.Group();
+  const matVapor = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: opacidad,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  for (let i = 0; i < cuantas; i++) {
+    const nube = new THREE.Mesh(new THREE.SphereGeometry(0.085, 6, 5), matVapor);
+    nube.position.set((i - 1) * 0.09, 0.2 + i * 0.12, 0);
+    vapor.add(nube);
+  }
+  return vapor;
+}
+
 /** MICRÓFONO — Las Elecciones. Rejilla, mango y cable suelto. */
 function modeloMicrofono(color) {
   const g = new THREE.Group();
@@ -764,9 +1280,13 @@ function modeloCanelazo(color) {
 
 const MODELOS_ESTAMINA = {
   encebollado: modeloEncebollado,
+  guata: modeloGuata,
+  bolon: modeloBolon,
+  pila: modeloPila,
   linterna: modeloLinterna,
   microfono: modeloMicrofono,
   canelazo: modeloCanelazo,
+  mote: modeloMote,
 };
 
 /**

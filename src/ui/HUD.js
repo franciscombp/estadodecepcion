@@ -110,7 +110,7 @@ export class HUD {
                 data-campo="expediente-progreso"></span>
         </div>
         <div class="expediente__aviso" data-campo="expediente-aviso">
-          NO SE TE PUEDE CAER NI UNO
+          RECUPERA LOS QUE PUEDAS
         </div>
       </div>
 
@@ -403,11 +403,14 @@ export class HUD {
       // En cuanto se escapa el primer papel, el expediente ya está perdido.
       // Decirlo de inmediato es más honesto que dejar que el jugador siga
       // creyendo que va bien hasta el recuento final.
+      // En cuanto se te queda uno atrás, el expediente ya está incompleto.
+      // Decirlo de inmediato es más honesto que dejar creer que va bien hasta
+      // el recuento final.
       const perdido = tramite.recogidos < Math.round(tramite.progreso * tramite.total) - 2;
       this.ref.expediente.classList.toggle('expediente--perdido', perdido);
       this.ref.expedienteAviso.textContent = perdido
-        ? 'YA SE TE CAYÓ ALGUNO'
-        : 'NO SE TE PUEDE CAER NI UNO';
+        ? 'YA SE TE QUEDARON ATRÁS'
+        : 'RECUPERA LOS QUE PUEDAS';
       this.cache.tramite = tramite.recogidos;
     }
 

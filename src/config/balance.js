@@ -372,25 +372,32 @@ export const TUNEL = {
 };
 
 // ---------------------------------------------------------------------------
-// EL TRÁMITE — el túnel del centro
+// LOS ENTES DE CONTROL — el túnel del centro
 // ---------------------------------------------------------------------------
-// Entrar de frente ya no abre una ruleta de azar: mete al jugador en un tramo
-// cerrado donde no hay obstáculos, solo papeles. Es una prueba de HABILIDAD,
-// no de suerte. Recoges todo o no entra la denuncia.
+// Entrar de frente no abre una ruleta: la institución te RIEGA LOS PAPELES.
+// Se desparraman por el pasillo los que traías y sales con lo que alcances a
+// recoger del suelo. Ver docs/GUION.md y game/Tramite.js.
 export const TRAMITE = {
-  LONGITUD: 340,        // Metros dentro del túnel institucional.
-  // Cuántos papeles se siembran. Van en hileras exigentes que obligan a
-  // cambiar de carril sin descanso.
-  // Con la separación de papeles ya corregida, 12 hileras de 6 dejan unos
-  // ocho metros entre el final de una y el principio de la siguiente: lo justo
-  // para cambiar de carril a velocidad de crucero. Más apretado no sería
-  // difícil, sería imposible, y el trámite tiene que ser jugable antes que
-  // duro.
-  HILERAS: 12,
-  PAPELES_POR_HILERA: 6,
-  // Fracción a partir de la cual el expediente "entra". Es 1: perfecto o nada.
-  // Ese es el chiste, y también el motivo por el que ganar el juego es casi
-  // imposible.
+  LONGITUD: 340,        // Metros dentro del pasillo del ente de control.
+
+  // CUÁNTAS PIEZAS SE DIBUJAN.
+  // No son papeles nuevos: son los tuyos. Pero la cantidad no puede ser la
+  // real —con cuatrocientos encima no se pueden pintar cuatrocientas piezas, y
+  // con tres no habría trámite—, así que se acota y cada pieza en pista
+  // representa una parte proporcional del montón.
+  PIEZAS_MINIMAS: 24,
+  PIEZAS_MAXIMAS: 72,
+
+  // Reparto en zigzag por los tres carriles. La separación es MENOR que lo que
+  // tarda un cambio de carril a velocidad de crucero, y eso es deliberado:
+  // recuperarlo todo tiene que ser prácticamente imposible.
+  SEPARACION: 3.0,
+  // Cada cuántas piezas cambia de carril el reguero.
+  PIEZAS_POR_TRAMO: 3,
+
+  // Fracción a partir de la cual el expediente "entra". Es 1: todo o nada.
+  // Y aun recuperándolo todo el ente te da con la puerta en las narices; lo
+  // que cambia es que el caso sigue vivo.
   UMBRAL_PERFECTO: 1,
 };
 
@@ -421,19 +428,76 @@ export const CERCO = {
   // que hay que verlo.
   DESVIO_PERSEGUIDOR: 1.7,
 
-  // --- Medidor de habilidad ---------------------------------------------
-  // Una barra con un cursor que va y viene. Paras en la zona verde y te
-  // escapas. Es habilidad pura: no hay dado detrás.
-  ESCAPE_VELOCIDAD: 1.45,   // Recorridos completos por segundo.
-  ESCAPE_ZONA: 0.16,        // Ancho de la zona buena, en fracción de barra.
-  // Cada escape usado estrecha la zona del siguiente. Solo se permite uno por
-  // partida, pero se deja el número por si se abre la mano más adelante.
-  ESCAPE_INTENTOS: 1,
-  // Con qué estamina te devuelve a la pista un escape logrado.
+  // --- Sorteo del juez ---------------------------------------------------
+  // Seis jueces y un selector que los recorre. Cinco llevan la camiseta
+  // morada del oficialismo; uno no. Paras el selector y a ver qué te toca.
+  //
+  // No es una ruleta: el selector está a la vista, los jueces están a la
+  // vista, y el resultado es exactamente lo que hiciste con el pulgar.
+  JUECES: 6,
+  // Saltos por segundo del selector, la primera vez que te atrapan.
+  SELECTOR_VELOCIDAD: 4.2,
+  // Cuánto acelera por cada captura acumulada en la partida. NO hay tope de
+  // intentos: siempre tienes la oportunidad, pero la oportunidad se encoge.
+  // Esa curva es la única progresión del juego que va en tu contra, y es la
+  // que hace que la partida acabe.
+  SELECTOR_ACELERACION: 1.55,
+  SELECTOR_VELOCIDAD_MAXIMA: 15,
+  // Con qué aguante te devuelve a la pista un fallo del sistema a tu favor.
   ESTAMINA_TRAS_ESCAPE: 70,
-  // A qué distancia quedan los perseguidores tras el escape.
+  // A qué distancia quedan los perseguidores tras zafarte.
   DISTANCIA_TRAS_ESCAPE: 20,
 };
+
+// ---------------------------------------------------------------------------
+// LOS JUECES
+// ---------------------------------------------------------------------------
+// Lo que te cae encima cuando el selector para donde no debe. El primero de la
+// lista es el único que no está comprado; el resto reparten sentencias.
+export const SENTENCIAS = [
+  {
+    id: 'honesto',
+    limpio: true,
+    titular: 'MEDIDAS SUSTITUTIVAS',
+    texto: 'El juez no llevaba la camiseta. Sales con medidas sustitutivas y '
+      + 'la orden de no salir del país. Todo sigue exactamente como antes.',
+  },
+  {
+    id: 'preventiva',
+    limpio: false,
+    titular: 'PRISIÓN PREVENTIVA',
+    texto: 'Seis meses mientras se investiga. La investigación es sobre ti, '
+      + 'no sobre lo que documentaste.',
+  },
+  {
+    id: 'domiciliaria',
+    limpio: false,
+    titular: 'PRISIÓN DOMICILIARIA',
+    texto: 'Puedes seguir escribiendo desde casa. Con un grillete y sin salir '
+      + 'a preguntar, que es de donde salían las notas.',
+  },
+  {
+    id: 'extradicion',
+    limpio: false,
+    titular: 'PEDIDO DE EXTRADICIÓN',
+    texto: 'Alguien encontró una causa abierta en otro país. Qué oportuno, y '
+      + 'qué rápido se tramitó.',
+  },
+  {
+    id: 'incomunicacion',
+    limpio: false,
+    titular: 'INCOMUNICACIÓN',
+    texto: 'Sin visitas, sin llamadas y sin abogado los primeros días. '
+      + 'Después ya no hacía falta.',
+  },
+  {
+    id: 'archivo',
+    limpio: false,
+    titular: 'CAUSA RESERVADA',
+    texto: 'El expediente pasa a reservado por seguridad nacional. Ni tú '
+      + 'puedes leer de qué te acusan.',
+  },
+];
 
 // ---------------------------------------------------------------------------
 // NIVELES ELEVADOS — rampas y plataformas

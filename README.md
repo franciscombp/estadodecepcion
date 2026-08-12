@@ -66,6 +66,7 @@ src/
 │   ├── Cerco.js        ← La animación de que te rodean
 │   ├── Rutas.js        ← El mapa del rombo
 │   ├── PowerUps.js     ← Potenciadores y su desbloqueo progresivo
+│   ├── Intro.js        ← La cinemática de arranque
 │   └── Notebook.js     ← Meta-progreso en localStorage
 ├── scenes/
 │   ├── BaseScene.js    ← Luces, niebla y decorado lateral
@@ -125,15 +126,25 @@ navegador para trastear en vivo.
 
 ---
 
-## Los cuatro escenarios
+## Las cuatro escenas
+
+> El lore completo —premisa, personajes, qué se documenta en cada escena y
+> cómo termina cada trámite— está en **[docs/GUION.md](docs/GUION.md)**, que
+> es la fuente de verdad. Este README explica cómo está construido; aquel,
+> por qué existe cada pieza.
 
 ```
         ┌─── BAHÍA ───┐
-        │             │
+        │  (Fiscalía) │
    ELECCIONES ──┼── APAGÓN
-        │             │
-        └─ CARONDELET ┘
+      (CNE)     │  (Asamblea)
+        └─ CENTRO HISTÓRICO ┘
+             (Carondelet)
 ```
+
+Empiezas con una **cinemática**: estás entrevistando, la cámara se aleja,
+aparecen los dos, el bajito se sube al grande y arranca la persecución. Se
+salta con un toque y se abrevia a partir de la tercera partida.
 
 **La bifurcación ocurre corriendo, no en un menú.** Al final de cada tramo la
 calle termina contra una fachada con **tres bocas de túnel**, una por carril.
@@ -156,20 +167,30 @@ El corredor se vacía de obstáculos a los 140 metros, no antes: obligar a
 esquivar mientras decides convierte una decisión en un accidente, pero vaciar
 la pista desde el primer cartel dejaría 260 metros sin nada que hacer.
 
-### El trámite (el túnel del centro)
+### Los entes de control (el túnel del centro)
+
+Cada escena tiene el suyo: la Bahía lleva a la **Fiscalía**, el Apagón a la
+**Asamblea**, las Elecciones al **CNE**, y el centro histórico a **Carondelet**,
+que está cercado y donde ir de frente es estrellarse.
+
+Entrar **no es un premio**. La institución te **riega los papeles**: se
+desparrama por el pasillo todo lo que llevabas recogido y hay que recuperar lo
+que se pueda mientras corres. No hay obstáculos, porque el obstáculo es la
+propia institución. Recuperarlo todo es prácticamente imposible y está
+calibrado para que lo sea.
+
+Al salir te dan con la puerta en las narices —se archiva el caso, faltan votos,
+te quitan los derechos políticos— **pero sales con la pieza que te faltaba**.
+Esa asimetría es lo que sostiene el modo historia:
+
+- Para el **archivo** el trámite **rinde**: sales con el hallazgo.
+- Para el **ranking** el trámite **cuesta**: entras con un montón y sales con
+  lo que alcanzaste a levantar del suelo.
+
+Quien juega a puntuación aprende a no entrar. Quien juega a documentar, entra.
 
 Antes había una ruleta: un porcentaje, un giro y la suerte decidía. Funcionaba
 como chiste una vez y como mecánica ninguna, porque el jugador solo miraba.
-
-Ahora la vía institucional es una **prueba de habilidad**. Dentro del túnel no
-hay obstáculos, ni perseguidores, ni drenaje de estamina: solo 154 papeles en
-un patrón que obliga a cambiar de carril sin descanso durante 340 metros. Al
-final se cuentan.
-
-- Los recogiste **todos** → la denuncia entra. **Ganas el juego.**
-- Faltó uno → *«no alcanzaste los votos»*, se archiva, y sales a la calle.
-
-El umbral es 1. No 0.95: uno. Que sea casi imposible es exactamente el chiste.
 
 ### El nivel de arriba
 
@@ -191,11 +212,17 @@ derrota en un corte. Ahora la captura se **representa**: el mundo se para, el
 dúo te cae encima, cinco policías cierran un círculo y la cámara retrocede
 para que se vea. Solo entonces aparece la interfaz.
 
-Y lo que aparece es un **medidor de habilidad**, no una ruleta: un cursor
-recorre una barra a velocidad conocida y lo paras. Si cae en la franja verde,
-te zafas y sigues corriendo en la misma temporada. Uno por partida. Perder por
-un dado invisible después de dos minutos corriendo es lo que apaga un juego;
-perder por no llegar a tiempo, no.
+Y lo que aparece es el **sorteo del juez**: seis, y un selector que los
+recorre. Cinco llevan la camiseta morada del oficialismo; uno no. Si paras en
+el que no la lleva, sales con «medidas sustitutivas» y sigues corriendo en la
+misma escena. Si caes en cualquier otro, la sentencia —prisión preventiva,
+extradición, domiciliaria— se publica **en primera plana de El Mercio**.
+
+No es una ruleta: el selector está a la vista, los jueces están a la vista, y
+el resultado es exactamente lo que hiciste con el pulgar. **Cada captura
+acelera el selector**, y no hay tope de intentos: siempre tienes tu
+oportunidad, pero la oportunidad se encoge. Esa curva es la única progresión
+del juego que va en tu contra, y es la que hace que la partida acabe.
 
 ### Potenciadores
 
@@ -225,22 +252,33 @@ La partida siguiente arranca **en la temporada donde te capturaron**, no
 siempre en la Bahía. Volver al principio cada vez convertía cada muerte en un
 reinicio del relato en lugar de en un capítulo.
 
-| Escenario | Tema | Estamina | Institución | Cómo se gana |
-|---|---|---|---|---|
-| **Bahía** | Corrupción | Encebollado | Fiscalía | trámite perfecto |
-| **Apagón** | Crisis energética | Linterna | Asamblea Nacional | trámite perfecto |
-| **Elecciones** | Cooptación del CNE | Micrófono | CNE | trámite perfecto |
-| **Carondelet** | Censura de prensa | Canelazo | — | ir de frente es perder |
+| Escena | Caso | Aguante | Ente de control |
+|---|---|---|---|
+| **La Bahía** | Porche | Encebollado, guata, bolón | Fiscalía |
+| **El Apagón** | Progen | Pilas | Asamblea Nacional |
+| **Las Elecciones** | Elecciones | Micrófono | CNE |
+| **Centro histórico** | Estado de excepción | Canelazo, mote | — (cercado) |
+
+Los obstáculos también cambian de piel: puestos de ropa y militares en la
+Bahía, tuberías y generadores en la central térmica, rejas y antimotines en el
+centro histórico, vallas de campaña y cartones del candidato en las
+elecciones. La **silueta** no cambia —lo que se salta se sigue leyendo bajo y
+ancho— porque el jugador tiene medio segundo para leerla y ese medio segundo
+lo compra la silueta. Lo que cambia es lo que va encima.
 
 **Apagón** tiene mecánica propia: la pantalla se oscurece y las linternas
 amplían la visión. El radio visible escala con la velocidad para que siempre
 tengas al menos un segundo de reacción — si fuera un valor fijo, a velocidad
-máxima los obstáculos aparecerían ya encima. Y el tramo **regala una linterna
-al entrar** además de sembrar otra a la vista: llegar a oscuras y esperar 150
+máxima los obstáculos aparecerían ya encima. Y el tramo **regala una pila al
+entrar** además de sembrar otra a la vista: llegar a oscuras y esperar 150
 metros a la primera no era difícil, era injugable.
 
-**Carondelet** es deliberadamente árido: máximo 3 papeles por tramo. La
-carestía es el mensaje.
+Es además **la única escena donde quedarse sin recurso mata por sí solo**. En
+las demás, sin aguante vas lento y son los perseguidores los que acaban el
+trabajo; aquí, sin luz no ves por dónde corres ni hay nada que documentar.
+
+**El centro histórico** es deliberadamente árido: máximo 3 papeles por tramo.
+La carestía es el mensaje.
 
 ---
 

@@ -1,16 +1,24 @@
 // ============================================================================
-// ESCENARIOS — Definición de los cuatro tramos y el mapa del loop infinito
+// ESCENARIOS — Las cuatro escenas y el mapa del loop
 // ============================================================================
+// Ver docs/GUION.md: este archivo es la traducción a datos de aquel guion, y
+// si los dos no coinciden manda el guion.
 //
-// El loop es un rombo. Desde cada escenario puedes ir a dos vecinos, o seguir
-// de frente hacia la "institución" (que dispara la ruleta):
+// El loop es un rombo. Desde cada escena puedes ir a dos vecinas, o seguir de
+// frente hacia SU ente de control:
 //
 //              ┌─── BAHÍA ───┐
-//              │             │
+//              │  (Fiscalía) │
 //         ELECCIONES ──┼── APAGÓN
-//              │             │
-//              └─ CARONDELET ┘
+//            (CNE)     │  (Asamblea)
+//              └─ CENTRO HISTÓRICO ┘
+//                   (Carondelet)
 //
+// LO QUE COMPARTEN Y LO QUE NO
+// Las cuatro escenas usan la misma mecánica de aguante: si no recoges, vas
+// lento y te alcanzan. Lo que cambia es QUÉ recoges, y eso no es decoración.
+// En la Bahía corres y te da hambre; en la central térmica no comes, alumbras.
+// Misma regla, ficción distinta.
 // ============================================================================
 
 export const ESCENARIOS = {
@@ -20,6 +28,9 @@ export const ESCENARIOS = {
     nombre: 'LA BAHÍA',
     subtitulo: 'Donde todo se vende, hasta el silencio',
     tema: 'corrupción',
+    // Rótulo del caso que se documenta aquí. Es el nombre con el que la prensa
+    // lo nombra; lo que el jugador recoge dentro son objetos genéricos.
+    caso: 'CASO PORCHE',
 
     // Paleta propia del escenario. Todos parten del vaporwave tropical base
     // pero cada uno vira hacia un dominante distinto para que se distingan
@@ -36,19 +47,23 @@ export const ESCENARIOS = {
       intensidadDireccional: 1.0,
     },
 
-    // Ítem de estamina propio del escenario.
+    // Aguante. Correr da hambre, así que aquí se come.
     estamina: {
-      nombre: 'Encebollado',
-      descripcion: 'Cura el chuchaqui y la desesperanza',
-      color: 0xff8c42,
-      modelo: 'encebollado',
+      nombre: 'Comida',
+      etiqueta: 'COMIDA',
+      icono: 'encebollado',
+      items: [
+        { modelo: 'encebollado', nombre: 'Encebollado', color: 0xff8c42 },
+        { modelo: 'guata', nombre: 'Guata', color: 0xd9542a },
+        { modelo: 'bolon', nombre: 'Bolón', color: 0xc9a34a },
+      ],
     },
 
     // Etiquetas de los obstáculos, para el HUD y los mensajes de choque.
     obstaculos: {
-      saltar: 'Barricada',
-      agachar: 'Bomba lacrimógena',
-      esquivar: 'Policía coimero',
+      saltar: 'Puesto de ropa',
+      agachar: 'Toldo de electrodomésticos',
+      esquivar: 'Militar',
       doble: 'Retén',
     },
 
@@ -58,12 +73,21 @@ export const ESCENARIOS = {
     // Densidad de recolectables: la Bahía es generosa, es donde se aprende.
     densidadPapeles: 1.0,
 
-    // Bifurcación de frente.
+    // El ente de control al que lleva la boca del centro. Ver docs/GUION.md:
+    // entrar no es un premio. Te riegan los papeles, recuperas lo que puedas,
+    // y a la salida te dan con la puerta en las narices —pero sales con la
+    // pieza que te faltaba del caso.
     institucion: {
       nombre: 'FISCALÍA',
-      probabilidadExito: 0.20,
-      textoExito: 'La denuncia entró. Alguien, en algún piso, la leyó.',
-      textoFracaso: 'El expediente se traspapeló. Como siempre. Como todos.',
+      // Qué pasa al entrar, en una línea.
+      entrada: 'Al cruzar la puerta se te riegan los papeles por todo el pasillo.',
+      // El portazo de salida. Es el remate, y es siempre el mismo: no importa
+      // cuánto recuperes.
+      portazo: 'No contabas con evidencia suficiente. Se archiva el caso.',
+      // Lo que sí te llevas. El trámite cuesta papeles y paga historia.
+      hallazgo: 'Expediente del caso Porche',
+      // Si recuperas TODO, cosa prácticamente imposible.
+      textoExito: 'Los recogiste todos. Alguien, en algún piso, tuvo que leerlo.',
     },
 
     // Vecinos del rombo.
@@ -76,6 +100,7 @@ export const ESCENARIOS = {
     nombre: 'EL APAGÓN',
     subtitulo: 'Cuatro horas diarias de patriotismo forzado',
     tema: 'crisis energética',
+    caso: 'CASO PROGEN',
 
     colores: {
       nieblaLejos: 0x05070d,
@@ -89,24 +114,36 @@ export const ESCENARIOS = {
       intensidadDireccional: 0.35,
     },
 
+    // Aquí no se come: se alumbra. Las pilas van iluminadas porque esta es la
+    // única escena donde el recolectable tiene que brillar por sí mismo —en el
+    // resto basta con que destaque, aquí es que si no brilla no existe.
     estamina: {
-      nombre: 'Linterna',
-      descripcion: 'Batería china, esperanza nacional',
-      color: 0xffe066,
-      modelo: 'linterna',
-      // El Apagón arranca a oscuras y la linterna es lo único que abre la
-      // visión. Entrar sin ninguna y esperar a que el generador de estamina
-      // suelte la primera a los 150 m no era difícil: era injugable. Así que
-      // el tramo REGALA una al entrar (se enciende sola) y siembra otra a la
-      // vista, para que el jugador entienda de inmediato de qué va esto.
+      nombre: 'Pilas',
+      etiqueta: 'PILAS',
+      icono: 'linterna',
+      items: [
+        { modelo: 'pila', nombre: 'Pila', color: 0xffe066 },
+      ],
+      // El Apagón arranca a oscuras y la pila es lo único que abre la visión.
+      // Entrar sin ninguna y esperar a que el generador suelte la primera a
+      // los 150 m no era difícil: era injugable. Así que el tramo REGALA una
+      // al entrar (se enciende sola) y siembra otra a la vista.
       regaloAlEntrar: true,
       distanciaSembrada: 70,
     },
 
+    // LA ÚNICA ESCENA DONDE QUEDARSE SIN RECURSO MATA.
+    // En las demás, quedarte sin aguante te vuelve lento y te acaban
+    // alcanzando —una presión indirecta—. Aquí no: sin luz no ves por dónde
+    // corres ni hay nada que documentar, así que la oscuridad total es derrota
+    // directa. La compensación es el regalo de entrada y una siembra generosa.
+    sinAguanteEsCaptura: true,
+    textoSinAguante: 'Se apagó la linterna. Lo que pasó después no lo vio nadie.',
+
     obstaculos: {
-      saltar: 'Tubería',
+      saltar: 'Tubería reventada',
       agachar: 'Cable de alta tensión',
-      esquivar: 'Generador ATM',
+      esquivar: 'Generador averiado',
       doble: 'Turbina varada',
     },
 
@@ -125,9 +162,10 @@ export const ESCENARIOS = {
 
     institucion: {
       nombre: 'ASAMBLEA NACIONAL',
-      probabilidadExito: 0.30,
-      textoExito: 'Se aprobó una comisión. La comisión pidió un informe.',
-      textoFracaso: 'Se fue la luz en plena votación. Qué casualidad tan puntual.',
+      entrada: 'La comisión de fiscalización te riega los papeles «para revisarlos».',
+      portazo: 'La comisión niega el juicio político por falta de votos.',
+      hallazgo: 'Informe técnico del caso Progen',
+      textoExito: 'Los recogiste todos. Hubo votos. Nadie se lo explica.',
     },
 
     rutas: { izquierda: 'bahia', derecha: 'carondelet' },
@@ -139,6 +177,7 @@ export const ESCENARIOS = {
     nombre: 'LAS ELECCIONES',
     subtitulo: 'Campaña anticipada, conteo retrasado',
     tema: 'cooptación del CNE',
+    caso: 'CASO ELECCIONES',
 
     colores: {
       nieblaLejos: 0x1a1230,
@@ -154,15 +193,17 @@ export const ESCENARIOS = {
 
     estamina: {
       nombre: 'Micrófono',
-      descripcion: 'Tu canal de YouTube es el último medio libre',
-      color: 0x7cffb2,
-      modelo: 'microfono',
+      etiqueta: 'MICRÓFONO',
+      icono: 'microfono',
+      items: [
+        { modelo: 'microfono', nombre: 'Micrófono', color: 0x7cffb2 },
+      ],
     },
 
     obstaculos: {
-      saltar: 'Valla de ADN',
+      saltar: 'Valla de campaña',
       agachar: 'Pancarta colgante',
-      esquivar: 'Cartón de candidato',
+      esquivar: 'Cartón del candidato',
       doble: 'Bus de simpatizantes',
     },
 
@@ -172,9 +213,11 @@ export const ESCENARIOS = {
 
     institucion: {
       nombre: 'CNE',
-      probabilidadExito: 0.25,
-      textoExito: 'Impugnación admitida. Se resolverá después de la posesión.',
-      textoFracaso: 'El sistema se cayó justo en tu mesa. Vuelva mañana.',
+      entrada: 'Te piden los papeles «para cotejarlos» y acaban por el suelo.',
+      portazo: 'Pierdes tus derechos políticos y de participación. '
+        + 'Igual no importa: no ibas a ser candidato.',
+      hallazgo: 'Acta con más votos que votantes',
+      textoExito: 'Los recogiste todos. La impugnación entró. Se resolverá algún día.',
     },
 
     rutas: { izquierda: 'carondelet', derecha: 'bahia' },
@@ -183,9 +226,10 @@ export const ESCENARIOS = {
   // -------------------------------------------------------------------------
   carondelet: {
     id: 'carondelet',
-    nombre: 'CARONDELET',
-    subtitulo: 'El centro histórico amaneció cercado',
+    nombre: 'CENTRO HISTÓRICO',
+    subtitulo: 'Amaneció cercado',
     tema: 'censura de prensa',
+    caso: 'ESTADO DE EXCEPCIÓN',
 
     colores: {
       nieblaLejos: 0x2a0f14,
@@ -199,17 +243,21 @@ export const ESCENARIOS = {
       intensidadDireccional: 0.9,
     },
 
+    // Comida de la sierra, y el canelazo que además calienta.
     estamina: {
-      nombre: 'Canelazo',
-      descripcion: 'Calienta el cuerpo, no la valentía',
-      color: 0xffa94d,
-      modelo: 'canelazo',
+      nombre: 'Comida',
+      etiqueta: 'COMIDA Y CANELAZO',
+      icono: 'canelazo',
+      items: [
+        { modelo: 'canelazo', nombre: 'Canelazo', color: 0xffa94d },
+        { modelo: 'mote', nombre: 'Mote', color: 0xf0e2c0 },
+      ],
     },
 
     obstaculos: {
-      saltar: 'Decreto ejecutivo',
-      agachar: 'Concertina',
-      esquivar: 'Militar',
+      saltar: 'Reja de contención',
+      agachar: 'Alambre de púas',
+      esquivar: 'Policía antimotines',
       doble: 'Tanqueta',
     },
 
@@ -219,10 +267,12 @@ export const ESCENARIOS = {
     densidadPapeles: 0.25,
     maximoPapelesPorTramo: 3,
 
-    // AQUÍ NO HAY BIFURCACIÓN DE FRENTE. Ir de frente es perder.
+    // AQUÍ NO HAY ENTE DE CONTROL. Carondelet está cercado: ir de frente es
+    // estrellarse contra el cerco, sin trámite y sin trámite que negar.
     institucion: null,
     frenteEsMuerte: true,
-    textoFrente: 'Cruzaste el cerco. No hubo ruleta, no hubo trámite, no hubo nada.',
+    nombreFrente: 'CARONDELET',
+    textoFrente: 'Cruzaste el cerco. No hubo trámite, no hubo papeleo, no hubo nada.',
 
     rutas: { izquierda: 'elecciones', derecha: 'apagon' },
   },

@@ -2246,3 +2246,211 @@ html, body {
 }
 
 .siguiente-desbloqueo__icono { display: flex; opacity: 0.75; }
+
+
+/* --- El tribunal ----------------------------------------------------------
+   Seis jueces en rejilla y un selector que los recorre. Todo a la vista: si
+   algo de esto quedara oculto volvería a ser suerte, que es justo lo que se
+   quitó. */
+
+.tribunal {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: min(420px, 92vw);
+  margin: 20px auto 16px;
+}
+
+.juez {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px 8px;
+  border-radius: var(--r-chico);
+  background: rgba(13, 18, 32, 0.8);
+  border: 2px solid var(--borde);
+  transition: transform var(--t-instantaneo), border-color var(--t-instantaneo);
+}
+
+.juez__toga { display: flex; }
+
+.juez__rotulo {
+  font-size: 0.48rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--texto-debil);
+  text-align: center;
+}
+
+.juez--senalado {
+  border-color: var(--dorado);
+  background: rgba(var(--dorado-rgb), 0.14);
+  box-shadow: 0 0 20px rgba(var(--dorado-rgb), 0.4);
+  transform: scale(1.06);
+}
+
+.juez--acierto {
+  border-color: var(--verde);
+  background: rgba(var(--verde-rgb), 0.18);
+  box-shadow: 0 0 26px rgba(var(--verde-rgb), 0.5);
+}
+
+.juez--acierto .juez__rotulo { color: var(--verde); }
+
+/* Al fallar se enseña cuál era. Antes no: el rótulo de los seis es el mismo. */
+.juez--revelado .juez__rotulo { color: var(--verde); }
+
+.juez--fallo {
+  border-color: var(--rojo);
+  background: rgba(var(--rojo-rgb), 0.18);
+  box-shadow: 0 0 26px rgba(var(--rojo-rgb), 0.5);
+}
+
+.juez--fallo .juez__rotulo { color: var(--rojo); }
+
+/* El que era: se enseña al fallar, para que la derrota se entienda. */
+.juez--revelado {
+  border-color: rgba(var(--verde-rgb), 0.6);
+  animation: late-juez 620ms var(--rebote) 3;
+}
+
+@keyframes late-juez {
+  0%, 100% { transform: none; }
+  50% { transform: scale(1.09); }
+}
+
+
+/* --- Primera plana --------------------------------------------------------
+   El fin de partida es una portada de El Mercio. Rompe con el neón del resto
+   del juego a propósito, igual que el Archivo: papel crema y tipografía con
+   remates. El periodista deja de firmar la noticia y pasa a ser la noticia, y
+   el cambio de piel lo dice sin explicarlo. */
+
+.plana {
+  width: 100%;
+  padding: 16px 18px 14px;
+  margin-bottom: 16px;
+  border-radius: 4px;
+  background: #f3ecdc;
+  color: #16130d;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(0, 0, 0, 0.25);
+  text-align: left;
+  /* Un grado de inclinación: el periódico está tirado sobre la mesa, no
+     maquetado en pantalla. */
+  transform: rotate(-0.5deg);
+}
+
+.plana__cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+  border-bottom: 3px double #16130d;
+}
+
+.plana__nombre {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.plana__fecha {
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #6b6152;
+}
+
+.plana__antetitulo {
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  color: #a3231f;
+  margin-bottom: 4px;
+}
+
+.plana__titular {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.35rem, 7vw, 2rem);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+
+.plana__bajada {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 0.82rem;
+  line-height: 1.42;
+  color: #2e281d;
+  margin-bottom: 8px;
+}
+
+.plana__cuerpo {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 0.76rem;
+  font-style: italic;
+  line-height: 1.45;
+  color: #4a4234;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.16);
+}
+
+.plana__firma {
+  margin-top: 6px;
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  color: #8a7f6a;
+  text-transform: uppercase;
+}
+
+.cita--plana {
+  margin: 10px 0 0;
+  border-left-color: #a3231f;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.cita--plana .cita__texto { color: #2e281d; }
+.cita--plana .cita__fuente { color: #6b6152; }
+
+
+/* --- Saltar la cinemática -------------------------------------------------
+   Discreto y abajo: durante la intro lo que hay que mirar es la escena, no el
+   aviso de que se puede cortar. */
+
+.salto-intro {
+  position: absolute;
+  left: 50%;
+  bottom: 42px;
+  transform: translateX(-50%);
+  padding: 9px 18px;
+  border-radius: var(--r-pildora);
+  background: rgba(5, 7, 12, 0.7);
+  border: 1px solid var(--borde);
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  color: var(--texto-tenue);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--t-medio);
+}
+
+.salto-intro--visible {
+  opacity: 1;
+  visibility: visible;
+  animation: latido-salto 2s ease-in-out infinite;
+}
+
+@keyframes latido-salto {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}

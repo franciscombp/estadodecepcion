@@ -1,12 +1,18 @@
 // ============================================================================
-// ESTAMINA — Barra, drenaje e ítems por escenario
+// AGUANTE — Barra, drenaje e ítems por escena
 // ============================================================================
-// La estamina no te mata: te vuelve LENTO. Y al volverte lento, el perseguidor
-// se acerca. Es una presión indirecta, que es lo que la hace interesante:
-// puedes ignorarla un rato, pero no para siempre.
+// Por norma general el aguante no te mata: te vuelve LENTO, y al volverte
+// lento el perseguidor se acerca. Es una presión indirecta, que es lo que la
+// hace interesante: puedes ignorarla un rato, pero no para siempre.
 //
-// Cada escenario tiene su propio ítem (encebollado, linterna, micrófono,
-// canelazo). Mecánicamente son idénticos; narrativamente, no.
+// LA EXCEPCIÓN ES EL APAGÓN. Ahí quedarse sin pilas es derrota directa
+// (`sinAguanteEsCaptura` en config/escenarios.js), porque sin luz no ves por
+// dónde corres ni hay nada que documentar. Quien decide eso es Game; aquí solo
+// se lleva la cuenta.
+//
+// Cada escena tiene SUS ítems, y pueden ser varios: en la Bahía sale
+// encebollado, guata o bolón; en el centro histórico, canelazo o mote. La
+// mecánica es la misma en las cuatro; la ficción, no. Ver docs/GUION.md.
 // ============================================================================
 
 import * as THREE from 'three';
@@ -22,14 +28,17 @@ export class StaminaManager {
 
     this.valor = ESTAMINA.INICIAL;
     this.activos = [];
-    this.pool = [];
+    this.pool = new Map();
 
     this.tiempo = 0;
     this.distanciaDesdeUltimo = 0;
 
-    this.colorItem = 0x7cffb2;
-    this.nombreItem = 'Estamina';
-    this.modeloItem = 'encebollado';
+    // Catálogo de la escena actual: uno o varios ítems que se turnan.
+    this.catalogo = [{ modelo: 'encebollado', nombre: 'Encebollado', color: 0xff8c42 }];
+    this.etiqueta = 'AGUANTE';
+    this.icono = 'encebollado';
+    // Nombre del último recogido, para el remate del HUD.
+    this.nombreItem = 'Encebollado';
 
     // Se pone a true cuando se recoge un ítem, para que Game.js dispare
     // efectos (destello de linterna en el Apagón, por ejemplo).
@@ -40,28 +49,42 @@ export class StaminaManager {
   // POOL
   // -------------------------------------------------------------------------
 
-  _obtener() {
-    if (this.pool.length > 0) {
-      const m = this.pool.pop();
+  /**
+   * El pool va indexado por modelo. Con varios ítems por escena, un pool único
+   * devolvería un bolón cuando tocaba un encebollado.
+   */
+  _obtener(def) {
+    const libres = this.pool.get(def.modelo);
+    if (libres?.length > 0) {
+      const m = libres.pop();
       m.visible = true;
       return m;
     }
-    const m = crearItemEstamina(this.colorItem, this.modeloItem);
+    const m = crearItemEstamina(def.color, def.modelo);
+    m.userData.modelo = def.modelo;
     this.grupo.add(m);
     return m;
   }
 
   _devolver(item) {
     item.malla.visible = false;
-    if (this.pool.length < 8) {
-      this.pool.push(item.malla);
+    const modelo = item.malla.userData.modelo ?? 'encebollado';
+    const libres = this.pool.get(modelo) ?? [];
+
+    if (libres.length < 4) {
+      libres.push(item.malla);
+      this.pool.set(modelo, libres);
     } else {
       this.grupo.remove(item.malla);
-      item.malla.traverse((o) => {
-        if (o.geometry) o.geometry.dispose();
-        if (o.material) o.material.dispose();
-      });
+      this._destruir(item.malla);
     }
+  }
+
+  _destruir(malla) {
+    malla.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) o.material.dispose();
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -153,12 +176,14 @@ export class StaminaManager {
 
   _generar(carrilesLibres, z) {
     const carril = carrilesLibres[Math.floor(Math.random() * carrilesLibres.length)];
-    const malla = this._obtener();
+    const def = this.catalogo[Math.floor(Math.random() * this.catalogo.length)];
+    const malla = this._obtener(def);
 
     malla.position.set(CARRILES.POSICIONES[carril], ESTAMINA.ALTURA, z);
 
     this.activos.push({
       malla,
+      def,
       x: CARRILES.POSICIONES[carril],
       z,
     });
@@ -207,6 +232,7 @@ export class StaminaManager {
 
       if (hayColisionPlana(cajaRecogida, cajaItem)) {
         this.valor = Math.min(ESTAMINA.MAXIMA, this.valor + ESTAMINA.RECUPERACION_POR_ITEM);
+        this.nombreItem = item.def?.nombre ?? this.nombreItem;
         this._devolver(item);
         this.activos.splice(i, 1);
         recogidos++;
@@ -241,29 +267,34 @@ export class StaminaManager {
   // -------------------------------------------------------------------------
 
   aplicarTema(escenario) {
-    this.colorItem = escenario.estamina?.color ?? 0x7cffb2;
-    this.nombreItem = escenario.estamina?.nombre ?? 'Estamina';
-    this.modeloItem = escenario.estamina?.modelo ?? 'encebollado';
+    const cfg = escenario.estamina ?? {};
+    this.catalogo = cfg.items?.length
+      ? cfg.items
+      : [{ modelo: 'encebollado', nombre: 'Encebollado', color: 0xff8c42 }];
+    this.etiqueta = cfg.etiqueta ?? (cfg.nombre ?? 'AGUANTE').toUpperCase();
+    this.icono = cfg.icono ?? this.catalogo[0].modelo;
+    this.nombreItem = this.catalogo[0].nombre;
 
-    // Vaciamos pista y pool para que los ítems se reconstruyan con el color nuevo.
+    // Vaciamos pista y pool: los ítems guardados son de la escena anterior.
     this.limpiar();
-    for (const malla of this.pool) {
-      this.grupo.remove(malla);
-      malla.traverse((o) => {
-        if (o.geometry) o.geometry.dispose();
-        if (o.material) o.material.dispose();
-      });
+    for (const [, mallas] of this.pool) {
+      for (const malla of mallas) {
+        this.grupo.remove(malla);
+        this._destruir(malla);
+      }
     }
-    this.pool = [];
+    this.pool.clear();
+  }
+
+  /** ¿Se acabó del todo? En el Apagón esto es derrota, no lentitud. */
+  estaAgotada() {
+    return this.valor <= 0;
   }
 
   limpiar() {
     for (const item of this.activos) {
       this.grupo.remove(item.malla);
-      item.malla.traverse((o) => {
-        if (o.geometry) o.geometry.dispose();
-        if (o.material) o.material.dispose();
-      });
+      this._destruir(item.malla);
     }
     this.activos = [];
   }

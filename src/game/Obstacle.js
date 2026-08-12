@@ -35,6 +35,8 @@ export class ObstacleManager {
     this.pool = new Map();
 
     this.colores = { props: 0xd9a441, acento: 0xffcf3f };
+    // Qué escena viste los obstáculos. Ver vestirObstaculo() en props.js.
+    this.escenario = 'bahia';
     this.proximaZ = -OBSTACULOS.DISTANCIA_APARICION;
 
     // Se pone a true durante las transiciones de escenario para dejar de
@@ -82,7 +84,7 @@ export class ObstacleManager {
 
     if (libres.length > 0) return libres.pop();
 
-    const malla = crearObstaculo(tipo, this.colores);
+    const malla = crearObstaculo(tipo, this.colores, this.escenario);
     malla.visible = false;
     this.grupo.add(malla);
     return malla;
@@ -362,8 +364,9 @@ export class ObstacleManager {
    * se reconstruyan con los colores nuevos. Se llama en las transiciones,
    * donde hay un overlay tapando el cambio.
    */
-  aplicarTema(colores) {
+  aplicarTema(colores, idEscenario = this.escenario) {
     this.colores = colores;
+    this.escenario = idEscenario;
     this.limpiar();
 
     // Vaciamos el pool: las mallas guardadas tienen los colores viejos.

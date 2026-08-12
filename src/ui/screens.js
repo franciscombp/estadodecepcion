@@ -288,66 +288,80 @@ export class Pantallas {
   }
 
   // -------------------------------------------------------------------------
-  // MEDIDOR DE ESCAPE
+  // EL SORTEO DEL JUEZ
   // -------------------------------------------------------------------------
-  // Te rodearon y te queda un intento. Un cursor recorre la barra de ida y
-  // vuelta a velocidad constante; lo paras y, si cae en la franja verde, te
-  // zafas.
+  // Te rodearon. Ahora te sortean un juez: seis, y un selector que los
+  // recorre. Cinco llevan la camiseta morada del oficialismo; uno no.
   //
-  // NO ES UNA RULETA. La diferencia importa: aquí no hay número oculto ni
-  // sorteo. El cursor está a la vista todo el tiempo, la franja también, y el
-  // resultado es exactamente lo que el jugador hizo con el pulgar. Que sea
-  // difícil está bien; que sea suerte, no —perder por un dado invisible
-  // después de dos minutos corriendo es lo que hace que se apague el juego.
+  // NO ES UNA RULETA, y la diferencia es todo. Aquí no hay número oculto ni
+  // sorteo: el selector está a la vista, los jueces están a la vista, y el
+  // resultado es exactamente lo que hiciste con el pulgar. Que sea difícil
+  // está bien; que sea suerte, no —perder por un dado invisible después de dos
+  // minutos corriendo es lo que apaga un juego.
+  //
+  // Cada captura acelera el selector. No hay tope de intentos: siempre tienes
+  // la oportunidad, pero la oportunidad se encoge.
 
   escape(datos) {
     const { pantalla, contenido } = pantallaBase();
     pantalla.classList.add('pantalla--cerco');
 
     contenido.appendChild(marca('TE RODEARON'));
-    contenido.appendChild(el('h1', 'titulo titulo--rojo', 'ÚLTIMO INTENTO'));
+    contenido.appendChild(el('h1', 'titulo titulo--rojo', 'LE TOCA UN JUEZ'));
     contenido.appendChild(el('p', 'subtitulo',
-      'Para la barra en verde y te escurres entre el cerco. Es pulso, no suerte.'));
+      'Cinco llevan la camiseta. Para el selector en el que no la lleva.'));
 
-    // --- La barra ----------------------------------------------------------
-    const barra = el('div', 'medidor-escape');
-    const zona = el('div', 'medidor-escape__zona');
-    const cursor = el('div', 'medidor-escape__cursor');
-    barra.append(zona, cursor);
-    contenido.appendChild(barra);
+    // --- Los seis jueces ---------------------------------------------------
+    // El honesto está en un puesto distinto cada vez. Si estuviera fijo, esto
+    // se aprendería a la segunda captura y dejaría de ser una prueba.
+    const total = datos.jueces ?? 6;
+    const honesto = Math.floor(Math.random() * total);
 
-    // La franja no va siempre en el centro: si estuviera fija, el jugador
-    // aprendería el punto y esto dejaría de ser una prueba a la segunda vez.
-    const ancho = datos.zona ?? 0.16;
-    const centro = 0.5 + (Math.random() - 0.5) * 0.44;
-    const desde = Math.max(0, Math.min(1 - ancho, centro - ancho / 2));
+    const tribunal = el('div', 'tribunal');
+    const fichas = [];
 
-    zona.style.left = `${desde * 100}%`;
-    zona.style.width = `${ancho * 100}%`;
+    for (let i = 0; i < total; i++) {
+      const ficha = el('div', `juez ${i === honesto ? 'juez--limpio' : 'juez--comprado'}`);
+      const toga = el('span', 'juez__toga');
+      toga.innerHTML = Icono.juez(38, i === honesto);
+      ficha.appendChild(toga);
+      // Los seis se llaman igual. Rotular al bueno como «el bueno» convertiría
+      // la prueba en leer una etiqueta; lo que hay que mirar es el pecho.
+      ficha.appendChild(el('span', 'juez__rotulo', `JUEZ ${i + 1}`));
+      tribunal.appendChild(ficha);
+      fichas.push(ficha);
+    }
+    contenido.appendChild(tribunal);
 
     const zonaResultado = el('div');
     contenido.appendChild(zonaResultado);
 
-    // --- Animación ---------------------------------------------------------
-    // Va con requestAnimationFrame y reloj real, no con una transición CSS:
-    // hace falta saber la posición EXACTA en el instante del toque, y una
-    // animación declarativa no la da sin leer estilos computados.
-    let posicion = 0;
-    let sentido = 1;
+    // --- El selector -------------------------------------------------------
+    // Va con requestAnimationFrame y reloj real, no con una animación CSS:
+    // hace falta saber en qué juez está EXACTAMENTE en el instante del toque,
+    // y una animación declarativa no lo dice sin leer estilos computados.
+    let indice = 0;
+    let acumulado = 0;
     let anterior = performance.now();
     let corriendo = true;
-    const velocidad = datos.velocidad ?? 1.45;
+    const saltosPorSegundo = datos.velocidad ?? 4.2;
+
+    const marcar = () => {
+      fichas.forEach((f, i) => f.classList.toggle('juez--senalado', i === indice));
+    };
+    marcar();
 
     const paso = (ahora) => {
       if (!corriendo) return;
       const dt = Math.min(0.05, (ahora - anterior) / 1000);
       anterior = ahora;
 
-      posicion += sentido * velocidad * dt;
-      if (posicion >= 1) { posicion = 1; sentido = -1; }
-      if (posicion <= 0) { posicion = 0; sentido = 1; }
-
-      cursor.style.left = `${posicion * 100}%`;
+      acumulado += dt * saltosPorSegundo;
+      while (acumulado >= 1) {
+        acumulado -= 1;
+        indice = (indice + 1) % total;
+        marcar();
+      }
       requestAnimationFrame(paso);
     };
     requestAnimationFrame(paso);
@@ -360,28 +374,30 @@ export class Pantallas {
       corriendo = false;
       botonParar.disabled = true;
 
-      const acerto = posicion >= desde && posicion <= desde + ancho;
-      cursor.classList.add(acerto ? 'medidor-escape__cursor--bien' : 'medidor-escape__cursor--mal');
+      const acerto = indice === honesto;
+      fichas[indice].classList.add(acerto ? 'juez--acierto' : 'juez--fallo');
+      if (!acerto) fichas[honesto].classList.add('juez--revelado');
 
       const caja = el('div', `resultado ${acerto ? 'resultado--exito' : 'resultado--fracaso'}`);
-      caja.appendChild(el('div', 'resultado__titulo', acerto ? 'TE ZAFASTE' : 'TE AGARRARON'));
+      caja.appendChild(el('div', 'resultado__titulo',
+        acerto ? 'MEDIDAS SUSTITUTIVAS' : 'LE TOCÓ UNO DE ELLOS'));
       caja.appendChild(el('div', 'resultado__texto', acerto
-        ? 'Saliste por el hueco que dejaron. Sigue corriendo.'
-        : 'No hubo hueco. Ni esta vez ni la anterior.'));
+        ? 'Sales caminando y con la orden de no salir del país. Sigue corriendo.'
+        : 'La sentencia sale mañana en primera plana.'));
       zonaResultado.appendChild(caja);
 
       this.audio.resultadoRuleta(acerto);
 
       // Un respiro para leer el resultado antes de que cambie la pantalla.
-      setTimeout(() => this.juego.escapar(acerto), acerto ? 700 : 1100);
+      setTimeout(() => this.juego.escapar(acerto), acerto ? 900 : 1300);
     };
 
     const botonParar = boton('PARAR', 'boton--principal', parar);
     botones.appendChild(botonParar);
 
     // Espacio y toque también valen: en móvil el pulgar ya está en la
-    // pantalla, y obligar a apuntar al botón le añade una dificultad que no
-    // tiene nada que ver con lo que se está midiendo.
+    // pantalla, y obligar a apuntar al botón añade una dificultad que no tiene
+    // nada que ver con lo que se está midiendo.
     const porTecla = (e) => {
       if (e.code === 'Space' || e.code === 'Enter') {
         e.preventDefault();
@@ -422,8 +438,9 @@ export class Pantallas {
     contenido.appendChild(remate);
 
     contenido.appendChild(el('p', 'subtitulo',
-      `Entregaste los ${datos.papelesEntregados} papeles del expediente. ` +
-      'Sin que falte uno. No sabemos cómo lo lograste, pero lo lograste.'));
+      `Te tiraron el expediente por el suelo y lo recogiste entero: ` +
+      `${datos.papelesEntregados} papeles, sin que falte uno. ` +
+      'No sabemos cómo lo lograste, pero lo lograste.'));
 
     contenido.appendChild(estadisticas([
       [datos.papeles.toLocaleString('es-EC'), 'Papeles'],
@@ -460,33 +477,13 @@ export class Pantallas {
   gameOver(datos) {
     const { pantalla, contenido } = pantallaBase();
 
-    contenido.appendChild(marca('FIN DE LA CORRIDA'));
-
-    const titulos = {
-      captura: 'TE ALCANZARON',
-      exhausto: 'SIN FUERZAS',
-      cerco: 'CRUZASTE EL CERCO',
-    };
-    contenido.appendChild(
-      el('h1', 'titulo titulo--rojo', titulos[datos.motivo] ?? 'SE ACABÓ'));
+    // La derrota se publica. Es la vuelta de tuerca del cierre: el periodista
+    // deja de firmar la noticia y pasa a ser la noticia, y El Mercio lo saca
+    // en portada con el mismo tono con el que sacaría cualquier otra.
+    contenido.appendChild(this._primeraPlana(datos));
 
     if (datos.esRecord && datos.puntaje > 0) {
       contenido.appendChild(el('div', 'insignia-record', 'NUEVO RÉCORD'));
-    }
-
-    // --- Remate editorial --------------------------------------------------
-    const remate = el('div', 'remate');
-    remate.appendChild(document.createTextNode(datos.texto));
-    remate.appendChild(el('span', 'remate__firma', 'El Mercio'));
-    contenido.appendChild(remate);
-
-    // --- Cita verificada, si el equipo cargó alguna ------------------------
-    if (datos.cita) {
-      const cita = el('div', 'cita');
-      cita.appendChild(el('div', 'cita__texto', `«${datos.cita.texto}»`));
-      cita.appendChild(el('span', 'cita__fuente',
-        `${datos.cita.autor} · ${datos.cita.fuente} · ${datos.cita.fecha}`));
-      contenido.appendChild(cita);
     }
 
     contenido.appendChild(estadisticas([
@@ -530,8 +527,12 @@ export class Pantallas {
 
     this._pintarDesbloqueos(datos, contenido);
 
+    // El botón dice a dónde vuelves. Se retoma donde te capturaron, y decirlo
+    // aquí es lo que convierte la derrota en un capítulo en vez de en un
+    // reinicio.
+    const donde = obtenerEscenario(datos.escenario ?? this.juego.escenarioActual);
     const botones = el('div', 'botones');
-    botones.appendChild(boton('Volver a correr', 'boton--principal',
+    botones.appendChild(boton(`Volver a ${donde.nombre}`, 'boton--principal',
       () => this.juego.iniciarPartida()));
     botones.appendChild(boton('Archivo de El Mercio', '',
       () => this.mostrar(this.notebook())));
@@ -540,6 +541,52 @@ export class Pantallas {
     contenido.appendChild(botones);
 
     return pantalla;
+  }
+
+  /**
+   * La portada de mañana. Cuando hubo sorteo de juez, el titular es la
+   * sentencia; cuando no —te quedaste sin luz, cruzaste el cerco— es el motivo
+   * de la caída.
+   */
+  _primeraPlana(datos) {
+    const plana = el('div', 'plana');
+
+    const cab = el('header', 'plana__cabecera');
+    cab.appendChild(el('span', 'plana__nombre', CABECERA.nombre));
+    cab.appendChild(el('span', 'plana__fecha', 'EDICIÓN DE MAÑANA'));
+    plana.appendChild(cab);
+
+    const titulos = {
+      captura: 'TE ALCANZARON',
+      exhausto: 'SIN FUERZAS',
+      cerco: 'CRUZASTE EL CERCO',
+    };
+    const sentencia = datos.sentencia;
+
+    plana.appendChild(el('div', 'plana__antetitulo',
+      sentencia ? 'PERIODISTA DETENIDO' : 'SE INTERRUMPE LA COBERTURA'));
+    plana.appendChild(el('h1', 'plana__titular',
+      sentencia?.titular ?? titulos[datos.motivo] ?? 'SE ACABÓ'));
+
+    if (sentencia) plana.appendChild(el('p', 'plana__bajada', sentencia.texto));
+
+    // El remate editorial de siempre, ahora como pie de la nota.
+    const cuerpo = el('p', 'plana__cuerpo');
+    cuerpo.appendChild(document.createTextNode(datos.texto ?? ''));
+    plana.appendChild(cuerpo);
+
+    plana.appendChild(el('div', 'plana__firma', 'El Mercio'));
+
+    // Cita verificada, si el equipo cargó alguna.
+    if (datos.cita) {
+      const cita = el('div', 'cita cita--plana');
+      cita.appendChild(el('div', 'cita__texto', `«${datos.cita.texto}»`));
+      cita.appendChild(el('span', 'cita__fuente',
+        `${datos.cita.autor} · ${datos.cita.fuente} · ${datos.cita.fecha}`));
+      plana.appendChild(cita);
+    }
+
+    return plana;
   }
 
   /**

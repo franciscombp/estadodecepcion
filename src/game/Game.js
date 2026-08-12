@@ -44,6 +44,7 @@ import { ElevadoManager } from './Elevado.js';
 import { TramiteManager } from './Tramite.js';
 import { Cerco } from './Cerco.js';
 import { PowerUpManager } from './PowerUps.js';
+import { Intro } from './Intro.js';
 
 import { crearEscenario } from '../scenes/index.js';
 import { obtenerEscenario } from '../config/escenarios.js';
@@ -52,7 +53,7 @@ import { Controles } from '../utils/controls.js';
 import { remateCaptura, remateExhausto, citaVerificada } from '../config/textos.js';
 import {
   VELOCIDAD, TRAMO, CAMARA, JUGADOR, ESTAMINA, CARRILES, CERCO, PAPELES,
-  POTENCIADORES,
+  POTENCIADORES, SENTENCIAS,
 } from '../config/balance.js';
 import { BLOOM, CALIDAD } from '../config/estilo.js';
 import { VigilanteRendimiento } from '../utils/calidad.js';
@@ -105,8 +106,9 @@ export class Game {
     this.efectos = new Map();
     this.multiplicadorPapeles = 1;
 
-    // Escapes de cerco disponibles esta partida.
-    this.escapesRestantes = CERCO.ESCAPE_INTENTOS;
+    // Cuántas veces te han atrapado en esta partida. No limita los intentos
+    // —siempre tienes tu sorteo— pero acelera el selector cada vez.
+    this.capturas = 0;
     // Datos del fin de partida, que se calculan al ser capturado pero solo se
     // consumen si el jugador falla el escape.
     this.finPendiente = null;
@@ -256,6 +258,7 @@ export class Game {
     this.elevado = new ElevadoManager(this.escenaThree);
     this.tramite = new TramiteManager(this.escenaThree);
     this.cerco = new Cerco(this.escenaThree);
+    this.intro = new Intro();
     this.potenciadores = new PowerUpManager(this.escenaThree);
     this.potenciadores.establecerDesbloqueados(this.cuaderno.potenciadoresDesbloqueados());
 
@@ -378,7 +381,7 @@ export class Game {
     const colores = this.escenario.obtenerColores();
 
     this.pista.aplicarTema(colores);
-    this.obstaculos.aplicarTema(colores);
+    this.obstaculos.aplicarTema(colores, id);
     this.papeles.aplicarTema(config);
     this.estamina.aplicarTema(config);
     this.elevado.aplicarTema(colores);
@@ -433,7 +436,7 @@ export class Game {
     this.sacudida = 0;
     this.enAproximacion = false;
     this.corredorLimpio = false;
-    this.escapesRestantes = CERCO.ESCAPE_INTENTOS;
+    this.capturas = 0;
     this.finPendiente = null;
 
     this.jugador.reiniciar();
@@ -452,11 +455,35 @@ export class Game {
     // CONTINUIDAD: se retoma en la temporada donde te capturaron, no siempre
     // en la Bahía. Volver al principio cada vez convertía cada muerte en un
     // reinicio del relato en vez de en un capítulo.
-    this._cambiarEscenario(this.cuaderno.ultimoEscenario, true);
+    this._cambiarEscenario(this.cuaderno.ultimoEscenario, false);
+
+    // La cinemática explica POR QUÉ corres: estabas entrevistando y te
+    // interrumpieron. Se ve entera las dos primeras partidas y abreviada
+    // después; un toque la corta siempre.
+    this.intro.iniciar(this.cuaderno.partidasJugadas >= 2);
+    this._establecerEstado('intro');
+    this.iniciarBucle();
+  }
+
+  /** Corta la cinemática y arranca la corrida de verdad. */
+  arrancarCorrida() {
+    if (this.estado !== 'intro') return;
+
+    this.intro.saltar();
+    this.jugador.reiniciar();
+    this.perseguidor.modelo.visible = true;
+
+    const config = obtenerEscenario(this.escenarioActual);
+    this.audio.cambioEscenario();
+    this.alMostrarAviso({
+      tipo: 'escenario',
+      titulo: config.nombre,
+      subtitulo: config.subtitulo,
+    });
 
     this.controles.activar();
+    this.relojAnterior = performance.now();
     this._establecerEstado('jugando');
-    this.iniciarBucle();
   }
 
   pausar() {
@@ -632,8 +659,8 @@ export class Game {
   // -------------------------------------------------------------------------
 
   /**
-   * Entra al túnel del centro. Dentro no hay obstáculos, no hay perseguidores
-   * y no se drena estamina: solo hay papeles, y hay que recogerlos TODOS.
+   * Entra al ente de control. Dentro no hay obstáculos, ni perseguidores, ni
+   * drenaje de aguante: solo el reguero de TUS papeles por el suelo.
    */
   _entrarEnTramite() {
     this.obstaculos.limpiar();
@@ -644,50 +671,82 @@ export class Game {
     this.papeles.limpiar();
     this.potenciadores.limpiar();
     this.bifurcacion.limpiar();
+    this._limpiarEfectos();
 
     const institucion = this.rutas.datosInstitucion(this.escenarioActual);
+
+    // TE LOS QUITAN. El marcador se vacía en el acto: lo que había pasa a
+    // estar por el suelo, y lo que se recupere volverá a sumar.
+    const confiscados = this.papelesPartida;
+    this.papelesPartida = 0;
+    this.combo = 0;
 
     this.tramite.iniciar(
       this.escenario.obtenerColores(),
-      institucion?.nombre ?? 'TRÁMITE',
+      institucion,
       this.papeles,
+      confiscados,
     );
 
     this.alMostrarAviso({
-      tipo: 'bifurcacion',
+      tipo: 'golpe',
       titulo: institucion?.nombre ?? 'TRÁMITE',
-      subtitulo: `Recoge los ${this.tramite.sembrados} papeles. Todos.`,
+      subtitulo: institucion?.entrada ?? 'Se te riegan los papeles por el suelo.',
     });
   }
 
-  /** Se acabó el túnel institucional. Aquí se cuenta el expediente. */
+  /**
+   * Se acabó el pasillo. Aquí se cuenta lo que quedó en el suelo.
+   *
+   * El portazo es siempre el mismo pase lo que pase —para eso es un portazo—,
+   * pero el HALLAZGO también: entrar cuesta papeles y paga historia. Es la
+   * asimetría que hace que jugar a puntuación y jugar a documentar tiren en
+   * direcciones opuestas.
+   */
   _salirDelTramite() {
     const institucion = this.rutas.datosInstitucion(this.escenarioActual);
+    const recuperados = this.tramite.papelesRecuperados();
+    const perdidos = this.tramite.papelesPerdidos();
     const perfecto = this.tramite.esPerfecto();
-    const recogidos = this.tramite.recogidos;
-    const sembrados = this.tramite.sembrados;
+
+    // Vuelve a la cuenta lo que se levantó del suelo.
+    this.papelesPartida += recuperados;
+
+    // El hallazgo del caso. Es lo único que compensa haber entrado.
+    const hallazgo = institucion?.hallazgo;
+    if (hallazgo && !this.evidenciasPartida.includes(hallazgo)) {
+      this.evidenciasPartida.push(hallazgo);
+      this.audio.evidencia();
+    }
 
     if (perfecto) {
-      this._ganarPartida(institucion, recogidos);
+      this._ganarPartida(institucion, recuperados);
       return;
     }
 
-    // No entró. Sales a la calle por donde entraste y sigues corriendo.
     this.alMostrarAviso({
       tipo: 'golpe',
-      titulo: 'SE ARCHIVÓ',
-      subtitulo: `${recogidos} de ${sembrados}. No alcanzaste los votos.`,
+      titulo: institucion?.nombre ?? 'SE ARCHIVÓ',
+      subtitulo: institucion?.portazo ?? 'Se archiva el caso.',
     });
+
+    if (hallazgo) {
+      this.alMostrarAviso({
+        tipo: 'evidencia',
+        titulo: 'PERO SALES CON ALGO',
+        subtitulo: `${hallazgo} · ${perdidos} papeles se quedaron en el suelo`,
+      });
+    }
 
     const destino = this.rutas.resolverRuta(this.escenarioActual, 'derecha');
     this._entrarEnTramo(destino);
   }
 
   /**
-   * El expediente entró completo. Es el final del juego: no sabemos cómo lo
-   * lograste, pero lo lograste.
+   * Recuperaste el reguero entero, que es prácticamente imposible. El ente te
+   * da igual con la puerta en las narices, pero el caso sigue vivo.
    */
-  _ganarPartida(institucion, papelesEntregados) {
+  _ganarPartida(institucion, papelesRecuperados) {
     this.jugador.vivo = true;
     this.controles.desactivar();
     this.audio.evidencia();
@@ -708,8 +767,8 @@ export class Game {
     this._establecerEstado('victoria', {
       institucion: institucion?.nombre ?? 'LA INSTITUCIÓN',
       texto: institucion?.textoExito
-        ?? 'La denuncia entró. Alguien, en algún piso, la leyó.',
-      papelesEntregados,
+        ?? 'Los recogiste todos. Alguien, en algún piso, tuvo que leerlo.',
+      papelesEntregados: papelesRecuperados,
       papeles: this.papelesPartida,
       distancia: Math.floor(this.distanciaTotal),
       puntaje,
@@ -852,7 +911,11 @@ export class Game {
     if (this.estado !== 'escape') return;
 
     if (!exito) {
-      this._consumarFin();
+      // Le tocó uno de ellos. Qué sentencia exactamente sí es al azar: a esas
+      // alturas ya perdiste, y lo que se sortea es solo el titular de mañana.
+      const compradas = SENTENCIAS.filter((j) => !j.limpio);
+      const sentencia = compradas[Math.floor(Math.random() * compradas.length)];
+      this._consumarFin(sentencia);
       return;
     }
 
@@ -889,12 +952,15 @@ export class Game {
     this._establecerEstado('jugando');
   }
 
-  /** Cierra la partida de verdad, con los datos calculados en la captura. */
-  _consumarFin() {
-    const datos = this.finPendiente;
+  /**
+   * Cierra la partida de verdad, con los datos calculados en la captura.
+   * @param {object} [sentencia] La que dictó el juez, si hubo sorteo
+   */
+  _consumarFin(sentencia = null) {
+    const datos = this.finPendiente ?? {};
     this.finPendiente = null;
     this.cerco.limpiar();
-    this._establecerEstado('gameover', datos ?? {});
+    this._establecerEstado('gameover', { ...datos, sentencia });
   }
 
   // -------------------------------------------------------------------------
@@ -924,6 +990,16 @@ export class Game {
       // Solo vigilamos el rendimiento durante el juego: en los menús el
       // framerate baja por motivos que no dicen nada del hardware.
       this.vigilante.registrar(dt);
+    } else if (this.estado === 'intro') {
+      // La cinemática mueve cámara y poses; el mundo no avanza.
+      if (this.intro.actualizar(dt, this.camara, this.jugador, this.perseguidor)) {
+        this.arrancarCorrida();
+      }
+      this.escenario?.actualizar(dt, 0, this.jugador, this.velocidad);
+      // La cámara la lleva la propia intro: nos saltamos el seguimiento normal.
+      if (this.compositor) this.compositor.render();
+      else this.renderizador.render(this.escenaThree, this.camara);
+      return;
     } else if (this.estado === 'cerco') {
       this._actualizarCerco(dt);
     } else {
@@ -955,16 +1031,21 @@ export class Game {
 
     if (t < 1) return;
 
-    if (this.escapesRestantes > 0) {
-      this.escapesRestantes -= 1;
-      this._establecerEstado('escape', {
-        escenario: this.escenarioActual,
-        velocidad: CERCO.ESCAPE_VELOCIDAD,
-        zona: CERCO.ESCAPE_ZONA,
-      });
-    } else {
-      this._consumarFin();
-    }
+    // Siempre hay sorteo. Lo que cambia es la velocidad del selector: cada
+    // captura de esta partida lo acelera, así que la oportunidad se encoge
+    // sin llegar a desaparecer nunca. Esa curva es la que acaba la partida.
+    this.capturas += 1;
+    const velocidad = Math.min(
+      CERCO.SELECTOR_VELOCIDAD_MAXIMA,
+      CERCO.SELECTOR_VELOCIDAD + (this.capturas - 1) * CERCO.SELECTOR_ACELERACION,
+    );
+
+    this._establecerEstado('escape', {
+      escenario: this.escenarioActual,
+      jueces: CERCO.JUECES,
+      velocidad,
+      captura: this.capturas,
+    });
   }
 
   _actualizarJuego(dt) {
@@ -1103,15 +1184,24 @@ export class Game {
       this.perseguidor.acercarPorGolpe();
       this.combo = 0;
 
-      const config = obtenerEscenario(this.escenarioActual);
+      const esc = obtenerEscenario(this.escenarioActual);
       this.alMostrarAviso({
         tipo: 'golpe',
-        titulo: config.obstaculos[golpe.tipo] ?? 'Obstáculo',
+        titulo: esc.obstaculos[golpe.tipo] ?? 'Obstáculo',
         subtitulo: `${JUGADOR.GOLPES_MAXIMOS - this.jugador.golpes} intentos restantes`,
       });
     }
 
     // ---- Condiciones de fin ----------------------------------------------
+    // El Apagón es la única escena donde quedarse sin recurso mata por sí
+    // solo: sin luz no ves por dónde corres. En el resto, quedarte sin aguante
+    // te vuelve lento y son los perseguidores los que acaban el trabajo.
+    const config = obtenerEscenario(this.escenarioActual);
+    if (config.sinAguanteEsCaptura && this.estamina.estaAgotada()) {
+      this.terminarPartida('exhausto', config.textoSinAguante);
+      return;
+    }
+
     if (this.perseguidor.haAtrapado() || this.jugador.estaAgotado()) {
       const motivo = this.estamina.valor <= 0 ? 'exhausto' : 'captura';
       this.terminarPartida(motivo);
@@ -1152,7 +1242,7 @@ export class Game {
       distancia: Math.floor(this.distanciaTotal),
       velocidad: velocidadEfectiva,
       estamina: this.estamina.fraccion(),
-      nombreEstamina: this.estamina.nombreItem,
+      nombreEstamina: this.estamina.etiqueta,
       exhausto: this.estamina.estaExhausto(),
       cercania: this.perseguidor.cercania(),
       golpesRestantes: JUGADOR.GOLPES_MAXIMOS - this.jugador.golpes,
@@ -1167,10 +1257,10 @@ export class Game {
       // Marcador del expediente mientras se está dentro del túnel del centro.
       tramite: this.tramite.activo
         ? {
-          recogidos: this.tramite.recogidos,
-          total: this.tramite.sembrados,
+          recogidos: this.tramite.recuperadas,
+          total: this.tramite.piezas,
           progreso: this.tramite.progreso(),
-          institucion: this.tramite.institucion,
+          institucion: this.tramite.institucion?.nombre ?? 'TRÁMITE',
         }
         : null,
       // ¿Va corriendo por arriba? El HUD lo usa para avisar del borde.

@@ -79,6 +79,33 @@ export function iconoEstamina(idEscenario, tamano = 24) {
 }
 
 // ---------------------------------------------------------------------------
+// EL TRIBUNAL
+// ---------------------------------------------------------------------------
+
+/**
+ * JUEZ. El mismo dibujo para los seis, con una sola diferencia: la camiseta
+ * que asoma bajo la toga. Cinco la llevan morada; uno no.
+ *
+ * Que solo cambie un detalle es deliberado. Si el juez honesto tuviera otra
+ * silueta se distinguiría de un vistazo y el sorteo dejaría de pedir
+ * atención; así hay que mirar el pecho de cada uno.
+ *
+ * @param {boolean} limpio ¿Es el que no está comprado?
+ */
+export const juez = (t, limpio = false) => svg(`
+  <circle cx="12" cy="6.4" r="3.1" fill="#e0b088"/>
+  <path d="M6.2 22v-6.6c0-3 2.6-5.4 5.8-5.4s5.8 2.4 5.8 5.4V22z" fill="#1a1f2b"/>
+  <path d="M12 10c1.5 0 2.9.4 4 1.1L12 16l-4-4.9c1.1-.7 2.5-1.1 4-1.1z"
+        fill="${limpio ? '#eef2fa' : '#7b3fb5'}"/>
+  <path d="M9.6 3.4h4.8v1.5H9.6z" fill="#1a1f2b"/>
+  <path d="M6.2 22v-6.6c0-1.2.4-2.3 1.1-3.2M17.8 22v-6.6c0-1.2-.4-2.3-1.1-3.2"
+        stroke="#2c3446" stroke-width="1" fill="none"/>
+  ${limpio
+    ? '<path d="M9.9 13.6l1.5 1.6 2.8-3.2" stroke="#3dff9a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'
+    : '<circle cx="12" cy="13.4" r="1.1" fill="#c9a0ee"/>'}
+`, { tamano: t });
+
+// ---------------------------------------------------------------------------
 // POTENCIADORES
 // ---------------------------------------------------------------------------
 // Uno por potenciador, con la misma silueta que la insignia 3D. Si el icono

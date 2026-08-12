@@ -1,21 +1,31 @@
 // ============================================================================
-// EL TRÁMITE — El túnel del centro
+// EL ENTE DE CONTROL — El túnel del centro
 // ============================================================================
-// Antes, entrar de frente abría una ruleta: un porcentaje, un giro, y la suerte
-// decidía. Funcionaba como chiste una vez y como mecánica ninguna, porque el
-// jugador no tenía nada que hacer más que mirar.
+// Ver docs/GUION.md. Entrar de frente NO es un premio, y esa es la broma
+// central del juego.
 //
-// Ahora la vía institucional es una prueba de HABILIDAD. Dentro del túnel no
-// hay obstáculos ni perseguidores: solo papeles, colocados en un patrón que
-// obliga a cambiar de carril sin descanso durante 340 metros. Al final se
-// cuentan.
+// LO QUE PASA AL ENTRAR
+// La institución te riega los papeles. No aparecen papeles nuevos: se
+// desparraman por el pasillo LOS QUE TRAÍAS, en los tres carriles, y hay que
+// recuperar los que se pueda mientras corres. No hay obstáculos aquí dentro
+// porque el obstáculo es la propia institución, que ya te quitó lo que tenías.
 //
-//   · Los recogiste TODOS  → la denuncia entra. Ganas el juego.
-//   · Faltó uno            → «no alcanzaste los votos», se archiva, y sales a
-//                            la calle a seguir corriendo.
+// LO QUE PASA AL SALIR
+// Te dan con la puerta en las narices —se archiva el caso, faltan votos, te
+// quitan los derechos políticos— pero sales con la pieza que te faltaba del
+// caso. Esa asimetría es lo que sostiene el modo historia:
 //
-// El umbral es 1. No 0.95: uno. Que sea casi imposible es exactamente el
-// chiste —y también lo que hace que valga la pena intentarlo.
+//   · Para el ARCHIVO el trámite rinde: sales con el hallazgo.
+//   · Para el RANKING el trámite cuesta: entras con un montón y sales con lo
+//     que alcanzaste a recoger del suelo.
+//
+// Quien juega a puntuación aprende a no entrar. Quien juega a documentar,
+// entra. Que las dos formas de jugar tiren en direcciones opuestas es el
+// punto, no un desequilibrio que haya que corregir.
+//
+// POR QUÉ ANTES ERA UNA RULETA Y YA NO
+// Un porcentaje, un giro, y la suerte decidía. Funcionaba como chiste una vez
+// y como mecánica ninguna, porque el jugador solo miraba.
 // ============================================================================
 
 import * as THREE from 'three';
@@ -33,28 +43,35 @@ export class TramiteManager {
     this.luces = [];
     this.z = 0;
     this.recorrido = 0;
-    this.sembrados = 0;
-    this.recogidos = 0;
-    this.institucion = '';
+
+    // Papeles que te quitaron y piezas que has vuelto a levantar del suelo.
+    this.confiscados = 0;   // Cuántos llevabas al entrar
+    this.piezas = 0;        // Cuántas piezas se dibujaron
+    this.recuperadas = 0;
+    this.valorPorPieza = 0;
+
+    this.institucion = null;
   }
 
   /**
-   * Monta la galería y siembra el patrón de papeles.
+   * Monta el pasillo y riega los papeles del jugador.
    *
-   * @param {object} colores      Paleta del escenario de entrada
-   * @param {string} institucion  Nombre que cierra el fondo del túnel
+   * @param {object} colores      Paleta de la escena de entrada
+   * @param {object} institucion  Ficha del ente (config/escenarios.js)
    * @param {CoinManager} papeles
+   * @param {number} papelesDelJugador Lo que llevaba recogido al entrar
    */
-  iniciar(colores, institucion, papeles) {
+  iniciar(colores, institucion, papeles, papelesDelJugador) {
     this.limpiar();
 
     this.activo = true;
     this.recorrido = 0;
-    this.recogidos = 0;
+    this.recuperadas = 0;
     this.institucion = institucion;
+    this.confiscados = Math.max(0, Math.floor(papelesDelJugador));
 
     const largo = TRAMITE.LONGITUD + 60;
-    this.galeria = crearGaleriaTramite(largo, colores, institucion);
+    this.galeria = crearGaleriaTramite(largo, colores, institucion?.nombre ?? 'TRÁMITE');
     // La boca queda justo delante del jugador: acaba de entrar por ella.
     this.z = 6;
     this.galeria.position.z = this.z;
@@ -72,44 +89,50 @@ export class TramiteManager {
       this.luces.push(luz);
     }
 
-    this.sembrados = this._sembrar(papeles);
+    this._regar(papeles);
   }
 
   /**
-   * Siembra el patrón. Las hileras van alternando de carril con un salto que
-   * no se repite dos veces seguidas: es lo que obliga a leer por delante en
-   * vez de aprenderse una secuencia.
+   * Desparrama el montón por el pasillo.
    *
-   * @returns {number} Cuántos papeles se plantaron
+   * Cuántas piezas se dibujan NO es cuántos papeles llevabas: con cuatrocientos
+   * encima no se pueden pintar cuatrocientas piezas, y con tres no habría
+   * trámite. Se acota el número y cada pieza representa una parte proporcional
+   * del montón, de modo que recuperar la mitad de las piezas es recuperar la
+   * mitad de los papeles.
+   *
+   * El reguero va en zigzag por los tres carriles con las piezas más juntas de
+   * lo que tarda un cambio de carril. No es un descuido: recuperarlo todo
+   * tiene que ser prácticamente imposible.
    */
-  _sembrar(papeles) {
-    const separacionHileras = TRAMITE.LONGITUD / TRAMITE.HILERAS;
+  _regar(papeles) {
+    this.piezas = Math.min(
+      TRAMITE.PIEZAS_MAXIMAS,
+      Math.max(TRAMITE.PIEZAS_MINIMAS, Math.round(this.confiscados / 6)),
+    );
+    this.valorPorPieza = this.confiscados / this.piezas;
+
     let carril = CARRILES.CENTRO;
-    let total = 0;
 
-    for (let i = 0; i < TRAMITE.HILERAS; i++) {
-      // Salto de carril: siempre se mueve, nunca repite el mismo dos veces.
-      const opciones = [0, 1, 2].filter((c) => c !== carril);
-      carril = opciones[Math.floor(Math.random() * opciones.length)];
-
-      const zInicio = -24 - i * separacionHileras;
-
-      for (let j = 0; j < TRAMITE.PAPELES_POR_HILERA; j++) {
-        papeles.plantarPapel(
-          CARRILES.POSICIONES[carril],
-          PAPELES.ALTURA,
-          zInicio - j * PAPELES.SEPARACION,
-        );
-        total++;
+    for (let i = 0; i < this.piezas; i++) {
+      // Cambio de carril cada pocas piezas, y nunca al mismo del que vienes.
+      if (i % TRAMITE.PIEZAS_POR_TRAMO === 0) {
+        const opciones = [0, 1, 2].filter((c) => c !== carril);
+        carril = opciones[Math.floor(Math.random() * opciones.length)];
       }
-    }
 
-    return total;
+      papeles.plantarPapel(
+        CARRILES.POSICIONES[carril],
+        // Casi por el suelo: se los tiraron, no se los colocaron.
+        PAPELES.ALTURA * 0.55,
+        -26 - i * TRAMITE.SEPARACION,
+      );
+    }
   }
 
   /**
    * @param {number} avance
-   * @returns {boolean} true en el fotograma en que se sale del túnel
+   * @returns {boolean} true en el fotograma en que se sale del pasillo
    */
   actualizar(avance) {
     if (!this.activo) return false;
@@ -125,23 +148,33 @@ export class TramiteManager {
     return false;
   }
 
-  /** Registra papeles recogidos dentro del trámite. */
+  /** Registra piezas levantadas del suelo. */
   contar(cantidad) {
-    this.recogidos += cantidad;
+    this.recuperadas += cantidad;
   }
 
-  /** Fracción 0..1 de expediente completado. */
+  /** Cuántos papeles vuelves a tener, de los que te quitaron. */
+  papelesRecuperados() {
+    return Math.round(this.recuperadas * this.valorPorPieza);
+  }
+
+  /** Cuántos se quedaron por el suelo. */
+  papelesPerdidos() {
+    return Math.max(0, this.confiscados - this.papelesRecuperados());
+  }
+
+  /** Fracción 0..1 de expediente recuperado. */
   fraccion() {
-    if (this.sembrados === 0) return 0;
-    return Math.min(1, this.recogidos / this.sembrados);
+    if (this.piezas === 0) return 0;
+    return Math.min(1, this.recuperadas / this.piezas);
   }
 
-  /** ¿Se logró el expediente completo? */
+  /** ¿Se recuperó absolutamente todo? Prácticamente imposible. */
   esPerfecto() {
-    return this.sembrados > 0 && this.recogidos >= this.sembrados * TRAMITE.UMBRAL_PERFECTO;
+    return this.piezas > 0 && this.recuperadas >= this.piezas * TRAMITE.UMBRAL_PERFECTO;
   }
 
-  /** Progreso 0..1 dentro del túnel, para la barra del HUD. */
+  /** Progreso 0..1 dentro del pasillo, para la barra del HUD. */
   progreso() {
     return Math.min(1, this.recorrido / TRAMITE.LONGITUD);
   }
@@ -159,7 +192,9 @@ export class TramiteManager {
     this.luces = [];
     this.activo = false;
     this.recorrido = 0;
-    this.sembrados = 0;
-    this.recogidos = 0;
+    this.piezas = 0;
+    this.recuperadas = 0;
+    this.confiscados = 0;
+    this.valorPorPieza = 0;
   }
 }
