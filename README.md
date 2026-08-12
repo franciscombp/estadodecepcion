@@ -491,11 +491,18 @@ Sociedad, Investigación y Calle no se leen como cuatro skins, se leen como una
 redacción. Sin eso, que todos trabajaran para El Mercio era algo que solo sabía
 el código.
 
-Están basados en **periodistas incómodos para el gobierno**, en el arquetipo y
-no en la persona. Ninguno es un periodista real con otro nombre: no llevan sus
-rasgos, ni sus medios, ni sus casos, ni frases suyas. Es la misma regla que
-gobierna todo el juego —se satiriza la oficina y el trámite, nunca una cara— y
-aplica igual a los nuestros. El razonamiento largo está en la cabecera de
+Están basados en **periodistas incómodos para el gobierno**, y dos llevan el
+guiño en el nombre: Buscán por Andersson Boscán y Blanki por Blanca Moncada.
+**El desvío es el chiste** —que se reconozca y a la vez no sea exactamente— y
+por eso el guiño **no se explica en pantalla**: explicado deja de ser un guiño y
+pasa a ser una atribución.
+
+Lo que toman prestado es el oficio y la terquedad. Lo que no: sus casos, sus
+medios y sus frases. No se les pone nada en la boca ni se les atribuye nada que
+no hayan hecho — un guiño es un nombre parecido y una manera de trabajar, y
+todo lo que vaya más allá ya es hablar por ellos. Además salen bien parados:
+aquí los periodistas son los protagonistas, y la satirizada es la oficina que
+se los quita de encima. El razonamiento largo está en la cabecera de
 `config/personajes.js` y en `docs/GUION.md`.
 
 **Se desbloquean por tramos, no por papeles**, y eso es una decisión: los

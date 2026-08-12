@@ -7,18 +7,31 @@
 // no es una tienda de skins: es el organigrama del periódico.
 //
 // DE DÓNDE SALEN
-// Están basados en periodistas incómodos para el gobierno. En el arquetipo, no
-// en la persona: el que pregunta lo que nadie pregunta, la que llega joven y
-// todavía cree que sirve, el que ya sabe la respuesta antes de preguntarla, la
-// que no se aparta cuando la empujan. Eso es lo que se juega.
+// Están basados en periodistas incómodos para el gobierno, y dos de ellos
+// llevan el guiño en el nombre: BUSCÁN por Andersson Boscán y BLANKI por
+// Blanca Moncada.
+//
+// EL DESVÍO ES EL CHISTE. No es que no se note de quién viene: es que no sea
+// exactamente. Se reconoce y a la vez no es él, que es la única forma de hacer
+// un guiño sin firmar por nadie. Y en el caso de Buscán el desvío encima paga
+// doble: Boscán → Buscán, que además de sonar igual es lo que hace el
+// personaje —y lo que hacen con él, que para eso la tabla de acumulado se
+// llama LOS MÁS BUSCADOS—.
+//
+// LO QUE SÍ TOMAN PRESTADO es el oficio y la terquedad: el que trabaja con
+// documentos y llega con el sobre bajo el brazo, la que cubre desde el sitio y
+// no se aparta cuando la empujan.
 //
 // Y AQUÍ LA REGLA QUE NO SE TOCA
-// Ninguno es un periodista real con otro nombre. No llevan sus rasgos, ni sus
-// medios, ni sus casos, ni frases suyas. Es la misma regla que gobierna todo
-// este juego —se satiriza la oficina y el trámite, nunca una cara— y aplica
-// igual a los nuestros: poner a una persona real a correr por una calle
-// mientras la persiguen es meterla en un chiste que no eligió contar. El
-// homenaje es al oficio; el retrato no es de nadie.
+// No llevan sus casos, ni sus medios, ni una sola frase suya. No se les pone en
+// la boca nada, ni se les atribuye nada que no hayan hecho. Un guiño es un
+// nombre parecido y una manera de trabajar; todo lo que vaya más allá ya es
+// hablar por ellos, y para eso no hay permiso.
+//
+// Salen bien parados, y eso también cuenta: aquí los periodistas son los
+// protagonistas y los que preguntan, y quien queda retratado es la oficina que
+// se los quita de encima. Es la misma regla de siempre —se satiriza el trámite,
+// nunca una cara—, y ninguna de estas dos caras es la satirizada.
 //
 // POR QUÉ SE DESBLOQUEAN POR TRAMOS Y NO POR PAPELES
 // Los papeles son la moneda del Archivo, y el Archivo es la meta del juego:
@@ -50,6 +63,10 @@ export const PERSONAJES = [
     ficha: 'Entró de pasante y se quedó. Pregunta cosas que en la sala ya nadie pregunta porque dan pereza, y por eso se las contestan.',
     tramos: 0,
   },
+  // Buscán y Blanki llevan el guiño en el nombre (ver cabecera). El guiño NO se
+  // explica en pantalla y esto es deliberado: un guiño explicado deja de ser un
+  // guiño y pasa a ser una atribución. Quien lo pilla, lo pilla; quien no, se
+  // queda con dos personajes que funcionan solos.
   {
     id: 'buscan',
     nombre: 'Buscán',
@@ -63,7 +80,7 @@ export const PERSONAJES = [
     nombre: 'Blanki',
     seccion: 'Calle',
     nota: 'Casco de espartana. No se aparta',
-    ficha: 'Cubre desde el sitio, con casco, porque en su sección el casco no es un chiste. La han empujado y no se movió.',
+    ficha: 'Cubre desde el sitio, con casco, porque en su sección el casco no es un chiste. La mandan a apartarse y no se aparta.',
     tramos: 18,
   },
 ];

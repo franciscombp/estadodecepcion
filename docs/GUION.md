@@ -60,20 +60,37 @@ Todos llevan la misma credencial: lo que cambia es con qué entra cada uno a
 preguntar. A Buscán le abren la puerta por el traje; a Blanki no la cierran
 porque está en medio.
 
-### De dónde salen, y qué no son
+### De dónde salen, y hasta dónde llega el guiño
 
-Los cuatro están basados en **periodistas incómodos para el gobierno**. En el
-arquetipo, no en la persona: el que pregunta lo que nadie pregunta, la que
-llega joven y todavía cree que sirve, el que ya sabe la respuesta antes de
-preguntarla, la que no se aparta cuando la empujan.
+Los cuatro están basados en **periodistas incómodos para el gobierno**, y dos
+de ellos llevan el guiño en el nombre: **Buscán** por Andersson Boscán y
+**Blanki** por Blanca Moncada.
 
-> **Regla editorial, y esta no se toca.** Ninguno es un periodista real con
-> otro nombre. No llevan sus rasgos, ni sus medios, ni sus casos, ni frases
-> suyas. Es la misma regla que gobierna todo el juego —se satiriza la oficina y
-> el trámite, nunca una cara— y aplica igual a los nuestros: poner a una
-> persona real a correr por una calle mientras la persiguen es meterla en un
-> chiste que no eligió contar. El homenaje es al oficio; el retrato no es de
-> nadie.
+**El desvío es el chiste.** No es que no se note de quién viene: es que no sea
+exactamente. Se reconoce y a la vez no es él, que es la única forma de hacer un
+guiño sin firmar por nadie. En Buscán el desvío encima paga doble —Boscán →
+Buscán— porque además de sonar igual es lo que hace el personaje y lo que hacen
+con él: para eso la tabla de acumulado se llama LOS MÁS BUSCADOS.
+
+**El guiño no se explica en pantalla.** Ni en la ficha, ni en un pie, ni en un
+huevo de pascua. Un guiño explicado deja de ser un guiño y pasa a ser una
+atribución; quien lo pilla lo pilla, y quien no, se queda con dos personajes
+que funcionan solos.
+
+Lo que sí toman prestado es **el oficio y la terquedad**: el que trabaja con
+documentos y llega con el sobre bajo el brazo, la que cubre desde el sitio y no
+se aparta cuando le dicen que se aparte.
+
+> **Regla editorial, y esta no se toca.** No llevan sus casos, ni sus medios,
+> ni una sola frase suya. No se les pone nada en la boca ni se les atribuye
+> nada que no hayan hecho. Un guiño es un nombre parecido y una manera de
+> trabajar; todo lo que vaya más allá ya es hablar por ellos, y para eso no hay
+> permiso.
+>
+> Y salen **bien parados**, que también cuenta: aquí los periodistas son los
+> protagonistas y los que preguntan, y quien queda retratado es la oficina que
+> se los quita de encima. Es la misma regla de siempre —se satiriza el trámite,
+> nunca una cara— y ninguna de estas dos caras es la satirizada.
 
 Lo que los distingue en pantalla es **la silueta de espaldas**, que es como se
 les ve el 99% del tiempo: sombrero de ala, rizos, boina ladeada, casco con
