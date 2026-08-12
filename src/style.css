@@ -2526,23 +2526,6 @@ html, body {
   line-height: 1.3;
 }
 
-.siguiente-desbloqueo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 9px 12px;
-  margin-bottom: 12px;
-  border-radius: var(--r-pildora);
-  background: rgba(13, 18, 32, 0.7);
-  border: 1px solid var(--borde);
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--texto-tenue);
-}
-
-.siguiente-desbloqueo__icono { display: flex; opacity: 0.75; }
 
 
 /* --- El tribunal ----------------------------------------------------------
@@ -3157,12 +3140,6 @@ html, body {
 .plana .desbloqueo__desc { color: #4a4234; }
 .plana .desbloqueo__icono svg { filter: grayscale(1) contrast(1.2); }
 
-.plana .siguiente-desbloqueo {
-  background: transparent;
-  border: 1px dashed rgba(0, 0, 0, 0.3);
-  color: #6b6152;
-  margin-top: 10px;
-}
 
 
 /* --- La temporada, en una línea -------------------------------------------

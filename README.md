@@ -384,7 +384,13 @@ scroll justo en el momento en que lo único que se quiere es volver a jugar.
 | Página | Qué lleva | Botones |
 |---|---|---|
 | **1 · Portada** | Titular (la sentencia), foto del arresto, papeles recogidos | CONTINUAR |
-| **2 · Deportes** | Las tres clasificaciones y lo desbloqueado | Intentar de nuevo · Ver todo el diario · Menú |
+| **2 · Deportes** | Las tres clasificaciones y lo que se acaba de desbloquear | Intentar de nuevo · Ver todo el diario · Menú |
+
+Lo que **no** lleva la página de deportes es la cuenta atrás del siguiente
+potenciador. Estaba, y no decía nada: en una página que cuenta lo que pasó, un
+contador de algo que no ha pasado es ruido. Esa cuenta sigue en el menú, junto
+a las casillas cerradas del arsenal, que es donde el número tiene a qué
+referirse.
 
 «Ver todo el diario» lleva al **Archivo**, que es el mismo ejemplar con tus
 investigaciones.

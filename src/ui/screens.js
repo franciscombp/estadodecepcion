@@ -1007,16 +1007,11 @@ export class Pantallas {
       contenido.appendChild(caja);
     }
 
-    const proximo = datos.proximoPotenciador;
-    if (proximo) {
-      const pista = el('div', 'siguiente-desbloqueo');
-      const icono = el('span', 'siguiente-desbloqueo__icono');
-      icono.innerHTML = Icono.iconoPotenciador(proximo.id, 22);
-      pista.appendChild(icono);
-      pista.appendChild(el('span', '',
-        `A ${proximo.faltan} ${proximo.faltan === 1 ? 'tramo' : 'tramos'} de ${proximo.nombre}`));
-      contenido.appendChild(pista);
-    }
+    // AQUÍ NO VA la pista de "a dos tramos de Fuente anónima". Estaba, y no
+    // decía nada: en una página que ya cuenta lo que pasó, un contador de algo
+    // que no ha pasado es ruido. La cuenta atrás sí tiene sitio en el menú,
+    // junto a las casillas cerradas del arsenal, porque ahí se ve QUÉ falta y
+    // el número tiene a qué referirse.
   }
 
   _pintarRuta(ruta) {

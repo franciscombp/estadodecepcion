@@ -904,11 +904,11 @@ export class Game {
       (p) => !antes.has(p.id) && this.cuaderno.tramosRecorridos >= p.tramos,
     );
 
-    return {
-      paginasNuevas,
-      potenciadoresNuevos,
-      proximoPotenciador: this.cuaderno.proximoPotenciador(),
-    };
+    // Sin `proximoPotenciador`: la cuenta atrás de "a dos tramos de X" se
+    // quitó del fin de partida. Sigue en el menú, que es donde el número tiene
+    // a qué referirse —las casillas cerradas del arsenal—, y ahí lo pide la
+    // pantalla directamente al cuaderno.
+    return { paginasNuevas, potenciadoresNuevos };
   }
 
   // -------------------------------------------------------------------------
