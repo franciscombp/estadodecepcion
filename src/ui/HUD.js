@@ -54,6 +54,7 @@ export class HUD {
       evidencias: -1,
       tramite: -1,
       porArriba: null,
+      aguanteVisible: null,
       efectos: '',
     };
   }
@@ -322,19 +323,29 @@ export class HUD {
       c.escenario = datos.escenario;
     }
 
-    // --- Estamina ----------------------------------------------------------
-    // Redondeamos al 1%: la estamina baja de forma continua y escribir cada
-    // fracción sería una escritura por fotograma para un cambio invisible.
-    const pctEstamina = Math.round(datos.estamina * 100);
-    if (pctEstamina !== c.estamina) {
-      this.ref.relEstamina.style.width = `${pctEstamina}%`;
-      this.ref.pctEstamina.textContent = `${pctEstamina}%`;
-      c.estamina = pctEstamina;
+    // --- Aguante -----------------------------------------------------------
+    // La píldora solo existe donde el aguante es un recurso (el Apagón). En
+    // las demás escenas la comida es un bonus suelto: no hay nada que medir, y
+    // un medidor que nunca se mueve solo ocupa sitio.
+    if (datos.aguanteVisible !== c.aguanteVisible) {
+      this.ref.barraEstamina.classList.toggle('pildora--oculta', !datos.aguanteVisible);
+      c.aguanteVisible = datos.aguanteVisible;
     }
-    if (datos.exhausto !== c.exhausto) {
-      this.ref.relEstamina.classList.toggle('medidor__relleno--rojo', datos.exhausto);
-      this.ref.barraEstamina.classList.toggle('pildora--alarma', datos.exhausto);
-      c.exhausto = datos.exhausto;
+
+    if (datos.aguanteVisible) {
+      // Redondeamos al 1%: baja de forma continua y escribir cada fracción
+      // sería una escritura por fotograma para un cambio invisible.
+      const pctEstamina = Math.round(datos.estamina * 100);
+      if (pctEstamina !== c.estamina) {
+        this.ref.relEstamina.style.width = `${pctEstamina}%`;
+        this.ref.pctEstamina.textContent = `${pctEstamina}%`;
+        c.estamina = pctEstamina;
+      }
+      if (datos.exhausto !== c.exhausto) {
+        this.ref.relEstamina.classList.toggle('medidor__relleno--rojo', datos.exhausto);
+        this.ref.barraEstamina.classList.toggle('pildora--alarma', datos.exhausto);
+        c.exhausto = datos.exhausto;
+      }
     }
 
     // --- Perseguidor -------------------------------------------------------

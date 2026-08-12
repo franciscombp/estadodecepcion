@@ -1,18 +1,23 @@
 // ============================================================================
-// AGUANTE — Barra, drenaje e ítems por escena
+// AGUANTE — Los ítems propios de cada escena
 // ============================================================================
-// Por norma general el aguante no te mata: te vuelve LENTO, y al volverte
-// lento el perseguidor se acerca. Es una presión indirecta, que es lo que la
-// hace interesante: puedes ignorarla un rato, pero no para siempre.
+// Este módulo hace DOS cosas distintas según la escena, y la diferencia es
+// deliberada (ver ESTAMINA en config/balance.js para el porqué largo):
 //
-// LA EXCEPCIÓN ES EL APAGÓN. Ahí quedarse sin pilas es derrota directa
-// (`sinAguanteEsCaptura` en config/escenarios.js), porque sin luz no ves por
-// dónde corres ni hay nada que documentar. Quien decide eso es Game; aquí solo
-// se lleva la cuenta.
+//   · EN EL APAGÓN es un RECURSO. Hay barra, drena, y quedarse a cero es
+//     derrota directa —sin luz no ves por dónde corres ni hay nada que
+//     documentar—. Ahí el recurso no es un añadido: es la escena.
+//
+//   · EN LAS DEMÁS es un BONUS. La comida suma papeles y punto. No hay barra,
+//     no drena nada, y no pasa absolutamente nada por ignorarla.
+//
+// El resumen de por qué: con drenaje en las cuatro, los números daban una
+// barra que no bajaba nunca si recogías, y un castigo extra si ya ibas mal.
+// Ni tensión ni decisión, solo un medidor más en pantalla.
 //
 // Cada escena tiene SUS ítems, y pueden ser varios: en la Bahía sale
-// encebollado, guata o bolón; en el centro histórico, canelazo o mote. La
-// mecánica es la misma en las cuatro; la ficción, no. Ver docs/GUION.md.
+// encebollado, guata o bolón; en el centro histórico, canelazo o mote.
+// Ver docs/GUION.md.
 // ============================================================================
 
 import * as THREE from 'three';
@@ -37,6 +42,8 @@ export class StaminaManager {
     this.catalogo = [{ modelo: 'encebollado', nombre: 'Encebollado', color: 0xff8c42 }];
     this.etiqueta = 'AGUANTE';
     this.icono = 'encebollado';
+    // ¿Es un recurso con barra (Apagón) o un bonus suelto (el resto)?
+    this.esRecurso = false;
     // Nombre del último recogido, para el remate del HUD.
     this.nombreItem = 'Encebollado';
 
@@ -100,7 +107,11 @@ export class StaminaManager {
     this.recogidoEsteFotograma = false;
 
     // --- Drenaje -----------------------------------------------------------
-    this.valor = Math.max(0, this.valor - ESTAMINA.DRENAJE * dt);
+    // Solo donde el aguante es un recurso. En el resto la barra se queda
+    // llena, no se pinta, y no interviene en nada.
+    if (this.esRecurso) {
+      this.valor = Math.max(0, this.valor - ESTAMINA.DRENAJE * dt);
+    }
     this.distanciaDesdeUltimo += avance;
 
     // --- Mover, animar y reciclar -----------------------------------------
@@ -249,10 +260,10 @@ export class StaminaManager {
 
   /** ¿Está el jugador por debajo del umbral de lentitud? */
   estaExhausto() {
-    return this.valor < ESTAMINA.UMBRAL_LENTITUD;
+    return this.esRecurso && this.valor < ESTAMINA.UMBRAL_LENTITUD;
   }
 
-  /** Multiplicador de velocidad que impone la estamina actual. */
+  /** Multiplicador de velocidad que impone el aguante actual. */
   multiplicadorVelocidad() {
     return this.estaExhausto() ? ESTAMINA.PENALIZACION_VELOCIDAD : 1.0;
   }
@@ -268,6 +279,7 @@ export class StaminaManager {
 
   aplicarTema(escenario) {
     const cfg = escenario.estamina ?? {};
+    this.esRecurso = !!escenario.aguanteEsRecurso;
     this.catalogo = cfg.items?.length
       ? cfg.items
       : [{ modelo: 'encebollado', nombre: 'Encebollado', color: 0xff8c42 }];
@@ -288,7 +300,7 @@ export class StaminaManager {
 
   /** ¿Se acabó del todo? En el Apagón esto es derrota, no lentitud. */
   estaAgotada() {
-    return this.valor <= 0;
+    return this.esRecurso && this.valor <= 0;
   }
 
   limpiar() {

@@ -47,7 +47,8 @@ export const ESCENARIOS = {
       intensidadDireccional: 1.0,
     },
 
-    // Aguante. Correr da hambre, así que aquí se come.
+    // Correr da hambre, así que aquí se come. Pero es un BONUS, no un
+    // recurso: no hay barra y no pasa nada por ignorarlo. Solo suma papeles.
     estamina: {
       nombre: 'Comida',
       etiqueta: 'COMIDA',
@@ -113,6 +114,12 @@ export const ESCENARIOS = {
       intensidadAmbiente: 0.28,   // Deliberadamente oscuro
       intensidadDireccional: 0.35,
     },
+
+    // LA ÚNICA ESCENA CON BARRA DE AGUANTE. Aquí el recurso no es un añadido:
+    // es la escena. La luz se traduce en lo que literalmente ves, así que
+    // gastarla y reponerla ES el juego de este tramo. Ver ESTAMINA en
+    // config/balance.js para por qué en las otras tres se quitó.
+    aguanteEsRecurso: true,
 
     // Aquí no se come: se alumbra. Las pilas van iluminadas porque esta es la
     // única escena donde el recolectable tiene que brillar por sí mismo —en el

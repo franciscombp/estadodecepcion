@@ -1142,8 +1142,20 @@ export class Game {
 
     if (this.estamina.recoger(this.jugador) > 0) {
       this.audio.estamina();
-      // Gancho del escenario: en el Apagón esto enciende la linterna.
+      // Gancho de la escena: en el Apagón esto enciende la linterna.
       this.escenario.alRecogerEstamina();
+
+      // Donde el aguante NO es un recurso, la comida es un bonus limpio: paga
+      // papeles y ya. Se anuncia con el nombre del plato porque ahí está la
+      // mitad de la gracia —un bolón no es una moneda genérica.
+      if (!this.estamina.esRecurso) {
+        this.papelesPartida += ESTAMINA.BONIFICACION_PAPELES * this.multiplicadorPapeles;
+        this.alMostrarAviso({
+          tipo: 'evidencia',
+          titulo: this.estamina.nombreItem.toUpperCase(),
+          subtitulo: `+${ESTAMINA.BONIFICACION_PAPELES * this.multiplicadorPapeles} papeles`,
+        });
+      }
     }
 
     // El combo caduca si dejas de recoger.
@@ -1244,6 +1256,10 @@ export class Game {
       estamina: this.estamina.fraccion(),
       nombreEstamina: this.estamina.etiqueta,
       exhausto: this.estamina.estaExhausto(),
+      // La píldora de aguante solo existe donde el aguante es un recurso.
+      // En el resto de escenas es un medidor que nunca se mueve, y un medidor
+      // que nunca se mueve solo ocupa sitio.
+      aguanteVisible: this.estamina.esRecurso,
       cercania: this.perseguidor.cercania(),
       golpesRestantes: JUGADOR.GOLPES_MAXIMOS - this.jugador.golpes,
       combo: this.combo,

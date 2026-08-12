@@ -252,12 +252,19 @@ La partida siguiente arranca **en la temporada donde te capturaron**, no
 siempre en la Bahía. Volver al principio cada vez convertía cada muerte en un
 reinicio del relato en lugar de en un capítulo.
 
-| Escena | Caso | Aguante | Ente de control |
+| Escena | Caso | Qué se recoge | Ente de control |
 |---|---|---|---|
 | **La Bahía** | Porche | Encebollado, guata, bolón | Fiscalía |
-| **El Apagón** | Progen | Pilas | Asamblea Nacional |
+| **El Apagón** | Progen | **Pilas** (recurso, con barra) | Asamblea Nacional |
 | **Las Elecciones** | Elecciones | Micrófono | CNE |
 | **Centro histórico** | Estado de excepción | Canelazo, mote | — (cercado) |
+
+Solo el Apagón tiene **barra de aguante**. En las otras tres la comida es un
+bonus que suma papeles y nada más: no drena, no hay medidor, y no pasa nada
+por ignorarla. Antes drenaba en las cuatro, pero los números no daban: con
+ítems cada 150 m que devolvían 35 y un drenaje de 2/s, la barra no bajaba
+nunca si recogías, y se te echaba encima solo cuando ya ibas mal. Invisible
+jugando bien y castigo añadido jugando mal es la peor forma para una mecánica.
 
 Los obstáculos también cambian de piel: puestos de ropa y militares en la
 Bahía, tuberías y generadores en la central térmica, rejas y antimotines en el

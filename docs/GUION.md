@@ -72,9 +72,29 @@ Cada una tiene: un **caso** que documentar, unos **obstáculos** propios, un
 **recolectable de aguante** propio, y un **ente de control** al que lleva la
 salida del centro.
 
-El recolectable de aguante es siempre la misma mecánica —si no lo recoges vas
-lento y te alcanzan— pero nunca la misma cosa. Esa es la regla: mecánica
-compartida, ficción distinta.
+### Sobre el aguante
+
+Empezó siendo un recurso en las cuatro escenas: una barra que drenaba, y si no
+comías ibas lento y te alcanzaban. Los números decían otra cosa. Con drenaje de
+2/s tardas 50 segundos en vaciarte, pero los ítems salen cada 150 metros —unos
+6 segundos a velocidad de crucero— y devuelven 35 cada uno: recogiendo la
+mayoría, **la barra no bajaba nunca**.
+
+O sea, invisible cuando jugabas bien y castigo añadido cuando ya ibas mal. Y
+encima fallaba de forma indirecta —sin aguante vas lento, al ir lento te
+alcanzan— así que al morir no había un momento claro de «ahí me equivoqué».
+
+Así que ahora:
+
+- **En el Apagón es un RECURSO.** Hay barra, drena, y llegar a cero es derrota
+  directa. Ahí no es un añadido: la luz se traduce en lo que literalmente ves,
+  y gastarla y reponerla es el juego de ese tramo.
+- **En las demás es un BONUS.** La comida suma papeles y punto. No hay barra,
+  no drena, y no pasa nada por ignorarla.
+
+Se conserva lo que valía —que cada escena tenga su propio objeto, que es la
+expresión más clara del lore dentro del juego— y se quita el medidor que no
+medía nada.
 
 ---
 
@@ -92,7 +112,7 @@ compartida, ficción distinta.
 | Cambiar de carril | **Militar**: no se salta ni se esquiva encima. Si lo tocas, te capturan |
 | Dos carriles | **Retén** |
 
-**Aguante — comida costeña.** Correr da hambre.
+**Comida costeña** (bonus, sin barra). Correr da hambre.
 
 - Encebollado
 - Guata
@@ -117,13 +137,14 @@ compartida, ficción distinta.
 | Cambiar de carril | **Generador averiado** |
 | Dos carriles | **Turbina varada** |
 
-**Aguante — pilas.** Aquí no se come: se alumbra. Las pilas van **iluminadas**
-para que se vean en la oscuridad, que es el único sitio donde el recolectable
-tiene que brillar por sí mismo.
+**Pilas** (RECURSO, con barra). Aquí no se come: se alumbra. Las pilas van
+**iluminadas** para que se vean en la oscuridad, que es el único sitio donde el
+recolectable tiene que brillar por sí mismo.
 
 > **Y aquí quedarse sin recurso NO te vuelve lento: te atrapan.** Es la única
-> escena donde el aguante es una condición de derrota directa, y tiene su
-> lógica —sin luz no hay nada que documentar y no ves por dónde corres.
+> escena con barra de aguante y la única donde llegar a cero es derrota
+> directa, y tiene su lógica —sin luz no hay nada que documentar y no ves por
+> dónde corres.
 >
 > Por eso el tramo **regala una pila al entrar** y siembra otra a la vista.
 > Entrar a oscuras y esperar a la primera no era difícil, era injugable.
@@ -150,7 +171,7 @@ tiene que brillar por sí mismo.
 Además, **gas lacrimógeno**: no es un obstáculo con caja de colisión, es
 atmósfera —bocanadas que cruzan la vía y estorban la vista.
 
-**Aguante — comida de la sierra y canelazo**, que además calienta.
+**Comida de la sierra y canelazo** (bonus, sin barra), que además calienta.
 
 **Evidencia**: órdenes sin firma, listas de periodistas vigilados. Aquí hay
 **muy poco que recoger**: máximo tres papeles por tramo. La carestía es el
@@ -177,7 +198,7 @@ ningún trámite: te estrellas contra el cerco y te atrapan, sin más.
 También hay **pandilleros armados** que apoyan al gobierno, como variante del
 bloqueo de carril.
 
-**Aguante — micrófono**: tu canal es el último medio que te queda.
+**Micrófono** (bonus, sin barra): tu canal es el último medio que te queda.
 
 **Evidencia**: pruebas de campaña anticipada, nóminas repetidas, facturas
 fantasma, actas con más votos que votantes.

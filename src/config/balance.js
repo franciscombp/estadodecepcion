@@ -201,10 +201,26 @@ export const EVIDENCIA = {
 };
 
 // ---------------------------------------------------------------------------
-// ESTAMINA
+// AGUANTE
 // ---------------------------------------------------------------------------
-// Cada escenario tiene su propio ítem de estamina. Si no lo recoges, te vuelves
-// lento — no mueres, pero el perseguidor se acerca.
+// POR QUÉ ESTO YA NO ES UN RECURSO EN TODAS PARTES
+//
+// Empezó siendo una barra que drenaba en las cuatro escenas: si no comías ibas
+// lento, y al ir lento te alcanzaban. Los números decían otra cosa. Con drenaje
+// de 2/s tardas 50 segundos en vaciarte desde lleno, pero los ítems salen cada
+// 150 metros —unos 6 segundos a velocidad de crucero— y devuelven 35 cada uno.
+// Recogiendo la mayoría ganas 23 netos por ciclo: la barra no baja NUNCA.
+//
+// O sea: invisible cuando juegas bien, y castigo añadido cuando ya vas mal y
+// además fallas los ítems. Es la peor forma posible para una mecánica, porque
+// no crea tensión —la duplica justo cuando ya la habías perdido—. Y encima
+// falla de forma indirecta (sin aguante → lento → te alcanzan), así que al
+// morir no hay un momento claro de «ahí me equivoqué».
+//
+// Así que el drenaje se queda SOLO en el Apagón, donde el recurso no es un
+// añadido sino la escena entera: la luz se traduce en lo que literalmente ves.
+// En las demás la comida es un bonus que solo suma, sin barra y sin castigo por
+// ignorarla. Lo decide `aguanteEsRecurso` en config/escenarios.js.
 export const ESTAMINA = {
   MAXIMA: 100,
   INICIAL: 100,
@@ -218,6 +234,11 @@ export const ESTAMINA = {
   PENALIZACION_VELOCIDAD: 0.72,
   // Frecuencia de aparición del ítem (uno cada N metros aprox.).
   DISTANCIA_ENTRE_ITEMS: 150,
+  // Lo que paga la comida donde NO es un recurso. Es un bonus limpio: si la
+  // ignoras no pierdes nada, y si la coges ganas papeles. Un plato vale como
+  // tres papeles buenos, lo bastante para que merezca el desvío de carril sin
+  // convertirse en la única forma de puntuar.
+  BONIFICACION_PAPELES: 15,
   // Vuela por encima de la altura de los papeles a propósito: es lo que hay
   // que ver desde lejos, y a la altura de la hilera quedaba escondido detrás
   // de ella.

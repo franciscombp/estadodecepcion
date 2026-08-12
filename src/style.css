@@ -177,6 +177,10 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
+  /* Pausa a la izquierda y contador a la derecha, con o sin la píldora de
+     aguante en medio. Sin esto, al ocultarse la píldora el contador se queda
+     pegado al botón de pausa y media fila vacía. */
+  justify-content: space-between;
 }
 
 /* Botón de icono (pausa). 48×48 mínimo: un botón de pausa que falla en un
@@ -2454,3 +2458,9 @@ html, body {
   0%, 100% { opacity: 0.55; }
   50% { opacity: 1; }
 }
+
+
+/* La píldora de aguante desaparece del todo donde no hay recurso que medir.
+   `display:none` y no `opacity:0`: la fila superior es un flex y el contador
+   de papeles tiene que ocupar el hueco, no dejar un vacío. */
+.pildora--oculta { display: none; }
