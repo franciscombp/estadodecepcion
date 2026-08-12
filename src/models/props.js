@@ -139,6 +139,148 @@ function texturaMadera() {
   });
 }
 
+/** Persiana metálica ondulada: la piel de casi todo local cerrado del país. */
+function texturaPersiana() {
+  return textura('persiana', (ctx, w, h) => {
+    // El degradado por franja hace el relieve. Un rayado plano se lee como
+    // papel pintado; lo que dice "chapa" es que cada onda tenga brillo y
+    // sombra propios.
+    for (let x = 0; x < w; x += 8) {
+      const g = ctx.createLinearGradient(x, 0, x + 8, 0);
+      g.addColorStop(0, '#5c6068');
+      g.addColorStop(0.45, '#9aa0a8');
+      g.addColorStop(1, '#4a4e56');
+      ctx.fillStyle = g;
+      ctx.fillRect(x, 0, 8, h);
+    }
+    // Óxido y roces. Una persiana impecable no existe en la Bahía.
+    ctx.fillStyle = 'rgba(120,72,34,0.16)';
+    for (let i = 0; i < 26; i++) {
+      ctx.fillRect(Math.random() * w, Math.random() * h, 2 + Math.random() * 9, 1 + Math.random() * 4);
+    }
+  }, 128, 96);
+}
+
+/** Lona a rayas de toldo. Dos colores, franja ancha, como las de verdad. */
+function texturaToldo(colorFranja = '#d94a3d') {
+  return textura(`toldo-${colorFranja}`, (ctx, w, h) => {
+    ctx.fillStyle = '#f2ece0';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = colorFranja;
+    for (let x = 0; x < w; x += 32) ctx.fillRect(x, 0, 16, h);
+  }, 128, 32);
+}
+
+/**
+ * Rótulo pintado a mano. Los textos son GENÉRICOS de comercio —"AL POR MAYOR",
+ * "TODO A $1"—, nunca marcas ni nombres de locales reales: el decorado ambienta
+ * un mercado, no señala a un comerciante concreto.
+ */
+function texturaRotulo(texto, fondo = '#e8342a') {
+  return textura(`rotulo-${texto}`, (ctx, w, h) => {
+    ctx.fillStyle = fondo;
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(3, 3, w - 6, h - 6);
+    ctx.fillStyle = '#fff8e6';
+    ctx.font = 'bold 34px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(texto, w / 2, h / 2);
+  }, 256, 64);
+}
+
+/**
+ * Ropa colgada de una barra: camisetas, chompas y perchas.
+ *
+ * Va en UNA textura sobre un plano en vez de en veinte cuerpos sueltos. A los
+ * seis metros que hay del carril a la vereda, una percha modelada y una percha
+ * pintada se ven exactamente igual —y la pintada cuesta una malla en lugar de
+ * veinte, que es la diferencia entre que la Bahía llene la vereda o que el
+ * móvil no llegue a los treinta cuadros.
+ */
+function texturaRopaColgada(clave, paleta) {
+  return textura(`ropa-${clave}`, (ctx, w, h) => {
+    ctx.fillStyle = '#241d18';           // El fondo del local, en penumbra.
+    ctx.fillRect(0, 0, w, h);
+
+    // La barra de la que cuelga todo.
+    ctx.fillStyle = '#8d939b';
+    ctx.fillRect(0, h * 0.1, w, 5);
+
+    const anchoPrenda = w / 7;
+    for (let i = 0; i < 7; i++) {
+      const x = i * anchoPrenda + anchoPrenda * 0.12;
+      const ancho = anchoPrenda * 0.76;
+      const alto = h * (0.42 + Math.random() * 0.3);
+      const y = h * 0.12;
+
+      // Percha.
+      ctx.strokeStyle = '#c9ccd2';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x + ancho / 2, y);
+      ctx.lineTo(x + ancho * 0.14, y + alto * 0.1);
+      ctx.lineTo(x + ancho * 0.86, y + alto * 0.1);
+      ctx.closePath();
+      ctx.stroke();
+
+      // Cuerpo de la prenda: un trapecio con mangas. Camiseta de fútbol,
+      // chompa o polo según toque; la silueta es la misma a esta distancia.
+      ctx.fillStyle = paleta[i % paleta.length];
+      const yc = y + alto * 0.1;
+      ctx.beginPath();
+      ctx.moveTo(x + ancho * 0.18, yc);
+      ctx.lineTo(x + ancho * 0.82, yc);
+      ctx.lineTo(x + ancho * 0.94, yc + alto * 0.26);
+      ctx.lineTo(x + ancho * 0.78, yc + alto * 0.3);
+      ctx.lineTo(x + ancho * 0.8, y + alto);
+      ctx.lineTo(x + ancho * 0.2, y + alto);
+      ctx.lineTo(x + ancho * 0.22, yc + alto * 0.3);
+      ctx.lineTo(x + ancho * 0.06, yc + alto * 0.26);
+      ctx.closePath();
+      ctx.fill();
+
+      // Sombra interior: sin ella la fila se lee como recortes de cartulina.
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      ctx.fillRect(x + ancho * 0.2, y + alto * 0.62, ancho * 0.6, alto * 0.38);
+    }
+  }, 256, 128);
+}
+
+/**
+ * Mercadería apilada: cajas, fundas de detergente, pacas de papel higiénico.
+ * La columna de producto de colores chillones subiendo hasta el techo es LA
+ * imagen de la Bahía, más que el toldo o la persiana.
+ */
+function texturaMercaderia(variante = 0) {
+  return textura(`mercaderia-${variante}`, (ctx, w, h) => {
+    ctx.fillStyle = '#2a221b';
+    ctx.fillRect(0, 0, w, h);
+
+    const colores = ['#d8452f', '#f2b134', '#2e8b57', '#2f6fd0', '#e0e4e8',
+      '#c73b7a', '#f07a1a'];
+    let y = h;
+    while (y > h * 0.06) {
+      const alto = h * (0.08 + Math.random() * 0.07);
+      let x = 0;
+      while (x < w) {
+        const ancho = w * (0.16 + Math.random() * 0.2);
+        ctx.fillStyle = colores[Math.floor(Math.random() * colores.length)];
+        ctx.fillRect(x + 1, y - alto + 1, ancho - 2, alto - 2);
+        // Cinta de embalaje / etiqueta, para que no sea un mosaico plano.
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillRect(x + ancho * 0.3, y - alto * 0.62, ancho * 0.4, alto * 0.14);
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(x + 1, y - 3, ancho - 2, 2);
+        x += ancho;
+      }
+      y -= alto;
+    }
+  }, 128, 256);
+}
+
 // ---------------------------------------------------------------------------
 // OBSTÁCULOS
 // ---------------------------------------------------------------------------
@@ -1735,6 +1877,115 @@ function crearPatrulla() {
   return g;
 }
 
+// Textos de rótulo. GENÉRICOS a propósito: son los letreros que hay en
+// cualquier mercado del país, no nombres de locales reales. El decorado
+// ambienta un sector, no señala a un comerciante.
+const ROTULOS_BAHIA = ['AL POR MAYOR', 'TODO A $1', 'OFERTAS', 'SE VENDE',
+  'DESCUENTOS', 'CRÉDITO DIRECTO'];
+
+const ROPA_BAHIA = [
+  ['#f2c31d', '#1b4fa8', '#e63946', '#f7f7f2', '#2a9d54'],   // Camisetas
+  ['#e8562f', '#2b3a67', '#f4a259', '#7a1f3d', '#dfe3e8'],   // Chompas
+  ['#12a3c9', '#f7d548', '#b7295a', '#3f8f4a', '#efe7d8'],   // Ropa de niño
+];
+
+/**
+ * Un puesto de la Bahía: persiana, toldo, rótulo pintado y mercadería a la
+ * vista. Mide `ancho` metros de frente y se coloca en su sitio de la hilera.
+ *
+ * Lo que hace que se lea como comercio informal y no como "tienda" no es el
+ * local: es que el género SALE del local. La ropa cuelga por delante de la
+ * persiana, la mercadería se apila hasta arriba y el toldo invade la vereda.
+ * Un local ordenado, con su vitrina y su puerta, sería otro barrio.
+ */
+function crearPuestoBahia(colores, aleatorio, ancho = 4.6) {
+  const g = new THREE.Group();
+  const alto = 3.4 + aleatorio() * 1.6;
+  const fondo = 3.2;
+
+  // El cuerpo del local. Tonos de revoque pintado, no el color de props del
+  // escenario: en la Bahía cada dueño pintó el suyo del color que tenía.
+  const revoques = [0xc9a06a, 0xd8c9a8, 0xa8bcc4, 0xcf8f6a, 0xbfc4a8];
+  const cuerpo = new THREE.Mesh(
+    new THREE.BoxGeometry(ancho, alto, fondo),
+    mat(revoques[Math.floor(aleatorio() * revoques.length)], 0.04, 0.94),
+  );
+  cuerpo.position.y = alto / 2;
+  g.add(cuerpo);
+
+  // El frente: cerrado con persiana, o abierto con el género fuera.
+  const zFrente = fondo / 2 + 0.03;
+  const abierto = aleatorio() > 0.32;
+
+  if (abierto) {
+    // Persiana a medio subir, arriba del todo.
+    const persiana = new THREE.Mesh(
+      new THREE.PlaneGeometry(ancho * 0.92, alto * 0.2),
+      new THREE.MeshStandardMaterial({ map: texturaPersiana(), roughness: 0.6, metalness: 0.3 }),
+    );
+    persiana.position.set(0, alto * 0.86, zFrente);
+    g.add(persiana);
+
+    // Y debajo, el género. Mitad ropa colgada, mitad mercadería apilada: en
+    // una hilera real se alternan, y alternarlos es lo que impide que la
+    // vereda se lea como un patrón repetido.
+    // Tres variantes de cada textura, elegidas al azar. Con una sola, dos
+    // puestos seguidos enseñaban EXACTAMENTE la misma pila de cajas —el mismo
+    // azar congelado en la caché— y la hilera se leía como un mosaico
+    // repetido. Tres bastan: nadie compara el primer puesto con el cuarto.
+    const esRopa = aleatorio() > 0.45;
+    const variante = Math.floor(aleatorio() * 3);
+    const genero = new THREE.Mesh(
+      new THREE.PlaneGeometry(ancho * 0.92, alto * 0.72),
+      new THREE.MeshStandardMaterial({
+        map: esRopa
+          ? texturaRopaColgada(variante, ROPA_BAHIA[variante % ROPA_BAHIA.length])
+          : texturaMercaderia(variante),
+        roughness: 0.85,
+      }),
+    );
+    genero.position.set(0, alto * 0.4, zFrente + 0.02);
+    g.add(genero);
+  } else {
+    const persiana = new THREE.Mesh(
+      new THREE.PlaneGeometry(ancho * 0.92, alto * 0.78),
+      new THREE.MeshStandardMaterial({ map: texturaPersiana(), roughness: 0.6, metalness: 0.3 }),
+    );
+    persiana.position.set(0, alto * 0.42, zFrente);
+    g.add(persiana);
+  }
+
+  // Toldo de lona a rayas, volando sobre la vereda.
+  const toldo = new THREE.Mesh(
+    new THREE.BoxGeometry(ancho * 0.98, 0.1, 1.8),
+    new THREE.MeshStandardMaterial({
+      map: texturaToldo(aleatorio() > 0.5 ? '#d94a3d' : '#2f6fd0'),
+      roughness: 0.85,
+    }),
+  );
+  toldo.position.set(0, alto * 0.84, fondo / 2 + 0.85);
+  toldo.rotation.x = 0.24;
+  g.add(toldo);
+
+  // Rótulo pintado, encima del toldo.
+  if (aleatorio() > 0.35) {
+    const texto = ROTULOS_BAHIA[Math.floor(aleatorio() * ROTULOS_BAHIA.length)];
+    const rotulo = new THREE.Mesh(
+      new THREE.PlaneGeometry(ancho * 0.8, 0.52),
+      new THREE.MeshStandardMaterial({
+        map: texturaRotulo(texto, aleatorio() > 0.5 ? '#e8342a' : '#1b4fa8'),
+        roughness: 0.8,
+        emissive: 0xffffff,
+        emissiveIntensity: 0.12,
+      }),
+    );
+    rotulo.position.set(0, alto * 0.97, zFrente + 0.06);
+    g.add(rotulo);
+  }
+
+  return g;
+}
+
 /**
  * Genera un elemento de decorado para los costados de la pista.
  * A la velocidad del juego nadie ve el detalle, pero la variación de alturas,
@@ -1755,47 +2006,81 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
 
   switch (idEscenario) {
     case 'bahia': {
-      // Locales con toldo y reja bajada.
-      const alto = 3 + aleatorio() * 3;
-      const local = new THREE.Mesh(
-        new THREE.BoxGeometry(3.2, alto, 3.4),
-        mat(colores.props, 0.05, 0.92),
-      );
-      local.position.y = alto / 2;
-      g.add(local);
+      // UNA HILERA, no un local suelto. La Bahía no son tiendas separadas por
+      // solares: son puestos pegados unos a otros, sin un palmo entre medias,
+      // bajo una bóveda de policarbonato que recorre la cuadra entera. Ese
+      // apelotonamiento es el sector; un local con su hueco a cada lado sería
+      // cualquier avenida.
+      const PUESTOS = 3;
+      const ANCHO_PUESTO = 4.7;
+      const largo = PUESTOS * ANCHO_PUESTO;
 
-      // Toldo a rayas.
-      const toldo = new THREE.Mesh(
-        new THREE.BoxGeometry(3.6, 0.14, 1.5),
-        mat(aleatorio() > 0.5 ? colores.acento : COLOR3D.rojo, 0.3),
-      );
-      toldo.position.set(0, alto * 0.52, 2.1);
-      toldo.rotation.x = 0.28;
-      g.add(toldo);
-
-      // Reja del local cerrado.
-      const reja = new THREE.Mesh(
-        new THREE.BoxGeometry(2.6, alto * 0.42, 0.09),
-        mat(0x2a2f3d, 0.03),
-      );
-      reja.position.set(0, alto * 0.23, 1.72);
-      g.add(reja);
-
-      // Rótulo de neón encendido: los locales cerrados dejan el letrero puesto.
-      if (aleatorio() > 0.45) {
-        const rotulo = new THREE.Mesh(
-          new THREE.BoxGeometry(2.2, 0.4, 0.09),
-          neon(aleatorio() > 0.5 ? colores.acento : 0x4fd1ff, 1.7),
-        );
-        rotulo.position.set(0, alto * 0.78, 1.76);
-        g.add(rotulo);
+      for (let i = 0; i < PUESTOS; i++) {
+        const puesto = crearPuestoBahia(colores, aleatorio, ANCHO_PUESTO);
+        puesto.position.x = (i - (PUESTOS - 1) / 2) * ANCHO_PUESTO;
+        g.add(puesto);
       }
 
-      if (aleatorio() > 0.6) {
-        const palmera = crearPalmera(5 + aleatorio() * 2.5);
-        palmera.position.set(aleatorio() > 0.5 ? 2.6 : -2.6, 0, 2.5);
+      // La bóveda traslúcida. Es media caña abierta hacia abajo: se construye
+      // con el eje en Y y se tumba, y el medio giro extra deja la parte llena
+      // arriba —si no, se ve el suelo cubierto y el cielo destapado.
+      //
+      // EL RADIO Y LA ALTURA IMPORTAN MÁS DE LO QUE PARECE. Con una bóveda
+      // grande y alta, las dos aceras se acercan por arriba, la calle queda
+      // techada y el escenario deja de ser un mercado para convertirse en un
+      // invernadero. La cubierta tapa SU acera y se queda ahí: el borde
+      // exterior tiene que caer por fuera del asfalto (media pista son 4.4 m
+      // y el decorado va a 7.8 del centro).
+      const RADIO = 2.5;
+      const Y_BOVEDA = 3.9;
+      const Z_BOVEDA = 0.5;
+      const cubierta = new THREE.Mesh(
+        new THREE.CylinderGeometry(RADIO, RADIO, largo, 14, 1, true, 0, Math.PI),
+        new THREE.MeshStandardMaterial({
+          color: 0xe6ece8,
+          transparent: true,
+          opacity: 0.3,
+          side: THREE.DoubleSide,
+          roughness: 0.35,
+          metalness: 0.05,
+          emissive: 0xdfe9e4,
+          emissiveIntensity: 0.16,
+        }),
+      );
+      cubierta.rotation.z = Math.PI / 2;
+      cubierta.position.set(0, Y_BOVEDA, Z_BOVEDA);
+      g.add(cubierta);
+
+      // Las cerchas metálicas que la sostienen, y el puntal que baja al bordillo.
+      // Son lo que da escala a la bóveda: sin ellas es una lámina flotando, y
+      // sin los puntales la lámina no se apoya en ninguna parte.
+      const geoCercha = new THREE.TorusGeometry(RADIO + 0.03, 0.05, 4, 12, Math.PI);
+      const geoPuntal = new THREE.CylinderGeometry(0.075, 0.09, Y_BOVEDA, 6);
+      const matCercha = mat(0x9aa0a8, 0.03, 0.55);
+      for (let i = 0; i <= PUESTOS; i++) {
+        const x = -largo / 2 + i * ANCHO_PUESTO;
+
+        const cercha = new THREE.Mesh(geoCercha, matCercha);
+        cercha.position.set(x, Y_BOVEDA, Z_BOVEDA);
+        cercha.rotation.y = Math.PI / 2;
+        g.add(cercha);
+
+        const puntal = new THREE.Mesh(geoPuntal, matCercha);
+        puntal.position.set(x, Y_BOVEDA / 2, Z_BOVEDA + RADIO);
+        g.add(puntal);
+      }
+
+      // Una palmera de vez en cuando, asomando por encima de la bóveda.
+      if (aleatorio() > 0.72) {
+        const palmera = crearPalmera(6.5 + aleatorio() * 2);
+        palmera.position.set((aleatorio() - 0.5) * largo, 0, 3.4);
         g.add(palmera);
       }
+
+      // La hilera va ALINEADA: ni desviación lateral ni escala al azar. Una
+      // fila de puestos torcidos y de tamaños distintos no se lee como
+      // desorden, se lee como fallo de colocación.
+      g.userData.alineado = true;
       break;
     }
 

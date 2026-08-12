@@ -17,12 +17,16 @@ Es sátira, y se sostiene sobre una línea que no se cruza:
   (`src/config/publicaciones.js`).
 - **No se ponen frases en boca de personas reales.** `CITAS_VERIFICADAS` está
   vacío a propósito: solo entra ahí lo que tenga fuente, fecha y enlace.
-- Los **nombres de caso** (Porche, Progen) se usan como rótulo temático de cada
+- Los **nombres de caso** (Porsche, Progen) se usan como rótulo temático de cada
   escena, que es como los nombra la prensa. Lo que el jugador recoge dentro
   son objetos genéricos —un USB, un chat, un acta— y nunca una afirmación
   concreta sobre nadie.
 - Los perseguidores son **caricaturas**, no retratos. El juego lo dice en el
   menú, en letra que se lee.
+
+Los **expedientes** de cada caso —cronología y enlaces a la prensa que lo
+cubrió— viven en `docs/CASOS/`. Son material para documentarse, no piezas de
+El Mercio: [caso Porsche](CASOS/PORSCHE.md).
 
 ---
 
@@ -96,12 +100,59 @@ Se conserva lo que valía —que cada escena tenga su propio objeto, que es la
 expresión más clara del lore dentro del juego— y se quita el medidor que no
 medía nada.
 
+### Sobre la luz: solo hay un escenario oscuro
+
+Las cuatro empezaron siendo nocturnas, con el mismo vaporwave de fondo. El
+problema no era estético: **el Apagón dejaba de contar nada**. Si vienes de
+una calle en penumbra y entras en otra penumbra, quedarse sin luz no es un
+acontecimiento, es un poco más de lo mismo.
+
+Así que las otras tres suben, y cada una a su hora del día:
+
+| Escena | Hora | Ambiente |
+|---|---|---|
+| **La Bahía** | Mediodía nublado | 1.35 |
+| **Las Elecciones** | Tarde de cierre de campaña | 1.30 |
+| **Centro histórico** | Amanecer con el cerco puesto | 1.15 |
+| **El Apagón** | Sin red eléctrica | **0.24** |
+
+Entrar al Apagón divide la luz por cinco de golpe. Antes se pasaba de 0.75 a
+0.28 —menos de la mitad— y no bastaba: el apagón se nota **contra la luz**, no
+contra otra penumbra.
+
+Que la Bahía sea la más clara tiene además su propio motivo: un mercado
+popular es un sitio diurno. Se abre a las siete y se cierra al caer el sol.
+
 ---
 
-### 1 · LA BAHÍA — caso Porche
+### 1 · LA BAHÍA — caso Porsche
 
-> Un corredor largo. A los lados, **locales cerrados**. En la vía, puestos de
-> venta ambulante.
+> Mediodía. A los lados, **hileras de puestos pegados unos a otros** bajo una
+> bóveda de policarbonato, con toldos a rayas, persianas metálicas, rótulos
+> pintados a mano y la mercadería apilada hasta el techo.
+
+**Cómo se construye el sector** (`crearDecorado`, caso `bahia`)
+
+Lo que hace que se lea como comercio informal y no como «una calle con
+tiendas» son tres decisiones, y ninguna es el detalle de los modelos:
+
+1. **Los puestos van pegados.** Cada elemento de decorado no es un local: es
+   una hilera de tres, sin un palmo entre medias, alineada a escuadra. El
+   decorado del resto de escenas se coloca con desviación lateral y escala al
+   azar para que la ciudad no se repita; una fila de mercado con eso puesto no
+   se lee como desorden, se lee como fallo de colocación, así que la hilera
+   pide alineación y el escenario se la respeta.
+2. **El género sale del local.** La ropa cuelga por delante de la persiana, la
+   mercadería se apila hasta arriba y el toldo invade la vereda. Un local
+   ordenado, con su vitrina y su puerta, sería otro barrio.
+3. **La bóveda cubre SU acera y se queda ahí.** Con una cubierta grande las
+   dos aceras se juntan por arriba, la calle queda techada y el mercado se
+   convierte en un invernadero. El borde exterior tiene que caer por fuera del
+   asfalto.
+
+Los rótulos son **genéricos** —«AL POR MAYOR», «TODO A $1»— y nunca marcas ni
+nombres de locales reales: el decorado ambienta un sector, no señala a un
+comerciante.
 
 **Obstáculos**
 

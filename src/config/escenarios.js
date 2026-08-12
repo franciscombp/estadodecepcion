@@ -30,21 +30,32 @@ export const ESCENARIOS = {
     tema: 'corrupción',
     // Rótulo del caso que se documenta aquí. Es el nombre con el que la prensa
     // lo nombra; lo que el jugador recoge dentro son objetos genéricos.
-    caso: 'CASO PORCHE',
+    caso: 'CASO PORSCHE',
 
     // Paleta propia del escenario. Todos parten del vaporwave tropical base
     // pero cada uno vira hacia un dominante distinto para que se distingan
     // de un vistazo.
+    //
+    // LA BAHÍA ES DE DÍA, y es la más clara de las cuatro. Dos motivos, y los
+    // dos mandan sobre el gusto por el nocturno:
+    //
+    //   · El Apagón tiene que ser EL escenario oscuro. Si las otras tres
+    //     tiran a noche, quedarse sin luz no es un acontecimiento: es un poco
+    //     más de lo mismo. El apagón se nota contra la luz, no contra otra
+    //     penumbra.
+    //   · Un mercado popular es un sitio diurno. Se abre a las siete, se
+    //     cierra al caer el sol, y las fotos del sector son todas de un
+    //     mediodía nublado y blanco.
     colores: {
-      nieblaLejos: 0x1a2438,
-      nieblaCerca: 0x2a3550,
-      calle: 0x161c30,
-      acento: 0xffcf3f,      // Dorado mercado
-      props: 0xc9884a,       // Madera / toldos
-      luzAmbiente: 0x4a5578,
-      luzDireccional: 0xffd9a0,
-      intensidadAmbiente: 0.75,
-      intensidadDireccional: 1.0,
+      nieblaLejos: 0x7d97ae,   // Cielo de mediodía nublado guayaquileño
+      nieblaCerca: 0x93aabd,
+      calle: 0x4c5058,         // Asfalto gris, no azul de noche
+      acento: 0xffcf3f,        // Dorado mercado
+      props: 0xc9884a,         // Madera / toldos
+      luzAmbiente: 0xaec4da,
+      luzDireccional: 0xfff2d8,
+      intensidadAmbiente: 1.35,
+      intensidadDireccional: 1.85,
     },
 
     // Correr da hambre, así que aquí se come. Pero es un BONUS, no un
@@ -86,7 +97,7 @@ export const ESCENARIOS = {
       // cuánto recuperes.
       portazo: 'No contabas con evidencia suficiente. Se archiva el caso.',
       // Lo que sí te llevas. El trámite cuesta papeles y paga historia.
-      hallazgo: 'Expediente del caso Porche',
+      hallazgo: 'Expediente del caso Porsche',
       // Si recuperas TODO, cosa prácticamente imposible.
       textoExito: 'Los recogiste todos. Alguien, en algún piso, tuvo que leerlo.',
     },
@@ -111,8 +122,12 @@ export const ESCENARIOS = {
       props: 0x3a4258,
       luzAmbiente: 0x1a2030,
       luzDireccional: 0x6688aa,
-      intensidadAmbiente: 0.28,   // Deliberadamente oscuro
-      intensidadDireccional: 0.35,
+      // Deliberadamente oscuro, y ahora la comparación es de verdad: las
+      // otras tres escenas están entre 1.15 y 1.35 de ambiente, así que
+      // entrar aquí divide la luz por cinco de golpe. Antes la diferencia
+      // era de 0.75 a 0.28 y el apagón se leía como "un poco más de noche".
+      intensidadAmbiente: 0.24,
+      intensidadDireccional: 0.3,
     },
 
     // LA ÚNICA ESCENA CON BARRA DE AGUANTE. Aquí el recurso no es un añadido:
@@ -186,16 +201,19 @@ export const ESCENARIOS = {
     tema: 'cooptación del CNE',
     caso: 'CASO ELECCIONES',
 
+    // Tarde de cierre de campaña: el sol ya baja pero todavía hay luz de
+    // sobra. Sube respecto al nocturno anterior por lo mismo que la Bahía:
+    // el Apagón es el escenario oscuro, y solo hay uno.
     colores: {
-      nieblaLejos: 0x1a1230,
-      nieblaCerca: 0x2d1f4a,
-      calle: 0x181228,
+      nieblaLejos: 0x594a80,
+      nieblaCerca: 0x7a63a8,
+      calle: 0x39304f,
       acento: 0xff5fa2,      // Magenta de propaganda
-      props: 0x6b4a9e,
-      luzAmbiente: 0x554070,
-      luzDireccional: 0xffb0d8,
-      intensidadAmbiente: 0.8,
-      intensidadDireccional: 1.1,
+      props: 0x8a68c4,
+      luzAmbiente: 0x9a86c0,
+      luzDireccional: 0xffc8e4,
+      intensidadAmbiente: 1.3,
+      intensidadDireccional: 1.55,
     },
 
     estamina: {
@@ -238,16 +256,19 @@ export const ESCENARIOS = {
     tema: 'censura de prensa',
     caso: 'ESTADO DE EXCEPCIÓN',
 
+    // Amanecer con el cerco puesto. Es el más apagado de los tres claros
+    // —está bien que el toque de queda pese— pero sigue muy por encima del
+    // Apagón: aquí se ve la calle, allí no.
     colores: {
-      nieblaLejos: 0x2a0f14,
-      nieblaCerca: 0x3d1a20,
-      calle: 0x1c1218,
+      nieblaLejos: 0x6b4038,
+      nieblaCerca: 0x8c564a,
+      calle: 0x40323a,
       acento: 0xff4f6d,      // Rojo represión
-      props: 0x5a4238,
-      luzAmbiente: 0x6a4048,
-      luzDireccional: 0xffa090,
-      intensidadAmbiente: 0.65,
-      intensidadDireccional: 0.9,
+      props: 0x8a6754,
+      luzAmbiente: 0xb08078,
+      luzDireccional: 0xffc0aa,
+      intensidadAmbiente: 1.15,
+      intensidadDireccional: 1.35,
     },
 
     // Comida de la sierra, y el canelazo que además calienta.

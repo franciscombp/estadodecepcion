@@ -326,7 +326,7 @@ reinicio del relato en lugar de en un capítulo.
 
 | Escena | Caso | Qué se recoge | Ente de control |
 |---|---|---|---|
-| **La Bahía** | Porche | Encebollado, guata, bolón | Fiscalía |
+| **La Bahía** | Porsche | Encebollado, guata, bolón | Fiscalía |
 | **El Apagón** | Progen | **Pilas** (recurso, con barra) | Asamblea Nacional |
 | **Las Elecciones** | Elecciones | Micrófono | CNE |
 | **Centro histórico** | Estado de excepción | Canelazo, mote | — (cercado) |
@@ -358,6 +358,49 @@ trabajo; aquí, sin luz no ves por dónde corres ni hay nada que documentar.
 
 **El centro histórico** es deliberadamente árido: máximo 3 papeles por tramo.
 La carestía es el mensaje.
+
+### La luz: solo hay un escenario oscuro
+
+Las cuatro empezaron siendo nocturnas y eso le quitaba el sentido al Apagón:
+si vienes de una calle en penumbra y entras en otra penumbra, quedarse sin luz
+no es un acontecimiento. Ahora cada una tiene su hora del día:
+
+| Escena | Hora | `intensidadAmbiente` |
+|---|---|---|
+| La Bahía | Mediodía nublado | 1.35 |
+| Las Elecciones | Tarde de cierre de campaña | 1.30 |
+| Centro histórico | Amanecer con el cerco puesto | 1.15 |
+| **El Apagón** | Sin red eléctrica | **0.24** |
+
+Entrar al Apagón divide la luz por cinco. Antes iba de 0.75 a 0.28 —menos de
+la mitad— y no bastaba: el apagón se nota contra la luz, no contra otra
+penumbra.
+
+### La Bahía es un mercado, no una calle con tiendas
+
+El decorado del sector (`crearDecorado`, caso `bahia`) no coloca locales
+sueltos: coloca **hileras de tres puestos pegados**, con toldo a rayas,
+persiana metálica, rótulo pintado y el género —ropa colgada o mercadería
+apilada— saliendo por delante de la persiana. Encima, una **bóveda de
+policarbonato** con sus cerchas y sus puntales.
+
+Tres cosas que costó afinar:
+
+- **La hilera va alineada.** El resto del decorado se coloca con desviación
+  lateral y escala al azar para que la ciudad no se repita; con eso puesto, una
+  fila de mercado no se lee como desorden sino como fallo de colocación. Por
+  eso el elemento puede pedir alineación (`userData.alineado`) y la escena la
+  respeta, tanto al montar como al reciclar.
+- **La bóveda cubre su acera y se queda ahí.** Con radio grande y centro alto,
+  las dos aceras se juntan por arriba y el mercado se convierte en un
+  invernadero. El borde exterior tiene que caer fuera del asfalto: media pista
+  son 4.4 m y el decorado va a 7.8 del centro.
+- **La ropa y la mercadería son textura, no geometría.** A los seis metros que
+  hay del carril a la vereda, una percha modelada y una percha pintada se ven
+  igual, y la pintada cuesta una malla en vez de veinte. Van **tres variantes**
+  de cada una: con una sola, dos puestos seguidos enseñaban exactamente la
+  misma pila de cajas —el mismo azar congelado en la caché de texturas— y la
+  hilera se leía como un mosaico repetido.
 
 ---
 
@@ -467,6 +510,16 @@ Object.assign(__paginas[0].articulos[0], {
 ```
 
 Regla de la casa: si no tiene enlace comprobable, no entra.
+
+### Los expedientes
+
+Para documentarse antes de escribir cada pieza están los expedientes de
+`docs/CASOS/`: cronología del caso y enlaces a **la prensa que lo cubrió**.
+
+- [Caso Porsche](docs/CASOS/PORSCHE.md) — la escena de La Bahía
+
+No son reportajes de El Mercio ni pueden entrar en `publicaciones.js`: son
+enlaces a terceros, y llevan marcado qué está confirmado y qué no.
 
 ---
 

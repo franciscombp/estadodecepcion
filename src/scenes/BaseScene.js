@@ -92,15 +92,20 @@ export class BaseScene {
 
         const z = -i * SEPARACION_DECORADO;
         // Variación lateral, para que no quede una pared perfectamente recta.
-        const desviacion = Math.random() * 2.6;
+        // Salvo cuando el propio elemento pide alineación: una hilera de
+        // puestos de mercado va a escuadra, y torcerla se lee como error de
+        // colocación, no como desorden de barrio.
+        const alineado = !!elemento.userData.alineado;
+        const desviacion = alineado ? 0 : Math.random() * 2.6;
         elemento.position.set(signo * (OFFSET_LATERAL + desviacion), 0, z);
         elemento.rotation.y = signo > 0 ? -Math.PI / 2 : Math.PI / 2;
-        elemento.scale.setScalar(0.85 + Math.random() * 0.55);
+        if (!alineado) elemento.scale.setScalar(0.85 + Math.random() * 0.55);
 
         this.grupo.add(elemento);
         this.decorados.push({
           objeto: elemento,
           signo,
+          alineado,
           // Cada patrulla parpadea a su ritmo; sincronizadas se leen como bug.
           fasePatrulla: Math.random() * Math.PI * 2,
         });
@@ -144,8 +149,10 @@ export class BaseScene {
       if (d.objeto.position.z > SEPARACION_DECORADO) {
         d.objeto.position.z -= this.totalDecorado;
         // Al reciclar, revolvemos posición y escala: la ciudad no se repite.
-        d.objeto.position.x = d.signo * (OFFSET_LATERAL + Math.random() * 2.6);
-        d.objeto.scale.setScalar(0.85 + Math.random() * 0.55);
+        if (!d.alineado) {
+          d.objeto.position.x = d.signo * (OFFSET_LATERAL + Math.random() * 2.6);
+          d.objeto.scale.setScalar(0.85 + Math.random() * 0.55);
+        }
       }
 
       // Luces de emergencia de las patrullas.
