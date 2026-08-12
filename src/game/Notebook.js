@@ -13,7 +13,7 @@
 // con el progreso solo en memoria: se degrada, no se rompe.
 // ============================================================================
 
-import { PROGRESO } from '../config/balance.js';
+import { PROGRESO, CATALOGO_POTENCIADORES } from '../config/balance.js';
 import { PAGINAS } from '../config/publicaciones.js';
 
 const ESTADO_INICIAL = {
@@ -33,6 +33,10 @@ const ESTADO_INICIAL = {
   ultimoEscenario: 'bahia',
   // ¿Se logró alguna vez el trámite perfecto? Es el final del juego.
   denunciaPresentada: false,
+  // Tramos recorridos en total, entre todas las partidas. Es el contador que
+  // abre los potenciadores: acumulativo a propósito, para que ninguna corrida
+  // se pierda del todo —hasta la peor te acerca al siguiente desbloqueo.
+  tramosRecorridos: 0,
 };
 
 export class Notebook {
@@ -97,6 +101,10 @@ export class Notebook {
    * @returns {{paginasNuevas:Array}} Lo que se desbloqueó con esta partida
    */
   registrarPartida(resultado) {
+    // Cada escenario visitado cuenta como un tramo. La ruta incluye el de
+    // salida, así que la primera partida ya suma uno.
+    this.estado.tramosRecorridos += resultado.ruta?.length ?? 0;
+
     this.estado.totalPapeles += resultado.papeles;
     this.estado.papelesHistoricos += resultado.papeles;
     this.estado.partidasJugadas += 1;
@@ -210,6 +218,31 @@ export class Notebook {
   set ultimoEscenario(id) {
     this.estado.ultimoEscenario = id;
     this.guardar();
+  }
+
+  get tramosRecorridos() { return this.estado.tramosRecorridos ?? 0; }
+
+  /**
+   * Ids de potenciadores ya abiertos.
+   *
+   * Se calcula, no se guarda: si mañana se cambia el umbral de uno en
+   * config/balance.js, el progreso de todo el mundo se recalcula solo en vez
+   * de quedarse congelado con la escalera vieja.
+   */
+  potenciadoresDesbloqueados() {
+    return CATALOGO_POTENCIADORES
+      .filter((p) => this.tramosRecorridos >= p.tramos)
+      .map((p) => p.id);
+  }
+
+  /** El siguiente por abrir, con cuánto falta. Es el gancho para otra corrida. */
+  proximoPotenciador() {
+    const siguiente = CATALOGO_POTENCIADORES
+      .filter((p) => this.tramosRecorridos < p.tramos)
+      .sort((a, b) => a.tramos - b.tramos)[0];
+
+    if (!siguiente) return null;
+    return { ...siguiente, faltan: siguiente.tramos - this.tramosRecorridos };
   }
 
   get denunciaPresentada() { return !!this.estado.denunciaPresentada; }

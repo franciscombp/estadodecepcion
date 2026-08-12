@@ -155,9 +155,26 @@ export const PAPELES = {
   VALOR_MINIMO: 1,
   VALOR_MAXIMO: 5,
   // Los papeles salen en hileras, como las monedas del original.
-  LARGO_HILERA_MIN: 5,
-  LARGO_HILERA_MAX: 10,
-  SEPARACION: 2.2,
+  LARGO_HILERA_MIN: 4,
+  LARGO_HILERA_MAX: 8,
+  // Separación entre papeles de una misma hilera.
+  //
+  // El número sale de una cuenta, no del ojo. La cámara mira la pista con una
+  // inclinación de unos 10°, así que un metro de separación en Z se traduce en
+  // ~0.18 de desplazamiento vertical en pantalla. Con papeles de 0.5 de alto,
+  // para que se vea AIRE entre uno y otro hace falta:
+  //
+  //     separación × 0.18  >  altura del papel
+  //     separación         >  0.5 / 0.18  ≈  2.8
+  //
+  // A 2.2 los papeles se solapaban y la hilera se leía como una CINTA continua
+  // —se perdía el ritmo de recogida y la tira tapaba lo que hubiera detrás—.
+  // A 4.0 quedan unos 0.22 de hueco proyectado: piezas sueltas, con su ritmo.
+  SEPARACION: 4.0,
+  // Ondulación vertical de la hilera. Sube y baja un poco de papel en papel,
+  // que es el segundo golpe contra el efecto cinta: aunque dos se acerquen en
+  // pantalla, no están a la misma altura y siguen leyéndose como dos.
+  ONDA: 0.14,
   // Holgura respecto a los obstáculos. La hilera empieza pasado el grupo y
   // tiene que terminar antes del siguiente: los carriles libres lo son para
   // UN grupo, no para el tramo entero.
@@ -165,7 +182,7 @@ export const PAPELES = {
   MARGEN_ANTES_GRUPO: 5,
   ALTURA: 1.0,
   // Altura de la hilera cuando acompaña a un salto (arco sobre el obstáculo).
-  ALTURA_ARCO: 2.0,
+  ALTURA_ARCO: 2.1,
   DISTANCIA_APARICION: 200,
   TAMANO_POOL: 90,
   // Radio de imán: los papeles cercanos se atraen al jugador. Suaviza el juego
@@ -201,8 +218,83 @@ export const ESTAMINA = {
   PENALIZACION_VELOCIDAD: 0.72,
   // Frecuencia de aparición del ítem (uno cada N metros aprox.).
   DISTANCIA_ENTRE_ITEMS: 150,
-  ALTURA: 1.1,
+  // Vuela por encima de la altura de los papeles a propósito: es lo que hay
+  // que ver desde lejos, y a la altura de la hilera quedaba escondido detrás
+  // de ella.
+  ALTURA: 1.45,
 };
+
+// ---------------------------------------------------------------------------
+// POTENCIADORES
+// ---------------------------------------------------------------------------
+// Los power-ups de Subway Surfers, traducidos a la redacción de un periódico.
+// No están desde el principio: se van abriendo a medida que repites tramos, y
+// ese goteo es el motivo para volver a jugar. Cada desbloqueo se anuncia.
+//
+// El orden de la escalera no es casual: primero el que hace la partida más
+// generosa (imán), después el que la hace más rentable (portada), luego los
+// que cambian cómo te mueves, y al final el que te salva la vida.
+export const POTENCIADORES = {
+  ALTURA: 1.6,           // Aún más arriba que la estamina: es lo más llamativo.
+  TAMANO_POOL: 6,
+  // Cada cuántos metros se intenta soltar uno, una vez desbloqueados.
+  DISTANCIA_ENTRE: 320,
+  // Probabilidad de que la tirada salga premiada. Que no siempre haya uno es
+  // lo que hace que encontrarlo valga algo.
+  PROBABILIDAD: 0.62,
+
+  // Radio de imán mientras dura "Fuente anónima".
+  RADIO_IMAN: 7.5,
+  // Altura de vuelo de la cobertura aérea.
+  ALTURA_VUELO: 5.2,
+  // Multiplicador de salto de las botas.
+  IMPULSO_BOTAS: 1.28,
+};
+
+// Definición de cada potenciador. `tramos` es cuántos tramos hay que haber
+// recorrido en total para que empiece a aparecer.
+export const CATALOGO_POTENCIADORES = [
+  {
+    id: 'iman',
+    nombre: 'Fuente anónima',
+    descripcion: 'Los papeles vienen solos. Nadie pregunta de dónde.',
+    duracion: 9,
+    tramos: 3,
+    color: 0x2affd5,
+  },
+  {
+    id: 'portada',
+    nombre: 'Portada',
+    descripcion: 'Todo lo que recojas vale el doble mientras dure la primicia.',
+    duracion: 13,
+    tramos: 6,
+    color: 0xffcf3f,
+  },
+  {
+    id: 'botas',
+    nombre: 'Botas de campo',
+    descripcion: 'Saltas más alto. El terreno es el terreno.',
+    duracion: 14,
+    tramos: 10,
+    color: 0x3dff9a,
+  },
+  {
+    id: 'salvoconducto',
+    nombre: 'Salvoconducto',
+    descripcion: 'Aguanta un golpe. Alguien movió un contacto.',
+    duracion: 0,          // No caduca: se gasta al recibir el golpe.
+    tramos: 15,
+    color: 0xff6b35,
+  },
+  {
+    id: 'cobertura',
+    nombre: 'Cobertura aérea',
+    descripcion: 'Sobrevuelas el tramo entero recogiéndolo todo.',
+    duracion: 8,
+    tramos: 22,
+    color: 0xff5fa2,
+  },
+];
 
 // ---------------------------------------------------------------------------
 // PERSEGUIDOR (Noboa haciendo caballito sobre Reimberg)
@@ -289,8 +381,13 @@ export const TRAMITE = {
   LONGITUD: 340,        // Metros dentro del túnel institucional.
   // Cuántos papeles se siembran. Van en hileras exigentes que obligan a
   // cambiar de carril sin descanso.
-  HILERAS: 22,
-  PAPELES_POR_HILERA: 7,
+  // Con la separación de papeles ya corregida, 12 hileras de 6 dejan unos
+  // ocho metros entre el final de una y el principio de la siguiente: lo justo
+  // para cambiar de carril a velocidad de crucero. Más apretado no sería
+  // difícil, sería imposible, y el trámite tiene que ser jugable antes que
+  // duro.
+  HILERAS: 12,
+  PAPELES_POR_HILERA: 6,
   // Fracción a partir de la cual el expediente "entra". Es 1: perfecto o nada.
   // Ese es el chiste, y también el motivo por el que ganar el juego es casi
   // imposible.

@@ -26,7 +26,18 @@ export default defineConfig({
 
   plugins: [
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt', no 'autoUpdate'. Con autoUpdate el service worker nuevo se
+      // activa y recarga la página en cuanto está listo, y eso puede pasar en
+      // mitad de una corrida: el jugador pierde la partida por una razón que
+      // no tiene nada que ver con el juego. Aquí el aviso llega a main.js y se
+      // aplica en el primer momento seguro (menú o fin de partida).
+      // Ver src/utils/actualizacion.js.
+      registerType: 'prompt',
+      // El registro lo hace src/utils/actualizacion.js, no el plugin: hace
+      // falta pasarle `updateViaCache: 'none'` al registro y esa opción no se
+      // puede tocar desde aquí. Con el registrador del plugin puesto habría
+      // dos registros compitiendo.
+      injectRegister: null,
       // Inyectamos el manifiesto en el HTML y generamos el service worker.
       includeAssets: ['icons/*.svg'],
       manifest: {
@@ -61,14 +72,32 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Cacheamos todo el bundle en la primera carga. El juego es autocontenido
-        // (los modelos 3D son procedurales), así que a partir de la segunda visita
-        // arranca 100% offline.
+        // Cacheamos todo el bundle en la primera carga. El juego es
+        // autocontenido (los modelos 3D son procedurales, así que "los
+        // archivos 3D" son en realidad el chunk de Three.js), y a partir de la
+        // segunda visita arranca 100% offline y sin tocar la red.
+        //
+        // POR QUÉ THREE VA EN SU PROPIO CHUNK (ver build.rollupOptions):
+        // el precache de Workbox va por URL con hash de contenido. Si Three
+        // estuviera dentro del bundle del juego, CADA cambio de una línea de
+        // gameplay cambiaría el hash del archivo entero y el navegador se
+        // volvería a bajar los 485 KB de la librería. Separado, su hash solo
+        // cambia cuando cambia Three de verdad: las actualizaciones del juego
+        // descargan unos pocos KB.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        // Three.js comprimido ronda los 700 KB; subimos el límite para que entre.
+        // Three.js sin comprimir ronda los 500 KB; subimos el límite para que
+        // entre en el precache.
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         navigateFallback: 'index.html',
+        // Borra los precaches de versiones viejas. Sin esto, cada despliegue
+        // deja su copia completa del juego en disco.
         cleanupOutdatedCaches: true,
+        // El service worker nuevo NO se salta la espera por su cuenta: lo hace
+        // cuando se lo pedimos desde la aplicación, en un momento seguro. Pero
+        // en cuanto se activa, toma el control de la pestaña de inmediato, que
+        // es lo que garantiza que el código nuevo entre entero y no a medias.
+        skipWaiting: false,
+        clientsClaim: true,
       },
       devOptions: {
         // Permite probar el comportamiento PWA con `npm run dev`.

@@ -26,6 +26,10 @@ export class CoinManager {
     this.poolEvidencia = [];
 
     this.tiempo = 0;
+
+    // Radio del imán. Es un campo y no una constante porque el potenciador
+    // "Fuente anónima" lo agranda temporalmente.
+    this.radioIman = PAPELES.RADIO_IMAN;
     // Multiplicador de densidad que impone cada escenario (Carondelet ≈ 0.25).
     this.densidad = 1.0;
     // Tope duro de papeles por tramo, para escenarios áridos.
@@ -90,12 +94,15 @@ export class CoinManager {
    * @param {number} zGrupo           Z del grupo de obstáculos de referencia
    * @param {number} gap              Distancia hasta el siguiente grupo
    * @param {boolean} enArco          Si va elevada (acompañando un salto)
+   * @returns {number|null} El carril que ocupó la hilera, para que quien
+   *          coloque ítems después no se lo pise. Una hilera de papeles tapa
+   *          por completo lo que tenga detrás en el mismo carril.
    */
   generarHilera(carrilesLibres, zGrupo, gap, enArco = false) {
-    if (!carrilesLibres || carrilesLibres.length === 0) return;
-    if (this.generadosEsteTramo >= this.maximoPorTramo) return;
+    if (!carrilesLibres || carrilesLibres.length === 0) return null;
+    if (this.generadosEsteTramo >= this.maximoPorTramo) return null;
     // La densidad del escenario decide si esta hilera llega a existir.
-    if (Math.random() > this.densidad) return;
+    if (Math.random() > this.densidad) return null;
 
     const carril = carrilesLibres[Math.floor(Math.random() * carrilesLibres.length)];
     const x = CARRILES.POSICIONES[carril];
@@ -111,7 +118,7 @@ export class CoinManager {
       Math.floor(Math.random() * (PAPELES.LARGO_HILERA_MAX - PAPELES.LARGO_HILERA_MIN + 1));
 
     const largo = Math.min(largoDeseado, cabenPorEspacio);
-    if (largo < 1) return;
+    if (largo < 1) return null;
 
     for (let i = 0; i < largo; i++) {
       if (this.generadosEsteTramo >= this.maximoPorTramo) break;
@@ -124,6 +131,10 @@ export class CoinManager {
       if (enArco) {
         const t = i / Math.max(1, largo - 1);
         y = PAPELES.ALTURA + Math.sin(t * Math.PI) * (PAPELES.ALTURA_ARCO - PAPELES.ALTURA);
+      } else {
+        // Ondulación: dos papeles seguidos nunca están a la misma altura, así
+        // que aunque se junten en pantalla se siguen distinguiendo.
+        y = PAPELES.ALTURA + Math.sin(i * 1.15) * PAPELES.ONDA;
       }
 
       const malla = this._obtenerPapel();
@@ -163,6 +174,8 @@ export class CoinManager {
         recogido: false,
       });
     }
+
+    return carril;
   }
 
   /**
@@ -242,13 +255,17 @@ export class CoinManager {
       // --- Imán ------------------------------------------------------------
       // Los recolectables cercanos se acercan al jugador. Compensa la menor
       // precisión del swipe en móvil sin regalar el juego.
-      if (!item.recogido && Math.abs(item.z) < 12) {
+      if (!item.recogido && Math.abs(item.z) < 14) {
         const d = distanciaHorizontal(item.x, item.z, jugador.x, 0);
         // El imán también mira la ALTURA. Sin esto, un papel puesto sobre una
         // tarima se dejaría arrastrar hasta un jugador que corre por debajo,
         // y el premio de subir se cobraría sin subir.
-        const alcanceVertical = Math.abs(item.y - (jugador.y + 0.9)) < 1.6;
-        if (d < PAPELES.RADIO_IMAN && alcanceVertical) {
+        // Volando, el imán alcanza en vertical toda la altura de vuelo: la
+        // cobertura aérea recoge el tramo entero, que es su gracia.
+        const alcanceVertical = jugador.volando
+          ? true
+          : Math.abs(item.y - (jugador.y + 0.9)) < 1.6;
+        if (d < this.radioIman && alcanceVertical) {
           const factor = 1 - Math.exp(-PAPELES.VELOCIDAD_IMAN * dt);
           item.x += (jugador.x - item.x) * factor;
           const yObjetivo = jugador.y + 0.9;
@@ -260,7 +277,9 @@ export class CoinManager {
 
       // --- Animación de reposo ---------------------------------------------
       if (item.tipo === 'papel') {
-        item.malla.rotation.y = this.tiempo * 3 + item.z * 0.1;
+        // Cada papel gira desfasado según su Z: una hilera girando al unísono
+        // se lee como una sola pieza articulada, no como ocho objetos.
+        item.malla.rotation.y = this.tiempo * 3 + item.z * 0.55;
       } else {
         item.malla.rotation.y = this.tiempo * 2;
         item.malla.rotation.x = this.tiempo * 1.4;

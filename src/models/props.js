@@ -399,7 +399,9 @@ let _matPapel = null;
  */
 export function crearPapel() {
   if (!_geoPapel) {
-    _geoPapel = new THREE.BoxGeometry(0.44, 0.56, 0.03);
+    // Algo más pequeño y casi cuadrado: cuanto menos alto es el papel,
+    // menos separación hace falta para que se vea el hueco entre dos.
+    _geoPapel = new THREE.BoxGeometry(0.46, 0.5, 0.03);
 
     const tex = textura('papel', (ctx, w, h) => {
       ctx.fillStyle = '#ffd94f';
@@ -785,6 +787,243 @@ export function crearItemEstamina(color, tipo = 'encebollado') {
   // El vapor lo declara el modelo interior; lo subimos al grupo para que
   // Stamina.js no tenga que saber cómo está montado por dentro.
   if (modelo.userData.vapor) g.userData.vapor = modelo.userData.vapor;
+  return g;
+}
+
+// ---------------------------------------------------------------------------
+// POTENCIADORES
+// ---------------------------------------------------------------------------
+// Cinco objetos, cinco siluetas distintas. La regla es la misma que con la
+// estamina, pero más estricta todavía: un potenciador sale una vez cada varios
+// cientos de metros, así que el jugador tiene que reconocerlo de lejos y
+// decidir si merece la pena cambiarse de carril para ir a por él. Si duda,
+// llegó tarde.
+//
+// Van todos dentro de un rombo de cristal —la "cápsula"— que es lo que dice
+// «esto no es un papel, esto es un potenciador». El objeto de dentro dice cuál.
+
+/** Cápsula común: rombo translúcido, aro y resplandor. */
+function capsulaPotenciador(color) {
+  const g = new THREE.Group();
+
+  const cristal = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.62, 0),
+    new THREE.MeshStandardMaterial({
+      color,
+      emissive: color,
+      emissiveIntensity: 0.5,
+      transparent: true,
+      opacity: 0.24,
+      roughness: 0.15,
+      metalness: 0.3,
+      flatShading: true,
+    }),
+  );
+  g.add(cristal);
+
+  const aro = new THREE.Mesh(
+    new THREE.TorusGeometry(0.58, 0.05, 6, 20),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, toneMapped: false }),
+  );
+  aro.rotation.x = Math.PI / 2;
+  g.add(aro);
+
+  const peana = new THREE.Mesh(
+    new THREE.CircleGeometry(0.7, 20),
+    new THREE.MeshBasicMaterial({
+      color, transparent: true, opacity: 0.3, depthWrite: false, toneMapped: false,
+    }),
+  );
+  peana.rotation.x = -Math.PI / 2;
+  peana.position.y = -1.5;
+  g.add(peana);
+
+  g.userData.aro = aro;
+  g.userData.cristal = cristal;
+  return g;
+}
+
+/** IMÁN — "Fuente anónima". La herradura de siempre, que se lee al instante. */
+function insigniaIman(color) {
+  const g = new THREE.Group();
+  const matCuerpo = neon(color, 1.7);
+
+  const arco = new THREE.Mesh(
+    new THREE.TorusGeometry(0.2, 0.075, 6, 14, Math.PI),
+    matCuerpo,
+  );
+  arco.rotation.z = Math.PI;
+  g.add(arco);
+
+  for (const s of [-1, 1]) {
+    const pata = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.16, 0.14), matCuerpo);
+    pata.position.set(s * 0.2, 0.08, 0);
+    g.add(pata);
+
+    const punta = new THREE.Mesh(
+      new THREE.BoxGeometry(0.15, 0.09, 0.15),
+      neon(s < 0 ? NEON.rojo : NEON.blanco, 1.9),
+    );
+    punta.position.set(s * 0.2, 0.2, 0);
+    g.add(punta);
+  }
+
+  g.position.y = -0.08;
+  return g;
+}
+
+/** PORTADA — "×2". El multiplicador, escrito tal cual. */
+function insigniaPortada(color) {
+  const g = new THREE.Group();
+
+  const tex = textura('pot:x2', (ctx, w, h) => {
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#0d1220';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#ffcf3f';
+    ctx.font = `900 ${Math.round(h * 0.62)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('×2', w / 2, h / 2 + 2);
+  }, 96, 96);
+
+  const placa = new THREE.Mesh(
+    new THREE.BoxGeometry(0.5, 0.5, 0.08),
+    new THREE.MeshStandardMaterial({
+      map: tex,
+      emissive: 0xffffff,
+      emissiveMap: tex,
+      emissiveIntensity: 0.95,
+      roughness: 0.35,
+      toneMapped: false,
+    }),
+  );
+  g.add(placa);
+
+  const borde = new THREE.Mesh(
+    new THREE.TorusGeometry(0.34, 0.04, 5, 4),
+    neon(color, 1.8),
+  );
+  borde.rotation.z = Math.PI / 4;
+  g.add(borde);
+
+  return g;
+}
+
+/** BOTAS — "Botas de campo". Bota de caña alta con suela marcada. */
+function insigniaBotas(color) {
+  const g = new THREE.Group();
+
+  const cana = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.4, 0.2), mat(0x3f3222, 0.14, 0.7));
+  cana.position.y = 0.06;
+  g.add(cana);
+
+  const pie = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.16, 0.42), mat(0x3f3222, 0.14, 0.7));
+  pie.position.set(0, -0.2, 0.1);
+  g.add(pie);
+
+  const suela = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.08, 0.46), neon(color, 1.8));
+  suela.position.set(0, -0.3, 0.1);
+  g.add(suela);
+
+  // Cordones: dos trazos claros que rompen el marrón sobre marrón.
+  for (let i = 0; i < 3; i++) {
+    const cordon = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.03, 0.03), mat(0xe8e0cc, 0.3, 0.5));
+    cordon.position.set(0, 0.16 - i * 0.11, 0.11);
+    g.add(cordon);
+  }
+
+  return g;
+}
+
+/** SALVOCONDUCTO — un sello oficial. Aguanta un golpe. */
+function insigniaSalvoconducto(color) {
+  const g = new THREE.Group();
+
+  const hoja = new THREE.Mesh(
+    new THREE.BoxGeometry(0.42, 0.54, 0.05),
+    mat(0xf0ead8, 0.32, 0.5),
+  );
+  g.add(hoja);
+
+  const sello = new THREE.Mesh(
+    new THREE.TorusGeometry(0.15, 0.045, 6, 16),
+    neon(color, 1.9),
+  );
+  sello.position.set(0.06, -0.1, 0.05);
+  g.add(sello);
+
+  for (let i = 0; i < 3; i++) {
+    const renglon = new THREE.Mesh(
+      new THREE.BoxGeometry(0.26, 0.035, 0.02),
+      mat(0x8a8270, 0.1, 0.6),
+    );
+    renglon.position.set(-0.02, 0.17 - i * 0.1, 0.04);
+    g.add(renglon);
+  }
+
+  return g;
+}
+
+/** COBERTURA AÉREA — el dron de prensa, en miniatura. */
+function insigniaCobertura(color) {
+  const g = new THREE.Group();
+
+  const cuerpo = new THREE.Mesh(
+    new THREE.BoxGeometry(0.28, 0.12, 0.28),
+    mat(0x2a3242, 0.1, 0.5),
+  );
+  g.add(cuerpo);
+
+  const lente = new THREE.Mesh(new THREE.SphereGeometry(0.075, 7, 6), neon(color, 2));
+  lente.position.y = -0.11;
+  g.add(lente);
+
+  const matHelice = new THREE.MeshBasicMaterial({
+    color, transparent: true, opacity: 0.75, toneMapped: false,
+  });
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      const brazo = new THREE.Mesh(
+        new THREE.BoxGeometry(0.24, 0.035, 0.035),
+        mat(0x5a6274, 0.06, 0.7),
+      );
+      brazo.position.set(sx * 0.16, 0.02, sz * 0.16);
+      brazo.rotation.y = sx * sz * 0.78;
+      g.add(brazo);
+
+      const pala = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.02, 0.06), matHelice);
+      pala.position.set(sx * 0.26, 0.06, sz * 0.26);
+      g.add(pala);
+    }
+  }
+
+  return g;
+}
+
+const INSIGNIAS = {
+  iman: insigniaIman,
+  portada: insigniaPortada,
+  botas: insigniaBotas,
+  salvoconducto: insigniaSalvoconducto,
+  cobertura: insigniaCobertura,
+};
+
+/**
+ * POTENCIADOR completo: cápsula + insignia.
+ * @param {string} id    Clave del catálogo (ver config/balance.js)
+ * @param {number} color Color del potenciador
+ */
+export function crearPotenciador(id, color) {
+  const g = capsulaPotenciador(color);
+
+  const constructor = INSIGNIAS[id] ?? insigniaIman;
+  const insignia = constructor(color);
+  g.add(insignia);
+
+  g.userData.tipo = 'potenciador';
+  g.userData.id = id;
+  g.userData.insignia = insignia;
   return g;
 }
 

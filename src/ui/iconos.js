@@ -79,6 +79,69 @@ export function iconoEstamina(idEscenario, tamano = 24) {
 }
 
 // ---------------------------------------------------------------------------
+// POTENCIADORES
+// ---------------------------------------------------------------------------
+// Uno por potenciador, con la misma silueta que la insignia 3D. Si el icono
+// del HUD y la cápsula de la pista no se parecen, el jugador no relaciona lo
+// que recogió con lo que se le encendió arriba.
+
+/** IMÁN — Fuente anónima. */
+export const iman = (t) => svg(`
+  <path d="M6 14a6 6 0 0 1 12 0v5h-4v-5a2 2 0 0 0-4 0v5H6z" fill="#2affd5"/>
+  <rect x="6" y="17.4" width="4" height="3.4" rx=".5" fill="#ff3355"/>
+  <rect x="14" y="17.4" width="4" height="3.4" rx=".5" fill="#eef2fa"/>
+  <path d="M12 3.4v2.8M6.6 5.6l1.8 2.2M17.4 5.6l-1.8 2.2"
+        stroke="#2affd5" stroke-width="1.5" stroke-linecap="round" opacity=".7"/>
+`, { tamano: t });
+
+/** PORTADA — el multiplicador. */
+export const portada = (t) => svg(`
+  <rect x="3" y="3.4" width="18" height="17.2" rx="2.2" fill="#0d1220" stroke="#ffcf3f" stroke-width="1.6"/>
+  <path d="M7.2 9.2 11 15M11 9.2 7.2 15" stroke="#ffcf3f" stroke-width="2" stroke-linecap="round"/>
+  <path d="M13.6 9.6c.6-.7 3-.9 3 .9 0 1.5-3 2.6-3 4.5h3.4"
+        stroke="#ffcf3f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+`, { tamano: t });
+
+/** BOTAS — Botas de campo. */
+export const botas = (t) => svg(`
+  <path d="M8 3.4h4.6v8.2c0 1.8 1 2.6 2.8 3.4 1.6.7 2.6 1.4 2.6 2.8v1.4H8z" fill="#6b4a2f"/>
+  <rect x="6.6" y="18" width="12.8" height="2.8" rx="1.2" fill="#3dff9a"/>
+  <path d="M8.4 6h4M8.4 8.2h4M8.4 10.4h4" stroke="#e8e0cc" stroke-width="1.1" stroke-linecap="round"/>
+  <path d="M4 15.6 6.4 13M3.6 19l2.2-1.6" stroke="#3dff9a" stroke-width="1.4"
+        stroke-linecap="round" opacity=".75"/>
+`, { tamano: t });
+
+/** SALVOCONDUCTO — el sello que aguanta un golpe. */
+export const salvoconducto = (t) => svg(`
+  <rect x="4.6" y="2.6" width="14.8" height="18.8" rx="1.6" fill="#f0ead8"/>
+  <path d="M7.4 6.4h9M7.4 9h9M7.4 11.6h5.4" stroke="#8a8270" stroke-width="1.3" stroke-linecap="round"/>
+  <circle cx="14.6" cy="16" r="4" fill="none" stroke="#ff6b35" stroke-width="1.8"/>
+  <path d="M12.7 16.1l1.4 1.5 2.6-3" stroke="#ff6b35" stroke-width="1.6"
+        stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+`, { tamano: t });
+
+/** COBERTURA AÉREA — el dron de prensa. */
+export const cobertura = (t) => svg(`
+  <rect x="8.6" y="9.6" width="6.8" height="5" rx="1.4" fill="#2a3242"/>
+  <circle cx="12" cy="16.4" r="2" fill="#ff5fa2"/>
+  <path d="M9.4 9.6 6 6.6M14.6 9.6 18 6.6" stroke="#5a6274" stroke-width="1.5" stroke-linecap="round"/>
+  <rect x="2.6" y="5.4" width="6.8" height="1.8" rx=".9" fill="#ff5fa2" opacity=".85"/>
+  <rect x="14.6" y="5.4" width="6.8" height="1.8" rx=".9" fill="#ff5fa2" opacity=".85"/>
+`, { tamano: t });
+
+/** Icono del potenciador por su id. */
+export function iconoPotenciador(id, tamano = 24) {
+  switch (id) {
+    case 'portada': return portada(tamano);
+    case 'botas': return botas(tamano);
+    case 'salvoconducto': return salvoconducto(tamano);
+    case 'cobertura': return cobertura(tamano);
+    case 'iman':
+    default: return iman(tamano);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // RECOLECTABLES
 // ---------------------------------------------------------------------------
 

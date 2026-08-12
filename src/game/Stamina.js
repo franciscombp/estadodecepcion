@@ -71,28 +71,14 @@ export class StaminaManager {
   /**
    * @param {number} dt
    * @param {number} avance
-   * @param {{carrilesLibres:number[], z:number, gap:number}|null} grupo
-   *        Datos del grupo de obstáculos recién generado. El ítem se coloca
-   *        en uno de SUS carriles libres y dentro de SU hueco: si lo pusiéramos
-   *        en una Z arbitraria podría acabar dentro de un obstáculo.
    */
-  actualizar(dt, avance, grupo) {
+  actualizar(dt, avance) {
     this.tiempo += dt;
     this.recogidoEsteFotograma = false;
 
     // --- Drenaje -----------------------------------------------------------
     this.valor = Math.max(0, this.valor - ESTAMINA.DRENAJE * dt);
-
-    // --- Generación --------------------------------------------------------
     this.distanciaDesdeUltimo += avance;
-    if (this.distanciaDesdeUltimo >= ESTAMINA.DISTANCIA_ENTRE_ITEMS) {
-      if (grupo?.carrilesLibres?.length > 0) {
-        // A mitad del hueco entre este grupo y el siguiente.
-        this._generar(grupo.carrilesLibres, grupo.z - grupo.gap / 2);
-        this.distanciaDesdeUltimo = 0;
-      }
-      // Si no había carril libre, reintenta en el siguiente grupo.
-    }
 
     // --- Mover, animar y reciclar -----------------------------------------
     for (let i = this.activos.length - 1; i >= 0; i--) {
@@ -107,6 +93,27 @@ export class StaminaManager {
         this.activos.splice(i, 1);
       }
     }
+  }
+
+  /**
+   * Game ofrece un hueco recién generado. Si toca ítem, se coloca aquí.
+   *
+   * La colocación no la decide la estamina: la decide el generador de
+   * obstáculos, que es quien sabe qué carriles quedaron transitables y dónde
+   * está el hueco entre grupos. Poner el ítem en una Z al azar acabaría
+   * metiéndolo dentro de un muro.
+   *
+   * @param {number[]} carrilesLibres Carriles donde es seguro ponerlo
+   * @param {number} z                Mitad del hueco entre grupos
+   * @returns {boolean} true si se colocó
+   */
+  ofrecerHueco(carrilesLibres, z) {
+    if (this.distanciaDesdeUltimo < ESTAMINA.DISTANCIA_ENTRE_ITEMS) return false;
+    if (!carrilesLibres || carrilesLibres.length === 0) return false;
+
+    this._generar(carrilesLibres, z);
+    this.distanciaDesdeUltimo = 0;
+    return true;
   }
 
   /**

@@ -43,13 +43,16 @@ import { Bifurcacion } from './Bifurcacion.js';
 import { ElevadoManager } from './Elevado.js';
 import { TramiteManager } from './Tramite.js';
 import { Cerco } from './Cerco.js';
+import { PowerUpManager } from './PowerUps.js';
 
 import { crearEscenario } from '../scenes/index.js';
 import { obtenerEscenario } from '../config/escenarios.js';
+import { CATALOGO_POTENCIADORES } from '../config/balance.js';
 import { Controles } from '../utils/controls.js';
 import { remateCaptura, remateExhausto, citaVerificada } from '../config/textos.js';
 import {
-  VELOCIDAD, TRAMO, CAMARA, JUGADOR, ESTAMINA, CARRILES, CERCO,
+  VELOCIDAD, TRAMO, CAMARA, JUGADOR, ESTAMINA, CARRILES, CERCO, PAPELES,
+  POTENCIADORES,
 } from '../config/balance.js';
 import { BLOOM, CALIDAD } from '../config/estilo.js';
 import { VigilanteRendimiento } from '../utils/calidad.js';
@@ -96,6 +99,11 @@ export class Game {
     // ¿Estamos en el corredor previo a las bocas de túnel?
     this.enAproximacion = false;
     this.corredorLimpio = false;
+
+    // Potenciadores activos: id → segundos restantes. El salvoconducto no
+    // entra aquí porque no caduca; vive como bandera en el jugador.
+    this.efectos = new Map();
+    this.multiplicadorPapeles = 1;
 
     // Escapes de cerco disponibles esta partida.
     this.escapesRestantes = CERCO.ESCAPE_INTENTOS;
@@ -248,9 +256,13 @@ export class Game {
     this.elevado = new ElevadoManager(this.escenaThree);
     this.tramite = new TramiteManager(this.escenaThree);
     this.cerco = new Cerco(this.escenaThree);
+    this.potenciadores = new PowerUpManager(this.escenaThree);
+    this.potenciadores.establecerDesbloqueados(this.cuaderno.potenciadoresDesbloqueados());
 
     this.escenario = null;
-    this._cambiarEscenario(this.escenarioActual, false);
+    // El fondo del menú es la temporada en la que se va a retomar, no siempre
+    // la Bahía. Así la portada dice a dónde vas antes de que pulses nada.
+    this._cambiarEscenario(this.cuaderno.ultimoEscenario, false);
   }
 
   _configurarControles() {
@@ -318,6 +330,37 @@ export class Game {
     this.obstaculos.precargar(this.velocidad, (carrilesLibres, z, gap) => {
       this.papeles.generarHilera(carrilesLibres, z, gap, Math.random() < 0.33);
     });
+  }
+
+  /**
+   * Reparte el contenido de un grupo recién generado entre papeles, estamina y
+   * potenciadores.
+   *
+   * La regla que importa: los ítems NUNCA van en el carril que se llevó la
+   * hilera de papeles. Una hilera es una fila opaca de ocho piezas; lo que
+   * quede detrás en ese carril no se ve hasta que ya es tarde para cambiarse,
+   * y el jugador acaba pasándose de largo la estamina sin haberla visto.
+   */
+  _poblarGrupo(grupo) {
+    if (!grupo) return;
+
+    // La hilera va en arco (sobre un salto) una de cada tres veces.
+    const carrilPapeles = this.papeles.generarHilera(
+      grupo.carrilesLibres,
+      grupo.z,
+      grupo.gap,
+      Math.random() < 0.33,
+    );
+
+    const libres = grupo.carrilesLibres.filter((c) => c !== carrilPapeles);
+    if (libres.length === 0) return;
+
+    // El potenciador tiene prioridad sobre la estamina: sale mucho menos y es
+    // lo que sostiene las ganas de volver a jugar.
+    const zHueco = grupo.z - grupo.gap / 2;
+    if (this.potenciadores.intentarGenerar(libres, zHueco)) return;
+
+    this.estamina.ofrecerHueco(libres, zHueco);
   }
 
   /**
@@ -402,6 +445,9 @@ export class Game {
     this.elevado.reiniciar();
     this.tramite.limpiar();
     this.cerco.limpiar();
+    this.potenciadores.reiniciar();
+    this.potenciadores.establecerDesbloqueados(this.cuaderno.potenciadoresDesbloqueados());
+    this._limpiarEfectos();
 
     // CONTINUIDAD: se retoma en la temporada donde te capturaron, no siempre
     // en la Bahía. Volver al principio cada vez convertía cada muerte en un
@@ -438,6 +484,7 @@ export class Game {
     if (this.estado === 'gameover' || this.estado === 'cerco' || this.estado === 'escape') return;
 
     this.jugador.caer();
+    this._limpiarEfectos();
     this.perseguidor.atrapar();
     this.controles.desactivar();
     this.audio.captura();
@@ -459,7 +506,7 @@ export class Game {
     // CONTINUIDAD: la próxima partida arranca aquí, donde te capturaron.
     this.cuaderno.ultimoEscenario = this.escenarioActual;
 
-    const { paginasNuevas } = this.cuaderno.registrarPartida({
+    const cierre = this._cerrarEnCuaderno({
       papeles: this.papelesPartida,
       distancia: Math.floor(this.distanciaTotal),
       puntaje,
@@ -476,9 +523,9 @@ export class Game {
       puntaje,
       evidencias: this.evidenciasPartida,
       ruta: this.rutaPartida,
-      paginasNuevas,
       esRecord: puntaje >= this.cuaderno.mejorPuntaje,
       escenario: this.escenarioActual,
+      ...cierre,
     };
 
     this._establecerEstado('cerco', { motivo });
@@ -531,6 +578,7 @@ export class Game {
     // encima y borra el resto donde la niebla tapa la desaparición.
     this.obstaculos.limpiarAdelante(-40);
     this.elevado.limpiar();
+    this.potenciadores.limpiar();
   }
 
   /**
@@ -569,6 +617,7 @@ export class Game {
     this.bifurcacion.limpiar();
     this.elevado.limpiar();
     this.tramite.limpiar();
+    this.potenciadores.limpiar();
     this.papeles.nuevoTramo();
     this.obstaculos.generacionPausada = false;
     this.elevado.generacionPausada = false;
@@ -593,6 +642,7 @@ export class Game {
     this.elevado.generacionPausada = true;
     this.estamina.limpiar();
     this.papeles.limpiar();
+    this.potenciadores.limpiar();
     this.bifurcacion.limpiar();
 
     const institucion = this.rutas.datosInstitucion(this.escenarioActual);
@@ -647,7 +697,7 @@ export class Game {
     this.cuaderno.denunciaPresentada = true;
     this.cuaderno.ultimoEscenario = this.escenarioActual;
 
-    const { paginasNuevas } = this.cuaderno.registrarPartida({
+    const cierre = this._cerrarEnCuaderno({
       papeles: this.papelesPartida,
       distancia: Math.floor(this.distanciaTotal),
       puntaje,
@@ -665,8 +715,125 @@ export class Game {
       puntaje,
       evidencias: this.evidenciasPartida,
       ruta: this.rutaPartida,
-      paginasNuevas,
+      ...cierre,
     });
+  }
+
+  /**
+   * Cierra la partida en el cuaderno y devuelve, además de las páginas, los
+   * potenciadores que se abrieron con ella.
+   *
+   * Se compara antes/después en vez de guardar una lista de "ya anunciados":
+   * la escalera se calcula sola desde el catálogo, así que el diff es la
+   * fuente de verdad y no hay estado que se pueda desincronizar.
+   */
+  _cerrarEnCuaderno(resultado) {
+    const antes = new Set(this.cuaderno.potenciadoresDesbloqueados());
+    const { paginasNuevas } = this.cuaderno.registrarPartida(resultado);
+
+    const potenciadoresNuevos = CATALOGO_POTENCIADORES.filter(
+      (p) => !antes.has(p.id) && this.cuaderno.tramosRecorridos >= p.tramos,
+    );
+
+    return {
+      paginasNuevas,
+      potenciadoresNuevos,
+      proximoPotenciador: this.cuaderno.proximoPotenciador(),
+    };
+  }
+
+  // -------------------------------------------------------------------------
+  // POTENCIADORES
+  // -------------------------------------------------------------------------
+  // Los efectos viven aquí, no en PowerUps.js, porque tocan subsistemas que
+  // solo Game conoce (el imán es del gestor de papeles, el vuelo es del
+  // jugador, el multiplicador es de la puntuación). El gestor solo pone las
+  // cápsulas en pista y dice qué se recogió.
+
+  /** Aplica un potenciador recién recogido. */
+  _activarPotenciador(def) {
+    this.audio.evidencia();
+
+    switch (def.id) {
+      case 'salvoconducto':
+        // No caduca: se gasta al recibir el golpe.
+        this.jugador.escudo = true;
+        break;
+
+      case 'botas':
+        this.jugador.multiplicadorSalto = POTENCIADORES.IMPULSO_BOTAS;
+        this.efectos.set(def.id, def.duracion);
+        break;
+
+      case 'cobertura':
+        this.jugador.volar(true, POTENCIADORES.ALTURA_VUELO);
+        this.efectos.set(def.id, def.duracion);
+        break;
+
+      case 'portada':
+        this.multiplicadorPapeles = 2;
+        this.efectos.set(def.id, def.duracion);
+        break;
+
+      case 'iman':
+      default:
+        this.papeles.radioIman = POTENCIADORES.RADIO_IMAN;
+        this.efectos.set(def.id, def.duracion);
+        break;
+    }
+
+    this.alMostrarAviso({
+      tipo: 'potenciador',
+      titulo: def.nombre.toUpperCase(),
+      subtitulo: def.descripcion,
+    });
+  }
+
+  /** Descuenta los temporizadores y deshace los efectos que caducan. */
+  _actualizarEfectos(dt) {
+    if (this.efectos.size === 0) return;
+
+    for (const [id, restante] of this.efectos) {
+      const nuevo = restante - dt;
+      if (nuevo > 0) {
+        this.efectos.set(id, nuevo);
+        continue;
+      }
+      this.efectos.delete(id);
+      this._desactivarPotenciador(id);
+    }
+  }
+
+  _desactivarPotenciador(id) {
+    switch (id) {
+      case 'botas': this.jugador.multiplicadorSalto = 1; break;
+      case 'cobertura': this.jugador.volar(false); break;
+      case 'portada': this.multiplicadorPapeles = 1; break;
+      case 'iman': this.papeles.radioIman = PAPELES.RADIO_IMAN; break;
+      default: break;
+    }
+  }
+
+  /** Corta todos los efectos de golpe (fin de partida, tramo nuevo, escape). */
+  _limpiarEfectos() {
+    for (const id of this.efectos.keys()) this._desactivarPotenciador(id);
+    this.efectos.clear();
+    this.multiplicadorPapeles = 1;
+    this.jugador.escudo = false;
+  }
+
+  /** Lo que el HUD necesita saber de los efectos activos. */
+  _efectosParaHUD() {
+    const lista = [];
+    for (const [id, restante] of this.efectos) {
+      const def = CATALOGO_POTENCIADORES.find((p) => p.id === id);
+      if (!def) continue;
+      lista.push({ id, nombre: def.nombre, fraccion: restante / def.duracion });
+    }
+    if (this.jugador.escudo) {
+      lista.push({ id: 'salvoconducto', nombre: 'Salvoconducto', fraccion: 1 });
+    }
+    return lista;
   }
 
   // -------------------------------------------------------------------------
@@ -703,6 +870,7 @@ export class Game {
     this.obstaculos.limpiar();
     this.papeles.limpiar();
     this.elevado.limpiar();
+    this.potenciadores.limpiar();
 
     // …salvo si te atraparon en pleno corredor de bifurcación. Ahí la pista
     // está vacía a propósito y volver a llenarla pondría obstáculos justo
@@ -840,16 +1008,7 @@ export class Game {
     // Los obstáculos devuelven los datos del grupo recién generado: los
     // carriles libres son donde es seguro poner papeles y estamina.
     const grupo = this.obstaculos.actualizar(avance, this.velocidad);
-
-    if (grupo) {
-      // La hilera va en arco (sobre un salto) una de cada tres veces.
-      this.papeles.generarHilera(
-        grupo.carrilesLibres,
-        grupo.z,
-        grupo.gap,
-        Math.random() < 0.33,
-      );
-    }
+    if (!this.tramite.activo) this._poblarGrupo(grupo);
 
     // Niveles elevados. Devuelve la altura del suelo bajo los pies, que puede
     // ser el asfalto o el tablado de una tarima.
@@ -859,12 +1018,14 @@ export class Game {
     this.jugador.establecerSuelo(alturaSuelo);
 
     this.papeles.actualizar(dt, avance, this.jugador);
+    this.potenciadores.actualizar(dt, avance);
+    this._actualizarEfectos(dt);
 
     // Dentro del trámite la estamina no drena y nadie persigue: es un tramo de
     // pura recolección, y meterle presión de tiempo lo convertiría en otra
     // cosa. Los ítems tampoco se generan ahí.
     if (!this.tramite.activo) {
-      this.estamina.actualizar(dt, avance, grupo);
+      this.estamina.actualizar(dt, avance);
     }
 
     this.jugador.actualizar(dt, velocidadEfectiva);
@@ -877,9 +1038,12 @@ export class Game {
     }
 
     // ---- Recolección ------------------------------------------------------
+    const potenciador = this.potenciadores.recoger(this.jugador);
+    if (potenciador) this._activarPotenciador(potenciador);
+
     const recogido = this.papeles.recoger(this.jugador);
     if (recogido.papeles > 0) {
-      this.papelesPartida += recogido.papeles;
+      this.papelesPartida += recogido.papeles * this.multiplicadorPapeles;
       this.combo += 1;
       this.temporizadorCombo = 1.5;
       this.audio.papel(this.combo);
@@ -920,7 +1084,11 @@ export class Game {
     }
 
     // ---- Colisiones -------------------------------------------------------
-    const golpe = this.obstaculos.comprobarColision(this.jugador);
+    // Volando no se choca con nada: la cobertura aérea es un descanso, no otra
+    // prueba. Es lo mismo que hace el jetpack del original.
+    const golpe = this.jugador.volando
+      ? null
+      : this.obstaculos.comprobarColision(this.jugador);
     if (golpe && this.jugador.recibirGolpe()) {
       this.audio.golpe();
       this.sacudida = CAMARA.SACUDIDA_GOLPE;
@@ -1006,7 +1174,9 @@ export class Game {
         }
         : null,
       // ¿Va corriendo por arriba? El HUD lo usa para avisar del borde.
-      porArriba: this.jugador.vaPorArriba,
+      porArriba: this.jugador.vaPorArriba || this.jugador.volando,
+      // Potenciadores activos, con lo que les queda.
+      efectos: this._efectosParaHUD(),
     });
   }
 
@@ -1081,6 +1251,17 @@ export class Game {
     this.alCambiarEstado(nuevo, datos);
   }
 
+  /**
+   * Cambia el personaje sin empezar partida, para la vista previa del menú.
+   * Es la diferencia entre elegir entre dos nombres y elegir entre dos
+   * personajes: en el fondo se ve correr al que estás señalando.
+   */
+  previsualizarPersonaje(nombre) {
+    if (nombre === this.cuaderno.personajePreferido) return;
+    this.cuaderno.personajePreferido = nombre;
+    this.jugador.cambiarPersonaje(nombre);
+  }
+
   /** Vuelve al menú principal. */
   volverAlMenu() {
     this.controles.desactivar();
@@ -1093,6 +1274,9 @@ export class Game {
     this.elevado.reiniciar();
     this.tramite.limpiar();
     this.cerco.limpiar();
+    this.potenciadores.reiniciar();
+    this.potenciadores.establecerDesbloqueados(this.cuaderno.potenciadoresDesbloqueados());
+    this._limpiarEfectos();
     this.velocidad = VELOCIDAD.INICIAL;
     this.velocidadBase = VELOCIDAD.INICIAL;
     this.enAproximacion = false;

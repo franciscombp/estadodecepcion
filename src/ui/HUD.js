@@ -54,6 +54,7 @@ export class HUD {
       evidencias: -1,
       tramite: -1,
       porArriba: null,
+      efectos: '',
     };
   }
 
@@ -112,6 +113,10 @@ export class HUD {
           NO SE TE PUEDE CAER NI UNO
         </div>
       </div>
+
+      <!-- Potenciadores activos. Van bajo la fila superior y a la izquierda,
+           donde ya está el riel: es la columna de "en qué estado estás". -->
+      <div class="efectos" data-campo="efectos"></div>
 
       <!-- ══ ZONA MEDIA ══ -->
       <div class="hud__medio">
@@ -200,6 +205,7 @@ export class HUD {
       expedienteTotal: q('expediente-total'),
       expedienteProgreso: q('expediente-progreso'),
       expedienteAviso: q('expediente-aviso'),
+      efectos: q('efectos'),
     };
 
     this._construirIntentos();
@@ -362,6 +368,9 @@ export class HUD {
       c.porArriba = datos.porArriba;
     }
 
+    // --- Potenciadores activos ---------------------------------------------
+    this._actualizarEfectos(datos.efectos ?? []);
+
     // --- Evidencias --------------------------------------------------------
     const nEvidencias = datos.evidencias?.length ?? 0;
     if (nEvidencias !== c.evidencias) {
@@ -403,6 +412,48 @@ export class HUD {
     }
 
     this.ref.expedienteProgreso.style.width = `${Math.round(tramite.progreso * 100)}%`;
+  }
+
+  /**
+   * Fichas de los potenciadores activos, con su cuenta atrás.
+   *
+   * La lista se repinta solo cuando CAMBIA la composición (qué potenciadores
+   * hay), no cuando cambia el tiempo restante: el vaciado de la barra se hace
+   * con un ancho, que es una sola escritura de estilo y no toca el layout del
+   * resto. Repintar el HTML entero sesenta veces por segundo por una barra que
+   * baja sería tirar el presupuesto de fotograma.
+   */
+  _actualizarEfectos(lista) {
+    const firma = lista.map((e) => e.id).join(',');
+
+    if (firma !== this.cache.efectos) {
+      this.ref.efectos.innerHTML = '';
+      this.fichasEfecto = new Map();
+
+      for (const efecto of lista) {
+        const ficha = document.createElement('div');
+        ficha.className = `efecto efecto--${efecto.id}`;
+        ficha.innerHTML = `
+          <span class="efecto__icono">${Icono.iconoPotenciador(efecto.id, 22)}</span>
+          <span class="efecto__cuerpo">
+            <span class="efecto__nombre"></span>
+            <span class="medidor medidor--fino">
+              <span class="medidor__relleno medidor__relleno--cian"></span>
+            </span>
+          </span>
+        `;
+        ficha.querySelector('.efecto__nombre').textContent = efecto.nombre;
+        this.ref.efectos.appendChild(ficha);
+        this.fichasEfecto.set(efecto.id, ficha.querySelector('.medidor__relleno'));
+      }
+
+      this.cache.efectos = firma;
+    }
+
+    for (const efecto of lista) {
+      const barra = this.fichasEfecto?.get(efecto.id);
+      if (barra) barra.style.width = `${Math.round(efecto.fraccion * 100)}%`;
+    }
   }
 
   _pintarEvidencias(lista) {
@@ -451,6 +502,8 @@ export class HUD {
       escenario: Icono.ruta(18),
       bifurcacion: Icono.ruta(18),
       consejo: Icono.alerta(18),
+      potenciador: Icono.sello(18),
+      desbloqueo: Icono.sello(18),
     };
 
     const aviso = document.createElement('div');

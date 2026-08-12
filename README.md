@@ -65,6 +65,7 @@ src/
 │   ├── Elevado.js      ← Tarimas: el nivel por encima de la calle
 │   ├── Cerco.js        ← La animación de que te rodean
 │   ├── Rutas.js        ← El mapa del rombo
+│   ├── PowerUps.js     ← Potenciadores y su desbloqueo progresivo
 │   └── Notebook.js     ← Meta-progreso en localStorage
 ├── scenes/
 │   ├── BaseScene.js    ← Luces, niebla y decorado lateral
@@ -84,6 +85,7 @@ src/
     ├── collision.js    ← AABB
     ├── calidad.js      ← Detección de hardware y ajuste adaptativo
     ├── audio.js        ← Efectos sintetizados con Web Audio
+    ├── actualizacion.js← Modo offline y entrada de versiones nuevas
     └── assetCache.js   ← Envoltorio de IndexedDB
 ```
 
@@ -195,6 +197,28 @@ te zafas y sigues corriendo en la misma temporada. Uno por partida. Perder por
 un dado invisible después de dos minutos corriendo es lo que apaga un juego;
 perder por no llegar a tiempo, no.
 
+### Potenciadores
+
+Los de Subway Surfers, traducidos a la redacción de un periódico. La mecánica
+no se inventa; lo que sí es una decisión es que **no estén desde el principio**:
+
+| | Potenciador | Qué hace | Se abre a los |
+|---|---|---|---|
+| 🧲 | **Fuente anónima** | Los papeles vienen solos | 3 tramos |
+| ×2 | **Portada** | Todo vale el doble | 6 tramos |
+| 👢 | **Botas de campo** | Saltas más alto | 10 tramos |
+| 📄 | **Salvoconducto** | Aguanta un golpe | 15 tramos |
+| 🚁 | **Cobertura aérea** | Sobrevuelas el tramo recogiéndolo todo | 22 tramos |
+
+Un juego que te lo enseña todo en la primera partida no da ninguna razón para
+jugar la segunda. El contador de tramos es **acumulativo entre partidas**, así
+que ninguna corrida se pierde del todo: hasta la peor te acerca al siguiente
+desbloqueo, y el menú te dice cuánto falta.
+
+La escalera se calcula desde el catálogo, no se guarda. Si mañana se cambia un
+umbral en `config/balance.js`, el progreso de todo el mundo se recalcula solo
+en vez de quedarse congelado con la escalera vieja.
+
 ### Continuidad
 
 La partida siguiente arranca **en la temporada donde te capturaron**, no
@@ -217,6 +241,32 @@ metros a la primera no era difícil, era injugable.
 
 **Carondelet** es deliberadamente árido: máximo 3 papeles por tramo. La
 carestía es el mensaje.
+
+---
+
+## Modo offline y actualizaciones
+
+La primera visita descarga el juego entero; a partir de ahí arranca **sin
+tocar la red** (comprobado: la segunda carga hace cero peticiones al
+servidor). Three.js va en su propio chunk a propósito: el precache de Workbox
+indexa por hash de contenido, así que si la librería estuviera dentro del
+bundle del juego, cada cambio de una línea de gameplay obligaría a volver a
+bajar sus 485 KB. Separada, una actualización pesa unos pocos KB.
+
+Lo contrario también hace falta: que un despliegue **llegue**. Dos decisiones
+lo resuelven, y las dos costaron encontrarlas:
+
+1. **El registro del service worker es a mano**, no del plugin, porque hace
+   falta `updateViaCache: 'none'`. Sin esa opción el navegador sirve `sw.js`
+   desde su caché HTTP y `update()` ni siquiera llega a pedirlo — verificado
+   con el service worker real: la petición no sale y el despliegue puede
+   tardar hasta 24 horas en verse.
+2. **La versión nueva no entra en mitad de una corrida.** Recargar mientras
+   alguien juega le borra la partida por un motivo que no tiene nada que ver
+   con el juego. Se avisa por el HUD y se aplica en el primer momento seguro:
+   menú o fin de partida.
+
+Ver `src/utils/actualizacion.js`.
 
 ---
 

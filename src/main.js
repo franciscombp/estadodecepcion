@@ -19,7 +19,9 @@ import { HUD } from './ui/HUD.js';
 import { Pantallas } from './ui/screens.js';
 import { AssetCache } from './utils/assetCache.js';
 import { detectarCalidad } from './utils/calidad.js';
+import { Actualizador } from './utils/actualizacion.js';
 import { PAGINAS } from './config/publicaciones.js';
+import { CATALOGO_POTENCIADORES } from './config/balance.js';
 import * as Icono from './ui/iconos.js';
 
 // ---------------------------------------------------------------------------
@@ -135,6 +137,34 @@ async function arrancar() {
 
   hud.alPulsarPausa(() => juego.pausar());
 
+  // -------------------------------------------------------------------------
+  // ACTUALIZACIONES
+  // -------------------------------------------------------------------------
+  // La edición nueva entra entera, pero nunca en mitad de una corrida: se
+  // guarda el aviso y se aplica al volver al menú o al terminar la partida.
+  // Ver utils/actualizacion.js.
+
+  const actualizador = new Actualizador();
+  actualizador.alDetectar = () => {
+    if (aplicarSiEsSeguro()) return;
+    hud.mostrarAviso({
+      tipo: 'consejo',
+      titulo: 'EDICIÓN NUEVA',
+      subtitulo: 'Entra al terminar esta corrida',
+    });
+  };
+
+  function aplicarSiEsSeguro() {
+    if (!actualizador.hayNueva) return false;
+    if (juego.estado === 'jugando' || juego.estado === 'cerco'
+        || juego.estado === 'escape' || juego.estado === 'pausa') {
+      return false;
+    }
+    return actualizador.aplicar();
+  }
+
+  actualizador.iniciar();  // Sin await: el juego no espera al service worker.
+
   // El hint de deslizar solo se enseña las tres primeras partidas.
   if (cuaderno.partidasJugadas >= 3) hud.ocultarHint();
 
@@ -143,6 +173,12 @@ async function arrancar() {
   // -------------------------------------------------------------------------
 
   juego.alCambiarEstado = (estado, datos) => {
+    // Momento seguro para recargar con la versión nueva: se acabó la partida
+    // o se volvió al menú, así que no hay nada que perder.
+    if (estado === 'menu' || estado === 'gameover' || estado === 'victoria') {
+      if (aplicarSiEsSeguro()) return;
+    }
+
     switch (estado) {
       case 'menu':
         hud.ocultar();
@@ -243,6 +279,7 @@ async function arrancar() {
     //   Object.assign(__paginas[0].articulos[0],
     //     { pendiente:false, titular:'…', bajada:'…', url:'…' })
     window.__paginas = PAGINAS;
+    window.__cat = CATALOGO_POTENCIADORES;
     console.info(
       `[Estado de Excepción] Modo desarrollo. Calidad detectada: ${calidad.nivel}. ` +
       'Usa window.__juego para depurar.',

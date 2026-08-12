@@ -11,8 +11,9 @@
 // Estilo en docs/ESTILO.md.
 // ============================================================================
 
-import { obtenerEscenario } from '../config/escenarios.js';
+import { obtenerEscenario, ORDEN_ESCENARIOS } from '../config/escenarios.js';
 import { CABECERA, hayPendientes, cuantosListos } from '../config/publicaciones.js';
+import { CATALOGO_POTENCIADORES } from '../config/balance.js';
 import * as Icono from './iconos.js';
 
 // ---------------------------------------------------------------------------
@@ -99,13 +100,53 @@ export class Pantallas {
 
   menu() {
     const { pantalla, contenido } = pantallaBase();
+    // El menú no se come la escena: la escena ES el fondo, y encima van los
+    // paneles. Por eso esta pantalla no lleva el velo opaco de las demás.
+    pantalla.classList.add('pantalla--portada');
 
-    contenido.appendChild(marca('EL MERCIO PRESENTA'));
-    contenido.appendChild(el('h1', 'titulo', 'ESTADO DE EXCEPCIÓN'));
-    contenido.appendChild(el('p', 'subtitulo', 'También conocido como Estado Decepción'));
+    const esc = obtenerEscenario(this.juego.escenarioActual);
+    contenido.dataset.escenario = esc.id;
+
+    // --- Cabecera ----------------------------------------------------------
+    const cabecera = el('div', 'portada__cabecera');
+    cabecera.appendChild(marca('EL MERCIO PRESENTA'));
+    cabecera.appendChild(el('h1', 'titulo titulo--portada', 'ESTADO DE EXCEPCIÓN'));
+    cabecera.appendChild(el('p', 'subtitulo subtitulo--portada',
+      'También conocido como Estado Decepción'));
+    contenido.appendChild(cabecera);
+
+    // --- Ficha de la temporada --------------------------------------------
+    // Lo primero que se ve después del título. El jugador tiene que saber
+    // ANTES de pulsar dónde va a caer, porque el juego ya no empieza siempre
+    // en la Bahía: retoma donde te capturaron.
+    const temporada = el('div', 'temporada');
+    temporada.appendChild(el('span', 'temporada__etiqueta',
+      this.cuaderno.partidasJugadas > 0 ? 'RETOMAS EN' : 'EMPIEZAS EN'));
+
+    const tituloTemporada = el('div', 'temporada__fila');
+    const iconoTemporada = el('span', 'temporada__icono');
+    iconoTemporada.innerHTML = Icono.iconoEstamina(esc.id, 30);
+    tituloTemporada.appendChild(iconoTemporada);
+    tituloTemporada.appendChild(el('span', 'temporada__nombre', esc.nombre));
+    temporada.appendChild(tituloTemporada);
+
+    temporada.appendChild(el('span', 'temporada__sub', esc.subtitulo));
+
+    // Riel del rombo: en cuál de las cuatro estás.
+    const riel = el('div', 'temporada__riel');
+    for (const id of ORDEN_ESCENARIOS) {
+      const nodo = el('span', 'temporada__nodo');
+      nodo.title = obtenerEscenario(id).nombre;
+      if (id === esc.id) nodo.classList.add('temporada__nodo--activo');
+      riel.appendChild(nodo);
+    }
+    temporada.appendChild(riel);
+    contenido.appendChild(temporada);
 
     // --- Personaje ---------------------------------------------------------
     let elegido = this.cuaderno.personajePreferido;
+
+    contenido.appendChild(el('div', 'rotulo-seccion', 'QUIÉN CORRE'));
 
     const personajes = el('div', 'personajes');
     const definiciones = [
@@ -123,6 +164,10 @@ export class Pantallas {
         elegido = def.id;
         tarjetas.forEach((t) => t.classList.remove('personaje--elegido'));
         tarjeta.classList.add('personaje--elegido');
+        // Cambio en vivo: se ve al personaje correr en el fondo antes de
+        // decidir. Elegir a ciegas entre dos nombres no es elegir.
+        this.juego.previsualizarPersonaje(def.id);
+        this.audio.cambioCarril();
       });
 
       personajes.appendChild(tarjeta);
@@ -130,40 +175,25 @@ export class Pantallas {
     });
     contenido.appendChild(personajes);
 
-    // --- Botones -----------------------------------------------------------
-    const botones = el('div', 'botones');
-    botones.appendChild(boton('Empezar a correr', 'boton--principal', () => {
+    // --- Arsenal -----------------------------------------------------------
+    contenido.appendChild(this._pintarArsenal());
+
+    // --- Jugar -------------------------------------------------------------
+    // Un solo botón dominante. Todo lo demás es secundario y se ve que lo es.
+    const jugar = boton('JUGAR', 'boton--jugar', () => {
       this.audio.iniciar();
       this.audio.reanudar();
       this.juego.iniciarPartida(elegido);
-    }));
-    botones.appendChild(boton('Archivo de El Mercio', '', () => {
+    });
+    contenido.appendChild(jugar);
+
+    const secundarios = el('div', 'portada__secundarios');
+    secundarios.appendChild(boton('Archivo de El Mercio', 'boton--tenue', () => {
       this.mostrar(this.notebook());
     }));
-    contenido.appendChild(botones);
+    contenido.appendChild(secundarios);
 
-    // --- Controles ---------------------------------------------------------
-    const instrucciones = el('div', 'instrucciones');
-    const controles = [
-      [Icono.flecha('izquierda', 18), 'Carril', '← → o swipe lateral'],
-      [Icono.flecha('arriba', 18), 'Saltar', '↑, espacio o swipe arriba'],
-      [Icono.flecha('abajo', 18), 'Agacharse', '↓ o swipe abajo'],
-      [Icono.pausa(18), 'Pausa', 'ESC o el botón'],
-    ];
-    for (const [svg, titulo, desc] of controles) {
-      const item = el('div', 'instruccion');
-      const ic = el('span', 'instruccion__icono');
-      ic.innerHTML = svg;
-      item.appendChild(ic);
-      const txt = el('span');
-      txt.appendChild(el('strong', '', titulo));
-      txt.appendChild(document.createTextNode(desc));
-      item.appendChild(txt);
-      instrucciones.appendChild(item);
-    }
-    contenido.appendChild(instrucciones);
-
-    // --- Récords -----------------------------------------------------------
+    // --- Marcador ----------------------------------------------------------
     if (this.cuaderno.partidasJugadas > 0) {
       contenido.appendChild(estadisticas([
         [this.cuaderno.mejorPuntaje.toLocaleString('es-EC'), 'Mejor puntaje'],
@@ -172,12 +202,19 @@ export class Pantallas {
       ]));
     }
 
+    // --- Controles ---------------------------------------------------------
+    // Solo las primeras partidas. Después ocupan un tercio de la portada para
+    // recordar algo que ya se sabe, y lo que empuja fuera de pantalla es el
+    // título del juego.
+    if (this.cuaderno.partidasJugadas < 3) {
+      contenido.appendChild(this._pintarControles());
+    }
+
     // --- Aviso de sátira ---------------------------------------------------
     // No es letra pequeña legal: es contexto. Que quede claro de qué va esto.
     contenido.appendChild(el('div', 'nota',
-      'Obra de sátira política. Los personajes, situaciones y textos son ' +
-      'ficción satírica de El Mercio y no reproducen declaraciones textuales ' +
-      'de personas reales.'));
+      'Sátira política de El Mercio. Los personajes y textos son ficción y no ' +
+      'reproducen declaraciones de personas reales.'));
 
     const pie = el('div', 'pie');
     pie.appendChild(document.createTextNode('elmercio.com · '));
@@ -189,6 +226,65 @@ export class Pantallas {
     contenido.appendChild(pie);
 
     return pantalla;
+  }
+
+  /** Chuleta de controles. Solo se enseña mientras hace falta. */
+  _pintarControles() {
+    const instrucciones = el('div', 'instrucciones');
+    const controles = [
+      [Icono.flecha('izquierda', 18), 'Carril', '← → o swipe lateral'],
+      [Icono.flecha('arriba', 18), 'Saltar', '↑, espacio o swipe arriba'],
+      [Icono.flecha('abajo', 18), 'Agacharse', '↓ o swipe abajo'],
+      [Icono.pausa(18), 'Pausa', 'ESC o el botón'],
+    ];
+    for (const [svgIcono, titulo, desc] of controles) {
+      const item = el('div', 'instruccion');
+      const ic = el('span', 'instruccion__icono');
+      ic.innerHTML = svgIcono;
+      item.appendChild(ic);
+      const txt = el('span');
+      txt.appendChild(el('strong', '', titulo));
+      txt.appendChild(document.createTextNode(desc));
+      item.appendChild(txt);
+      instrucciones.appendChild(item);
+    }
+    return instrucciones;
+  }
+
+  /**
+   * Los cinco potenciadores, abiertos y por abrir.
+   *
+   * Enseñar las casillas cerradas es deliberado: un desbloqueo que no sabías
+   * que existía no tira de ti. Ver cuatro siluetas apagadas y la distancia
+   * exacta que falta para la primera, sí.
+   */
+  _pintarArsenal() {
+    const abiertos = new Set(this.cuaderno.potenciadoresDesbloqueados());
+    const proximo = this.cuaderno.proximoPotenciador();
+
+    const bloque = el('div', 'arsenal');
+
+    const titulo = el('div', 'rotulo-seccion', 'ARSENAL');
+    bloque.appendChild(titulo);
+
+    const fila = el('div', 'arsenal__fila');
+    for (const pot of CATALOGO_POTENCIADORES) {
+      const abierto = abiertos.has(pot.id);
+      const casilla = el('div', `arsenal__casilla ${abierto ? '' : 'arsenal__casilla--cerrada'}`.trim());
+      casilla.innerHTML = Icono.iconoPotenciador(pot.id, 26);
+      casilla.title = abierto
+        ? `${pot.nombre} — ${pot.descripcion}`
+        : `${pot.nombre} — se abre a los ${pot.tramos} tramos`;
+      if (!abierto) casilla.appendChild(el('span', 'arsenal__candado', '?'));
+      fila.appendChild(casilla);
+    }
+    bloque.appendChild(fila);
+
+    bloque.appendChild(el('div', 'arsenal__pista', proximo
+      ? `${proximo.nombre} a ${proximo.faltan} ${proximo.faltan === 1 ? 'tramo' : 'tramos'}`
+      : 'Arsenal completo. Ahora solo queda el expediente perfecto.'));
+
+    return bloque;
   }
 
   // -------------------------------------------------------------------------
@@ -343,6 +439,8 @@ export class Pantallas {
       contenido.appendChild(lista);
     }
 
+    this._pintarDesbloqueos(datos, contenido);
+
     const botones = el('div', 'botones');
     botones.appendChild(boton('Volver a correr', 'boton--principal',
       () => this.juego.iniciarPartida()));
@@ -430,6 +528,8 @@ export class Pantallas {
       contenido.appendChild(lista);
     }
 
+    this._pintarDesbloqueos(datos, contenido);
+
     const botones = el('div', 'botones');
     botones.appendChild(boton('Volver a correr', 'boton--principal',
       () => this.juego.iniciarPartida()));
@@ -440,6 +540,41 @@ export class Pantallas {
     contenido.appendChild(botones);
 
     return pantalla;
+  }
+
+  /**
+   * Lo que esta corrida desbloqueó y lo que falta para lo siguiente.
+   *
+   * Va al final del resumen a propósito: es lo último que se lee antes de
+   * decidir si se pulsa «volver a correr», y es la única parte de la pantalla
+   * que habla del futuro en vez del pasado.
+   */
+  _pintarDesbloqueos(datos, contenido) {
+    for (const pot of datos.potenciadoresNuevos ?? []) {
+      const caja = el('div', 'desbloqueo');
+      const icono = el('span', 'desbloqueo__icono');
+      icono.innerHTML = Icono.iconoPotenciador(pot.id, 34);
+      caja.appendChild(icono);
+
+      const texto = el('span', 'desbloqueo__texto');
+      texto.appendChild(el('span', 'desbloqueo__etiqueta', 'POTENCIADOR NUEVO'));
+      texto.appendChild(el('span', 'desbloqueo__nombre', pot.nombre));
+      texto.appendChild(el('span', 'desbloqueo__desc', pot.descripcion));
+      caja.appendChild(texto);
+
+      contenido.appendChild(caja);
+    }
+
+    const proximo = datos.proximoPotenciador;
+    if (proximo) {
+      const pista = el('div', 'siguiente-desbloqueo');
+      const icono = el('span', 'siguiente-desbloqueo__icono');
+      icono.innerHTML = Icono.iconoPotenciador(proximo.id, 22);
+      pista.appendChild(icono);
+      pista.appendChild(el('span', '',
+        `A ${proximo.faltan} ${proximo.faltan === 1 ? 'tramo' : 'tramos'} de ${proximo.nombre}`));
+      contenido.appendChild(pista);
+    }
   }
 
   _pintarRuta(ruta) {

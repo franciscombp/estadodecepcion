@@ -64,6 +64,15 @@ export class Player {
     // ---- Daño e invulnerabilidad -----------------------------------------
     this.golpes = 0;
     this.invulnerabilidad = 0;
+    // Escudo del salvoconducto: absorbe un golpe y se gasta.
+    this.escudo = false;
+
+    // ---- Potenciadores ----------------------------------------------------
+    // Multiplicador del impulso de salto (botas de campo).
+    this.multiplicadorSalto = 1;
+    // Vuelo de la cobertura aérea: mientras dura, ni gravedad ni obstáculos.
+    this.volando = false;
+    this.alturaVuelo = 0;
 
     // ---- Animación --------------------------------------------------------
     this.tiempoAnimacion = 0;
@@ -97,10 +106,12 @@ export class Player {
   saltar() {
     if (!this.vivo) return false;
 
+    if (this.volando) return false;
+
     if (!this.estaEnElAire) {
       // Salta desde donde esté: el impulso es el mismo arriba de una tarima
       // que en la calle, así que la altura ganada también.
-      this.velocidadY = SALTO.VELOCIDAD_INICIAL;
+      this.velocidadY = SALTO.VELOCIDAD_INICIAL * this.multiplicadorSalto;
       this.estaEnElAire = true;
       // Saltar cancela la agachada, activa y pendiente.
       this.estaAgachado = false;
@@ -116,6 +127,7 @@ export class Player {
 
   agachar() {
     if (!this.vivo) return false;
+    if (this.volando) return false;
 
     if (this.estaEnElAire) {
       // En el aire, abajo hace DOS cosas:
@@ -154,6 +166,18 @@ export class Player {
     const t = 1 - Math.exp(-CARRILES.VELOCIDAD_CAMBIO * dt);
     this.x += (this.xObjetivo - this.x) * t;
     if (Math.abs(this.xObjetivo - this.x) < 0.01) this.x = this.xObjetivo;
+
+    // ---- Vuelo ------------------------------------------------------------
+    // Mientras dura la cobertura aérea el jugador no tiene física: sube a su
+    // altura y se queda ahí. Es lo mismo que hace el jetpack del original, y
+    // por el mismo motivo —el potenciador es un descanso, no otra prueba.
+    if (this.volando) {
+      const tv = 1 - Math.exp(-7 * dt);
+      this.y += (this.alturaVuelo - this.y) * tv;
+      this.velocidadY = 0;
+      this.estaEnElAire = false;
+      this.estaAgachado = false;
+    }
 
     // ---- Salto y gravedad -------------------------------------------------
     if (this.estaEnElAire) {
@@ -196,14 +220,14 @@ export class Player {
     // Salirse de una tarima por el borde: el suelo desaparece bajo los pies y
     // se empieza a caer, sin salto y sin impulso. Es la penalización natural
     // de correr por arriba y no bajarse a tiempo.
-    if (!this.estaEnElAire && this.y > this.alturaSuelo + 0.01) {
+    if (!this.volando && !this.estaEnElAire && this.y > this.alturaSuelo + 0.01) {
       this.estaEnElAire = true;
       this.velocidadY = 0;
     }
     // Y al revés: si el suelo SUBE de golpe (rampa, o una tarima que aparece
     // bajo un jugador que corre a ras) se le pega al suelo nuevo en vez de
     // dejarlo hundido dentro de la madera.
-    if (!this.estaEnElAire && this.y < this.alturaSuelo) {
+    if (!this.volando && !this.estaEnElAire && this.y < this.alturaSuelo) {
       this.y = this.alturaSuelo;
     }
 
@@ -311,9 +335,36 @@ export class Player {
    */
   recibirGolpe() {
     if (this.invulnerabilidad > 0) return false;
+
+    // El salvoconducto se gasta en lugar del intento. No cuenta como golpe
+    // recibido: para eso lo recogiste.
+    if (this.escudo) {
+      this.escudo = false;
+      this.invulnerabilidad = JUGADOR.INVULNERABILIDAD;
+      return false;
+    }
+
     this.golpes += 1;
     this.invulnerabilidad = JUGADOR.INVULNERABILIDAD;
     return true;
+  }
+
+  /** Arranca o corta el vuelo de la cobertura aérea. */
+  volar(activo, altura = 0) {
+    this.volando = activo;
+    this.alturaVuelo = altura;
+    if (activo) {
+      this.estaEnElAire = false;
+      this.velocidadY = 0;
+      this.estaAgachado = false;
+      this.temporizadorAgachado = 0;
+      this.agacharAlAterrizar = false;
+      this.bufferSalto = 0;
+    } else {
+      // Al terminar, se cae. Con la caída normal, no de golpe.
+      this.estaEnElAire = true;
+      this.velocidadY = 0;
+    }
   }
 
   /** ¿Se agotaron los golpes disponibles? */
@@ -342,6 +393,10 @@ export class Player {
     this.caidaRapida = false;
     this.golpes = 0;
     this.invulnerabilidad = 0;
+    this.escudo = false;
+    this.multiplicadorSalto = 1;
+    this.volando = false;
+    this.alturaVuelo = 0;
     this.vivo = true;
     this.modelo.visible = true;
     // Se conserva la media vuelta: el personaje sigue corriendo de espaldas.
@@ -359,6 +414,7 @@ export class Player {
    */
   reiniciarTrasEscape() {
     this.vivo = true;
+    this.volando = false;
     this.golpes = 0;
     this.invulnerabilidad = JUGADOR.INVULNERABILIDAD * 1.6;
 
