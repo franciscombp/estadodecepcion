@@ -429,13 +429,28 @@ túnel. Es lo mismo que hace la bifurcación al virar, y es lo que convierte un
 tramo especial en un sitio distinto en vez de en más de lo mismo con otro
 decorado.
 
-**Lo que pasa al entrar:** la institución te **riega los papeles**. Todo lo que
-llevabas recogido se desparrama por el pasillo, en los tres carriles, y tienes
-que recuperar lo que puedas mientras corres. No hay obstáculos: el único
-obstáculo es la propia institución, que ya te quitó lo que tenías.
+**Lo que pasa al entrar:** la institución te **riega los papeles**. **Todos.**
+El marcador se pone a cero en el acto y lo que llevabas recogido se desparrama
+por el pasillo, en los tres carriles. Tienes que recuperar lo que puedas
+mientras corres. No hay obstáculos: el único obstáculo es la propia
+institución, que ya te quitó lo que tenías.
 
 Recuperarlo todo es **prácticamente imposible**, y está calibrado para que lo
 sea.
+
+**Lo que recuperas vale ×2.** Cada papel que levantas del suelo vuelve al
+marcador por dos, así que el punto de equilibrio está en recuperar **la mitad**
+del reguero: menos, y sales perdiendo; más, y el pasillo te ha pagado.
+
+Ese multiplicador es lo que hace que el tramo exista. Sin él el trámite era un
+castigo puro —entrabas con cuatrocientos, salías con ciento veinte— y la única
+lectura posible era *no entres nunca*; un tramo cuya respuesta correcta es
+evitarlo no es un tramo. Con el ×2 sigue doliendo, pero lo que decide si ganas
+o pierdes es **cómo lo corres**, no si entraste.
+
+Y encaja con lo que cuenta la escena: lo que sacas de una institución que te
+tiró los papeles al suelo vale más que lo que traías, porque ya pasó por ahí
+dentro.
 
 **Lo que pasa al salir**, según dónde entraste:
 
@@ -449,13 +464,14 @@ sea.
 **Y aun así compensa entrar**, porque a la salida encuentras **evidencia del
 caso**. Es la asimetría que sostiene el modo historia:
 
-- Para el **modo historia** el trámite **rinde**: sales con la pieza que te
-  faltaba, la digan como la digan.
-- Para el **ranking de papeles** el trámite **cuesta**: entras con un montón y
-  sales con lo que alcanzaste a recoger del suelo.
+- Para el **modo historia** el trámite **rinde siempre**: sales con la pieza que
+  te faltaba, la digan como la digan.
+- Para el **ranking de papeles** el trámite es **una apuesta**: sales con más o
+  con menos de lo que entraste según lo que hayas alcanzado a levantar.
 
-Quien juega a puntuación aprende a no entrar. Quien juega a documentar, entra.
-Que las dos formas de jugar tiren en direcciones opuestas es el punto.
+Documentar nunca se castiga; correr mal, sí. Que la parte narrativa pague fijo
+y la parte de marcador dependa de tu pulgar es lo que mantiene las dos formas
+de jugar tirando en la misma dirección sin que se estorben.
 
 ---
 
@@ -635,6 +651,34 @@ echa a correr.
 
 La portada es la única pantalla que **no** va impresa, y por una razón: es la
 ventana por la que se ve la escena. Todo lo demás sí.
+
+---
+
+## La racha
+
+Encadenar papeles sin fallar sube un contador que **no multiplica nada**. Los
+papeles son el trabajo hecho y no se inflan por ir seguidos; lo que da la racha
+es **color**.
+
+| Desde | Nombre | Color |
+|---|---|---|
+| 0 | — | dorado |
+| 6 | **EN RACHA** | naranja |
+| 14 | **IMPARABLE** | magenta |
+| 26 | **PRIMERA PLANA** | cian |
+
+Al subir de escalón cambian tres cosas a la vez: el estallido de cada papel, la
+estela que va dejando el corredor y la ficha del HUD. El color sube de
+temperatura conforme subes, que es como se lee sin que nadie lo explique.
+
+Que sea recompensa **de la que se ve y no de la que se cuenta** es lo que le
+permite escalar sin desequilibrar nada. Y encaja con lo que mide el juego: aquí
+no se puntúa por hacerlo con estilo, se puntúa por lo que traes documentado. El
+estilo se paga en pantalla.
+
+Un choque la parte en seco, y entrar a un trámite también. Los escalones son
+pocos y anchos a propósito: con un color por papel no se distingue nada, y el
+primero está en seis porque encadenar cinco es lo normal sin proponérselo.
 
 ---
 

@@ -168,6 +168,10 @@ export const CALIDAD = {
     decoradosPorLado: 16,
     sombrasNeon: true,
     particulas: true,
+    // Tamaño del pozo de chispas. Es una sola llamada de dibujo pase lo que
+    // pase, así que lo que se paga aquí es el recorrido por CPU de un array
+    // plano por fotograma: barato, pero no gratis en un móvil de gama baja.
+    pozoParticulas: 420,
   },
   media: {
     bloom: true,
@@ -175,6 +179,7 @@ export const CALIDAD = {
     decoradosPorLado: 12,
     sombrasNeon: false,
     particulas: true,
+    pozoParticulas: 220,
   },
   baja: {
     bloom: false,
@@ -182,5 +187,6 @@ export const CALIDAD = {
     decoradosPorLado: 8,
     sombrasNeon: false,
     particulas: false,
+    pozoParticulas: 0,
   },
 };

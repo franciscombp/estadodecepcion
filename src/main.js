@@ -21,7 +21,7 @@ import { AssetCache } from './utils/assetCache.js';
 import { detectarCalidad } from './utils/calidad.js';
 import { Actualizador } from './utils/actualizacion.js';
 import { PAGINAS } from './config/publicaciones.js';
-import { CATALOGO_POTENCIADORES } from './config/balance.js';
+import { CATALOGO_POTENCIADORES, RACHA, tramoRacha } from './config/balance.js';
 import * as Icono from './ui/iconos.js';
 
 // ---------------------------------------------------------------------------
@@ -340,6 +340,9 @@ async function arrancar() {
     //     { pendiente:false, titular:'…', bajada:'…', url:'…' })
     window.__paginas = PAGINAS;
     window.__cat = CATALOGO_POTENCIADORES;
+    // Los escalones de racha y su resolución, para poder ver un color sin
+    // encadenar treinta papeles a mano.
+    window.__racha = { TRAMOS: RACHA.TRAMOS, tramo: tramoRacha };
     console.info(
       `[Estado de Excepción] Modo desarrollo. Calidad detectada: ${calidad.nivel}. ` +
       'Usa window.__juego para depurar.',

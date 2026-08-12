@@ -44,6 +44,7 @@ import { TramiteManager } from './Tramite.js';
 import { Cerco } from './Cerco.js';
 import { PowerUpManager } from './PowerUps.js';
 import { Intro } from './Intro.js';
+import { Particulas } from './Particulas.js';
 
 import { crearEscenario } from '../scenes/index.js';
 import { obtenerEscenario } from '../config/escenarios.js';
@@ -53,7 +54,7 @@ import { Controles } from '../utils/controls.js';
 import { remateCaptura, remateExhausto, citaVerificada } from '../config/textos.js';
 import {
   VELOCIDAD, TRAMO, CAMARA, JUGADOR, CARRILES, CERCO, PAPELES,
-  POTENCIADORES, SENTENCIAS,
+  POTENCIADORES, SENTENCIAS, TRAMITE, RACHA, tramoRacha,
 } from '../config/balance.js';
 import { BLOOM, CALIDAD } from '../config/estilo.js';
 import { VigilanteRendimiento } from '../utils/calidad.js';
@@ -282,6 +283,18 @@ export class Game {
     this.potenciadores = new PowerUpManager(this.escenaThree);
     this.potenciadores.establecerDesbloqueados(this.cuaderno.potenciadoresDesbloqueados());
 
+    // Las chispas cuelgan de la RAÍZ de la escena, no del grupo del escenario:
+    // ese grupo se destruye entero al cambiar de temporada y se llevaría por
+    // delante el pozo. Aquí sobreviven a los cambios de escena.
+    this.particulas = new Particulas(
+      this.escenaThree,
+      this.calidad.particulas ? (this.calidad.pozoParticulas ?? 320) : 0,
+    );
+    this.particulas.redimensionar(window.innerHeight);
+    // Resto fraccionario de la estela: emitir `Math.round(0.4)` partículas por
+    // fotograma es emitir cero para siempre.
+    this.restoEstela = 0;
+
     this.escenario = null;
     // El fondo del menú es la temporada en la que se va a retomar, no siempre
     // la Bahía. Así la portada dice a dónde vas antes de que pulses nada.
@@ -333,6 +346,9 @@ export class Game {
         // redimensionan, la imagen sale estirada tras girar el móvil.
         this.compositor?.setSize(ancho, alto);
         this.pasadaBloom?.setSize(ancho, alto);
+        // El tamaño de las chispas se calcula en píxeles a partir de la altura
+        // del lienzo: sin esto, al girar el móvil salen del tamaño equivocado.
+        this.particulas?.redimensionar(alto);
       }, 120);
     };
 
@@ -674,6 +690,9 @@ export class Game {
   _entrarEnTramo(destino) {
     this.obstaculos.limpiar();
     this.papeles.limpiar();
+    // Las chispas también: al cambiar de temporada el mundo entero salta, y un
+    // estallido de la calle anterior quedaría flotando sobre la nueva.
+    this.particulas.limpiar();
     this.bifurcacion.limpiar();
     this.elevado.limpiar();
     this.tramite.limpiar();
@@ -753,7 +772,7 @@ export class Game {
       this.alMostrarAviso({
         tipo: 'golpe',
         titulo: institucion?.nombre ?? 'TRÁMITE',
-        subtitulo: 'Se te cayeron los papeles. Recógelos.',
+        subtitulo: `Se te cayeron TODOS. Lo que recojas vale ×${TRAMITE.MULTIPLICADOR_RESCATE}.`,
       });
       return;
     }
@@ -763,6 +782,16 @@ export class Game {
       titulo: institucion?.nombre ?? 'SE ARCHIVÓ',
       subtitulo: institucion?.portazo ?? 'Se archiva el caso.',
     });
+    // El ×2 se anuncia siempre, también en la versión corta. Es la única cifra
+    // del trámite que cambia si vale la pena entrar, y esta es la variante que
+    // se ve a partir de la segunda visita: o sea, casi todas las veces.
+    if (extra.devueltos) {
+      this.alMostrarAviso({
+        tipo: 'bifurcacion',
+        titulo: `×${extra.multiplicador ?? 2}: +${extra.devueltos}`,
+        subtitulo: `Recogiste ${extra.recuperados ?? 0} del suelo y valen el doble`,
+      });
+    }
     if (extra.hallazgo) {
       this.alMostrarAviso({
         tipo: 'evidencia',
@@ -830,11 +859,14 @@ export class Game {
   _salirDelTramite() {
     const institucion = this.rutas.datosInstitucion(this.escenarioActual);
     const recuperados = this.tramite.papelesRecuperados();
+    const devueltos = this.tramite.papelesDevueltos();
     const perdidos = this.tramite.papelesPerdidos();
     const perfecto = this.tramite.esPerfecto();
 
-    // Vuelve a la cuenta lo que se levantó del suelo.
-    this.papelesPartida += recuperados;
+    // Vuelve a la cuenta lo que se levantó del suelo, POR DOS. Ver
+    // TRAMITE.MULTIPLICADOR_RESCATE: sin el ×2 la única jugada correcta era no
+    // entrar nunca, y un tramo que solo se puede evitar no es un tramo.
+    this.papelesPartida += devueltos;
 
     // El hallazgo del caso. Es lo único que compensa haber entrado.
     const hallazgo = institucion?.hallazgo;
@@ -850,7 +882,10 @@ export class Game {
 
     // Otra parada, y por el mismo motivo: el portazo es el remate de la
     // escena, y un remate que se va solo a los dos segundos no remata nada.
-    this._contarInstitucion('salida', { hallazgo, recuperados, perdidos });
+    this._contarInstitucion('salida', {
+      hallazgo, recuperados, perdidos, devueltos,
+      multiplicador: TRAMITE.MULTIPLICADOR_RESCATE,
+    });
   }
 
   /**
@@ -964,6 +999,17 @@ export class Game {
         break;
     }
 
+    // Anillo y estallido en el color del propio potenciador, que ya lo lleva en
+    // el catálogo. Anillo Y estallido, no uno de los dos: es el único momento
+    // del juego en que pasa algo que cambia las reglas durante diez segundos, y
+    // tiene que verse distinto de recoger un papel más.
+    this.particulas.anillo(this.jugador.x, this.jugador.y + 0.9, 0.2, {
+      color: def.color ?? 0x39d98a, cantidad: 34, radio: 7.5, vida: 0.62, tam: 0.4,
+    });
+    this.particulas.estallido(this.jugador.x, this.jugador.y + 1.1, 0.2, {
+      color: def.color ?? 0x39d98a, cantidad: 24, fuerza: 4.6, tam: 0.42, vida: 0.62,
+    });
+
     this.alMostrarAviso({
       tipo: 'potenciador',
       titulo: def.nombre.toUpperCase(),
@@ -984,6 +1030,73 @@ export class Game {
       this.efectos.delete(id);
       this._desactivarPotenciador(id);
     }
+  }
+
+  /**
+   * LA ESTELA. Lo que va dejando el corredor mientras corre y mientras vuela.
+   *
+   * Son dos efectos distintos y no uno con una variable:
+   *
+   *   · CORRIENDO deja polvo a ras de suelo, saliendo hacia atrás desde los
+   *     pies. Sin racha es gris y casi no se ve —es polvo de la calle—; con
+   *     racha toma el color del escalón y se vuelve denso. Esa es la única
+   *     forma en que la racha se paga, así que tiene que notarse.
+   *   · VOLANDO deja un chorro hacia ABAJO, que es lo que hace legible que
+   *     estás sostenido en el aire y no saltando. Va siempre, con racha o sin
+   *     ella: no es premio, es información.
+   *
+   * El acumulador `restoEstela` está ahí porque la cantidad por fotograma es
+   * fraccionaria: emitir `Math.round(0.4)` partículas sesenta veces por segundo
+   * es no emitir ninguna nunca.
+   */
+  _emitirEstela(dt, velocidad) {
+    if (!this.particulas.activo) return;
+
+    const t = tramoRacha(this.combo);
+    const enSuelo = !this.jugador.estaEnElAire && !this.jugador.volando;
+
+    if (this.jugador.volando) {
+      this.particulas.chorro(this.jugador.x, this.jugador.y + 0.15, 0.35, {
+        color: t.desde > 0 ? t.color : 0x4fd8ff,
+        cantidad: 2,
+        dispersion: 0.34,
+        empuje: { x: 0, y: -5.2, z: 1.5 },
+        tam: 0.32, vida: 0.34, gravedad: -1.2, roce: 2.4,
+      });
+      return;
+    }
+
+    // Sin racha y en el aire no hay nada que levantar: el polvo sale de pisar.
+    if (!enSuelo || t.estela === 0) { this.restoEstela = 0; return; }
+
+    // Escala con la velocidad: a paso de arranque el polvo es un hilo y a
+    // velocidad de crucero es una cola. Sale gratis y es lo que hace que
+    // acelerar se sienta como acelerar.
+    const porSegundo = t.estela * (0.6 + velocidad / VELOCIDAD.MAXIMA);
+    this.restoEstela += porSegundo * dt;
+    const cuantas = Math.floor(this.restoEstela);
+    if (cuantas <= 0) return;
+    this.restoEstela -= cuantas;
+
+    // DÓNDE SE EMITE, que resultó ser lo único que importaba aquí.
+    //
+    // La primera versión soltaba polvo a ras de suelo, a la altura de los pies.
+    // Es lo lógico y no se veía NADA, por geometría: la cámara está a cuatro
+    // metros de alto y el borde inferior del cuadro corta el asfalto a dos
+    // metros y pico por detrás del corredor. Todo lo que se emite pegado al
+    // suelo cae fuera de cuadro en una décima de segundo.
+    //
+    // Ahora sale a la altura de la cintura y subiendo despacio, con lo que se
+    // queda dentro del encuadre casi el doble de tiempo. El empuje hacia atrás
+    // sigue siendo pequeño: la cola la hace el mundo, que ya arrastra cada
+    // chispa dieciocho metros por segundo hacia la cámara.
+    this.particulas.chorro(this.jugador.x, this.jugador.y + 0.85, 0.5, {
+      color: t.color,
+      cantidad: cuantas,
+      dispersion: 0.62,
+      empuje: { x: 0, y: 1.1, z: 0.6 },
+      tam: 0.3, vida: 0.55, gravedad: 0.9, roce: 1.2,
+    });
   }
 
   _desactivarPotenciador(id) {
@@ -1242,6 +1355,9 @@ export class Game {
 
     // ---- Subsistemas ------------------------------------------------------
     this.pista.actualizar(avance);
+    // Las chispas se mueven con el mundo, igual que los obstáculos: si no, el
+    // polvo de las pisadas se queda flotando mientras la calle pasa por debajo.
+    this.particulas.actualizar(dt, avance);
 
     // La Bahía va techada, y su bóveda no puede atravesar la fachada de la
     // bifurcación: el escenario necesita saber dónde se acaba la calle.
@@ -1288,8 +1404,27 @@ export class Game {
     if (recogido.papeles > 0) {
       this.papelesPartida += recogido.papeles * this.multiplicadorPapeles;
       this.combo += 1;
-      this.temporizadorCombo = 1.5;
+      this.temporizadorCombo = RACHA.CADUCIDAD;
       this.audio.papel(this.combo);
+
+      // El estallido, del color del escalón de racha en el que vas. Es toda la
+      // recompensa que da la racha —no toca el marcador— y por eso tiene que
+      // verse: sale donde está el jugador, no donde estaba el papel, porque lo
+      // que se celebra es que lo cogiste tú.
+      const t = tramoRacha(this.combo);
+      this.particulas.estallido(this.jugador.x, this.jugador.y + 1.05, 0.2, {
+        color: t.color,
+        cantidad: t.chispas,
+        fuerza: 3.0 + this.combo * 0.03,
+      });
+      if (this.combo === t.desde && t.nombre) {
+        // Solo en el fotograma en que se sube de escalón, no en cada papel.
+        this.particulas.anillo(this.jugador.x, this.jugador.y + 0.9, 0.2, {
+          color: t.color, cantidad: 30, radio: 6.5,
+        });
+        this.alMostrarAviso({ tipo: 'racha', titulo: t.nombre, subtitulo: `${this.combo} seguidos` });
+      }
+
       // El trámite se puntúa por PIEZAS, no por valor: el expediente está
       // completo o no lo está.
       if (this.tramite.activo) this.tramite.contar(recogido.cantidad);
@@ -1307,6 +1442,8 @@ export class Game {
       this.temporizadorCombo -= dt;
       if (this.temporizadorCombo <= 0) this.combo = 0;
     }
+
+    this._emitirEstela(dt, velocidadEfectiva);
 
     // ---- Trámite ----------------------------------------------------------
     // Es un tramo aparte: sin obstáculos, sin bifurcación y sin captura. Se
@@ -1339,6 +1476,14 @@ export class Game {
       );
       this.perseguidor.acercarPorGolpe();
       this.combo = 0;
+
+      // Al chocar, los papeles salen volando. Es literal —el estallido va en el
+      // dorado del papel y hacia arriba y atrás— y remata la deformación del
+      // personaje: el golpe se lee en el cuerpo y en lo que se le cae.
+      this.particulas.estallido(this.jugador.x, this.jugador.y + 1.0, 0.3, {
+        color: 0xf0e2b0, cantidad: 22, fuerza: 5.2, tam: 0.38,
+        vida: 0.75, gravedad: 8, subida: 2.4,
+      });
 
       const esc = obtenerEscenario(this.escenarioActual);
       this.alMostrarAviso({

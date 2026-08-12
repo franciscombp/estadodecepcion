@@ -293,21 +293,46 @@ Cada escena tiene el suyo: la Bahía lleva a la **Fiscalía**, el Apagón a la
 **Asamblea**, las Elecciones al **CNE**, y el centro histórico a **Carondelet**,
 que está cercado y donde ir de frente es estrellarse.
 
-Entrar **no es un premio**. La institución te **riega los papeles**: se
-desparrama por el pasillo todo lo que llevabas recogido y hay que recuperar lo
-que se pueda mientras corres. No hay obstáculos, porque el obstáculo es la
-propia institución. Recuperarlo todo es prácticamente imposible y está
-calibrado para que lo sea.
+Entrar **no es un premio**. La institución te **riega los papeles**: al cruzar
+la puerta **el marcador se pone a cero**, todos, y lo que llevabas recogido
+queda desparramado por el pasillo. Hay que recuperar lo que se pueda mientras
+corres. No hay obstáculos, porque el obstáculo es la propia institución.
+Recuperarlo todo es prácticamente imposible y está calibrado para que lo sea.
+
+#### Lo que recuperas vale ×2
+
+`TRAMITE.MULTIPLICADOR_RESCATE`. Cada papel que levantas del suelo vuelve al
+marcador **por dos**, y esa cifra decide si el tramo funciona:
+
+| Recuperas | Vuelve al marcador | Contra los que entraste |
+|---|---|---|
+| ¼ del reguero | media entrada | pierdes la mitad |
+| **½ del reguero** | **la entrada entera** | **empatas** |
+| ¾ del reguero | vez y media | ganas |
+
+Sin el ×2 el trámite era un castigo puro: entrabas con cuatrocientos, salías
+con ciento veinte, y la única lectura posible era «no entres nunca». Un tramo
+al que la respuesta correcta es evitarlo no es un tramo, es un error de diseño.
+Con el multiplicador la cuenta cambia de signo sin dejar de doler —recuperar la
+mitad del reguero ya es difícil— y lo que decide si ganas o pierdes pasa a ser
+**cómo lo corres**, no si entraste.
+
+Encaja además con lo que cuenta la escena: lo que sacas de una institución que
+te tiró los papeles al suelo vale más que lo que traías, porque ya pasó por ahí
+dentro.
+
+El ×2 se anuncia en tres sitios —el aviso de entrada, el rótulo permanente del
+expediente en el HUD y la pantalla de salida, donde va con su propio renglón en
+vez de sumado en silencio—. Una bonificación que no se ve no cambia ninguna
+decisión.
 
 Al salir te dan con la puerta en las narices —se archiva el caso, faltan votos,
 te quitan los derechos políticos— **pero sales con la pieza que te faltaba**.
 Esa asimetría es lo que sostiene el modo historia:
 
 - Para el **archivo** el trámite **rinde**: sales con el hallazgo.
-- Para el **ranking** el trámite **cuesta**: entras con un montón y sales con
-  lo que alcanzaste a levantar del suelo.
-
-Quien juega a puntuación aprende a no entrar. Quien juega a documentar, entra.
+- Para el **ranking** el trámite es **una apuesta**: entras con un montón, y
+  sales con más o con menos según lo que hayas levantado del suelo.
 
 Antes había una ruleta: un porcentaje, un giro y la suerte decidía. Funcionaba
 como chiste una vez y como mecánica ninguna, porque el jugador solo miraba.
@@ -892,6 +917,49 @@ Al portarlas hay cuatro cosas que costaron y conviene no repetir:
   cinco *por el color de la camiseta*, y en gris los seis son la misma silueta y
   el juego deja de tener solución.
 
+### La racha y las chispas
+
+`src/game/Particulas.js` y `RACHA` en `config/balance.js`.
+
+**La racha no toca el marcador, y es a propósito.** Los papeles son el trabajo
+hecho y no se inflan por ir seguidos. Lo que da la racha es **color**: el
+estallido de cada papel y la estela del corredor suben de tono, y aparece una
+ficha en el HUD. Recompensa de la que se ve, no de la que se cuenta — por eso
+puede escalar cuanto quiera sin desequilibrar nada.
+
+Cuatro escalones, pocos y anchos (0 / 6 / 14 / 26): con un color por papel nadie
+distingue nada. El primero está en 6 porque encadenar cinco es lo normal sin
+proponérselo, y el color tiene que empezar donde empieza el mérito.
+
+El sistema de partículas es **un solo `THREE.Points`** con un pozo fijo —420
+partículas en calidad alta, 220 en media, ninguna en baja—. Todos los efectos
+del juego salen de ahí, así que el conjunto cuesta exactamente una llamada de
+dibujo. Cuatro cosas que costaron encontrar:
+
+- **Mezcla normal, no aditiva.** En aditivo las chispas brillan sobre el asfalto
+  del Apagón y son *literalmente invisibles* en la Bahía: sumar luz a un fondo
+  casi blanco no cambia el píxel, y tres de los cuatro escenarios van de día. El
+  brillo lo pone el bloom, que ya estaba puesto. El desvanecido va por alfa en
+  su propio atributo, para que el color se quede por encima del umbral de
+  floración hasta el final.
+- **Hay que matar las partículas que pasan la cámara.** Un punto detrás del
+  observador proyecta a coordenadas sin sentido y, como el tamaño se divide por
+  la distancia, se dispara a miles de píxeles: salían cuadrados blancos enormes
+  flotando en mitad de la calle. Se apagan al cruzar `zLimite` y el shader lleva
+  además una guarda de profundidad.
+- **La estela hay que emitirla a la altura de la cintura, no de los pies.** Con
+  la cámara a cuatro metros de alto, el borde inferior del cuadro corta el
+  asfalto a dos metros por detrás del corredor: todo lo que sale pegado al suelo
+  desaparece en una décima de segundo. Es la misma cuenta que dicta las
+  cantidades de `RACHA.TRAMOS` —la ventana visible es de unas dos décimas, así
+  que hacen falta cientos de chispas por segundo para que se lea como una cola.
+- **`frustumCulled = false`.** Las posiciones se escriben a mano y la caja
+  envolvente no se recalcula nunca; con el descarte puesto, el sistema entero
+  desaparecía en cuanto la caja original salía de cámara.
+
+Volando el chorro va **hacia abajo** y sale siempre, con racha o sin ella: ahí
+no es premio, es la información de que estás sostenido en el aire y no saltando.
+
 ### Ninguna pantalla hace scroll
 
 **Regla dura**: cada pantalla cabe entera en un móvil. Si no cabe, se parte en
@@ -957,8 +1025,14 @@ vía, flecha y pestaña de salida— que **baja desde el techo de la pantalla**,
 queda quieta mientras dura la decisión y se sube al cruzar. Lo que sigue en el
 mundo son las flechas del asfalto, que están donde ya se está mirando.
 
-**Los avisos van centrados.** Estaban en la columna derecha, junto a la barra
-del perseguidor, y ahí no los leía nadie: la vista está en el centro y abajo.
+**Los avisos van centrados y arriba.** Centrados porque a un costado —donde
+estaban, junto a la barra del perseguidor— no los leía nadie: la vista está en
+el carril. Y arriba porque al 38% de la pantalla caían justo sobre el punto de
+fuga, que es el trozo de calle donde aparecen los obstáculos que aún da tiempo a
+esquivar: un aviso ahí obliga a esquivar a ciegas y añade una dificultad que no
+es la del juego. Ahora se pegan debajo de la fila superior, se apartan hacia
+abajo mientras el cartel de salida está puesto —comparten banda, y el aviso de
+«ELIGE TÚNEL» sale en el mismo fotograma que él— y vuelven solos.
 
 **El potenciador activo se ve.** Pastilla cuadrada grande abajo a la izquierda
 con el icono, y debajo una **batería de ocho casillas** que se van apagando; las

@@ -412,6 +412,52 @@ export const TUNEL = {
 // Entrar de frente no abre una ruleta: la institución te RIEGA LOS PAPELES.
 // Se desparraman por el pasillo los que traías y sales con lo que alcances a
 // recoger del suelo. Ver docs/GUION.md y game/Tramite.js.
+// ============================================================================
+// LA RACHA — Encadenar papeles sin fallar
+// ============================================================================
+// El contador de racha existía desde el principio y no se veía en ningún sitio:
+// subía, sonaba un poco más agudo y ahí se quedaba. Un multiplicador invisible
+// no cambia cómo juega nadie.
+//
+// NO TOCA EL MARCADOR, Y ESO ES A PROPÓSITO. La racha no multiplica papeles:
+// los papeles son el trabajo hecho y no se inflan por ir seguidos. Lo que da la
+// racha es COLOR —el estallido de cada papel y la estela del corredor suben de
+// tono— y la ficha del HUD. Es recompensa de la que se ve, no de la que se
+// cuenta, y por eso puede escalar todo lo que quiera sin desequilibrar nada.
+//
+// LOS ESCALONES SON POCOS Y ANCHOS. Con un color por papel nadie distingue
+// nada; con cuatro tramos, cada salto se nota y se persigue. El primero está en
+// 6 porque encadenar cinco es lo normal sin proponérselo: el color tiene que
+// empezar donde empieza el mérito.
+export const RACHA = {
+  // Segundos sin recoger antes de que se caiga. Un poco más de lo que tarda un
+  // cambio de carril: cambiar de fila no puede costarte la racha.
+  CADUCIDAD: 1.5,
+
+  // Cada escalón: desde qué racha, con qué color y con cuánta chispa.
+  // El color va de dorado a rojo pasando por naranja y magenta — sube de
+  // temperatura, que es como se lee sin explicación.
+  // `estela` es CHISPAS POR SEGUNDO, y los números parecen disparatados hasta
+  // que se hace la cuenta: la ventana en la que una chispa de la estela se ve
+  // es de unos tres metros y medio detrás del corredor —más atrás cae por
+  // debajo del borde inferior del cuadro—, y a dieciocho metros por segundo eso
+  // son DOS DÉCIMAS de vida útil. Con veinte por segundo salían cuatro puntos
+  // sueltos; para que se lea como una cola hacen falta estos.
+  TRAMOS: [
+    { desde: 0, nombre: '', color: 0xffcf3f, chispas: 10, estela: 0 },
+    { desde: 6, nombre: 'EN RACHA', color: 0xffa033, chispas: 18, estela: 70 },
+    { desde: 14, nombre: 'IMPARABLE', color: 0xff5fa8, chispas: 26, estela: 130 },
+    { desde: 26, nombre: 'PRIMERA PLANA', color: 0x4fd8ff, chispas: 36, estela: 210 },
+  ],
+};
+
+/** El escalón de racha que toca para un contador dado. */
+export function tramoRacha(combo) {
+  let actual = RACHA.TRAMOS[0];
+  for (const t of RACHA.TRAMOS) if (combo >= t.desde) actual = t;
+  return actual;
+}
+
 export const TRAMITE = {
   LONGITUD: 340,        // Metros dentro del pasillo del ente de control.
 
@@ -434,6 +480,24 @@ export const TRAMITE = {
   // Y aun recuperándolo todo el ente te da con la puerta en las narices; lo
   // que cambia es que el caso sigue vivo.
   UMBRAL_PERFECTO: 1,
+
+  // LO QUE RECUPERAS DEL SUELO VALE EL DOBLE.
+  //
+  // Al entrar el marcador se pone a CERO —te los quitan todos, no una parte— y
+  // eso deja el trámite como un castigo puro: entrabas con cuatrocientos, salías
+  // con ciento veinte, y la lectura era «no entres nunca». Un tramo al que la
+  // única respuesta correcta es evitarlo no es un tramo, es un error.
+  //
+  // Con el ×2 la cuenta cambia de signo sin dejar de doler: hay que recuperar
+  // la mitad del reguero para salir en tablas, y a partir de ahí el pasillo
+  // PAGA. Sigue costando —recuperar la mitad ya es difícil, y el reguero está
+  // hecho para que recuperarlo entero sea casi imposible—, pero ahora lo que
+  // decide si ganas o pierdes es cómo lo corres, no si entraste.
+  //
+  // Y encaja con lo que cuenta la escena: lo que sacas de una institución que
+  // te tiró los papeles al suelo vale más que lo que traías, porque ya pasó por
+  // ahí dentro.
+  MULTIPLICADOR_RESCATE: 2,
 };
 
 // ---------------------------------------------------------------------------

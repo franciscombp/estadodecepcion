@@ -593,9 +593,16 @@ export class Pantallas {
     // A la salida, el balance. Es información de partida y va con formato de
     // dato, no de narración.
     if (!esEntrada) {
+      // Tres cifras y en este orden, porque cuentan una operación: levantaste
+      // esto del suelo, se te quedó esto otro, y al marcador vuelve el doble.
+      // El ×2 va en medio y con su propio rótulo —no sumado en silencio— porque
+      // es lo único que hace que entrar al trámite pueda salir a cuenta, y una
+      // bonificación que no se ve no cambia ninguna decisión.
+      const mult = datos.multiplicador ?? 2;
       plana.appendChild(estadisticas([
-        [String(datos.recuperados ?? 0), 'Recuperados'],
-        [String(datos.perdidos ?? 0), 'En el suelo'],
+        [String(datos.recuperados ?? 0), 'Del suelo'],
+        [String(datos.perdidos ?? 0), 'Ahí quedaron'],
+        [String(datos.devueltos ?? (datos.recuperados ?? 0) * mult), `Al marcador ×${mult}`],
       ]));
 
       if (datos.hallazgo) {

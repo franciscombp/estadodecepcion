@@ -22,7 +22,7 @@
 // come el presupuesto de 16 ms en un móvil de gama media.
 // ============================================================================
 
-import { JUGADOR } from '../config/balance.js';
+import { JUGADOR, tramoRacha } from '../config/balance.js';
 
 // Casillas de la batería de un potenciador activo. Ocho es el número que hace
 // que cada una valga algo: con cuatro, cada casilla es un cuarto de la duración
@@ -81,6 +81,14 @@ export class HUD {
         <div class="contador contador--dorado">
           <span class="contador__valor" data-campo="papeles">0</span>
           <span class="contador__icono">${Icono.papeles(26)}</span>
+
+          <!-- La racha. Cuelga del contador de papeles porque es lo que la
+               produce, y hacia abajo, fuera de la calle. No multiplica nada:
+               es el termómetro de que vas encadenando. -->
+          <span class="racha racha--oculta" data-campo="racha">
+            <span class="racha__x" data-campo="racha-valor">×0</span>
+            <span class="racha__nombre" data-campo="racha-nombre"></span>
+          </span>
         </div>
       </div>
 
@@ -171,6 +179,9 @@ export class HUD {
     this.ref = {
       pausa: q('pausa'),
       papeles: q('papeles'),
+      racha: q('racha'),
+      rachaValor: q('racha-valor'),
+      rachaNombre: q('racha-nombre'),
       distancia: q('distancia'),
       intentos: q('intentos'),
       nombreEscenario: q('nombre-escenario'),
@@ -277,6 +288,29 @@ export class HUD {
       c.papeles = datos.papeles;
     }
 
+    // --- Racha -------------------------------------------------------------
+    // Aparece a partir del primer escalón con nombre y no antes: encadenar
+    // cinco papeles es lo normal sin proponérselo, y una ficha que sale sola
+    // cada cuatro segundos deja de significar nada a los dos minutos.
+    if (datos.combo !== c.combo) {
+      const t = tramoRacha(datos.combo ?? 0);
+      const luce = !!t.nombre;
+
+      this.ref.racha.classList.toggle('racha--oculta', !luce);
+      if (luce) {
+        this.ref.rachaValor.textContent = `×${datos.combo}`;
+        this.ref.rachaNombre.textContent = t.nombre;
+        this.ref.racha.style.setProperty('--tono', `#${t.color.toString(16).padStart(6, '0')}`);
+        // Un rebote por papel encadenado. Es la misma técnica que el latido del
+        // contador: quitar la clase, forzar el reflujo y volver a ponerla, que
+        // es la única forma de reiniciar una animación CSS ya empezada.
+        this.ref.racha.classList.remove('racha--sube');
+        void this.ref.racha.offsetWidth;
+        this.ref.racha.classList.add('racha--sube');
+      }
+      c.combo = datos.combo;
+    }
+
     // --- Distancia ---------------------------------------------------------
     if (datos.distancia !== c.distancia) {
       this.ref.distancia.textContent = `${datos.distancia.toLocaleString('es-EC')} m`;
@@ -378,9 +412,12 @@ export class HUD {
       // el recuento final.
       const perdido = tramite.recogidos < Math.round(tramite.progreso * tramite.total) - 2;
       this.ref.expediente.classList.toggle('expediente--perdido', perdido);
+      // El ×2 va en el rótulo permanente del expediente, no en un aviso que se
+      // va solo: es la regla del tramo, y hay que poder consultarla en
+      // cualquier momento de los trescientos cuarenta metros que dura.
       this.ref.expedienteAviso.textContent = perdido
-        ? 'YA SE TE QUEDARON ATRÁS'
-        : 'RECUPERA LOS QUE PUEDAS';
+        ? 'YA SE TE QUEDARON ATRÁS · VALEN ×2'
+        : 'RECÓGELOS: VALEN ×2';
       this.cache.tramite = tramite.recogidos;
     }
 
@@ -590,6 +627,9 @@ export class HUD {
 
     this.ref.rotuloSalida.textContent = centroEsPeligro ? 'SIN SALIDA' : 'PRÓXIMA SALIDA';
     this.ref.rotulo.classList.toggle('rotulo--peligro', centroEsPeligro);
+    // Los avisos viven en esta misma banda: se apartan mientras el cartel esté
+    // puesto. El aviso de «ELIGE TÚNEL» sale en el mismo fotograma que él.
+    this.ref.avisos?.classList.add('avisos--bajo-rotulo');
     // Dos fotogramas de margen: aplicar la clase en el mismo tick en que se
     // rellena el contenido se salta la transición y el cartel aparece de golpe.
     requestAnimationFrame(() => {
@@ -600,5 +640,6 @@ export class HUD {
   /** Lo sube otra vez. La transición la lleva el CSS. */
   ocultarRotulo() {
     this.ref?.rotulo?.classList.add('rotulo--oculto');
+    this.ref?.avisos?.classList.remove('avisos--bajo-rotulo');
   }
 }

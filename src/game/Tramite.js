@@ -5,23 +5,27 @@
 // central del juego.
 //
 // LO QUE PASA AL ENTRAR
-// La institución te riega los papeles. No aparecen papeles nuevos: se
-// desparraman por el pasillo LOS QUE TRAÍAS, en los tres carriles, y hay que
-// recuperar los que se pueda mientras corres. No hay obstáculos aquí dentro
-// porque el obstáculo es la propia institución, que ya te quitó lo que tenías.
+// La institución te riega los papeles. TODOS: el marcador se pone a cero en el
+// acto. No aparecen papeles nuevos, se desparraman por el pasillo LOS QUE
+// TRAÍAS, en los tres carriles, y hay que recuperar los que se pueda mientras
+// corres. No hay obstáculos aquí dentro porque el obstáculo es la propia
+// institución, que ya te quitó lo que tenías.
+//
+// LO QUE RECUPERAS VALE ×2 (ver TRAMITE.MULTIPLICADOR_RESCATE). El equilibrio
+// está en levantar la mitad del reguero: menos, y sales perdiendo; más, y el
+// pasillo te pagó. Sin ese multiplicador esto era un castigo puro y la única
+// jugada correcta era no entrar nunca, que es tanto como no tener el tramo.
 //
 // LO QUE PASA AL SALIR
 // Te dan con la puerta en las narices —se archiva el caso, faltan votos, te
 // quitan los derechos políticos— pero sales con la pieza que te faltaba del
 // caso. Esa asimetría es lo que sostiene el modo historia:
 //
-//   · Para el ARCHIVO el trámite rinde: sales con el hallazgo.
-//   · Para el RANKING el trámite cuesta: entras con un montón y sales con lo
-//     que alcanzaste a recoger del suelo.
+//   · Para el ARCHIVO el trámite RINDE SIEMPRE: sales con el hallazgo.
+//   · Para el MARCADOR es UNA APUESTA: sales con más o con menos según lo que
+//     hayas alcanzado a levantar del suelo.
 //
-// Quien juega a puntuación aprende a no entrar. Quien juega a documentar,
-// entra. Que las dos formas de jugar tiren en direcciones opuestas es el
-// punto, no un desequilibrio que haya que corregir.
+// Documentar nunca se castiga; correr mal, sí.
 //
 // POR QUÉ ANTES ERA UNA RULETA Y YA NO
 // Un porcentaje, un giro, y la suerte decidía. Funcionaba como chiste una vez
@@ -153,12 +157,30 @@ export class TramiteManager {
     this.recuperadas += cantidad;
   }
 
-  /** Cuántos papeles vuelves a tener, de los que te quitaron. */
+  /** Cuántos papeles levantaste del suelo, en crudo y sin el ×2. */
   papelesRecuperados() {
     return Math.round(this.recuperadas * this.valorPorPieza);
   }
 
-  /** Cuántos se quedaron por el suelo. */
+  /**
+   * Lo que de verdad vuelve al marcador: lo recuperado POR DOS.
+   *
+   * El multiplicador vive aquí y no en Game para que la pantalla de salida y la
+   * cuenta del jugador saquen la cifra del mismo sitio. Cuando estaban en dos
+   * lados, la pantalla decía una cosa y el contador otra.
+   */
+  papelesDevueltos() {
+    return this.papelesRecuperados() * TRAMITE.MULTIPLICADOR_RESCATE;
+  }
+
+  /**
+   * Cuántos se quedaron por el suelo.
+   *
+   * Se cuenta sobre lo RECUPERADO EN CRUDO, no sobre lo devuelto: el ×2 es una
+   * bonificación, no papeles que hayas levantado. Si se restara lo devuelto,
+   * recuperar más de la mitad daría «perdidos: 0» con medio pasillo aún lleno
+   * de papeles, y la cifra dejaría de significar nada.
+   */
   papelesPerdidos() {
     return Math.max(0, this.confiscados - this.papelesRecuperados());
   }
