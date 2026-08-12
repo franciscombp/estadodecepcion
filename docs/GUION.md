@@ -339,6 +339,13 @@ suelo.
 Aquí no hay nada que esquivar ni nada que pulsar salvo seguir: es el único
 momento del juego en que se puede pedir atención sin quitársela a otra cosa.
 
+**Y se cuenta UNA VEZ.** El relato explica de qué va este sitio, y eso se
+explica una vez. A la quinta visita a la Fiscalía, tres párrafos contando que
+pediste cita tres veces son tres párrafos que ya se leyeron, y parar el juego
+para repetirlos deja de ser un respiro y pasa a ser un peaje. De la segunda en
+adelante se entra directo, con la acusación de siempre —**se te cayeron los
+papeles, recógelos**— y se sale con el portazo, sin parar nada.
+
 **Cómo se escriben esos textos.** En segunda persona y sobre **lo que te pasa a
 ti**: qué haces, qué te dicen, qué te devuelven. Pediste cita tres veces; te
 mandan pasar la carpeta por la banda y no está cerrada; la sesión se levanta
@@ -387,12 +394,25 @@ Que las dos formas de jugar tiren en direcciones opuestas es el punto.
 
 ### 1 · El cerco
 
-El mundo se para. Los dos te caen encima por un lado y **cinco policías cierran
-un círculo**. La cámara retrocede para que se vea. Solo entonces aparece la
-interfaz.
+El mundo se para. Los dos te caen encima por un lado, **cinco policías cierran
+un círculo** y **tú acabas boca abajo en el asfalto**, con los brazos y las
+piernas abiertos. La cámara se coloca en picado para que se vea. Solo entonces
+aparece la interfaz.
 
 Chocar y ver la pantalla de fin de partida en el mismo fotograma convierte la
 derrota en un corte. Representarla la convierte en una escena.
+
+Que el personaje **caiga** y no se quede de pie doblándose por la cintura es la
+diferencia entre «se cansó» y «lo tumbaron». Y no es solo el remate: de ese
+fotograma sale la foto que se imprime al día siguiente en portada.
+
+### Y los choques que no te matan
+
+Chocar sin perder la partida también se ve en el cuerpo. **Squash and stretch**
+de manual: el personaje se aplasta contra lo que se llevó por delante y vuelve
+a su forma con un rebote elástico, dando una vuelta entera sobre sí mismo.
+Menos de medio segundo. Antes solo restaba un intento y sacudía la cámara, así
+que el golpe lo sabía el HUD antes que el muñeco.
 
 ### 2 · El sorteo del juez
 

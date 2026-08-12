@@ -456,12 +456,21 @@ export const CERCO = {
   // que solo caben dos figuras. Retrocediendo y subiendo entra todo —el
   // jugador, los cinco policías y el dúo— y encima se conserva la orientación,
   // así que el corte no marea.
-  CAMARA: { x: 2.2, y: 8.6, z: 22 },
-  CAMARA_MIRA_Y: 1.1,
+  // Plano del cerco. Se acortó junto con la cámara de juego y por el mismo
+  // motivo, y además porque el jugador ahora TERMINA EN EL SUELO: desde 22
+  // unidades y ocho y medio de alto, un cuerpo tumbado detrás de cinco
+  // policías es una mancha de tres píxeles. De aquí sale la foto que se
+  // imprime al día siguiente, así que tiene que verse quién está tirado.
+  // MÁS ALTA QUE ANTES Y MÁS CERCA, y mirando casi al suelo: un cuerpo tumbado
+  // se lee desde arriba, no desde su misma altura. A ras se ve un bulto entre
+  // piernas; picado se ve quién está tirado y quién lo rodea.
+  CAMARA: { x: 1.4, y: 6.6, z: 9 },
+  CAMARA_MIRA_Y: 0.35,
   // Desplazamiento lateral de los perseguidores durante el cerco: se ponen a
   // un lado en vez de encima, o taparían al personaje justo en el momento en
-  // que hay que verlo.
-  DESVIO_PERSEGUIDOR: 1.7,
+  // que hay que verlo. Subió a 2.6 al pasar el jugador a caer al suelo: dos
+  // figuras de pie a metro y medio de un cuerpo tumbado lo tapan entero.
+  DESVIO_PERSEGUIDOR: 2.6,
 
   // --- Sorteo del juez ---------------------------------------------------
   // Seis jueces y un selector que los recorre. Cinco llevan la camiseta

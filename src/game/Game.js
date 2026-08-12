@@ -708,8 +708,21 @@ export class Game {
    */
   _contarInstitucion(fase, extra = {}) {
     const institucion = this.rutas.datosInstitucion(this.escenarioActual);
-    this.controles.desactivar();
 
+    // SOLO LA PRIMERA VEZ. El relato explica de qué va este sitio, y eso se
+    // explica una vez: a la quinta visita a la Fiscalía, tres párrafos
+    // contando que pediste cita tres veces son tres párrafos que ya se
+    // leyeron, y parar el juego para repetirlos deja de ser un respiro y pasa
+    // a ser un peaje.
+    //
+    // A partir de la segunda entra directo, con la acusación de siempre: se te
+    // cayeron los papeles, recógelos.
+    if (this.cuaderno.yaConoceInstitucion(this.escenarioActual)) {
+      this._resumirInstitucion(fase, institucion, extra);
+      return;
+    }
+
+    this.controles.desactivar();
     this._establecerEstado('relato', {
       fase,
       institucion: institucion?.nombre ?? 'EL TRÁMITE',
@@ -720,6 +733,45 @@ export class Game {
       escenario: this.escenarioActual,
       ...extra,
     });
+
+    // Se marca al SALIR, no al entrar: si se marcara en la entrada, quien se
+    // encuentra el trámite por primera vez leería el arranque y se quedaría
+    // sin el remate.
+    if (fase === 'salida') {
+      this.cuaderno.marcarInstitucionContada(this.escenarioActual);
+    }
+  }
+
+  /**
+   * La versión corta, de la segunda visita en adelante: un aviso y a correr.
+   * Sin parar el juego, sin pantalla y sin botón.
+   */
+  _resumirInstitucion(fase, institucion, extra) {
+    if (fase === 'entrada') {
+      this._entrarEnTramite();
+      this.alMostrarAviso({
+        tipo: 'golpe',
+        titulo: institucion?.nombre ?? 'TRÁMITE',
+        subtitulo: 'Se te cayeron los papeles. Recógelos.',
+      });
+      return;
+    }
+
+    this.alMostrarAviso({
+      tipo: 'golpe',
+      titulo: institucion?.nombre ?? 'SE ARCHIVÓ',
+      subtitulo: institucion?.portazo ?? 'Se archiva el caso.',
+    });
+    if (extra.hallazgo) {
+      this.alMostrarAviso({
+        tipo: 'evidencia',
+        titulo: 'PERO SALES CON ALGO',
+        subtitulo: `${extra.hallazgo} · ${extra.perdidos ?? 0} se quedaron en el suelo`,
+      });
+    }
+
+    const destino = this.rutas.resolverRuta(this.escenarioActual, 'derecha');
+    this._entrarEnTramo(destino);
   }
 
   /** Lo que hace el botón del relato: seguir. */
@@ -1126,9 +1178,12 @@ export class Game {
     this.perseguidor.cercar(t, dt);
     this.escenario?.actualizar(dt, 0, this.jugador, this.velocidad);
 
-    // La foto se pide cerca del final del cerco, cuando el círculo ya está
-    // cerrado: es el fotograma que cuenta la historia.
-    if (t > 0.82 && !this.fotoArresto && !this._pedidoDeFoto) {
+    // La foto se pide AL FINAL DEL TODO, con el círculo cerrado y la cámara
+    // ya parada en su sitio. Se pedía a 0.82 y salía movida: a esa altura el
+    // encuadre todavía viaja hacia su posición —el lerp de la cámara tarda lo
+    // suyo— y lo que se imprimía al día siguiente era un fotograma de tránsito
+    // con los policías a medio llegar.
+    if (t > 0.96 && !this.fotoArresto && !this._pedidoDeFoto) {
       this._pedidoDeFoto = true;
     }
 

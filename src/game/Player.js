@@ -158,6 +158,13 @@ export class Player {
    * @param {number} velocidad Velocidad de carrera actual (para la cadencia)
    */
   actualizar(dt, velocidad) {
+    // CAÍDO SE QUEDA CAÍDO. Sin esta salida, cualquier fotograma posterior a
+    // caer() deshacía la pose: la gravedad veía el cuerpo a 0.26 sobre el
+    // asfalto y lo hacía "caerse" hasta cero, y animarCarrera() le devolvía la
+    // zancada. O sea que el personaje se levantaba solo a correr en la pantalla
+    // de escape, tumbado boca abajo pero moviendo las piernas.
+    if (!this.vivo) return;
+
     this.tiempoAnimacion += dt;
 
     // ---- Desplazamiento lateral ------------------------------------------
@@ -253,11 +260,18 @@ export class Player {
     this.modelo.position.x = this.x;
     this.modelo.position.y = this.y;
 
-    // Inclinación lateral al cambiar de carril: peso visual.
-    // Va negada porque el modelo está girado media vuelta sobre Y: sin el
-    // signo, el personaje se inclinaría en contra de su propio movimiento.
-    const desvio = this.xObjetivo - this.x;
-    this.modelo.rotation.z = -THREE.MathUtils.clamp(desvio * 0.22, -0.3, 0.3);
+    // El aplastón del choque manda sobre la pose normal mientras dura: escribe
+    // escala y las dos rotaciones, así que la inclinación de carril se salta.
+    const aplastando = this._aplastar(dt);
+
+    if (!aplastando) {
+      // Inclinación lateral al cambiar de carril: peso visual.
+      // Va negada porque el modelo está girado media vuelta sobre Y: sin el
+      // signo, el personaje se inclinaría en contra de su propio movimiento.
+      const desvio = this.xObjetivo - this.x;
+      this.modelo.rotation.y = Math.PI;
+      this.modelo.rotation.z = -THREE.MathUtils.clamp(desvio * 0.22, -0.3, 0.3);
+    }
 
     // Animación de carrera: la cadencia sube con la velocidad.
     const cadencia = 6 + (velocidad / 42) * 8;
@@ -274,8 +288,12 @@ export class Player {
 
     aplicarPoseAgachado(this.modelo, this.factorAgachado);
 
-    // Parpadeo durante la invulnerabilidad.
-    if (this.invulnerabilidad > 0) {
+    // Parpadeo durante la invulnerabilidad, PERO NO MIENTRAS DURA EL APLASTÓN.
+    // El golpe y la invulnerabilidad empiezan en el mismo fotograma, así que
+    // con el parpadeo desde el principio la voltereta se veía a medias: media
+    // docena de fotogramas sí y otros tantos no, que es como no verla. Primero
+    // se ve el porrazo entero, y después parpadea lo que quede.
+    if (this.invulnerabilidad > 0 && this.aplaston <= 0) {
       this.modelo.visible = Math.floor(this.invulnerabilidad * 14) % 2 === 0;
     } else {
       this.modelo.visible = true;
@@ -346,6 +364,57 @@ export class Player {
 
     this.golpes += 1;
     this.invulnerabilidad = JUGADOR.INVULNERABILIDAD;
+    // Arranca el aplastón. Ver _aplastar().
+    this.aplaston = 1;
+    return true;
+  }
+
+  /**
+   * El choque, en clave de dibujo animado.
+   *
+   * Chocar solo restaba un intento y hacía temblar la cámara: el personaje
+   * seguía corriendo con la misma zancada, tan campante, y el golpe se
+   * enteraba el HUD antes que el cuerpo. En un runner de este tipo el choque
+   * es el momento con más lectura de toda la partida, y tiene que verse EN EL
+   * MUÑECO.
+   *
+   * Lo que hace es lo de siempre en animación: SQUASH AND STRETCH. El cuerpo
+   * se aplasta contra lo que se llevó por delante —ancho y alto de más,
+   * profundidad de menos— y vuelve a su forma con un rebote elástico que se
+   * pasa de largo antes de asentarse. Además da media vuelta sobre sí mismo,
+   * que es lo que convierte un tropiezo en una voltereta.
+   *
+   * Dura menos de medio segundo. Más que eso deja de ser un golpe y pasa a ser
+   * una animación que hay que esperar.
+   */
+  _aplastar(dt) {
+    if (this.aplaston <= 0) return false;
+
+    this.aplaston -= dt / 0.42;
+    if (this.aplaston <= 0) {
+      this.aplaston = 0;
+      this.modelo.scale.set(1, 1, 1);
+      return false;
+    }
+
+    // t va de 0 (recién chocado) a 1 (recuperado).
+    const t = 1 - this.aplaston;
+    // Rebote elástico: amplitud que decae multiplicada por una oscilación.
+    // El seno arranca en 1 con esta fase, así que el aplastón es máximo en el
+    // fotograma del impacto y no medio segundo después.
+    const rebote = Math.cos(t * Math.PI * 2.6) * Math.exp(-t * 4.2);
+
+    this.modelo.scale.set(
+      1 + rebote * 0.45,
+      1 - rebote * 0.4,
+      1 - rebote * 0.5,
+    );
+
+    // La voltereta: una vuelta entera sobre el eje de avance, encima de la
+    // media vuelta que el personaje lleva siempre puesta.
+    this.modelo.rotation.y = Math.PI + t * Math.PI * 2;
+    // Y un bandazo lateral, para que no sea una peonza perfecta.
+    this.modelo.rotation.z = rebote * 0.5;
     return true;
   }
 
@@ -398,10 +467,12 @@ export class Player {
     this.volando = false;
     this.alturaVuelo = 0;
     this.vivo = true;
+    this.aplaston = 0;
     this.modelo.visible = true;
     // Se conserva la media vuelta: el personaje sigue corriendo de espaldas.
     this.modelo.rotation.set(0, Math.PI, 0);
     this.modelo.scale.set(1, 1, 1);
+    this._enderezarMiembros();
   }
 
   /**
@@ -429,27 +500,59 @@ export class Player {
     this.agacharAlAterrizar = false;
     this.caidaRapida = false;
 
+    this.aplaston = 0;
     this.modelo.visible = true;
     this.modelo.rotation.set(0, Math.PI, 0);
     this.modelo.scale.set(1, 1, 1);
+    this._enderezarMiembros();
+  }
 
-    // La pose de caída dejó torso, cabeza y brazos torcidos; animarCarrera()
-    // reescribe rotation.x de todo eso en el siguiente fotograma, así que basta
-    // con devolver el torso a su sitio para que no dé un tirón.
+  /**
+   * Devuelve brazos y piernas a cero.
+   *
+   * Hace falta porque la pose de derrota los ABRE con rotation.z, y
+   * animarCarrera() solo reescribe rotation.x: sin esto, quien se zafa del
+   * cerco vuelve a la pista corriendo con los brazos en cruz.
+   */
+  _enderezarMiembros() {
     const p = this.modelo.userData.partes;
+    for (const parte of [p.brazoIzq, p.brazoDer, p.piernaIzq, p.piernaDer]) {
+      parte.rotation.set(0, 0, 0);
+    }
     p.torso.rotation.x = 0;
     p.cabeza.rotation.x = 0;
   }
 
-  /** Pose de derrota: el personaje se detiene y se dobla. */
+  /**
+   * Pose de derrota: BOCA ABAJO EN EL SUELO, despatarrado.
+   *
+   * Antes se quedaba de pie y se doblaba un poco por la cintura, y era la
+   * diferencia entre «se cansó» y «lo tumbaron». Un cuerpo en el suelo con los
+   * brazos y las piernas abiertos se lee de un vistazo desde cualquier ángulo,
+   * y es además la imagen que se va a imprimir en la portada del día
+   * siguiente: la foto del arresto se saca de este fotograma.
+   */
   caer() {
     this.vivo = false;
     this.modelo.visible = true;
+    this.aplaston = 0;
+
+    // Tumbado y con la cabeza hacia la cámara. La media vuelta de siempre se
+    // conserva; lo que se añade es el cuarto de vuelta que lo echa al suelo.
+    this.modelo.scale.set(1, 1, 1);
+    this.modelo.rotation.set(-Math.PI / 2, Math.PI, 0);
+    this.y = 0.26;
+    this.modelo.position.y = this.y;
+
     const p = this.modelo.userData.partes;
-    p.torso.rotation.x = 0.9;
-    p.cabeza.rotation.x = 0.5;
-    p.brazoIzq.rotation.x = -2.2;
-    p.brazoDer.rotation.x = -2.2;
+    // Brazos y piernas ABIERTOS, no colgando: es lo que dice «cayó», y sin
+    // ello un cuerpo tumbado se lee como un cuerpo de pie visto raro.
+    p.brazoIzq.rotation.set(0, 0, 1.15);
+    p.brazoDer.rotation.set(0, 0, -1.15);
+    p.piernaIzq.rotation.set(0, 0, 0.42);
+    p.piernaDer.rotation.set(0, 0, -0.42);
+    p.torso.rotation.x = 0;
+    p.cabeza.rotation.x = 0.25;
   }
 
   /** Cambia el personaje jugable en caliente. */

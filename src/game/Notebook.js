@@ -28,6 +28,10 @@ const ESTADO_INICIAL = {
   // te queda por gastar) ni que `papelesHistoricos` (lo que juntaste desde
   // siempre). Es la marca personal, y es la cifra que compite en la tabla.
   mejorPapeles: 0,
+  // Entes de control cuyo relato ya se leyó. Se cuenta UNA vez cada uno; a
+  // partir de la segunda visita solo queda la acusación de siempre. Ver
+  // Game._contarInstitucion().
+  institucionesContadas: [],
   partidasJugadas: 0,
   rutasRecorridas: [],    // Historial de escenarios visitados
   personajePreferido: 'chochologo',
@@ -211,6 +215,19 @@ export class Notebook {
   // Con `?? 0` porque a quien ya venía jugando no se le guardó nunca: el
   // estado se lee de localStorage y las partidas viejas no traen este campo.
   get mejorPapeles() { return this.estado.mejorPapeles ?? 0; }
+
+  /** ¿Ya se contó el relato de este ente de control? */
+  yaConoceInstitucion(id) {
+    return (this.estado.institucionesContadas ?? []).includes(id);
+  }
+
+  /** Lo marca como contado. A partir de aquí solo queda la acusación. */
+  marcarInstitucionContada(id) {
+    if (!this.estado.institucionesContadas) this.estado.institucionesContadas = [];
+    if (this.estado.institucionesContadas.includes(id)) return;
+    this.estado.institucionesContadas.push(id);
+    this.guardar();
+  }
   get partidasJugadas() { return this.estado.partidasJugadas; }
   get evidencias() { return this.estado.evidenciasEncontradas; }
   get rutas() { return this.estado.rutasRecorridas; }

@@ -23,6 +23,11 @@
 // ============================================================================
 
 import { JUGADOR } from '../config/balance.js';
+
+// Casillas de la batería de un potenciador activo. Ocho es el número que hace
+// que cada una valga algo: con cuatro, cada casilla es un cuarto de la duración
+// y el aviso llega tarde; con dieciséis nadie las cuenta, se leen como barra.
+const TRAMOS_BATERIA = 8;
 import { obtenerEscenario, ORDEN_ESCENARIOS } from '../config/escenarios.js';
 import * as Icono from './iconos.js';
 
@@ -400,26 +405,47 @@ export class HUD {
       for (const efecto of lista) {
         const ficha = document.createElement('div');
         ficha.className = `efecto efecto--${efecto.id}`;
+        // Pastilla grande con el icono, y debajo la batería de tramos. La
+        // batería se lee de un vistazo periférico: no hay que medir un ancho,
+        // se cuenta cuántas casillas quedan encendidas.
         ficha.innerHTML = `
-          <span class="efecto__icono">${Icono.iconoPotenciador(efecto.id, 22)}</span>
-          <span class="efecto__cuerpo">
-            <span class="efecto__nombre"></span>
-            <span class="medidor medidor--fino">
-              <span class="medidor__relleno medidor__relleno--cian"></span>
-            </span>
-          </span>
+          <span class="efecto__tarjeta">${Icono.iconoPotenciador(efecto.id, 34)}</span>
+          <span class="bateria"></span>
         `;
-        ficha.querySelector('.efecto__nombre').textContent = efecto.nombre;
+        ficha.title = efecto.nombre;
+
+        const bateria = ficha.querySelector('.bateria');
+        for (let i = 0; i < TRAMOS_BATERIA; i++) {
+          bateria.appendChild(document.createElement('span')).className = 'bateria__tramo';
+        }
+
         this.ref.efectos.appendChild(ficha);
-        this.fichasEfecto.set(efecto.id, ficha.querySelector('.medidor__relleno'));
+        this.fichasEfecto.set(efecto.id, {
+          ficha,
+          tramos: [...bateria.children],
+          encendidos: -1,
+        });
       }
 
       this.cache.efectos = firma;
     }
 
     for (const efecto of lista) {
-      const barra = this.fichasEfecto?.get(efecto.id);
-      if (barra) barra.style.width = `${Math.round(efecto.fraccion * 100)}%`;
+      const ref = this.fichasEfecto?.get(efecto.id);
+      if (!ref) continue;
+
+      // Se escribe solo cuando cambia el NÚMERO de casillas encendidas, o sea
+      // ocho veces en toda la duración del potenciador en vez de sesenta por
+      // segundo. La fracción cruda solo decide cuándo cruza cada umbral.
+      const encendidos = Math.ceil(efecto.fraccion * TRAMOS_BATERIA);
+      if (encendidos === ref.encendidos) continue;
+
+      ref.tramos.forEach((t, i) => {
+        t.classList.toggle('bateria__tramo--apagado', i >= encendidos);
+      });
+      // Los dos últimos tramos parpadean: es el aviso de que se acaba.
+      ref.ficha.classList.toggle('efecto--agotandose', encendidos <= 2);
+      ref.encendidos = encendidos;
     }
   }
 

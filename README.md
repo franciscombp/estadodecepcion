@@ -291,6 +291,18 @@ eso, y sin leerlo lo que queda es una fase rara en la que hay que recoger cosas
 del suelo. Aquí no hay nada que esquivar ni nada que pulsar salvo seguir: es el
 único momento en que se puede pedir atención sin quitársela a otra cosa.
 
+**Y sale UNA sola vez por institución** (`cuaderno.institucionesContadas`). El
+relato explica de qué va este sitio, y eso se explica una vez: a la quinta
+visita a la Fiscalía, tres párrafos contando que pediste cita tres veces son
+tres párrafos que ya se leyeron, y parar el juego para repetirlos deja de ser
+un respiro y pasa a ser un peaje. A partir de la segunda se entra directo, con
+la acusación de siempre —*se te cayeron los papeles, recógelos*— y se sale con
+el portazo, los dos como aviso y sin parar nada.
+
+Se marca **al salir, no al entrar**: si se marcara en la entrada, quien se
+encuentra el trámite por primera vez leería el arranque y se quedaría sin el
+remate.
+
 Los textos están en `institucion.relatoEntrada` y `relatoSalida`, en segunda
 persona y **sobre lo que te pasa a ti**: qué haces, qué te dicen, qué te
 devuelven. Nunca una acusación concreta ni una frase entrecomillada de nadie.
@@ -733,6 +745,45 @@ mundo son las flechas del asfalto, que están donde ya se está mirando.
 
 **Los avisos van centrados.** Estaban en la columna derecha, junto a la barra
 del perseguidor, y ahí no los leía nadie: la vista está en el centro y abajo.
+
+**El potenciador activo se ve.** Pastilla cuadrada grande abajo a la izquierda
+con el icono, y debajo una **batería de ocho casillas** que se van apagando; las
+dos últimas parpadean. Estaba arriba, pequeño y con una barrita fina, y un
+potenciador que no se nota es un potenciador que no se disfruta: la mitad de la
+gracia de recogerlo es ver que lo llevas puesto.
+
+La batería se escribe **ocho veces en toda la duración**, no sesenta por
+segundo: solo cuando cambia el número de casillas encendidas. Y se lee de reojo
+—se cuentan casillas— en vez de medir el ancho de una barra.
+
+### El choque, en clave de dibujo animado
+
+Chocar solo restaba un intento y sacudía la cámara: el personaje seguía
+corriendo con la misma zancada, tan campante, y del golpe se enteraba el HUD
+antes que el cuerpo.
+
+Ahora hace lo de siempre en animación —**squash and stretch**—: se aplasta
+contra lo que se llevó por delante (ancho y alto de más, profundidad de menos)
+y vuelve a su forma con un rebote elástico que se pasa de largo antes de
+asentarse, dando una vuelta entera sobre sí mismo. Dura 0.42 s; más que eso
+deja de ser un golpe y pasa a ser una animación que hay que esperar.
+
+El **parpadeo de invulnerabilidad no empieza hasta que el aplastón termina**.
+Los dos arrancaban en el mismo fotograma, así que la voltereta se veía a
+medias: seis fotogramas sí y seis no, que es como no verla.
+
+Y al ser capturado el personaje **cae boca abajo, despatarrado**. Antes se
+quedaba de pie y se doblaba por la cintura, y era la diferencia entre «se
+cansó» y «lo tumbaron». De ese fotograma sale la foto de la portada, así que el
+plano del cerco se bajó y se acercó —un cuerpo tumbado se lee picado, no a su
+misma altura— y los perseguidores se apartan más, porque dos figuras de pie a
+metro y medio tapan un cuerpo en el suelo entero.
+
+> Ojo con `Player.actualizar`: sale antes si `vivo` es false. Sin esa salida, el
+> fotograma siguiente a la caída deshacía la pose —la gravedad veía el cuerpo a
+> 26 cm del asfalto y lo hacía «caer» hasta cero, y `animarCarrera()` le
+> devolvía la zancada—, así que el personaje se levantaba solo a correr en la
+> pantalla de escape, tumbado boca abajo pero moviendo las piernas.
 
 ---
 

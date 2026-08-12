@@ -2000,69 +2000,105 @@ html, body {
    Columna izquierda, bajo el riel de ruta: es donde ya vive la información de
    "en qué estado estás". Nunca aparece más de un par a la vez. */
 
+/* --- Potenciador activo ----------------------------------------------------
+   A la vista, grande y abajo a la izquierda, como en Subway Surfers. Estaba
+   arriba, pequeño y con una barrita fina, y un potenciador que no se nota es
+   un potenciador que no se disfruta: la mitad de la gracia de recogerlo es
+   ver que lo llevas puesto. */
+
 .efectos {
   position: absolute;
-  left: 12px;
-  top: 210px;
+  left: calc(var(--seg-izq) + 12px);
+  bottom: calc(var(--seg-abajo) + 128px);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   pointer-events: none;
+  z-index: 3;
 }
 
 .efecto {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px 6px 7px;
-  border-radius: var(--r-pildora);
-  background: rgba(13, 18, 32, 0.86);
-  border: 2px solid rgba(var(--cian-rgb), 0.45);
-  box-shadow: 0 0 18px rgba(var(--cian-rgb), 0.22);
-  animation: entra-efecto var(--t-medio) var(--rebote);
+  gap: 5px;
+  animation: entra-efecto 0.34s var(--rebote);
 }
 
 @keyframes entra-efecto {
-  from { transform: translateX(-14px) scale(0.9); opacity: 0; }
+  from { transform: translateX(-18px) scale(0.7); opacity: 0; }
   to   { transform: none; opacity: 1; }
 }
 
-.efecto__icono { display: flex; flex: 0 0 auto; }
+/* La pastilla del icono. Cuadrada y con borde grueso, que es lo que la
+   distingue de un icono suelto del HUD. */
+.efecto__tarjeta {
+  display: grid;
+  place-items: center;
+  width: clamp(48px, 15vw, 62px);
+  aspect-ratio: 1;
+  border-radius: 14px;
+  background: rgba(13, 18, 32, 0.9);
+  border: 3px solid rgba(var(--cian-rgb), 0.75);
+  box-shadow: 0 0 22px rgba(var(--cian-rgb), 0.35), inset 0 0 16px rgba(var(--cian-rgb), 0.12);
+}
 
-.efecto__cuerpo {
+/* La batería: ocho casillas que se van apagando. Se lee de reojo, sin medir
+   un ancho ni leer un número. */
+.bateria {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 84px;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 6px;
+  background: rgba(13, 18, 32, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.18);
 }
 
-.efecto__nombre {
-  font-size: 0.55rem;
-  font-weight: 900;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--texto);
-  white-space: nowrap;
+.bateria__tramo {
+  width: clamp(4px, 1.2vw, 6px);
+  height: clamp(9px, 2.4vw, 13px);
+  border-radius: 1px;
+  background: var(--cian);
+  box-shadow: 0 0 6px rgba(var(--cian-rgb), 0.7);
+  transition: opacity 0.14s linear;
 }
 
-.medidor__relleno--cian {
-  background: linear-gradient(90deg, #0d5f52, var(--cian));
-  box-shadow: 0 0 10px rgba(var(--cian-rgb), 0.55);
+.bateria__tramo--apagado {
+  opacity: 0.12;
+  box-shadow: none;
 }
 
-/* Cada potenciador se tiñe de su propio color: es lo que ata la ficha del HUD
-   con la cápsula que se acaba de recoger en pista. */
-.efecto--portada { border-color: rgba(var(--dorado-rgb), 0.5); box-shadow: 0 0 18px rgba(var(--dorado-rgb), 0.22); }
-.efecto--portada .medidor__relleno { background: linear-gradient(90deg, #8a6d1f, var(--dorado)); }
+/* Los dos últimos tramos: el aviso de que se acaba. */
+.efecto--agotandose .efecto__tarjeta,
+.efecto--agotandose .bateria {
+  animation: latido 0.5s ease-in-out infinite;
+}
 
-.efecto--botas { border-color: rgba(var(--verde-rgb), 0.5); box-shadow: 0 0 18px rgba(var(--verde-rgb), 0.22); }
-.efecto--botas .medidor__relleno { background: linear-gradient(90deg, #0f5c38, var(--verde)); }
+/* Cada potenciador se tiñe de su propio color: es lo que ata la pastilla del
+   HUD con la cápsula que se acaba de recoger en pista. */
+.efecto--portada .efecto__tarjeta {
+  border-color: rgba(var(--dorado-rgb), 0.8);
+  box-shadow: 0 0 22px rgba(var(--dorado-rgb), 0.35);
+}
+.efecto--portada .bateria__tramo { background: var(--dorado); box-shadow: 0 0 6px rgba(var(--dorado-rgb), 0.7); }
 
-.efecto--salvoconducto { border-color: rgba(var(--naranja-rgb), 0.55); box-shadow: 0 0 18px rgba(var(--naranja-rgb), 0.25); }
-.efecto--salvoconducto .medidor__relleno { background: linear-gradient(90deg, #8a3517, var(--naranja)); }
+.efecto--botas .efecto__tarjeta {
+  border-color: rgba(var(--verde-rgb), 0.8);
+  box-shadow: 0 0 22px rgba(var(--verde-rgb), 0.35);
+}
+.efecto--botas .bateria__tramo { background: var(--verde); box-shadow: 0 0 6px rgba(var(--verde-rgb), 0.7); }
 
-.efecto--cobertura { border-color: rgba(255, 95, 162, 0.55); box-shadow: 0 0 18px rgba(255, 95, 162, 0.25); }
-.efecto--cobertura .medidor__relleno { background: linear-gradient(90deg, #8a2a55, #ff5fa2); }
+.efecto--cobertura .efecto__tarjeta {
+  border-color: rgba(255, 95, 162, 0.8);
+  box-shadow: 0 0 22px rgba(255, 95, 162, 0.35);
+}
+.efecto--cobertura .bateria__tramo { background: #ff5fa2; box-shadow: 0 0 6px rgba(255, 95, 162, 0.7); }
+
+.efecto--linterna .efecto__tarjeta {
+  border-color: rgba(255, 224, 102, 0.85);
+  box-shadow: 0 0 26px rgba(255, 224, 102, 0.4);
+}
+.efecto--linterna .bateria__tramo { background: #ffe066; box-shadow: 0 0 6px rgba(255, 224, 102, 0.75); }
 
 
 /* ==========================================================================
