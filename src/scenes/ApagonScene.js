@@ -1,9 +1,15 @@
 // ============================================================================
 // EL APAGÓN — Crisis energética
 // ============================================================================
-// MECÁNICA ESPECIAL: la pantalla se oscurece. Solo ves unos metros por delante
-// y las linternas (el ítem de estamina de este escenario) amplían la visión
-// durante unos segundos además de recuperar energía.
+// MECÁNICA ESPECIAL: la pantalla se oscurece. Solo ves unos metros por delante,
+// y el potenciador LINTERNA —el único de esta escena— abre la visión mientras
+// dura la pila.
+//
+// Y cuando se apaga NO te quedas ciego: los papeles de esta escena brillan y
+// atraviesan la niebla (ver Coin.aplicarTema), así que la hilera sigue
+// dibujando la ruta. Sin eso, quedarse sin luz sería quedarse a merced del
+// primer obstáculo, y perder por no haber encontrado un ítem es perder por
+// mala suerte, no por mal juego.
 //
 // NOTA DE DISEÑO IMPORTANTE — por qué la oscuridad ESCALA con la velocidad:
 // Si la visibilidad fuera un valor fijo (pongamos 16 metros), a velocidad
@@ -205,9 +211,13 @@ export class ApagonScene extends BaseScene {
     }
   }
 
-  /** Al recoger una linterna, se amplía la visión durante unos segundos. */
-  alRecogerEstamina() {
-    this.tiempoLinterna = this.oscuridad.duracionLinterna;
+  /**
+   * Enciende la linterna. La llama el potenciador del mismo nombre, que es el
+   * único de esta escena y el único que la enciende.
+   * @param {number} [segundos]
+   */
+  encenderLinterna(segundos) {
+    this.tiempoLinterna = segundos ?? this.oscuridad.duracionLinterna;
   }
 
   /** Fracción 0..1 de linterna restante, para pintarlo en el HUD. */

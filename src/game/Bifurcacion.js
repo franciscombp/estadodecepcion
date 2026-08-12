@@ -30,10 +30,9 @@
 // ============================================================================
 
 import * as THREE from 'three';
-import { CARRILES, TUNEL } from '../config/balance.js';
+import { CARRILES } from '../config/balance.js';
 import {
   crearTunelesBifurcacion,
-  crearAvisoBifurcacion,
   crearFlechaAsfalto,
 } from '../models/props.js';
 import { obtenerEscenario } from '../config/escenarios.js';
@@ -47,7 +46,6 @@ export class Bifurcacion {
 
     this.activa = false;       // ¿Hay bocas de túnel en pista?
     this.tuneles = null;       // La fachada con las tres bocas
-    this.avisos = [];          // Pórticos de señalización, de lejos a cerca
     this.flechas = [];
     this.z = 0;                // Posición de la fachada
 
@@ -91,18 +89,15 @@ export class Bifurcacion {
     this.tuneles.position.z = this.z;
     this.grupo.add(this.tuneles);
 
-    // Carteles de señalización escalonados. El primero entra en cuadro mucho
-    // antes de que haya nada que decidir, que es justo el punto: el jugador
-    // tiene que VER venir la bifurcación, no encontrársela.
-    for (const adelanto of TUNEL.AVISOS) {
-      // Solo tiene sentido plantar los que caben en el corredor disponible.
-      if (adelanto > distancia - 15) continue;
-
-      const aviso = crearAvisoBifurcacion(destinos, colores, centroEsPeligro);
-      aviso.position.z = this.z + adelanto;
-      this.grupo.add(aviso);
-      this.avisos.push(aviso);
-    }
+    // AQUÍ YA NO HAY PÓRTICOS. Había tres carteles escalonados sobre la vía,
+    // y el problema no era que estuvieran: era dónde. Un cartel modelado en el
+    // mundo se ve en escorzo, se cruza en segundo y medio y hay que levantar
+    // la vista del carril para leerlo justo cuando todavía se está esquivando.
+    //
+    // La señalización se fue al HUD (ver HUD.mostrarRotulo): baja desde arriba,
+    // se queda quieta mientras dura la decisión y se lee entera. Lo que sigue
+    // en el mundo son las flechas del asfalto, que están donde ya se está
+    // mirando.
 
     // Flechas en el asfalto, repartidas por el corredor. Repiten en el suelo
     // lo que dicen los carteles, para que el jugador no tenga que levantar la
@@ -124,6 +119,11 @@ export class Bifurcacion {
     }
 
     this.activa = true;
+
+    // Se devuelven para que la interfaz pinte el cartel con lo mismo que dicen
+    // las bocas: si los dos textos se calcularan por separado acabarían
+    // diciendo cosas distintas el día que se toque uno.
+    return { destinos, centroEsPeligro };
   }
 
   // -------------------------------------------------------------------------
@@ -151,7 +151,6 @@ export class Bifurcacion {
     this.z += avance;
     this.tuneles.position.z = this.z;
 
-    for (const aviso of this.avisos) aviso.position.z += avance;
 
     for (const flecha of this.flechas) {
       flecha.position.z += avance;
@@ -215,8 +214,6 @@ export class Bifurcacion {
       this._destruir(this.tuneles);
       this.tuneles = null;
     }
-    for (const aviso of this.avisos) this._destruir(aviso);
-    this.avisos = [];
 
     for (const flecha of this.flechas) this._destruir(flecha);
     this.flechas = [];

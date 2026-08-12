@@ -18,7 +18,7 @@ function svg(contenido, { tamano = 24, viewBox = '0 0 24 24' } = {}) {
 }
 
 // ---------------------------------------------------------------------------
-// ÍTEMS DE ESTAMINA — uno por escenario
+// EMBLEMAS DE TEMPORADA — uno por escenario
 // ---------------------------------------------------------------------------
 
 /** ENCEBOLLADO — Bahía. Cuenco con caldo, cebolla y yuca. */
@@ -67,8 +67,15 @@ export const canelazo = (t) => svg(`
         stroke="#cfe0ef" stroke-width="1.2" stroke-linecap="round" opacity=".7"/>
 `, { tamano: t });
 
-/** Devuelve el icono de estamina que corresponde al escenario. */
-export function iconoEstamina(idEscenario, tamano = 24) {
+/**
+ * Icono con el que se rotula cada temporada.
+ *
+ * Nació como el icono del ítem de aguante de cada escena. Esos ítems ya no
+ * existen —la comida se fue con la barra— pero los dibujos siguen siendo el
+ * emblema más reconocible de cada tramo: un encebollado dice «la Bahía» mejor
+ * que cualquier símbolo abstracto. Así que se quedan como rótulo.
+ */
+export function iconoTemporada(idEscenario, tamano = 24) {
   switch (idEscenario) {
     case 'apagon': return linterna(tamano);
     case 'elecciones': return microfono(tamano);

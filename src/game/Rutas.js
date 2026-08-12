@@ -27,17 +27,21 @@ export class Rutas {
   }
 
   /**
-   * Datos de la institución para rotular el túnel central.
-   * Devuelve null si la temporada no tiene (Carondelet).
+   * Datos de la institución. Devuelve null si la temporada no tiene
+   * (Carondelet: allí el túnel del centro es el cerco).
+   *
+   * SE DEVUELVE ENTERA. Antes copiaba tres campos a mano —nombre, textoExito y
+   * un textoFracaso que ni siquiera existe en la configuración— y el resto se
+   * perdía por el camino. No era un detalle: `hallazgo` viajaba por aquí, así
+   * que la evidencia que se supone que te llevas del trámite NUNCA se
+   * entregaba, y los textos de entrada y portazo caían siempre al valor por
+   * defecto. Una lista blanca escrita a mano se queda vieja en cuanto alguien
+   * añade un campo, y aquí se quedó vieja en silencio.
    */
   datosInstitucion(idEscenario) {
     const esc = obtenerEscenario(idEscenario);
     if (!esc.institucion) return null;
-    return {
-      nombre: esc.institucion.nombre,
-      textoExito: esc.institucion.textoExito,
-      textoFracaso: esc.institucion.textoFracaso,
-    };
+    return { ...esc.institucion };
   }
 
   /**

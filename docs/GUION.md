@@ -79,33 +79,31 @@ se ve entera en las primeras partidas: quien ya la vio la ve abreviada.
 
 ## Las cuatro escenas
 
-Cada una tiene: un **caso** que documentar, unos **obstáculos** propios, un
-**recolectable de aguante** propio, y un **ente de control** al que lleva la
-salida del centro.
+Cada una tiene: un **caso** que documentar, unos **obstáculos** propios y un
+**ente de control** al que lleva la salida del centro.
 
-### Sobre el aguante
+### Se acabó la comida
 
-Empezó siendo un recurso en las cuatro escenas: una barra que drenaba, y si no
-comías ibas lento y te alcanzaban. Los números decían otra cosa. Con drenaje de
-2/s tardas 50 segundos en vaciarte, pero los ítems salen cada 150 metros —unos
-6 segundos a velocidad de crucero— y devuelven 35 cada uno: recogiendo la
-mayoría, **la barra no bajaba nunca**.
+Hubo una barra de aguante y unos platos que la rellenaban: encebollado, guata,
+bolón, canelazo, y un micrófono en Elecciones. Se fue en dos pasos, y conviene
+saber por qué para no volver a ponerla.
 
-O sea, invisible cuando jugabas bien y castigo añadido cuando ya ibas mal. Y
-encima fallaba de forma indirecta —sin aguante vas lento, al ir lento te
-alcanzan— así que al morir no había un momento claro de «ahí me equivoqué».
+**Primero se cayó la barra.** Con drenaje de 2/s tardabas 50 segundos en
+vaciarte, pero los ítems salían cada 150 metros —unos 6 segundos a velocidad de
+crucero— y devolvían 35 cada uno: recogiendo la mayoría, la barra no bajaba
+nunca. Invisible jugando bien y castigo añadido jugando mal, que es la peor
+forma posible para una mecánica. Y fallaba de forma indirecta —sin aguante vas
+lento, al ir lento te alcanzan— así que al morir no había un momento claro de
+«ahí me equivoqué».
 
-Así que ahora:
+**Después se cayó la comida.** Sin barra era un bonus suelto: sumaba papeles y
+ya. No drenaba, no había medidor y no pasaba nada por ignorarla. Lo único que
+hacía de verdad era competir por el hueco de cada grupo con los potenciadores,
+que sí cambian cómo se juega. Un recolectable que solo suma no compite con uno
+que además hace algo.
 
-- **En el Apagón es un RECURSO.** Hay barra, drena, y llegar a cero es derrota
-  directa. Ahí no es un añadido: la luz se traduce en lo que literalmente ves,
-  y gastarla y reponerla es el juego de ese tramo.
-- **En las demás es un BONUS.** La comida suma papeles y punto. No hay barra,
-  no drena, y no pasa nada por ignorarla.
-
-Se conserva lo que valía —que cada escena tenga su propio objeto, que es la
-expresión más clara del lore dentro del juego— y se quita el medidor que no
-medía nada.
+**Lo que sobrevive es la linterna**, que dejó de ser comida para ser EL
+potenciador del Apagón. Ver esa escena.
 
 ### Sobre la luz: solo hay un escenario oscuro
 
@@ -178,12 +176,6 @@ encima del techo lo que dice es que no hay techo.
 | Cambiar de carril | **Militar**: no se salta ni se esquiva encima. Si lo tocas, te capturan |
 | Dos carriles | **Retén** |
 
-**Comida costeña** (bonus, sin barra). Correr da hambre.
-
-- Encebollado
-- Guata
-- Bolón
-
 **Evidencia**: USB, chats, videos de vigilancia, actas.
 
 **El centro lleva a**: **FISCALÍA**.
@@ -203,9 +195,10 @@ encima del techo lo que dice es que no hay techo.
 | Cambiar de carril | **Generador averiado** |
 | Dos carriles | **Turbina varada** |
 
-**Pilas** (RECURSO, con barra). Aquí no se come: se alumbra. Las pilas van
-**iluminadas** para que se vean en la oscuridad, que es el único sitio donde el
-recolectable tiene que brillar por sí mismo.
+**Linterna** (potenciador). Es el único de esta escena y el único que no se
+desbloquea: existe desde la primera partida, pero solo sale aquí. En las otras
+tres no significaría nada, porque hay luz; y hacerla esperar a los tres tramos
+sería cerrarle el escenario a quien acaba de llegar.
 
 La linterna va **delante del personaje** y apunta hacia donde corre, con su haz
 dibujado. Estaba montada arriba y atrás, que repartía la luz muy pareja pero se
@@ -213,13 +206,18 @@ leía como un foco de estadio: alumbraba la escena desde ninguna parte. Una
 linterna se sostiene y apunta, y en un tramo cuya mecánica entera es la luz eso
 no es decoración.
 
-> **Y aquí quedarse sin recurso NO te vuelve lento: te atrapan.** Es la única
-> escena con barra de aguante y la única donde llegar a cero es derrota
-> directa, y tiene su lógica —sin luz no hay nada que documentar y no ves por
-> dónde corres.
+> **Y cuando se apaga, los papeles alumbran.** En esta escena —y solo en esta—
+> el papel sube su emisión y deja de teñirse con la niebla, así que la hilera
+> se ve entera a través del negro y **dibuja la ruta**. Sigues sin ver la calle
+> —eso lo paga la linterna— pero ves por dónde va.
 >
-> Por eso el tramo **regala una pila al entrar** y siembra otra a la vista.
-> Entrar a oscuras y esperar a la primera no era difícil, era injugable.
+> Eso es lo que permitió que quedarse sin luz DEJE DE MATAR. Mataba cuando la
+> linterna era un consumible sembrado cada 150 metros; ahora que es un
+> potenciador que puede no salir, morir por no haberlo encontrado sería perder
+> por mala suerte y no por mal juego.
+>
+> El tramo arranca **con la linterna encendida**: entrar a oscuras y esperar a
+> la primera cápsula no era difícil, era injugable.
 
 **Evidencia**: contratos con sobreprecio, audios, chats, informes técnicos.
 
@@ -242,8 +240,6 @@ no es decoración.
 
 Además, **gas lacrimógeno**: no es un obstáculo con caja de colisión, es
 atmósfera —bocanadas que cruzan la vía y estorban la vista.
-
-**Comida de la sierra y canelazo** (bonus, sin barra), que además calienta.
 
 **Evidencia**: órdenes sin firma, listas de periodistas vigilados. Aquí hay
 **muy poco que recoger**: máximo tres papeles por tramo. La carestía es el
@@ -269,8 +265,6 @@ ningún trámite: te estrellas contra el cerco y te atrapan, sin más.
 
 También hay **pandilleros armados** que apoyan al gobierno, como variante del
 bloqueo de carril.
-
-**Micrófono** (bonus, sin barra): tu canal es el último medio que te queda.
 
 **Evidencia**: pruebas de campaña anticipada, nóminas repetidas, facturas
 fantasma, actas con más votos que votantes.
@@ -302,9 +296,25 @@ Son túneles y no ramales al aire libre por una razón de lectura: dos calles
 que divergen en la niebla no tienen borde y a 200 metros son una mancha. Una
 boca sí lo tiene, y entrar en ella es un gesto inequívoco.
 
-La señalización llega desde 230 metros. El corredor se vacía a los 140: obligar
+La señalización llega desde 260 metros. El corredor se vacía a los 140: obligar
 a esquivar mientras decides convierte una decisión en un accidente, pero
-vaciarlo desde el primer cartel deja 260 metros sin nada que hacer.
+vaciarlo desde el primer aviso deja 260 metros sin nada que hacer.
+
+**El cartel está en la interfaz, no en la calle.** Eran tres pórticos modelados
+sobre la vía, escalonados a 230, 150 y 80 metros. El problema no era que
+estuvieran: era dónde. Un cartel dentro del mundo se ve en escorzo, se cruza en
+segundo y medio y hay que levantar la vista del carril para leerlo justo cuando
+todavía se está esquivando.
+
+Ahora es señalización de autopista —panel verde por vía, con su flecha y su
+pestaña de salida, como las de la carretera— que **baja desde el techo de la
+pantalla**, se queda quieta mientras dura la decisión y **se sube al cruzar**.
+Se lee entera y todo el rato. Lo que sigue en el mundo son las **flechas del
+asfalto**, que están donde ya se está mirando.
+
+Cuando el centro es el cerco (Carondelet), el panel del medio va en rojo y la
+pestaña dice SIN SALIDA: en señalización el color dice lo que pasa antes de que
+se lea la palabra.
 
 ---
 
@@ -313,6 +323,33 @@ vaciarlo desde el primer cartel deja 260 metros sin nada que hacer.
 > **Estado: reescrito según este guion** — `src/game/Tramite.js`
 
 Entrar de frente **no es un premio**. Es el chiste central del juego.
+
+### El hueco sin acciones
+
+**Al entrar y al salir, el juego se para.** Aparece una pantalla que no pide
+nada: dos o tres párrafos contando qué está pasando, el remate en voz de El
+Mercio y un botón para seguir.
+
+Era la parte con más historia detrás y la que menos se entendía. Entrabas por
+el túnel del centro, se te caían los papeles y salías, todo en marcha, con un
+aviso de dos líneas que se iba solo a los dos segundos y medio. Nadie leía eso,
+y sin leerlo lo que queda es una fase rara en la que hay que recoger cosas del
+suelo.
+
+Aquí no hay nada que esquivar ni nada que pulsar salvo seguir: es el único
+momento del juego en que se puede pedir atención sin quitársela a otra cosa.
+
+**Cómo se escriben esos textos.** En segunda persona y sobre **lo que te pasa a
+ti**: qué haces, qué te dicen, qué te devuelven. Pediste cita tres veces; te
+mandan pasar la carpeta por la banda y no está cerrada; la sesión se levanta
+por falta de quórum; te dicen que el sistema está en mantenimiento. Nunca una
+acusación concreta contra nadie ni una frase entrecomillada de nadie —ver la
+regla editorial—. Lo satírico está en el trámite, no en el señalado.
+
+**Y la cámara se ladea** dentro del pasillo, despacio, como al entrar en un
+túnel. Es lo mismo que hace la bifurcación al virar, y es lo que convierte un
+tramo especial en un sitio distinto en vez de en más de lo mismo con otro
+decorado.
 
 **Lo que pasa al entrar:** la institución te **riega los papeles**. Todo lo que
 llevabas recogido se desparrama por el pasillo, en los tres carriles, y tienes

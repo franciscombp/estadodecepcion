@@ -436,58 +436,111 @@ html, body {
 }
 
 /* Columna derecha: avisos + barra de acoso */
-.hud__derecha {
+/* --- Cartel de salida ------------------------------------------------------
+   Señalización de autopista: paneles verdes, tipografía blanca de caja alta y
+   una flecha por vía. Baja desde arriba cuando aparece la bifurcación y se
+   vuelve a subir al cruzarla.
+
+   Va POR ENCIMA del juego y no dentro de él a propósito. Un pórtico modelado
+   en la calle se lee de refilón, en escorzo y a la velocidad a la que pasa por
+   encima; este se lee entero, y todo el rato que dura la decisión. */
+
+.rotulo {
+  position: absolute;
+  /* Debajo de la fila de arriba, no encima. Los elementos absolutos se colocan
+     contra la caja de relleno, así que hay que sumar el margen seguro Y la
+     altura de esa fila; si no, el cartel se monta sobre el botón de pausa y el
+     contador de papeles. */
+  top: calc(var(--seg-arriba) + 58px);
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  max-width: min(62%, 300px);
-}
-
-/* Barra del perseguidor */
-.acoso {
-  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 11px;
-  border-radius: var(--r-chico);
-  background: rgba(13, 18, 32, 0.9);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 2px solid rgba(var(--rojo-rgb), 0.3);
-  color: var(--rojo);
-  min-width: 150px;
-  transition: border-color var(--t-medio);
+  padding: 0 0 6px;
+  pointer-events: none;
+  /* El rebote es el del cartel al frenar sobre su soporte. */
+  transition: transform 0.52s cubic-bezier(0.2, 0.9, 0.28, 1.06),
+              opacity 0.3s ease;
+  z-index: 4;
 }
 
-.acoso--alarma {
-  border-color: rgba(var(--rojo-rgb), 0.75);
-  animation: latido 0.75s ease-in-out infinite;
+/* Fuera de cuadro: se sube ENTERO, contando el margen superior del HUD, o
+   asomaría un borde verde por arriba. */
+.rotulo--oculto {
+  transform: translateX(-50%) translateY(-260%);
+  opacity: 0;
 }
 
-.acoso__icono { display: grid; place-items: center; flex: 0 0 auto; }
+.rotulo__salida {
+  padding: 2px 12px 3px;
+  border-radius: 0 0 4px 4px;
+  background: #14532d;
+  border: 2px solid #f2f4f0;
+  border-top: none;
+  color: #f2f4f0;
+  font-size: clamp(0.44rem, 1.8vw, 0.56rem);
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
 
-.acoso__cuerpo {
-  flex: 1 1 auto;
+.rotulo__vias {
+  display: flex;
+  gap: 4px;
+  margin-top: -1px;
+}
+
+.via {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 1px;
+  min-width: clamp(74px, 24vw, 118px);
+  padding: 6px 8px 7px;
+  background: #14532d;
+  border: 2px solid #f2f4f0;
+  border-radius: 3px;
+  color: #f2f4f0;
+  text-align: center;
 }
 
-.acoso__etiqueta {
-  font-size: clamp(0.46rem, 1.9vw, 0.56rem);
+/* El del centro cuando es el cerco. Rojo y no verde: en señalización el color
+   ya dice lo que pasa antes de leer la palabra. */
+.via--peligro {
+  background: #7f1420;
+  border-color: #ffd9d9;
+  color: #fff0f0;
+}
+
+.via__flecha {
+  font-size: clamp(0.85rem, 3.4vw, 1.05rem);
+  line-height: 1;
+  font-weight: 700;
+}
+
+.via__nombre {
+  font-size: clamp(0.5rem, 2.1vw, 0.64rem);
   font-weight: 800;
-  letter-spacing: 0.16em;
-  color: var(--rojo);
+  letter-spacing: 0.05em;
+  line-height: 1.15;
 }
 
-/* --- Avisos flotantes ----------------------------------------------------- */
+/* --- Avisos flotantes ------------------------------------------------------
+   CENTRADOS. Estaban en la columna derecha, junto a la barra del perseguidor,
+   y ahí no los leía nadie: la vista está en el carril, en el centro y abajo. */
 
 .avisos {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 6px;
+  width: min(86%, 420px);
+  pointer-events: none;
+  z-index: 3;
 }
 
 .aviso {
@@ -535,12 +588,12 @@ html, body {
 .aviso--consejo     { border-color: rgba(var(--cian-rgb), 0.6);    color: var(--cian); }
 
 @keyframes aviso-entra {
-  from { opacity: 0; transform: translateX(26px) scale(0.92); }
-  to   { opacity: 1; transform: translateX(0) scale(1); }
+  from { opacity: 0; transform: translateY(14px) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes aviso-sale {
-  to { opacity: 0; transform: translateX(14px); }
+  to { opacity: 0; transform: translateY(-10px); }
 }
 
 /* --- Fila inferior -------------------------------------------------------- */
@@ -1070,6 +1123,30 @@ html, body {
   background:
     radial-gradient(ellipse at 50% 35%, rgba(var(--verde-rgb), 0.18), transparent 62%),
     rgba(5, 7, 12, 0.9);
+}
+
+/* El hueco sin acciones dentro del ente de control. Fondo más cerrado que el
+   resto: aquí no hay nada que mirar detrás, y el juego asomando por debajo
+   competiría con lo único que se pide, que es leer. */
+.pantalla--relato {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(var(--dorado-rgb), 0.12), transparent 60%),
+    rgba(5, 7, 12, 0.95);
+}
+
+.relato {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 6px 0 4px;
+  text-align: left;
+}
+
+.relato__parrafo {
+  font-size: clamp(0.88rem, 3.6vw, 1.06rem);
+  line-height: 1.6;
+  color: var(--texto);
+  margin: 0;
 }
 
 .resultado {

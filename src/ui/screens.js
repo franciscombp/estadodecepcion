@@ -123,7 +123,7 @@ export class Pantallas {
     // quinto de la pantalla para decir dos palabras.
     const temporada = el('div', 'temporada-linea');
     const icono = el('span', 'temporada-linea__icono');
-    icono.innerHTML = Icono.iconoEstamina(esc.id, 20);
+    icono.innerHTML = Icono.iconoTemporada(esc.id, 20);
     temporada.appendChild(icono);
     temporada.appendChild(el('span', 'temporada-linea__etiqueta',
       this.cuaderno.partidasJugadas > 0 ? 'RETOMAS EN' : 'EMPIEZAS EN'));
@@ -447,6 +447,75 @@ export class Pantallas {
   //
   // Cada captura acelera el selector. No hay tope de intentos: siempre tienes
   // la oportunidad, pero la oportunidad se encoge.
+
+  // -------------------------------------------------------------------------
+  // RELATO — el hueco sin acciones dentro del ente de control
+  // -------------------------------------------------------------------------
+  // Es la única pantalla del juego que no pide nada. Ni un selector, ni una
+  // elección, ni una cifra: se para todo y se cuenta qué está pasando.
+  //
+  // Existe porque el trámite era la parte con más historia detrás y la que
+  // menos se entendía. Entrabas por el túnel del centro, se te caían los
+  // papeles y salías, todo en marcha, con un aviso de dos líneas que se iba
+  // solo a los dos segundos y medio. Nadie lo leía. Y sin leerlo, lo que
+  // quedaba era una fase rara en la que hay que recoger cosas del suelo.
+
+  relato(datos) {
+    const { pantalla, contenido } = pantallaBase();
+    pantalla.classList.add('pantalla--relato');
+
+    const esEntrada = datos.fase === 'entrada';
+
+    contenido.appendChild(marca(esEntrada ? 'ENTRAS AL TRÁMITE' : 'SE ACABÓ EL PASILLO'));
+    contenido.appendChild(el('h1', 'titulo titulo--dorado', datos.institucion));
+
+    // El cuerpo: dos o tres frases, tamaño de lectura, sin prisa.
+    const relato = el('div', 'relato');
+    for (const parrafo of String(datos.relato ?? '').split('\n').filter(Boolean)) {
+      relato.appendChild(el('p', 'relato__parrafo', parrafo.trim()));
+    }
+    contenido.appendChild(relato);
+
+    // El remate en voz de El Mercio, que es la línea que ya existía y que
+    // ahora tiene sitio para leerse.
+    if (datos.remate) {
+      const remate = el('div', 'remate');
+      remate.appendChild(document.createTextNode(datos.remate));
+      remate.appendChild(el('span', 'remate__firma', 'El Mercio'));
+      contenido.appendChild(remate);
+    }
+
+    // A la salida, el balance. Es información de partida y va con formato de
+    // dato, no de narración.
+    if (!esEntrada) {
+      contenido.appendChild(estadisticas([
+        [String(datos.recuperados ?? 0), 'Recuperados'],
+        [String(datos.perdidos ?? 0), 'En el suelo'],
+      ]));
+
+      if (datos.hallazgo) {
+        const caja = el('div', 'desbloqueo');
+        const icono = el('span', 'desbloqueo__icono');
+        icono.innerHTML = Icono.usb(22);
+        caja.appendChild(icono);
+        const texto = el('span', 'desbloqueo__texto');
+        texto.appendChild(el('span', 'desbloqueo__titulo', 'PERO SALES CON ALGO'));
+        texto.appendChild(el('span', 'desbloqueo__nota', datos.hallazgo));
+        caja.appendChild(texto);
+        contenido.appendChild(caja);
+      }
+    }
+
+    const botones = el('div', 'botones');
+    botones.appendChild(boton(
+      esEntrada ? 'ENTRAR' : 'SEGUIR CORRIENDO',
+      'boton--principal',
+      () => this.juego.continuarRelato(datos.fase),
+    ));
+    contenido.appendChild(botones);
+
+    return pantalla;
+  }
 
   escape(datos) {
     const { pantalla, contenido } = pantallaBase();

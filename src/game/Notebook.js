@@ -237,16 +237,26 @@ export class Notebook {
    * config/balance.js, el progreso de todo el mundo se recalcula solo en vez
    * de quedarse congelado con la escalera vieja.
    */
+  /**
+   * Qué potenciadores pueden salir. Los de escenario propio (`soloEn`) los
+   * filtra Game según dónde se esté corriendo; aquí solo se resuelve el
+   * progreso.
+   */
   potenciadoresDesbloqueados() {
     return CATALOGO_POTENCIADORES
       .filter((p) => this.tramosRecorridos >= p.tramos)
       .map((p) => p.id);
   }
 
-  /** El siguiente por abrir, con cuánto falta. Es el gancho para otra corrida. */
+  /**
+   * El siguiente por abrir, con cuánto falta. Es el gancho para otra corrida.
+   *
+   * Los de escenario propio no entran: no se "abren" nunca, así que
+   * anunciarlos como próxima meta sería una promesa que no se cumple.
+   */
   proximoPotenciador() {
     const siguiente = CATALOGO_POTENCIADORES
-      .filter((p) => this.tramosRecorridos < p.tramos)
+      .filter((p) => !p.soloEn && this.tramosRecorridos < p.tramos)
       .sort((a, b) => a.tramos - b.tramos)[0];
 
     if (!siguiente) return null;

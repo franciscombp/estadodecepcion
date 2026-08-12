@@ -278,6 +278,31 @@ Quien juega a puntuación aprende a no entrar. Quien juega a documentar, entra.
 Antes había una ruleta: un porcentaje, un giro y la suerte decidía. Funcionaba
 como chiste una vez y como mecánica ninguna, porque el jugador solo miraba.
 
+#### El hueco sin acciones
+
+Al entrar y al salir **el juego se para** y aparece una pantalla que no pide
+nada: dos o tres párrafos contando qué está pasando, el remate en voz de El
+Mercio y un botón para seguir (`pantallas.relato`, estado `relato`).
+
+Es la parte con más historia detrás y era la que menos se entendía. Entrabas
+por el túnel del centro, se te caían los papeles y salías, todo en marcha, con
+un aviso de dos líneas que se iba solo a los dos segundos y medio. Nadie leía
+eso, y sin leerlo lo que queda es una fase rara en la que hay que recoger cosas
+del suelo. Aquí no hay nada que esquivar ni nada que pulsar salvo seguir: es el
+único momento en que se puede pedir atención sin quitársela a otra cosa.
+
+Los textos están en `institucion.relatoEntrada` y `relatoSalida`, en segunda
+persona y **sobre lo que te pasa a ti**: qué haces, qué te dicen, qué te
+devuelven. Nunca una acusación concreta ni una frase entrecomillada de nadie.
+
+Dentro del pasillo, además, **la cámara se ladea** despacio, como al entrar en
+un túnel. Es lo mismo que hace la bifurcación al virar, y es lo que convierte
+un tramo especial en un sitio distinto en vez de en más de lo mismo con otro
+decorado. Va con balanceo y no con una inclinación fija porque una inclinación
+fija se deja de percibir a los diez segundos —el ojo la adopta como nuevo
+horizonte— y si es mayor, marea. Correr por encima de las tarimas lleva el
+mismo ladeo, a media fuerza.
+
 ### El nivel de arriba
 
 Como los trenes de Subway Surfers, hay una capa por encima del asfalto: las
@@ -367,6 +392,7 @@ no se inventa; lo que sí es una decisión es que **no estén desde el principio
 | 👢 | **Botas de campo** | Saltas más alto | 10 tramos |
 | 📄 | **Salvoconducto** | Aguanta un golpe | 15 tramos |
 | 🚁 | **Cobertura aérea** | Sobrevuelas el tramo recogiéndolo todo | 22 tramos |
+| 🔦 | **Linterna** | Se ve la calle | siempre, **solo en el Apagón** |
 
 Un juego que te lo enseña todo en la primera partida no da ninguna razón para
 jugar la segunda. El contador de tramos es **acumulativo entre partidas**, así
@@ -377,25 +403,33 @@ La escalera se calcula desde el catálogo, no se guarda. Si mañana se cambia un
 umbral en `config/balance.js`, el progreso de todo el mundo se recalcula solo
 en vez de quedarse congelado con la escalera vieja.
 
+**La linterna es aparte**: lleva `soloEn: 'apagon'` y no se desbloquea nunca,
+porque en esa escena no es un extra —es la diferencia entre ver la calle y
+adivinarla— y hacerla esperar a los tres tramos sería cerrarle el escenario a
+quien acaba de llegar. En las otras tres no sale, porque ahí hay luz. El
+filtrado por escena lo hace `PowerUpManager.establecerEscenario`; el progreso
+sigue siendo cosa del cuaderno.
+
+**Ya no hay comida.** El encebollado, la guata, el bolón y el canelazo se
+fueron con la barra de aguante: sin barra eran un bonus suelto que sumaba
+papeles y nada más —ni drenaba, ni había medidor, ni pasaba nada por
+ignorarlos— y lo único que hacían era competir por el hueco del grupo con los
+potenciadores, que sí cambian cómo se juega. Los modelos siguen en el historial
+de git. De todo aquello sobrevive la linterna, que dejó de ser comida para ser
+el potenciador del Apagón.
+
 ### Continuidad
 
 La partida siguiente arranca **en la temporada donde te capturaron**, no
 siempre en la Bahía. Volver al principio cada vez convertía cada muerte en un
 reinicio del relato en lugar de en un capítulo.
 
-| Escena | Caso | Qué se recoge | Ente de control |
-|---|---|---|---|
-| **La Bahía** | Porsche | Encebollado, guata, bolón | Fiscalía |
-| **El Apagón** | Progen | **Pilas** (recurso, con barra) | Asamblea Nacional |
-| **Las Elecciones** | Elecciones | Micrófono | CNE |
-| **Centro histórico** | Estado de excepción | Canelazo, mote | — (cercado) |
-
-Solo el Apagón tiene **barra de aguante**. En las otras tres la comida es un
-bonus que suma papeles y nada más: no drena, no hay medidor, y no pasa nada
-por ignorarla. Antes drenaba en las cuatro, pero los números no daban: con
-ítems cada 150 m que devolvían 35 y un drenaje de 2/s, la barra no bajaba
-nunca si recogías, y se te echaba encima solo cuando ya ibas mal. Invisible
-jugando bien y castigo añadido jugando mal es la peor forma para una mecánica.
+| Escena | Caso | Ente de control |
+|---|---|---|
+| **La Bahía** | Porsche | Fiscalía |
+| **El Apagón** | Progen | Asamblea Nacional |
+| **Las Elecciones** | Elecciones | CNE |
+| **Centro histórico** | Estado de excepción | — (cercado) |
 
 Los obstáculos también cambian de piel: puestos de ropa y militares en la
 Bahía, tuberías y generadores en la central térmica, rejas y antimotines en el
@@ -404,16 +438,24 @@ elecciones. La **silueta** no cambia —lo que se salta se sigue leyendo bajo y
 ancho— porque el jugador tiene medio segundo para leerla y ese medio segundo
 lo compra la silueta. Lo que cambia es lo que va encima.
 
-**Apagón** tiene mecánica propia: la pantalla se oscurece y las linternas
-amplían la visión. El radio visible escala con la velocidad para que siempre
-tengas al menos un segundo de reacción — si fuera un valor fijo, a velocidad
-máxima los obstáculos aparecerían ya encima. Y el tramo **regala una pila al
-entrar** además de sembrar otra a la vista: llegar a oscuras y esperar 150
-metros a la primera no era difícil, era injugable.
+**Apagón** tiene mecánica propia: la pantalla se oscurece y el potenciador
+linterna abre la visión mientras dura. El radio visible escala con la velocidad
+para que siempre tengas al menos un segundo de reacción — si fuera un valor
+fijo, a velocidad máxima los obstáculos aparecerían ya encima. El tramo arranca
+**con la linterna encendida**: entrar a oscuras y esperar a que el generador
+suelte la primera cápsula no era difícil, era injugable.
 
-Es además **la única escena donde quedarse sin recurso mata por sí solo**. En
-las demás, sin aguante vas lento y son los perseguidores los que acaban el
-trabajo; aquí, sin luz no ves por dónde corres ni hay nada que documentar.
+**Y cuando se apaga, los papeles alumbran.** En esta escena —y solo en esta— el
+papel sube su emisión y deja de teñirse con la niebla, así que la hilera se ve
+entera a través del negro y dibuja la ruta. Es una sola escritura sobre el
+material compartido por las tres mil piezas de la pista
+(`ajustarBrilloPapel`), no tres mil.
+
+Eso es lo que permitió que quedarse sin luz **deje de matar**. Mataba cuando la
+linterna era un consumible sembrado cada 150 metros; ahora que es un
+potenciador que puede no salir, morir por no haberlo encontrado sería perder
+por mala suerte y no por mal juego. Sin luz sigues sin ver la calle —eso lo
+paga la linterna— pero ves por dónde va.
 
 **El centro histórico** es deliberadamente árido: máximo 3 papeles por tramo.
 La carestía es el mensaje.
@@ -668,6 +710,29 @@ evidencia. Si algo nuevo no encaja en esos cinco significados, va en gris.
 
 Los iconos son SVG inline (`src/ui/iconos.js`): cero peticiones de red, escalan
 sin pixelarse y el juego arranca sin conexión.
+
+### Lo que el HUD dejó de decir
+
+**No hay barra del perseguidor.** La había —«TE SIGUEN», con su medidor— y
+sobraba: los perseguidores están en pantalla, corriendo, con el hueco
+cerrándose. Medir en una barra lo que ya se ve es pedirle al jugador que aparte
+la vista del carril para enterarse de algo que tenía delante. Lo que sí se
+queda es el **tinte rojo de los bordes** por encima del 65% de cercanía, que no
+se lee: se percibe.
+
+**No hay barra de aguante**, porque no hay aguante. Se fue con la comida.
+
+**El cartel de la bifurcación está en el HUD, no en la calle.** Antes eran tres
+pórticos modelados sobre la vía, a 230, 150 y 80 metros. El problema no era que
+estuvieran: era dónde. Un cartel dentro del mundo se ve en escorzo, se cruza en
+segundo y medio y hay que levantar la vista del carril para leerlo justo cuando
+todavía se está esquivando. Ahora es señalización de autopista —panel verde por
+vía, flecha y pestaña de salida— que **baja desde el techo de la pantalla**, se
+queda quieta mientras dura la decisión y se sube al cruzar. Lo que sigue en el
+mundo son las flechas del asfalto, que están donde ya se está mirando.
+
+**Los avisos van centrados.** Estaban en la columna derecha, junto a la barra
+del perseguidor, y ahí no los leía nadie: la vista está en el centro y abajo.
 
 ---
 

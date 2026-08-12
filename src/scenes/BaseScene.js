@@ -193,8 +193,8 @@ export class BaseScene {
     return this.colores;
   }
 
-  /** Gancho para efectos al recoger estamina. Vacío por defecto. */
-  alRecogerEstamina() {}
+  /** Gancho del potenciador linterna. Solo lo implementa el Apagón. */
+  encenderLinterna() {}
 
   /** Desmonta el escenario y libera memoria. */
   destruir() {

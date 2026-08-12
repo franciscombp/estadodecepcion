@@ -4,7 +4,7 @@
 // Composición (ver docs/ESTILO.md):
 //
 //   ┌──────────────────────────────────────────┐
-//   │ [⏸]   [🍲 ESTAMINA ▓▓▓░ 72%]   [📄 248] │  estado permanente
+//   │ [⏸]                            [📄 248] │  estado permanente
 //   │ RUTA                        ┌──────────┐ │
 //   │ BAHÍA                       │ ⚠ AVISO  │ │  eventos temporales
 //   │  ● ○ ○ ○                    └──────────┘ │
@@ -44,17 +44,14 @@ export class HUD {
     return {
       papeles: -1,
       distancia: -1,
-      estamina: -1,
       cercania: -1,
       golpes: -1,
       combo: -1,
       escenario: null,
-      exhausto: null,
       linterna: -1,
       evidencias: -1,
       tramite: -1,
       porArriba: null,
-      aguanteVisible: null,
       efectos: '',
     };
   }
@@ -75,20 +72,6 @@ export class HUD {
                 type="button" aria-label="Pausar">
           ${Icono.pausa(22)}
         </button>
-
-        <div class="pildora pildora--cian" data-barra="estamina">
-          <span class="pildora__icono" data-campo="icono-estamina">
-            ${Icono.encebollado(26)}
-          </span>
-          <span class="pildora__cuerpo">
-            <span class="pildora__nombre" data-campo="nombre-estamina">ESTAMINA</span>
-            <span class="medidor">
-              <span class="medidor__relleno medidor__relleno--verde"
-                    data-campo="rel-estamina"></span>
-            </span>
-          </span>
-          <span class="pildora__pct" data-campo="pct-estamina">100%</span>
-        </div>
 
         <div class="contador contador--dorado">
           <span class="contador__valor" data-campo="papeles">0</span>
@@ -119,6 +102,15 @@ export class HUD {
            donde ya está el riel: es la columna de "en qué estado estás". -->
       <div class="efectos" data-campo="efectos"></div>
 
+      <!-- Cartel de salida. Es señalización de autopista, y va en el HUD y no
+           en la calle: un pórtico dentro del mundo se lee de refilón, en
+           escorzo y a la velocidad a la que pasa. Este baja desde arriba,
+           se queda mientras haya que decidir, y se sube solo. -->
+      <div class="rotulo rotulo--oculto" data-campo="rotulo">
+        <div class="rotulo__salida" data-campo="rotulo-salida">SALIDA</div>
+        <div class="rotulo__vias" data-campo="rotulo-vias"></div>
+      </div>
+
       <!-- ══ ZONA MEDIA ══ -->
       <div class="hud__medio">
         <div class="riel">
@@ -126,21 +118,11 @@ export class HUD {
           <div class="riel__nombre" data-campo="nombre-escenario">BAHÍA</div>
           <div class="riel__nodos" data-campo="riel-nodos"></div>
         </div>
-
-        <div class="hud__derecha">
-          <div class="avisos" data-campo="avisos"></div>
-          <div class="acoso" data-barra="perseguidor">
-            <span class="acoso__icono">${Icono.perseguidor(18)}</span>
-            <span class="acoso__cuerpo">
-              <span class="acoso__etiqueta">TE SIGUEN</span>
-              <span class="medidor medidor--fino">
-                <span class="medidor__relleno medidor__relleno--rojo"
-                      data-campo="rel-perseguidor"></span>
-              </span>
-            </span>
-          </div>
-        </div>
       </div>
+
+      <!-- Avisos. Van CENTRADOS: a un costado se los pierde quien mira el
+           carril, que es todo el mundo, todo el rato. -->
+      <div class="avisos" data-campo="avisos"></div>
 
       <!-- ══ FILA INFERIOR ══ -->
       <div class="hud__inferior">
@@ -188,13 +170,9 @@ export class HUD {
       intentos: q('intentos'),
       nombreEscenario: q('nombre-escenario'),
       rielNodos: q('riel-nodos'),
-      iconoEstamina: q('icono-estamina'),
-      nombreEstamina: q('nombre-estamina'),
-      pctEstamina: q('pct-estamina'),
-      relEstamina: q('rel-estamina'),
-      barraEstamina: this.raiz.querySelector('[data-barra="estamina"]'),
-      relPerseguidor: q('rel-perseguidor'),
-      barraPerseguidor: this.raiz.querySelector('[data-barra="perseguidor"]'),
+      rotulo: q('rotulo'),
+      rotuloSalida: q('rotulo-salida'),
+      rotuloVias: q('rotulo-vias'),
       evidencias: q('evidencias'),
       avisos: q('avisos'),
       hint: q('hint'),
@@ -311,8 +289,6 @@ export class HUD {
     if (datos.escenario !== c.escenario) {
       const esc = obtenerEscenario(datos.escenario);
       this.ref.nombreEscenario.textContent = esc.nombre;
-      this.ref.nombreEstamina.textContent = datos.nombreEstamina.toUpperCase();
-      this.ref.iconoEstamina.innerHTML = Icono.iconoEstamina(datos.escenario, 26);
 
       for (const [id, nodo] of this.nodosRiel) {
         nodo.classList.toggle('riel__nodo--activo', id === datos.escenario);
@@ -323,38 +299,15 @@ export class HUD {
       c.escenario = datos.escenario;
     }
 
-    // --- Aguante -----------------------------------------------------------
-    // La píldora solo existe donde el aguante es un recurso (el Apagón). En
-    // las demás escenas la comida es un bonus suelto: no hay nada que medir, y
-    // un medidor que nunca se mueve solo ocupa sitio.
-    if (datos.aguanteVisible !== c.aguanteVisible) {
-      this.ref.barraEstamina.classList.toggle('pildora--oculta', !datos.aguanteVisible);
-      c.aguanteVisible = datos.aguanteVisible;
-    }
-
-    if (datos.aguanteVisible) {
-      // Redondeamos al 1%: baja de forma continua y escribir cada fracción
-      // sería una escritura por fotograma para un cambio invisible.
-      const pctEstamina = Math.round(datos.estamina * 100);
-      if (pctEstamina !== c.estamina) {
-        this.ref.relEstamina.style.width = `${pctEstamina}%`;
-        this.ref.pctEstamina.textContent = `${pctEstamina}%`;
-        c.estamina = pctEstamina;
-      }
-      if (datos.exhausto !== c.exhausto) {
-        this.ref.relEstamina.classList.toggle('medidor__relleno--rojo', datos.exhausto);
-        this.ref.barraEstamina.classList.toggle('pildora--alarma', datos.exhausto);
-        c.exhausto = datos.exhausto;
-      }
-    }
-
     // --- Perseguidor -------------------------------------------------------
+    // NO hay barra. La había, y sobraba: los perseguidores están en pantalla,
+    // corriendo, con el hueco cerrándose. Medir en una barra lo que ya se ve
+    // es pedirle al jugador que aparte la vista del carril para enterarse de
+    // algo que tenía delante.
+    //
+    // Lo que sí se queda es el tinte de los bordes, que no se lee: se percibe.
     const pctCercania = Math.round(datos.cercania * 100);
     if (pctCercania !== c.cercania) {
-      this.ref.relPerseguidor.style.width = `${pctCercania}%`;
-      this.ref.barraPerseguidor.classList.toggle('acoso--alarma', pctCercania > 65);
-      // Por encima del 65% los bordes de la pantalla se tiñen de rojo. Es
-      // información periférica: se percibe sin apartar la vista del carril.
       this.ref.tinte.style.opacity = pctCercania > 65
         ? String((pctCercania - 65) / 35 * 0.55)
         : '0';
@@ -499,7 +452,7 @@ export class HUD {
   // -------------------------------------------------------------------------
 
   /**
-   * Muestra un aviso temporal en la columna derecha.
+   * Muestra un aviso temporal, centrado en pantalla.
    * @param {{tipo:string, titulo:string, subtitulo?:string}} datos
    */
   mostrarAviso({ tipo, titulo, subtitulo }) {
@@ -547,5 +500,57 @@ export class HUD {
     if (this.ref?.avisos) this.ref.avisos.innerHTML = '';
     if (this.ref?.tinte) this.ref.tinte.style.opacity = '0';
     if (this.ref?.destello) this.ref.destello.style.opacity = '0';
+    this.ocultarRotulo();
+  }
+
+  // -------------------------------------------------------------------------
+  // CARTEL DE SALIDA
+  // -------------------------------------------------------------------------
+  // Señalización de autopista, con su panel verde por vía, su flecha y su
+  // pestaña de salida. Va en el HUD y no en la calle, y ese cambio no es de
+  // gusto: un pórtico dentro del mundo se lee en escorzo, de refilón y durante
+  // el segundo y medio que tarda en pasar por encima. Fijo arriba se lee
+  // entero, todo el rato que dura la decisión.
+
+  /**
+   * Baja el cartel. Se queda hasta que lo quiten.
+   *
+   * @param {{izquierda:string, centro:string, derecha:string}} destinos
+   * @param {boolean} centroEsPeligro El del centro es el cerco, no una salida
+   */
+  mostrarRotulo(destinos, centroEsPeligro = false) {
+    if (!this.ref?.rotulo) return;
+
+    const vias = [
+      { clave: 'izquierda', flecha: '←', nombre: destinos.izquierda },
+      { clave: 'centro', flecha: '↑', nombre: destinos.centro, peligro: centroEsPeligro },
+      { clave: 'derecha', flecha: '→', nombre: destinos.derecha },
+    ];
+
+    this.ref.rotuloVias.innerHTML = '';
+    for (const via of vias) {
+      const panel = document.createElement('div');
+      panel.className = `via${via.peligro ? ' via--peligro' : ''}`;
+      panel.innerHTML = `
+        <span class="via__flecha"></span>
+        <span class="via__nombre"></span>
+      `;
+      panel.querySelector('.via__flecha').textContent = via.flecha;
+      panel.querySelector('.via__nombre').textContent = via.nombre;
+      this.ref.rotuloVias.appendChild(panel);
+    }
+
+    this.ref.rotuloSalida.textContent = centroEsPeligro ? 'SIN SALIDA' : 'PRÓXIMA SALIDA';
+    this.ref.rotulo.classList.toggle('rotulo--peligro', centroEsPeligro);
+    // Dos fotogramas de margen: aplicar la clase en el mismo tick en que se
+    // rellena el contenido se salta la transición y el cartel aparece de golpe.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => this.ref?.rotulo.classList.remove('rotulo--oculto'));
+    });
+  }
+
+  /** Lo sube otra vez. La transición la lleva el CSS. */
+  ocultarRotulo() {
+    this.ref?.rotulo?.classList.add('rotulo--oculto');
   }
 }

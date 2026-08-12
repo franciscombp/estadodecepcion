@@ -42,6 +42,32 @@ export class PowerUpManager {
   /** @param {string[]} ids */
   establecerDesbloqueados(ids) {
     this.desbloqueados = ids ?? [];
+    this._filtrar();
+  }
+
+  /**
+   * En qué escenario se está corriendo. Decide qué potenciadores de escena
+   * propia entran (`soloEn` en el catálogo): la linterna es del Apagón y en
+   * las otras tres no significaría nada, porque hay luz.
+   * @param {string} id
+   */
+  establecerEscenario(id) {
+    this.escenario = id;
+    this._filtrar();
+  }
+
+  _filtrar() {
+    this.disponibles = this.desbloqueados
+      .map((id) => CATALOGO_POTENCIADORES.find((p) => p.id === id))
+      .filter((p) => p && (!p.soloEn || p.soloEn === this.escenario));
+
+    // Los de escena propia no dependen del progreso, así que se añaden aquí
+    // aunque no vengan en la lista de desbloqueados.
+    for (const p of CATALOGO_POTENCIADORES) {
+      if (p.soloEn === this.escenario && !this.disponibles.includes(p)) {
+        this.disponibles.push(p);
+      }
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -51,14 +77,14 @@ export class PowerUpManager {
   /**
    * Game ofrece el hueco de un grupo recién generado.
    *
-   * Igual que con la estamina, la colocación la manda el generador de
-   * obstáculos: es el único que sabe qué carriles quedaron transitables y
-   * dónde cae el hueco entre grupos.
+   * La colocación la manda el generador de obstáculos: es el único que sabe
+   * qué carriles quedaron transitables y dónde cae el hueco entre grupos.
    *
    * @returns {boolean} true si se colocó un potenciador
    */
   intentarGenerar(carrilesLibres, z) {
-    if (this.desbloqueados.length === 0) return false;
+    const catalogo = this.disponibles ?? [];
+    if (catalogo.length === 0) return false;
     if (this.distanciaDesdeUltimo < POTENCIADORES.DISTANCIA_ENTRE) return false;
     if (!carrilesLibres || carrilesLibres.length === 0) return false;
 
@@ -68,8 +94,7 @@ export class PowerUpManager {
     this.distanciaDesdeUltimo = 0;
     if (Math.random() > POTENCIADORES.PROBABILIDAD) return false;
 
-    const id = this.desbloqueados[Math.floor(Math.random() * this.desbloqueados.length)];
-    const def = CATALOGO_POTENCIADORES.find((p) => p.id === id);
+    const def = catalogo[Math.floor(Math.random() * catalogo.length)];
     if (!def) return false;
 
     const carril = carrilesLibres[Math.floor(Math.random() * carrilesLibres.length)];

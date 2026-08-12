@@ -15,10 +15,16 @@
 //                   (Carondelet)
 //
 // LO QUE COMPARTEN Y LO QUE NO
-// Las cuatro escenas usan la misma mecánica de aguante: si no recoges, vas
-// lento y te alcanzan. Lo que cambia es QUÉ recoges, y eso no es decoración.
-// En la Bahía corres y te da hambre; en la central térmica no comes, alumbras.
-// Misma regla, ficción distinta.
+// Las cuatro comparten mecánica: correr, esquivar, recoger papeles y aguantar
+// de pie. Lo que cambia es la piel, el caso que se documenta y el ente de
+// control al que lleva la boca del centro.
+//
+// La comida —encebollado, guata, bolón, canelazo— YA NO ESTÁ. Era un bonus
+// suelto que sumaba papeles y nada más: ni drenaba, ni había medidor, ni
+// pasaba nada por ignorarla, así que lo único que hacía era competir por el
+// hueco del grupo con lo que sí importa, que son los potenciadores. Lo que
+// queda de aquello es la linterna, que dejó de ser comida para ser EL
+// potenciador del Apagón.
 // ============================================================================
 
 export const ESCENARIOS = {
@@ -58,19 +64,6 @@ export const ESCENARIOS = {
       intensidadDireccional: 1.85,
     },
 
-    // Correr da hambre, así que aquí se come. Pero es un BONUS, no un
-    // recurso: no hay barra y no pasa nada por ignorarlo. Solo suma papeles.
-    estamina: {
-      nombre: 'Comida',
-      etiqueta: 'COMIDA',
-      icono: 'encebollado',
-      items: [
-        { modelo: 'encebollado', nombre: 'Encebollado', color: 0xff8c42 },
-        { modelo: 'guata', nombre: 'Guata', color: 0xd9542a },
-        { modelo: 'bolon', nombre: 'Bolón', color: 0xc9a34a },
-      ],
-    },
-
     // Etiquetas de los obstáculos, para el HUD y los mensajes de choque.
     obstaculos: {
       saltar: 'Puesto de ropa',
@@ -91,6 +84,27 @@ export const ESCENARIOS = {
     // pieza que te faltaba del caso.
     institucion: {
       nombre: 'FISCALÍA',
+      // EL RELATO. Es el texto de la pantalla que para el juego al entrar y al
+      // salir del trámite, y es donde se explica de qué va esta fase.
+      //
+      // Se escribe en SEGUNDA PERSONA y sobre lo que te pasa a ti: qué haces,
+      // qué te dicen, qué te devuelven. Nunca una acusación concreta contra
+      // nadie ni una frase entrecomillada de nadie —ver la regla editorial en
+      // docs/GUION.md—. Lo satírico está en el trámite, no en el señalado.
+      //
+      // Los saltos de línea separan párrafos.
+      relatoEntrada:
+        'Llevas semanas juntando papeles del caso Porsche y hoy vienes a '
+        + 'entregarlos. Pediste cita tres veces; a la tercera te dieron una '
+        + 'para dentro de mes y medio y te presentaste igual.\n'
+        + 'En recepción te piden que lo pases todo por la banda. La carpeta '
+        + 'no está cerrada. Nadie te avisa.',
+      relatoSalida:
+        'Recogiste lo que alcanzaste antes de que cerraran el turno. El '
+        + 'funcionario numera lo que le entregas, sella una copia y te la '
+        + 'devuelve con la fecha de hoy.\n'
+        + 'Es lo único que te llevas con un sello: la prueba de que estuviste '
+        + 'aquí. Lo demás sigue en el suelo del pasillo.',
       // Qué pasa al entrar, en una línea.
       entrada: 'Al cruzar la puerta se te riegan los papeles por todo el pasillo.',
       // El portazo de salida. Es el remate, y es siempre el mismo: no importa
@@ -130,37 +144,16 @@ export const ESCENARIOS = {
       intensidadDireccional: 0.3,
     },
 
-    // LA ÚNICA ESCENA CON BARRA DE AGUANTE. Aquí el recurso no es un añadido:
-    // es la escena. La luz se traduce en lo que literalmente ves, así que
-    // gastarla y reponerla ES el juego de este tramo. Ver ESTAMINA en
-    // config/balance.js para por qué en las otras tres se quitó.
-    aguanteEsRecurso: true,
+    // El tramo arranca CON la linterna encendida. Entrar a oscuras y esperar
+    // a que el generador suelte la primera cápsula no era difícil, era
+    // injugable. Cuando se apaga, lo que queda para orientarse son los
+    // papeles, que aquí brillan.
+    linternaAlEntrar: true,
 
-    // Aquí no se come: se alumbra. Las pilas van iluminadas porque esta es la
-    // única escena donde el recolectable tiene que brillar por sí mismo —en el
-    // resto basta con que destaque, aquí es que si no brilla no existe.
-    estamina: {
-      nombre: 'Pilas',
-      etiqueta: 'PILAS',
-      icono: 'linterna',
-      items: [
-        { modelo: 'pila', nombre: 'Pila', color: 0xffe066 },
-      ],
-      // El Apagón arranca a oscuras y la pila es lo único que abre la visión.
-      // Entrar sin ninguna y esperar a que el generador suelte la primera a
-      // los 150 m no era difícil: era injugable. Así que el tramo REGALA una
-      // al entrar (se enciende sola) y siembra otra a la vista.
-      regaloAlEntrar: true,
-      distanciaSembrada: 70,
-    },
-
-    // LA ÚNICA ESCENA DONDE QUEDARSE SIN RECURSO MATA.
-    // En las demás, quedarte sin aguante te vuelve lento y te acaban
-    // alcanzando —una presión indirecta—. Aquí no: sin luz no ves por dónde
-    // corres ni hay nada que documentar, así que la oscuridad total es derrota
-    // directa. La compensación es el regalo de entrada y una siembra generosa.
-    sinAguanteEsCaptura: true,
-    textoSinAguante: 'Se apagó la linterna. Lo que pasó después no lo vio nadie.',
+    // Y los papeles brillan, y atraviesan la niebla. Es lo único que se ve
+    // cuando la linterna se apaga: la hilera marca la ruta aunque no se vea la
+    // calle. Ver Coin.aplicarTema.
+    papelesBrillan: true,
 
     obstaculos: {
       saltar: 'Tubería reventada',
@@ -173,17 +166,29 @@ export const ESCENARIOS = {
 
     densidadPapeles: 0.8,
 
-    // MECÁNICA ESPECIAL: la pantalla se oscurece. Las linternas de estamina
-    // amplían el radio de visión además de recuperar energía.
+    // MECÁNICA ESPECIAL: la pantalla se oscurece. El potenciador linterna
+    // abre el radio de visión mientras dura.
     mecanicaEspecial: 'oscuridad',
     oscuridad: {
       radioBase: 18,       // Distancia visible sin linterna.
       radioConLinterna: 52,
-      duracionLinterna: 9, // Segundos de visión ampliada por linterna.
+      duracionLinterna: 11, // Solo es el respaldo: manda la del potenciador.
     },
 
     institucion: {
       nombre: 'ASAMBLEA NACIONAL',
+      relatoEntrada:
+        'La comisión de fiscalización aceptó recibirte. Traes los informes '
+        + 'técnicos que ya circulaban antes de los cortes y una lista de '
+        + 'fechas que no cuadran con las versiones oficiales.\n'
+        + 'Te hacen pasar a una sala con la mesa ocupada. Alguien dice «déjelo '
+        + 'ahí» y señala un sitio donde no cabe.',
+      relatoSalida:
+        'La sesión se levanta por falta de quórum antes de que llegues al '
+        + 'segundo punto. Se te acerca un asesor, te pide una copia «a título '
+        + 'personal» y se la das.\n'
+        + 'Sales con la parte del informe que alcanzaste a recoger. Nadie te '
+        + 'firmó nada, pero el papel es el mismo.',
       entrada: 'La comisión de fiscalización te riega los papeles «para revisarlos».',
       portazo: 'La comisión niega el juicio político por falta de votos.',
       hallazgo: 'Informe técnico del caso Progen',
@@ -216,14 +221,6 @@ export const ESCENARIOS = {
       intensidadDireccional: 1.55,
     },
 
-    estamina: {
-      nombre: 'Micrófono',
-      etiqueta: 'MICRÓFONO',
-      icono: 'microfono',
-      items: [
-        { modelo: 'microfono', nombre: 'Micrófono', color: 0x7cffb2 },
-      ],
-    },
 
     obstaculos: {
       saltar: 'Valla de campaña',
@@ -238,6 +235,17 @@ export const ESCENARIOS = {
 
     institucion: {
       nombre: 'CNE',
+      relatoEntrada:
+        'Vienes a pedir las actas. Las públicas, las que por ley se entregan '
+        + 'a quien las pida, y llevas el formulario lleno desde hace once '
+        + 'días.\n'
+        + 'En la ventanilla te dicen que el sistema está en mantenimiento y '
+        + 'que mejor las cotejen contigo. Te piden la carpeta. Se resbala.',
+      relatoSalida:
+        'Cotejaron lo que quedaba encima del mostrador y te lo devolvieron sin '
+        + 'sellar. El resto sigue desparramado y ya llamaron al de limpieza.\n'
+        + 'Te llevas un acta con más votos que votantes. La tienes tú, no '
+        + 'ellos, y esa es toda la diferencia.',
       entrada: 'Te piden los papeles «para cotejarlos» y acaban por el suelo.',
       portazo: 'Pierdes tus derechos políticos y de participación. '
         + 'Igual no importa: no ibas a ser candidato.',
@@ -271,16 +279,6 @@ export const ESCENARIOS = {
       intensidadDireccional: 1.35,
     },
 
-    // Comida de la sierra, y el canelazo que además calienta.
-    estamina: {
-      nombre: 'Comida',
-      etiqueta: 'COMIDA Y CANELAZO',
-      icono: 'canelazo',
-      items: [
-        { modelo: 'canelazo', nombre: 'Canelazo', color: 0xffa94d },
-        { modelo: 'mote', nombre: 'Mote', color: 0xf0e2c0 },
-      ],
-    },
 
     obstaculos: {
       saltar: 'Reja de contención',

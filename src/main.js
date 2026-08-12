@@ -228,6 +228,13 @@ async function arrancar() {
         hud.limpiarAvisos();
         break;
 
+      case 'relato':
+        // El HUD se queda oculto: en este hueco no hay nada que medir.
+        hud.ocultar();
+        hud.limpiarAvisos();
+        pantallas.mostrar(pantallas.relato(datos));
+        break;
+
       case 'escape':
         hud.ocultar();
         pantallas.mostrar(pantallas.escape(datos));
@@ -250,6 +257,8 @@ async function arrancar() {
 
   juego.alActualizarHUD = (datos) => hud.actualizar(datos);
   juego.alMostrarAviso = (datos) => hud.mostrarAviso(datos);
+  juego.alSeñalizar = (destinos, peligro) => hud.mostrarRotulo(destinos, peligro);
+  juego.alQuitarSenal = () => hud.ocultarRotulo();
 
   // -------------------------------------------------------------------------
   // CINEMÁTICA: SALTARLA

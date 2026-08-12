@@ -36,7 +36,6 @@ import { Player } from './Player.js';
 import { Track } from './Track.js';
 import { ObstacleManager } from './Obstacle.js';
 import { CoinManager } from './Coin.js';
-import { StaminaManager } from './Stamina.js';
 import { Chaser } from './Chaser.js';
 import { Rutas } from './Rutas.js';
 import { Bifurcacion } from './Bifurcacion.js';
@@ -52,7 +51,7 @@ import { CATALOGO_POTENCIADORES } from '../config/balance.js';
 import { Controles } from '../utils/controls.js';
 import { remateCaptura, remateExhausto, citaVerificada } from '../config/textos.js';
 import {
-  VELOCIDAD, TRAMO, CAMARA, JUGADOR, ESTAMINA, CARRILES, CERCO, PAPELES,
+  VELOCIDAD, TRAMO, CAMARA, JUGADOR, CARRILES, CERCO, PAPELES,
   POTENCIADORES, SENTENCIAS,
 } from '../config/balance.js';
 import { BLOOM, CALIDAD } from '../config/estilo.js';
@@ -97,8 +96,12 @@ export class Game {
     // Sacudida de cámara al chocar.
     this.sacudida = 0;
 
+    // Ladeo de cámara en los tramos especiales. Ver _ladeoEspecial().
+    this.fuerzaLadeo = 0;
+    this.relojLadeo = 0;
+
     // La foto del arresto. Se saca del propio juego en el momento del cerco y
-    // sale al día siguiente en primera plana. Ver _capturarFoto().
+    // sale al día siguiente en primera plana.
     this.fotoArresto = null;
     this._pedidoDeFoto = false;
 
@@ -122,6 +125,10 @@ export class Game {
     this.alCambiarEstado = () => {};
     this.alActualizarHUD = () => {};
     this.alMostrarAviso = () => {};
+    /** Baja el cartel de salida con los tres destinos. */
+    this.alSeñalizar = () => {};
+    /** Lo vuelve a subir. */
+    this.alQuitarSenal = () => {};
 
     this._configurarThree();
     this._configurarSubsistemas();
@@ -264,7 +271,6 @@ export class Game {
     this.jugador = new Player(this.escenaThree, this.cuaderno.personajePreferido);
     this.obstaculos = new ObstacleManager(this.escenaThree);
     this.papeles = new CoinManager(this.escenaThree);
-    this.estamina = new StaminaManager(this.escenaThree);
     this.perseguidor = new Chaser(this.escenaThree);
     this.rutas = new Rutas();
     this.bifurcacion = new Bifurcacion(this.escenaThree);
@@ -349,13 +355,13 @@ export class Game {
   }
 
   /**
-   * Reparte el contenido de un grupo recién generado entre papeles, estamina y
+   * Reparte el contenido de un grupo recién generado entre papeles y
    * potenciadores.
    *
    * La regla que importa: los ítems NUNCA van en el carril que se llevó la
    * hilera de papeles. Una hilera es una fila opaca de ocho piezas; lo que
    * quede detrás en ese carril no se ve hasta que ya es tarde para cambiarse,
-   * y el jugador acaba pasándose de largo la estamina sin haberla visto.
+   * y el jugador acaba pasándose de largo el potenciador sin haberlo visto.
    */
   _poblarGrupo(grupo) {
     if (!grupo) return;
@@ -371,12 +377,10 @@ export class Game {
     const libres = grupo.carrilesLibres.filter((c) => c !== carrilPapeles);
     if (libres.length === 0) return;
 
-    // El potenciador tiene prioridad sobre la estamina: sale mucho menos y es
-    // lo que sostiene las ganas de volver a jugar.
+    // Lo único que se ofrece en el hueco es un potenciador. Antes competía
+    // con la comida, y la comida se fue: ver CATALOGO_POTENCIADORES.
     const zHueco = grupo.z - grupo.gap / 2;
-    if (this.potenciadores.intentarGenerar(libres, zHueco)) return;
-
-    this.estamina.ofrecerHueco(libres, zHueco);
+    this.potenciadores.intentarGenerar(libres, zHueco);
   }
 
   /**
@@ -396,7 +400,6 @@ export class Game {
     this.pista.aplicarTema(colores);
     this.obstaculos.aplicarTema(colores, id);
     this.papeles.aplicarTema(config);
-    this.estamina.aplicarTema(config);
     this.elevado.aplicarTema(colores);
 
     this.rutaPartida.push(id);
@@ -406,14 +409,16 @@ export class Game {
     // así que hay que volver a llenarla con la paleta nueva.
     this._precargarPista();
 
-    // Regalo de entrada. Hoy solo lo usa el Apagón, y no es un mimo: ese tramo
-    // arranca a oscuras y la linterna es lo único que abre la visión. Entrar
-    // sin ninguna y esperar 150 metros a que el generador soltase la primera
-    // no era difícil, era injugable.
-    if (config.estamina?.regaloAlEntrar) {
-      this.estamina.rellenar(ESTAMINA.MAXIMA);
-      this.escenario.alRecogerEstamina?.();
-      this.estamina.sembrar(config.estamina.distanciaSembrada ?? 70);
+    // Qué potenciadores pueden salir aquí. La linterna es del Apagón y en las
+    // otras tres no significaría nada, porque hay luz.
+    this.potenciadores.establecerEscenario(id);
+
+    // El Apagón arranca CON la linterna encendida. No es un mimo: entrar a
+    // oscuras y esperar a que el generador suelte la primera cápsula no era
+    // difícil, era injugable. Lo que sostiene el tramo cuando se apaga son los
+    // papeles, que aquí brillan (ver Coin.aplicarTema).
+    if (config.linternaAlEntrar) {
+      this.escenario.encenderLinterna?.();
     }
 
     if (anunciar) {
@@ -456,7 +461,6 @@ export class Game {
     this.bifurcacion.reiniciar();
     this.obstaculos.reiniciar();
     this.papeles.reiniciar();
-    this.estamina.reiniciar();
     this.perseguidor.reiniciar();
     this.elevado.reiniciar();
     this.tramite.limpiar();
@@ -593,11 +597,16 @@ export class Game {
     this.corredorLimpio = false;
 
     const distancia = TRAMO.LONGITUD - this.distanciaTramo;
-    this.bifurcacion.preparar(
+    const senal = this.bifurcacion.preparar(
       this.escenarioActual,
       this.escenario.obtenerColores(),
       distancia,
     );
+
+    // El cartel de salida baja del techo de la pantalla y se queda hasta que
+    // se cruce. Lo que dice sale de la propia bifurcación, no de un texto
+    // aparte: dos fuentes acabarían diciendo cosas distintas.
+    this.alSeñalizar(senal.destinos, senal.centroEsPeligro);
 
     const esc = obtenerEscenario(this.escenarioActual);
     this.alMostrarAviso({
@@ -639,6 +648,7 @@ export class Game {
     this.corredorLimpio = false;
     this.bifurcacion.iniciarViraje(carril);
     this.audio.cambioEscenario();
+    this.alQuitarSenal();
 
     const esc = obtenerEscenario(this.escenarioActual);
 
@@ -648,7 +658,8 @@ export class Game {
         this.terminarPartida('cerco', esc.textoFrente);
         return;
       }
-      this._entrarEnTramite();
+      // Antes de entrar se PARA y se cuenta. Ver _contarInstitucion().
+      this._contarInstitucion('entrada');
       return;
     }
 
@@ -662,7 +673,6 @@ export class Game {
   _entrarEnTramo(destino) {
     this.obstaculos.limpiar();
     this.papeles.limpiar();
-    this.estamina.limpiar();
     this.bifurcacion.limpiar();
     this.elevado.limpiar();
     this.tramite.limpiar();
@@ -681,6 +691,51 @@ export class Game {
   // -------------------------------------------------------------------------
 
   /**
+   * EL HUECO SIN ACCIONES. Se para el juego y se cuenta qué está pasando.
+   *
+   * El trámite era la parte con más historia detrás y la que menos se
+   * entendía: entrabas por el túnel del centro, se te caían los papeles y
+   * salías, todo en marcha y con un aviso de dos líneas que se iba solo a los
+   * dos segundos y medio. Nadie leía eso. Y sin leerlo, lo que queda es una
+   * fase rara en la que hay que recoger cosas.
+   *
+   * Así que aquí el juego se detiene. No hay nada que esquivar ni nada que
+   * pulsar salvo seguir: es el único momento en que se puede pedir atención
+   * sin quitársela a otra cosa.
+   *
+   * @param {'entrada'|'salida'} fase
+   * @param {object} [extra] Datos de la salida (recuperados, perdidos…)
+   */
+  _contarInstitucion(fase, extra = {}) {
+    const institucion = this.rutas.datosInstitucion(this.escenarioActual);
+    this.controles.desactivar();
+
+    this._establecerEstado('relato', {
+      fase,
+      institucion: institucion?.nombre ?? 'EL TRÁMITE',
+      relato: fase === 'entrada'
+        ? (institucion?.relatoEntrada ?? institucion?.entrada ?? '')
+        : (institucion?.relatoSalida ?? institucion?.portazo ?? ''),
+      remate: fase === 'entrada' ? institucion?.entrada : institucion?.portazo,
+      escenario: this.escenarioActual,
+      ...extra,
+    });
+  }
+
+  /** Lo que hace el botón del relato: seguir. */
+  continuarRelato(fase) {
+    this.controles.activar();
+    if (fase === 'entrada') {
+      this._entrarEnTramite();
+      this._establecerEstado('jugando');
+      return;
+    }
+    const destino = this.rutas.resolverRuta(this.escenarioActual, 'derecha');
+    this._entrarEnTramo(destino);
+    this._establecerEstado('jugando');
+  }
+
+  /**
    * Entra al ente de control. Dentro no hay obstáculos, ni perseguidores, ni
    * drenaje de aguante: solo el reguero de TUS papeles por el suelo.
    */
@@ -689,7 +744,6 @@ export class Game {
     this.obstaculos.generacionPausada = true;
     this.elevado.limpiar();
     this.elevado.generacionPausada = true;
-    this.estamina.limpiar();
     this.papeles.limpiar();
     this.potenciadores.limpiar();
     this.bifurcacion.limpiar();
@@ -710,11 +764,6 @@ export class Game {
       confiscados,
     );
 
-    this.alMostrarAviso({
-      tipo: 'golpe',
-      titulo: institucion?.nombre ?? 'TRÁMITE',
-      subtitulo: institucion?.entrada ?? 'Se te riegan los papeles por el suelo.',
-    });
   }
 
   /**
@@ -746,22 +795,9 @@ export class Game {
       return;
     }
 
-    this.alMostrarAviso({
-      tipo: 'golpe',
-      titulo: institucion?.nombre ?? 'SE ARCHIVÓ',
-      subtitulo: institucion?.portazo ?? 'Se archiva el caso.',
-    });
-
-    if (hallazgo) {
-      this.alMostrarAviso({
-        tipo: 'evidencia',
-        titulo: 'PERO SALES CON ALGO',
-        subtitulo: `${hallazgo} · ${perdidos} papeles se quedaron en el suelo`,
-      });
-    }
-
-    const destino = this.rutas.resolverRuta(this.escenarioActual, 'derecha');
-    this._entrarEnTramo(destino);
+    // Otra parada, y por el mismo motivo: el portazo es el remate de la
+    // escena, y un remate que se va solo a los dos segundos no remata nada.
+    this._contarInstitucion('salida', { hallazgo, recuperados, perdidos });
   }
 
   /**
@@ -853,6 +889,14 @@ export class Game {
 
       case 'portada':
         this.multiplicadorPapeles = 2;
+        this.efectos.set(def.id, def.duracion);
+        break;
+
+      case 'linterna':
+        // El efecto lo lleva la escena, porque lo que cambia es la niebla y el
+        // foco, no nada del jugador. Aquí solo se enciende y se cuenta el
+        // tiempo para que el HUD pueda pintar la cuenta atrás.
+        this.escenario.encenderLinterna?.(def.duracion);
         this.efectos.set(def.id, def.duracion);
         break;
 
@@ -948,7 +992,6 @@ export class Game {
 
     this.jugador.reiniciarTrasEscape();
     this.perseguidor.soltar(CERCO.DISTANCIA_TRAS_ESCAPE);
-    this.estamina.rellenar(CERCO.ESTAMINA_TRAS_ESCAPE);
     this.velocidad = VELOCIDAD.INICIAL;
 
     // La pista quedó parada bajo los pies del jugador: hay que rellenarla.
@@ -1126,9 +1169,10 @@ export class Game {
       this.velocidad = this.velocidadBase;
     }
 
-    // La estamina baja penaliza la velocidad efectiva.
-    const multiplicador = this.estamina.multiplicadorVelocidad();
-    const velocidadEfectiva = this.velocidad * multiplicador;
+    // Ya no hay nada que module la velocidad: la barra de aguante desapareció
+    // con la comida. Se conserva la variable porque la usan el HUD, la
+    // oscuridad del Apagón y el avance del mundo.
+    const velocidadEfectiva = this.velocidad;
 
     // Distancia recorrida este fotograma. El mundo se mueve hacia el jugador.
     const avance = velocidadEfectiva * dt;
@@ -1152,7 +1196,7 @@ export class Game {
     }
 
     // Los obstáculos devuelven los datos del grupo recién generado: los
-    // carriles libres son donde es seguro poner papeles y estamina.
+    // carriles libres son donde es seguro poner papeles y potenciadores.
     const grupo = this.obstaculos.actualizar(avance, this.velocidad);
     if (!this.tramite.activo) this._poblarGrupo(grupo);
 
@@ -1167,20 +1211,13 @@ export class Game {
     this.potenciadores.actualizar(dt, avance);
     this._actualizarEfectos(dt);
 
-    // Dentro del trámite la estamina no drena y nadie persigue: es un tramo de
-    // pura recolección, y meterle presión de tiempo lo convertiría en otra
-    // cosa. Los ítems tampoco se generan ahí.
-    if (!this.tramite.activo) {
-      this.estamina.actualizar(dt, avance);
-    }
-
     this.jugador.actualizar(dt, velocidadEfectiva);
 
     if (this.tramite.activo) {
       // Se quedan a la puerta del túnel, esperando a que salgas.
       this.perseguidor.actualizar(dt, this.jugador, false);
     } else {
-      this.perseguidor.actualizar(dt, this.jugador, this.estamina.estaExhausto());
+      this.perseguidor.actualizar(dt, this.jugador, false);
     }
 
     // ---- Recolección ------------------------------------------------------
@@ -1203,24 +1240,6 @@ export class Game {
       }
       this.audio.evidencia();
       this.alMostrarAviso({ tipo: 'evidencia', titulo: 'EVIDENCIA', subtitulo: ev.nombre });
-    }
-
-    if (this.estamina.recoger(this.jugador) > 0) {
-      this.audio.estamina();
-      // Gancho de la escena: en el Apagón esto enciende la linterna.
-      this.escenario.alRecogerEstamina();
-
-      // Donde el aguante NO es un recurso, la comida es un bonus limpio: paga
-      // papeles y ya. Se anuncia con el nombre del plato porque ahí está la
-      // mitad de la gracia —un bolón no es una moneda genérica.
-      if (!this.estamina.esRecurso) {
-        this.papelesPartida += ESTAMINA.BONIFICACION_PAPELES * this.multiplicadorPapeles;
-        this.alMostrarAviso({
-          tipo: 'evidencia',
-          titulo: this.estamina.nombreItem.toUpperCase(),
-          subtitulo: `+${ESTAMINA.BONIFICACION_PAPELES * this.multiplicadorPapeles} papeles`,
-        });
-      }
     }
 
     // El combo caduca si dejas de recoger.
@@ -1270,18 +1289,13 @@ export class Game {
     }
 
     // ---- Condiciones de fin ----------------------------------------------
-    // El Apagón es la única escena donde quedarse sin recurso mata por sí
-    // solo: sin luz no ves por dónde corres. En el resto, quedarte sin aguante
-    // te vuelve lento y son los perseguidores los que acaban el trabajo.
-    const config = obtenerEscenario(this.escenarioActual);
-    if (config.sinAguanteEsCaptura && this.estamina.estaAgotada()) {
-      this.terminarPartida('exhausto', config.textoSinAguante);
-      return;
-    }
-
+    // Ya solo hay una: que te alcancen. Quedarse a oscuras en el Apagón MATABA
+    // por sí solo, y dejó de hacerlo al convertir la linterna en potenciador:
+    // ahora los papeles brillan, así que sin luz sigues viendo por dónde vas
+    // —peor, pero viendo—. Una muerte por falta de un ítem que ya no está
+    // garantizado sería un castigo por mala suerte, no por mal juego.
     if (this.perseguidor.haAtrapado() || this.jugador.estaAgotado()) {
-      const motivo = this.estamina.valor <= 0 ? 'exhausto' : 'captura';
-      this.terminarPartida(motivo);
+      this.terminarPartida('captura');
       return;
     }
 
@@ -1318,13 +1332,6 @@ export class Game {
       papeles: this.papelesPartida,
       distancia: Math.floor(this.distanciaTotal),
       velocidad: velocidadEfectiva,
-      estamina: this.estamina.fraccion(),
-      nombreEstamina: this.estamina.etiqueta,
-      exhausto: this.estamina.estaExhausto(),
-      // La píldora de aguante solo existe donde el aguante es un recurso.
-      // En el resto de escenas es un medidor que nunca se mueve, y un medidor
-      // que nunca se mueve solo ocupa sitio.
-      aguanteVisible: this.estamina.esRecurso,
       cercania: this.perseguidor.cercania(),
       golpesRestantes: JUGADOR.GOLPES_MAXIMOS - this.jugador.golpes,
       combo: this.combo,
@@ -1397,8 +1404,35 @@ export class Game {
 
     // Banqueo al tomar un desvío. lookAt reescribe la orientación entera, así
     // que el balanceo se aplica DESPUÉS: si no, se pierde.
-    const banqueo = this.bifurcacion.banqueoCamara();
+    const banqueo = this.bifurcacion.banqueoCamara() + this._ladeoEspecial(dt);
     if (banqueo !== 0) this.camara.rotateZ(banqueo);
+  }
+
+  /**
+   * Ladeo de cámara en los tramos especiales, en radianes.
+   *
+   * El giro que se hace al entrar en un túnel es lo que convierte ese momento
+   * en un momento: la calle se tuerce, el horizonte deja de estar a nivel y de
+   * pronto el sitio se siente distinto. Los tramos especiales —el pasillo del
+   * ente de control, y correr por encima de las tarimas— no tenían nada de
+   * eso: la misma cámara recta de siempre, y por eso se leían como más de lo
+   * mismo con otro decorado.
+   *
+   * Va con un balanceo lento en vez de una inclinación fija. Una inclinación
+   * fija de tres grados se deja de percibir a los diez segundos —el ojo la
+   * adopta como nuevo horizonte— y si es mayor, marea. Un balanceo no se
+   * adopta nunca, porque nunca se queda quieto.
+   *
+   * Entra y sale con una rampa: aparecer torcido de golpe se lee como fallo.
+   */
+  _ladeoEspecial(dt) {
+    const objetivo = this.tramite.activo ? 1 : (this.jugador.vaPorArriba ? 0.55 : 0);
+    const t = 1 - Math.exp(-2.2 * dt);
+    this.fuerzaLadeo += (objetivo - this.fuerzaLadeo) * t;
+
+    if (this.fuerzaLadeo < 0.002) return 0;
+    this.relojLadeo += dt;
+    return Math.sin(this.relojLadeo * 0.62) * CAMARA.LADEO_ESPECIAL * this.fuerzaLadeo;
   }
 
   /**
@@ -1449,7 +1483,6 @@ export class Game {
     this.jugador.reiniciar();
     this.obstaculos.reiniciar();
     this.papeles.reiniciar();
-    this.estamina.reiniciar();
     this.perseguidor.reiniciar();
     this.bifurcacion.reiniciar();
     this.elevado.reiniciar();

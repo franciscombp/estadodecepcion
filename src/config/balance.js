@@ -210,50 +210,6 @@ export const EVIDENCIA = {
   TAMANO_POOL: 12,
 };
 
-// ---------------------------------------------------------------------------
-// AGUANTE
-// ---------------------------------------------------------------------------
-// POR QUÉ ESTO YA NO ES UN RECURSO EN TODAS PARTES
-//
-// Empezó siendo una barra que drenaba en las cuatro escenas: si no comías ibas
-// lento, y al ir lento te alcanzaban. Los números decían otra cosa. Con drenaje
-// de 2/s tardas 50 segundos en vaciarte desde lleno, pero los ítems salen cada
-// 150 metros —unos 6 segundos a velocidad de crucero— y devuelven 35 cada uno.
-// Recogiendo la mayoría ganas 23 netos por ciclo: la barra no baja NUNCA.
-//
-// O sea: invisible cuando juegas bien, y castigo añadido cuando ya vas mal y
-// además fallas los ítems. Es la peor forma posible para una mecánica, porque
-// no crea tensión —la duplica justo cuando ya la habías perdido—. Y encima
-// falla de forma indirecta (sin aguante → lento → te alcanzan), así que al
-// morir no hay un momento claro de «ahí me equivoqué».
-//
-// Así que el drenaje se queda SOLO en el Apagón, donde el recurso no es un
-// añadido sino la escena entera: la luz se traduce en lo que literalmente ves.
-// En las demás la comida es un bonus que solo suma, sin barra y sin castigo por
-// ignorarla. Lo decide `aguanteEsRecurso` en config/escenarios.js.
-export const ESTAMINA = {
-  MAXIMA: 100,
-  INICIAL: 100,
-  // Drenaje por segundo. Da ~50 s de margen sin recoger nada.
-  DRENAJE: 2.0,
-  // Cuánto recupera un ítem.
-  RECUPERACION_POR_ITEM: 35,
-  // Por debajo de este umbral el jugador se ralentiza.
-  UMBRAL_LENTITUD: 30,
-  // Multiplicador de velocidad cuando estás exhausto.
-  PENALIZACION_VELOCIDAD: 0.72,
-  // Frecuencia de aparición del ítem (uno cada N metros aprox.).
-  DISTANCIA_ENTRE_ITEMS: 150,
-  // Lo que paga la comida donde NO es un recurso. Es un bonus limpio: si la
-  // ignoras no pierdes nada, y si la coges ganas papeles. Un plato vale como
-  // tres papeles buenos, lo bastante para que merezca el desvío de carril sin
-  // convertirse en la única forma de puntuar.
-  BONIFICACION_PAPELES: 15,
-  // Vuela por encima de la altura de los papeles a propósito: es lo que hay
-  // que ver desde lejos, y a la altura de la hilera quedaba escondido detrás
-  // de ella.
-  ALTURA: 1.45,
-};
 
 // ---------------------------------------------------------------------------
 // POTENCIADORES
@@ -324,6 +280,19 @@ export const CATALOGO_POTENCIADORES = [
     duracion: 8,
     tramos: 22,
     color: 0xff5fa2,
+  },
+  {
+    id: 'linterna',
+    nombre: 'Linterna',
+    descripcion: 'Se ve la calle. Dura lo que dura la pila.',
+    duracion: 11,
+    // NO SE DESBLOQUEA: existe desde la primera partida, pero SOLO en el
+    // Apagón. Es el potenciador de esa escena, y ahí no es un extra —es la
+    // diferencia entre ver la calle y adivinarla—, así que hacerlo esperar a
+    // los tres tramos sería cerrarle el escenario a quien acaba de llegar.
+    tramos: 0,
+    soloEn: 'apagon',
+    color: 0xffe066,
   },
 ];
 
@@ -509,8 +478,6 @@ export const CERCO = {
   // que hace que la partida acabe.
   SELECTOR_ACELERACION: 1.55,
   SELECTOR_VELOCIDAD_MAXIMA: 15,
-  // Con qué aguante te devuelve a la pista un fallo del sistema a tu favor.
-  ESTAMINA_TRAS_ESCAPE: 70,
   // A qué distancia quedan los perseguidores tras zafarte.
   DISTANCIA_TRAS_ESCAPE: 20,
 };
@@ -649,6 +616,11 @@ export const CAMARA = {
   AMORTIGUACION: 6,
   // Sacudida al chocar.
   SACUDIDA_GOLPE: 0.5,
+
+  // Amplitud del balanceo de cámara en los tramos especiales, en radianes.
+  // Unos cinco grados: se nota que el sitio es otro sin que llegue a marear.
+  // Ver Game._ladeoEspecial() para por qué se balancea en vez de inclinarse.
+  LADEO_ESPECIAL: 0.088,
 };
 
 // ---------------------------------------------------------------------------
@@ -664,6 +636,5 @@ export const PALETA = {
   EVIDENCIA: 0xff6b35,
   OBSTACULO: 0xd9a441,
   BRILLO_PELIGRO: 0xff4f6d,
-  ESTAMINA: 0x7cffb2,
   PERSEGUIDOR: 0xff4f6d,
 };

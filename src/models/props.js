@@ -908,6 +908,34 @@ export function crearPapel() {
 }
 
 /**
+ * Sube o baja el brillo de TODOS los papeles a la vez.
+ *
+ * Es lo que sostiene el Apagón desde que la linterna pasó a ser potenciador.
+ * Sin luz y sin nada que brille, quedarse a oscuras era quedarse ciego, y de
+ * ahí a chocar contra lo primero hay un segundo. Con los papeles encendidos
+ * sigue sin verse la calle —eso lo paga la linterna— pero se ve POR DÓNDE va:
+ * la hilera dibuja la ruta, que es justo lo que un reguero de monedas hace en
+ * cualquier runner, solo que aquí además significa algo.
+ *
+ * El material es único y compartido por las tres mil piezas de la pista, así
+ * que esto es una escritura, no tres mil.
+ *
+ * @param {number} intensidad   Emisión. ~0.55 con luz, ~2 a oscuras.
+ * @param {boolean} atraviesaNiebla
+ *   Si es true el papel ignora la niebla. En el Apagón hace falta: con niebla
+ *   los de más allá de veinte metros se funden con el negro y la ruta se corta
+ *   justo donde hay que mirar. En el resto de escenas estorbaría, porque un
+ *   objeto que no se funde con el fondo se lee como pegatina.
+ */
+export function ajustarBrilloPapel(intensidad, atraviesaNiebla = false) {
+  if (!_matPapel) crearPapel();
+  _matPapel.emissiveIntensity = intensidad;
+  _matPapel.fog = !atraviesaNiebla;
+  _matPapel.toneMapped = !atraviesaNiebla;
+  _matPapel.needsUpdate = true;
+}
+
+/**
  * EVIDENCIA — la gema. Un USB con carcasa naranja, conector metálico y
  * halo pulsante. Vale mucho más que un papel y tiene que notarse.
  */
@@ -953,504 +981,19 @@ export function crearEvidencia() {
 }
 
 // ---------------------------------------------------------------------------
-// ÍTEMS DE ESTAMINA
+// LOS ÍTEMS DE COMIDA YA NO ESTÁN
 // ---------------------------------------------------------------------------
-// Uno por escenario, y cada uno es un OBJETO RECONOCIBLE, no un cilindro
-// teñido. La diferencia importa más de lo que parece: la estamina es el único
-// recurso que hay que buscar activamente, así que el jugador tiene que
-// distinguirla de un papel a treinta metros y en movimiento. Una silueta
-// propia lo consigue; un color, no —el color ya lo usa todo lo demás.
+// Aquí vivían el encebollado, la guata, el bolón, el canelazo, el micrófono y
+// la pila: unas seiscientas líneas de modelos con su vaho, su cuchara y su
+// espuma, y estaban muy bien hechos.
 //
-// Todos comparten la misma envoltura: peana de luz en el suelo, halo que late
-// y un par de chispas en órbita. Eso es lo que dice "esto se recoge"; el
-// modelo de dentro solo dice QUÉ es.
-
-/** Peana, halo y chispas. Lo común a todos los ítems. */
-function envoltorioRecolectable(g, color) {
-  // Disco en el suelo: ancla el objeto flotante a un carril concreto. Sin él,
-  // un ítem que flota se lee ambiguo entre dos carriles.
-  const peana = new THREE.Mesh(
-    new THREE.CircleGeometry(0.55, 18),
-    new THREE.MeshBasicMaterial({
-      color,
-      transparent: true,
-      opacity: 0.28,
-      depthWrite: false,
-      toneMapped: false,
-    }),
-  );
-  peana.rotation.x = -Math.PI / 2;
-  peana.position.y = -0.98; // A ras de asfalto: el ítem va a ESTAMINA.ALTURA.
-  g.add(peana);
-
-  const anillo = new THREE.Mesh(
-    new THREE.TorusGeometry(0.44, 0.04, 6, 18),
-    new THREE.MeshBasicMaterial({
-      color,
-      transparent: true,
-      opacity: 0.7,
-      toneMapped: false,
-    }),
-  );
-  anillo.rotation.x = Math.PI / 2;
-  g.add(anillo);
-
-  const halo = new THREE.Mesh(
-    new THREE.SphereGeometry(0.5, 10, 8),
-    new THREE.MeshBasicMaterial({
-      color,
-      transparent: true,
-      opacity: 0.12,
-      depthWrite: false,
-      toneMapped: false,
-    }),
-  );
-  g.add(halo);
-
-  const chispas = new THREE.Group();
-  const matChispa = new THREE.MeshBasicMaterial({ color, toneMapped: false });
-  for (let i = 0; i < 3; i++) {
-    const chispa = new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 4), matChispa);
-    const a = (i / 3) * Math.PI * 2;
-    chispa.position.set(Math.cos(a) * 0.52, Math.sin(a * 2) * 0.16, Math.sin(a) * 0.52);
-    chispas.add(chispa);
-  }
-  g.add(chispas);
-
-  g.userData.anillo = anillo;
-  g.userData.halo = halo;
-  g.userData.chispas = chispas;
-}
-
-/** ENCEBOLLADO — La Bahía. Plato hondo, caldo humeante y cuchara. */
-function modeloEncebollado(color) {
-  const g = new THREE.Group();
-
-  const plato = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.36, 0.2, 0.24, 12),
-    mat(0xf2f0e6, 0.28, 0.5),
-  );
-  g.add(plato);
-
-  const caldo = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.32, 0.32, 0.03, 12),
-    neon(color, 1.5),
-  );
-  caldo.position.y = 0.11;
-  g.add(caldo);
-
-  // Yuca y aros de cebolla asomando: es lo que hace que se lea como comida.
-  for (let i = 0; i < 3; i++) {
-    const a = (i / 3) * Math.PI * 2;
-    const trozo = new THREE.Mesh(
-      new THREE.BoxGeometry(0.11, 0.07, 0.11),
-      mat(0xffe9c4, 0.3, 0.6),
-    );
-    trozo.position.set(Math.cos(a) * 0.14, 0.14, Math.sin(a) * 0.14);
-    trozo.rotation.y = a;
-    g.add(trozo);
-  }
-
-  const cuchara = new THREE.Mesh(
-    new THREE.BoxGeometry(0.04, 0.34, 0.04),
-    mat(0xd8dde6, 0.25, 0.35),
-  );
-  cuchara.position.set(0.2, 0.26, -0.06);
-  cuchara.rotation.z = 0.42;
-  g.add(cuchara);
-
-  // Vaho. Tres volutas que suben; las anima Stamina.js.
-  const vapor = new THREE.Group();
-  const matVapor = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    transparent: true,
-    opacity: 0.2,
-    depthWrite: false,
-    toneMapped: false,
-  });
-  for (let i = 0; i < 3; i++) {
-    const nube = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 5), matVapor);
-    nube.position.set((i - 1) * 0.1, 0.2 + i * 0.12, 0);
-    vapor.add(nube);
-  }
-  g.add(vapor);
-  g.userData.vapor = vapor;
-
-  return g;
-}
-
-/** LINTERNA — El Apagón. Cuerpo, cabezal y haz de luz de verdad. */
-function modeloLinterna(color) {
-  const g = new THREE.Group();
-
-  const cuerpo = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.11, 0.13, 0.5, 10),
-    mat(0x2b3140, 0.1, 0.55),
-  );
-  cuerpo.rotation.z = Math.PI / 2;
-  g.add(cuerpo);
-
-  // Franja de agarre: rompe el cilindro y da escala al objeto.
-  const agarre = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.135, 0.135, 0.12, 10),
-    mat(0x141821, 0.05, 0.85),
-  );
-  agarre.rotation.z = Math.PI / 2;
-  agarre.position.x = -0.08;
-  g.add(agarre);
-
-  const cabezal = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.22, 0.13, 0.2, 10),
-    mat(0x3d4557, 0.12, 0.5),
-  );
-  cabezal.rotation.z = -Math.PI / 2;
-  cabezal.position.x = 0.33;
-  g.add(cabezal);
-
-  const lente = new THREE.Mesh(
-    new THREE.CircleGeometry(0.2, 12),
-    neon(color, 2),
-  );
-  lente.rotation.y = Math.PI / 2;
-  lente.position.x = 0.435;
-  g.add(lente);
-
-  // El haz. Es lo que convierte "una linterna" en "LUZ", que es exactamente
-  // lo que el jugador está buscando en ese tramo.
-  const haz = new THREE.Mesh(
-    new THREE.ConeGeometry(0.4, 1.5, 10, 1, true),
-    new THREE.MeshBasicMaterial({
-      color,
-      transparent: true,
-      opacity: 0.16,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-      toneMapped: false,
-    }),
-  );
-  haz.rotation.z = -Math.PI / 2;
-  haz.position.x = 1.18;
-  g.add(haz);
-
-  return g;
-}
-
-/** GUATA — La Bahía. Plato hondo, guiso espeso y su cuchara. */
-function modeloGuata(color) {
-  const g = new THREE.Group();
-
-  // Plato más hondo y más estrecho que el del encebollado: son dos platos
-  // distintos y a treinta metros solo se distinguen por la silueta.
-  const plato = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.3, 0.26, 0.3, 12),
-    mat(0xe4e0d2, 0.26, 0.5),
-  );
-  g.add(plato);
-
-  const guiso = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.27, 0.27, 0.04, 12),
-    neon(color, 1.4),
-  );
-  guiso.position.y = 0.14;
-  g.add(guiso);
-
-  // Trozos asomando: es guiso, no sopa.
-  for (let i = 0; i < 4; i++) {
-    const a = (i / 4) * Math.PI * 2 + 0.4;
-    const trozo = new THREE.Mesh(
-      new THREE.BoxGeometry(0.1, 0.09, 0.1),
-      mat(0xa8552e, 0.24, 0.65),
-    );
-    trozo.position.set(Math.cos(a) * 0.12, 0.17, Math.sin(a) * 0.12);
-    trozo.rotation.y = a;
-    g.add(trozo);
-  }
-
-  const cuchara = new THREE.Mesh(
-    new THREE.BoxGeometry(0.04, 0.32, 0.04),
-    mat(0xd8dde6, 0.25, 0.35),
-  );
-  cuchara.position.set(-0.18, 0.26, 0.05);
-  cuchara.rotation.z = -0.4;
-  g.add(cuchara);
-
-  const vapor = _vaho(3, 0.22);
-  g.add(vapor);
-  g.userData.vapor = vapor;
-  return g;
-}
-
-/** BOLÓN — La Bahía. Bola de verde con queso, sobre hoja. */
-function modeloBolon(color) {
-  const g = new THREE.Group();
-
-  // La bola es la silueta entera: redonda y maciza, que no se parece a nada
-  // más de los que hay en pista.
-  const bola = new THREE.Mesh(
-    new THREE.DodecahedronGeometry(0.29, 0),
-    mat(color, 0.3, 0.8),
-  );
-  bola.position.y = 0.1;
-  g.add(bola);
-
-  // Trocitos de queso y chicharrón asomando.
-  for (let i = 0; i < 5; i++) {
-    const a = (i / 5) * Math.PI * 2;
-    const trozo = new THREE.Mesh(
-      new THREE.BoxGeometry(0.075, 0.06, 0.075),
-      neon(i % 2 ? 0xfff2cf : 0x8a5230, 1.1),
-    );
-    trozo.position.set(
-      Math.cos(a) * 0.22,
-      0.1 + Math.sin(a * 1.7) * 0.12,
-      Math.sin(a) * 0.22,
-    );
-    trozo.rotation.set(a, a * 0.6, 0);
-    g.add(trozo);
-  }
-
-  // Hoja de plátano debajo: lo asienta y da el color local.
-  const hoja = new THREE.Mesh(
-    new THREE.CircleGeometry(0.36, 7),
-    mat(0x2f7a3c, 0.18, 0.75),
-  );
-  hoja.rotation.x = -Math.PI / 2;
-  hoja.position.y = -0.19;
-  g.add(hoja);
-
-  return g;
-}
-
-/** PILA — El Apagón. Va encendida: aquí es lo único que se ve. */
-function modeloPila(color) {
-  const g = new THREE.Group();
-
-  const cuerpo = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.17, 0.17, 0.52, 12),
-    neon(color, 1.9),
-  );
-  g.add(cuerpo);
-
-  // Franja negra con el rótulo: sin ella una pila es un cilindro amarillo.
-  const franja = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.175, 0.175, 0.17, 12),
-    mat(0x14161c, 0.05, 0.6),
-  );
-  franja.position.y = -0.06;
-  g.add(franja);
-
-  // Borne positivo.
-  const borne = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.08, 0.08, 0.08, 10),
-    mat(0xc8cede, 0.3, 0.35),
-  );
-  borne.position.y = 0.3;
-  g.add(borne);
-
-  const base = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.175, 0.175, 0.05, 12),
-    mat(0xa8b0c0, 0.25, 0.4),
-  );
-  base.position.y = -0.26;
-  g.add(base);
-
-  // Resplandor propio. En el resto de escenas basta con que el ítem destaque;
-  // en esta, si no emite luz por su cuenta, sencillamente no se ve.
-  const aura = new THREE.Mesh(
-    new THREE.SphereGeometry(0.46, 10, 8),
-    new THREE.MeshBasicMaterial({
-      color,
-      transparent: true,
-      opacity: 0.22,
-      depthWrite: false,
-      toneMapped: false,
-      fog: false,
-    }),
-  );
-  g.add(aura);
-
-  const luz = new THREE.PointLight(color, 9, 12, 2);
-  g.add(luz);
-
-  return g;
-}
-
-/** MOTE — El centro histórico. Cuenco de mote, comida de la sierra. */
-function modeloMote(color) {
-  const g = new THREE.Group();
-
-  const cuenco = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.31, 0.2, 0.26, 12),
-    mat(0x9a5a3c, 0.16, 0.72),
-  );
-  g.add(cuenco);
-
-  // Los granos son el modelo: un montoncito irregular que se lee de lejos.
-  const matGrano = neon(color, 1.2);
-  for (let i = 0; i < 9; i++) {
-    const a = (i / 9) * Math.PI * 2 * 1.6;
-    const r = 0.06 + (i % 3) * 0.07;
-    const grano = new THREE.Mesh(new THREE.SphereGeometry(0.075, 6, 5), matGrano);
-    grano.position.set(
-      Math.cos(a) * r,
-      0.14 + (i % 2) * 0.06,
-      Math.sin(a) * r,
-    );
-    g.add(grano);
-  }
-
-  const vapor = _vaho(2, 0.2);
-  g.add(vapor);
-  g.userData.vapor = vapor;
-  return g;
-}
-
-/** Volutas de vaho compartidas. Las anima Stamina.js. */
-function _vaho(cuantas, opacidad) {
-  const vapor = new THREE.Group();
-  const matVapor = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    transparent: true,
-    opacity: opacidad,
-    depthWrite: false,
-    toneMapped: false,
-  });
-  for (let i = 0; i < cuantas; i++) {
-    const nube = new THREE.Mesh(new THREE.SphereGeometry(0.085, 6, 5), matVapor);
-    nube.position.set((i - 1) * 0.09, 0.2 + i * 0.12, 0);
-    vapor.add(nube);
-  }
-  return vapor;
-}
-
-/** MICRÓFONO — Las Elecciones. Rejilla, mango y cable suelto. */
-function modeloMicrofono(color) {
-  const g = new THREE.Group();
-
-  const rejilla = new THREE.Mesh(
-    new THREE.SphereGeometry(0.2, 10, 8),
-    new THREE.MeshStandardMaterial({
-      color: 0xb8c2d4,
-      roughness: 0.35,
-      metalness: 0.55,
-      emissive: color,
-      emissiveIntensity: 0.35,
-      flatShading: true,
-    }),
-  );
-  rejilla.position.y = 0.22;
-  g.add(rejilla);
-
-  const cuello = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.075, 0.09, 0.42, 10),
-    mat(0x22283a, 0.08, 0.6),
-  );
-  cuello.position.y = -0.1;
-  g.add(cuello);
-
-  const aro = new THREE.Mesh(
-    new THREE.TorusGeometry(0.095, 0.022, 5, 12),
-    neon(color, 1.7),
-  );
-  aro.rotation.x = Math.PI / 2;
-  aro.position.y = 0.05;
-  g.add(aro);
-
-  // Cable colgando. Un micrófono sin cable parece un helado.
-  const cable = new THREE.Mesh(
-    new THREE.TorusGeometry(0.13, 0.022, 5, 14, Math.PI * 1.4),
-    mat(0x1a1f2b, 0.05, 0.8),
-  );
-  cable.position.set(0.05, -0.36, 0);
-  cable.rotation.set(Math.PI / 2, 0, 0.6);
-  g.add(cable);
-
-  return g;
-}
-
-/** CANELAZO — Carondelet. Jarro de barro, vapor y la rama de canela. */
-function modeloCanelazo(color) {
-  const g = new THREE.Group();
-
-  const jarro = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.22, 0.17, 0.42, 12),
-    mat(0x9a5a3c, 0.16, 0.75),
-  );
-  g.add(jarro);
-
-  const liquido = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.19, 0.19, 0.03, 12),
-    neon(color, 1.6),
-  );
-  liquido.position.y = 0.19;
-  g.add(liquido);
-
-  const asa = new THREE.Mesh(
-    new THREE.TorusGeometry(0.12, 0.032, 5, 12, Math.PI * 1.1),
-    mat(0x9a5a3c, 0.16, 0.75),
-  );
-  asa.position.set(0.24, 0.02, 0);
-  asa.rotation.set(0, Math.PI / 2, -Math.PI / 2);
-  g.add(asa);
-
-  const canela = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.022, 0.022, 0.34, 6),
-    mat(0x7a4520, 0.2, 0.8),
-  );
-  canela.position.set(0.07, 0.3, 0.04);
-  canela.rotation.z = 0.35;
-  g.add(canela);
-
-  const vapor = new THREE.Group();
-  const matVapor = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    transparent: true,
-    opacity: 0.22,
-    depthWrite: false,
-    toneMapped: false,
-  });
-  for (let i = 0; i < 3; i++) {
-    const nube = new THREE.Mesh(new THREE.SphereGeometry(0.085, 6, 5), matVapor);
-    nube.position.set((i - 1) * 0.08, 0.28 + i * 0.13, 0);
-    vapor.add(nube);
-  }
-  g.add(vapor);
-  g.userData.vapor = vapor;
-
-  return g;
-}
-
-const MODELOS_ESTAMINA = {
-  encebollado: modeloEncebollado,
-  guata: modeloGuata,
-  bolon: modeloBolon,
-  pila: modeloPila,
-  linterna: modeloLinterna,
-  microfono: modeloMicrofono,
-  canelazo: modeloCanelazo,
-  mote: modeloMote,
-};
-
-/**
- * ÍTEM DE ESTAMINA.
- * @param {number} color Color del escenario
- * @param {string} tipo  Clave del modelo (ver MODELOS_ESTAMINA)
- */
-export function crearItemEstamina(color, tipo = 'encebollado') {
-  const g = new THREE.Group();
-
-  const constructor = MODELOS_ESTAMINA[tipo] ?? modeloEncebollado;
-  const modelo = constructor(color);
-  g.add(modelo);
-
-  envoltorioRecolectable(g, color);
-
-  g.userData.tipo = 'estamina';
-  // El vapor lo declara el modelo interior; lo subimos al grupo para que
-  // Stamina.js no tenga que saber cómo está montado por dentro.
-  if (modelo.userData.vapor) g.userData.vapor = modelo.userData.vapor;
-  return g;
-}
+// Se fueron con la barra de aguante. Sin barra, la comida era un bonus suelto
+// que sumaba papeles y nada más, y lo único que hacía de verdad era competir
+// por el hueco del grupo con los potenciadores, que sí cambian cómo se juega.
+// De todo aquello sobrevive la LINTERNA, que dejó de ser comida para ser el
+// potenciador del Apagón (ver insigniaLinterna, más abajo).
+//
+// Están en el historial de git si algún día vuelve una mecánica que los pida.
 
 // ---------------------------------------------------------------------------
 // POTENCIADORES
@@ -1663,12 +1206,48 @@ function insigniaCobertura(color) {
   return g;
 }
 
+/**
+ * Insignia de la LINTERNA, el potenciador del Apagón.
+ *
+ * Es la única que emite luz de verdad y no solo la finge con material
+ * emisivo: en un escenario a oscuras, una cápsula que brilla pero no alumbra
+ * nada se lee como una calcomanía pegada al aire. Con un punto de luz de
+ * alcance corto, el asfalto de alrededor se enciende y la cápsula pasa a estar
+ * EN la escena.
+ */
+function insigniaLinterna(color) {
+  const g = new THREE.Group();
+
+  const cuerpo = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.075, 0.095, 0.3, 8),
+    mat(0x2a3242, 0.08, 0.5),
+  );
+  cuerpo.rotation.x = Math.PI / 2;
+  g.add(cuerpo);
+
+  const cabeza = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.135, 0.09, 0.12, 8),
+    mat(0x4a5262, 0.08, 0.45),
+  );
+  cabeza.rotation.x = -Math.PI / 2;
+  cabeza.position.z = 0.2;
+  g.add(cabeza);
+
+  const lente = new THREE.Mesh(new THREE.CircleGeometry(0.115, 10), neon(color, 2));
+  lente.position.z = 0.262;
+  g.add(lente);
+
+  g.add(new THREE.PointLight(color, 6, 5.5, 2));
+  return g;
+}
+
 const INSIGNIAS = {
   iman: insigniaIman,
   portada: insigniaPortada,
   botas: insigniaBotas,
   salvoconducto: insigniaSalvoconducto,
   cobertura: insigniaCobertura,
+  linterna: insigniaLinterna,
 };
 
 /**

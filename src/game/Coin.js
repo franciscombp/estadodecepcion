@@ -12,7 +12,7 @@
 
 import * as THREE from 'three';
 import { CARRILES, PAPELES, EVIDENCIA, OBSTACULOS } from '../config/balance.js';
-import { crearPapel, crearEvidencia } from '../models/props.js';
+import { crearPapel, crearEvidencia, ajustarBrilloPapel } from '../models/props.js';
 import { crearCaja, hayColisionPlana, distanciaHorizontal } from '../utils/collision.js';
 
 export class CoinManager {
@@ -355,6 +355,12 @@ export class CoinManager {
     this.maximoPorTramo = escenario.maximoPapelesPorTramo ?? Infinity;
     this.tiposEvidencia = escenario.evidencia ?? ['Documento'];
     this.generadosEsteTramo = 0;
+
+    // A OSCURAS, LOS PAPELES ALUMBRAN. Es lo que sostiene el Apagón desde que
+    // la linterna dejó de ser un consumible garantizado: sin luz sigues sin
+    // ver la calle, pero ves por dónde va, porque la hilera dibuja la ruta.
+    const aOscuras = !!escenario.papelesBrillan;
+    ajustarBrilloPapel(aOscuras ? 2.1 : 0.55, aOscuras);
   }
 
   /** Reinicia el contador al empezar un tramo nuevo. */

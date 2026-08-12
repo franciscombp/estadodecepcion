@@ -8,7 +8,6 @@
 //
 //   · Corres limpio          → se aleja despacio
 //   · Recibes un golpe       → salta hacia adelante de golpe
-//   · Te quedas sin estamina → se acerca de forma sostenida
 //   · Baja de DISTANCIA_CAPTURA → te atrapan, fin de la partida
 //
 // La presión es continua y legible: el jugador ve el hueco cerrarse por el
@@ -43,7 +42,7 @@ export class Chaser {
   /**
    * @param {number} dt
    * @param {Player} jugador
-   * @param {boolean} exhausto ¿El jugador está sin estamina?
+   * @param {boolean} exhausto Reservado: hoy siempre es false.
    */
   actualizar(dt, jugador, exhausto) {
     this.tiempo += dt;
