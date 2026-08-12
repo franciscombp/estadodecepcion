@@ -14,6 +14,7 @@
 import { obtenerEscenario, ORDEN_ESCENARIOS } from '../config/escenarios.js';
 import { CABECERA, hayPendientes, cuantosListos } from '../config/publicaciones.js';
 import { CATALOGO_POTENCIADORES } from '../config/balance.js';
+import { tablaConJugador } from '../config/tabla.js';
 import * as Icono from './iconos.js';
 
 // ---------------------------------------------------------------------------
@@ -102,124 +103,170 @@ export class Pantallas {
 
   menu() {
     const { pantalla, contenido } = pantallaBase();
-    // El menú no se come la escena: la escena ES el fondo, y encima van los
-    // paneles. Por eso esta pantalla no lleva el velo opaco de las demás.
+    // LA PORTADA ES LA ESCENA. La interfaz se aparta a los bordes —una banda
+    // arriba y otra abajo— y deja el centro libre, que es donde está el
+    // periodista entrevistando. Un menú que tapa la escena convierte el 3D en
+    // un fondo de pantalla; apartándolo, la escena cuenta de qué va el juego
+    // antes de que nadie lea una línea.
     pantalla.classList.add('pantalla--portada');
+    contenido.classList.add('portada');
 
     const esc = obtenerEscenario(this.juego.escenarioActual);
-    contenido.dataset.escenario = esc.id;
 
-    // --- Cabecera ----------------------------------------------------------
-    const cabecera = el('div', 'portada__cabecera');
-    cabecera.appendChild(marca('EL MERCIO PRESENTA'));
-    cabecera.appendChild(el('h1', 'titulo titulo--portada', 'ESTADO DE EXCEPCIÓN'));
-    cabecera.appendChild(el('p', 'subtitulo subtitulo--portada',
-      'También conocido como Estado Decepción'));
-    contenido.appendChild(cabecera);
+    // ══ BANDA SUPERIOR ══════════════════════════════════════════════════
+    const arriba = el('div', 'portada__arriba');
 
-    // --- Ficha de la temporada --------------------------------------------
-    // Lo primero que se ve después del título. El jugador tiene que saber
-    // ANTES de pulsar dónde va a caer, porque el juego ya no empieza siempre
-    // en la Bahía: retoma donde te capturaron.
-    const temporada = el('div', 'temporada');
-    temporada.appendChild(el('span', 'temporada__etiqueta',
+    arriba.appendChild(marca('EL MERCIO PRESENTA'));
+    arriba.appendChild(el('h1', 'titulo titulo--portada', 'ESTADO DE EXCEPCIÓN'));
+
+    // La temporada, en una línea. Antes era una ficha con borde que ocupaba un
+    // quinto de la pantalla para decir dos palabras.
+    const temporada = el('div', 'temporada-linea');
+    const icono = el('span', 'temporada-linea__icono');
+    icono.innerHTML = Icono.iconoEstamina(esc.id, 20);
+    temporada.appendChild(icono);
+    temporada.appendChild(el('span', 'temporada-linea__etiqueta',
       this.cuaderno.partidasJugadas > 0 ? 'RETOMAS EN' : 'EMPIEZAS EN'));
+    temporada.appendChild(el('span', 'temporada-linea__nombre', esc.nombre));
+    arriba.appendChild(temporada);
 
-    const tituloTemporada = el('div', 'temporada__fila');
-    const iconoTemporada = el('span', 'temporada__icono');
-    iconoTemporada.innerHTML = Icono.iconoEstamina(esc.id, 30);
-    tituloTemporada.appendChild(iconoTemporada);
-    tituloTemporada.appendChild(el('span', 'temporada__nombre', esc.nombre));
-    temporada.appendChild(tituloTemporada);
+    contenido.appendChild(arriba);
 
-    temporada.appendChild(el('span', 'temporada__sub', esc.subtitulo));
+    // ══ HUECO ═══════════════════════════════════════════════════════════
+    // No lleva nada. Es la ventana por la que se ve la entrevista.
+    contenido.appendChild(el('div', 'portada__hueco'));
 
-    // Riel del rombo: en cuál de las cuatro estás.
-    const riel = el('div', 'temporada__riel');
-    for (const id of ORDEN_ESCENARIOS) {
-      const nodo = el('span', 'temporada__nodo');
-      nodo.title = obtenerEscenario(id).nombre;
-      if (id === esc.id) nodo.classList.add('temporada__nodo--activo');
-      riel.appendChild(nodo);
-    }
-    temporada.appendChild(riel);
-    contenido.appendChild(temporada);
+    // ══ BANDA INFERIOR ══════════════════════════════════════════════════
+    const abajo = el('div', 'portada__abajo');
 
     // --- Personaje ---------------------------------------------------------
+    // Dos fichas pequeñas: al que eliges se le ve en la escena, así que el
+    // texto ya no tiene que describirlo.
     let elegido = this.cuaderno.personajePreferido;
-
-    contenido.appendChild(el('div', 'rotulo-seccion', 'QUIÉN CORRE'));
-
-    const personajes = el('div', 'personajes');
     const definiciones = [
-      { id: 'chochologo', nombre: 'Chochólogo', desc: 'Sombrero, gafas y treinta años de oficio' },
-      { id: 'alondra', nombre: 'Alondra', desc: 'Rizos, ukulele y todavía cree que esto sirve' },
+      { id: 'chochologo', nombre: 'Chochólogo' },
+      { id: 'alondra', nombre: 'Alondra' },
     ];
 
-    const tarjetas = definiciones.map((def) => {
-      const tarjeta = el('div', 'personaje');
-      tarjeta.appendChild(el('div', 'personaje__nombre', def.nombre));
-      tarjeta.appendChild(el('div', 'personaje__desc', def.desc));
-      if (def.id === elegido) tarjeta.classList.add('personaje--elegido');
+    const personajes = el('div', 'elector');
+    const fichas = definiciones.map((def) => {
+      const ficha = el('button', 'elector__ficha', def.nombre);
+      ficha.type = 'button';
+      if (def.id === elegido) ficha.classList.add('elector__ficha--elegida');
 
-      tarjeta.addEventListener('click', () => {
+      ficha.addEventListener('click', () => {
         elegido = def.id;
-        tarjetas.forEach((t) => t.classList.remove('personaje--elegido'));
-        tarjeta.classList.add('personaje--elegido');
-        // Cambio en vivo: se ve al personaje correr en el fondo antes de
-        // decidir. Elegir a ciegas entre dos nombres no es elegir.
+        fichas.forEach((f) => f.classList.remove('elector__ficha--elegida'));
+        ficha.classList.add('elector__ficha--elegida');
         this.juego.previsualizarPersonaje(def.id);
         this.audio.cambioCarril();
       });
 
-      personajes.appendChild(tarjeta);
-      return tarjeta;
+      personajes.appendChild(ficha);
+      return ficha;
     });
-    contenido.appendChild(personajes);
+    abajo.appendChild(personajes);
 
-    // --- Arsenal -----------------------------------------------------------
-    contenido.appendChild(this._pintarArsenal());
+    // --- Arsenal, en una tira ---------------------------------------------
+    abajo.appendChild(this._pintarArsenal());
 
     // --- Jugar -------------------------------------------------------------
-    // Un solo botón dominante. Todo lo demás es secundario y se ve que lo es.
-    const jugar = boton('JUGAR', 'boton--jugar', () => {
+    abajo.appendChild(boton('JUGAR', 'boton--jugar', () => {
       this.audio.iniciar();
       this.audio.reanudar();
       this.juego.iniciarPartida(elegido);
-    });
-    contenido.appendChild(jugar);
+    }));
 
+    // --- Secundarios -------------------------------------------------------
     const secundarios = el('div', 'portada__secundarios');
-    secundarios.appendChild(boton('Archivo de El Mercio', 'boton--tenue', () => {
+    secundarios.appendChild(boton('Archivo', 'boton--tenue', () => {
       this.mostrar(this.notebook());
     }));
-    contenido.appendChild(secundarios);
+    secundarios.appendChild(boton('Marcadores', 'boton--tenue', () => {
+      this.mostrar(this.marcadores());
+    }));
+    secundarios.appendChild(boton('Ajustes', 'boton--tenue', () => {
+      this.mostrar(this.ajustes());
+    }));
+    abajo.appendChild(secundarios);
 
-    // --- Versión y modo offline -------------------------------------------
+    contenido.appendChild(abajo);
+    return pantalla;
+  }
+
+  // -------------------------------------------------------------------------
+  // MARCADORES
+  // -------------------------------------------------------------------------
+  // La tabla completa, en su propia página del periódico. En la portada de
+  // derrota solo cabe el entorno del jugador; aquí están los diez.
+
+  marcadores() {
+    const { pantalla, contenido } = pantallaBase();
+    pantalla.classList.add('pantalla--plana');
+
+    const plana = el('div', 'plana');
+
+    const cab = el('header', 'plana__cabecera');
+    cab.appendChild(el('span', 'plana__nombre', CABECERA.nombre));
+    cab.appendChild(el('span', 'plana__fecha', 'DEPORTES'));
+    plana.appendChild(cab);
+
+    plana.appendChild(el('div', 'plana__antetitulo', 'QUIÉN AGUANTA MÁS'));
+    plana.appendChild(el('h1', 'plana__titular', 'TABLA GENERAL'));
+
+    plana.appendChild(this._tablaPosiciones(this.cuaderno.mejorPuntaje, 99));
+    contenido.appendChild(plana);
+
+    const botones = el('div', 'botones');
+    botones.appendChild(boton('Volver', 'boton--principal',
+      () => this.juego.volverAlMenu()));
+    contenido.appendChild(botones);
+
+    return pantalla;
+  }
+
+  // -------------------------------------------------------------------------
+  // AJUSTES
+  // -------------------------------------------------------------------------
+  // Lo que antes colgaba del final del menú y lo alargaba: la chuleta de
+  // controles, el panel de edición y el borrado de progreso.
+
+  ajustes() {
+    const { pantalla, contenido } = pantallaBase();
+
+    contenido.appendChild(marca('AJUSTES'));
+    contenido.appendChild(el('h1', 'titulo', 'LA REDACCIÓN'));
+
+    contenido.appendChild(el('div', 'rotulo-seccion', 'CONTROLES'));
+    contenido.appendChild(this._pintarControles());
+
+    contenido.appendChild(el('div', 'rotulo-seccion', 'EDICIÓN'));
     contenido.appendChild(this._pintarVersion(pantalla));
 
-    // --- Marcador ----------------------------------------------------------
+    const botones = el('div', 'botones');
+    botones.appendChild(boton('Volver', 'boton--principal',
+      () => this.juego.volverAlMenu()));
+
     if (this.cuaderno.partidasJugadas > 0) {
-      contenido.appendChild(estadisticas([
-        [this.cuaderno.mejorPuntaje.toLocaleString('es-EC'), 'Mejor puntaje'],
-        [`${this.cuaderno.mejorDistancia.toLocaleString('es-EC')} m`, 'Mejor distancia'],
-        [this.cuaderno.papeles.toLocaleString('es-EC'), 'Papeles'],
-      ]));
+      let confirmando = false;
+      const btn = boton('Borrar progreso', 'boton--tenue boton--peligro', () => {
+        if (!confirmando) {
+          confirmando = true;
+          btn.textContent = '¿Seguro? Pulsa otra vez';
+          setTimeout(() => { confirmando = false; btn.textContent = 'Borrar progreso'; }, 3000);
+          return;
+        }
+        this.cuaderno.reiniciarProgreso();
+        this.juego.volverAlMenu();
+      });
+      botones.appendChild(btn);
     }
+    contenido.appendChild(botones);
 
-    // --- Controles ---------------------------------------------------------
-    // Solo las primeras partidas. Después ocupan un tercio de la portada para
-    // recordar algo que ya se sabe, y lo que empuja fuera de pantalla es el
-    // título del juego.
-    if (this.cuaderno.partidasJugadas < 3) {
-      contenido.appendChild(this._pintarControles());
-    }
-
-    // --- Aviso de sátira ---------------------------------------------------
     // No es letra pequeña legal: es contexto. Que quede claro de qué va esto.
     contenido.appendChild(el('div', 'nota',
-      'Sátira política de El Mercio. Los personajes y textos son ficción y no ' +
-      'reproducen declaraciones de personas reales.'));
+      'Sátira política de El Mercio. Los personajes y textos son ficción y no '
+      + 'reproducen declaraciones de personas reales.'));
 
     const pie = el('div', 'pie');
     pie.appendChild(document.createTextNode('elmercio.com · '));
@@ -234,16 +281,71 @@ export class Pantallas {
   }
 
   /**
+   * Los cinco potenciadores, abiertos y por abrir.
+   *
+   * Enseñar las casillas cerradas es deliberado: un desbloqueo que no sabías
+   * que existía no tira de ti. Ver cuatro siluetas apagadas y la distancia
+   * exacta que falta para la primera, sí.
+   */
+  _pintarArsenal() {
+    const abiertos = new Set(this.cuaderno.potenciadoresDesbloqueados());
+    const proximo = this.cuaderno.proximoPotenciador();
+
+    const bloque = el('div', 'arsenal');
+
+    const fila = el('div', 'arsenal__fila');
+    for (const pot of CATALOGO_POTENCIADORES) {
+      const abierto = abiertos.has(pot.id);
+      const casilla = el('div', `arsenal__casilla ${abierto ? '' : 'arsenal__casilla--cerrada'}`.trim());
+      casilla.innerHTML = Icono.iconoPotenciador(pot.id, 26);
+      casilla.title = abierto
+        ? `${pot.nombre} — ${pot.descripcion}`
+        : `${pot.nombre} — se abre a los ${pot.tramos} tramos`;
+      if (!abierto) casilla.appendChild(el('span', 'arsenal__candado', '?'));
+      fila.appendChild(casilla);
+    }
+    bloque.appendChild(fila);
+
+    bloque.appendChild(el('div', 'arsenal__pista', proximo
+      ? `${proximo.nombre} a ${proximo.faltan} ${proximo.faltan === 1 ? 'tramo' : 'tramos'}`
+      : 'Arsenal completo. Ahora solo queda el expediente perfecto.'));
+
+    return bloque;
+  }
+
+  /** Chuleta de controles. */
+  _pintarControles() {
+    const instrucciones = el('div', 'instrucciones');
+    const controles = [
+      [Icono.flecha('izquierda', 18), 'Carril', '← → o swipe lateral'],
+      [Icono.flecha('arriba', 18), 'Saltar', '↑, espacio o swipe arriba'],
+      [Icono.flecha('abajo', 18), 'Agacharse', '↓ o swipe abajo'],
+      [Icono.pausa(18), 'Pausa', 'ESC o el botón'],
+    ];
+    for (const [svgIcono, titulo, desc] of controles) {
+      const item = el('div', 'instruccion');
+      const ic = el('span', 'instruccion__icono');
+      ic.innerHTML = svgIcono;
+      item.appendChild(ic);
+      const txt = el('span');
+      txt.appendChild(el('strong', '', titulo));
+      txt.appendChild(document.createTextNode(desc));
+      item.appendChild(txt);
+      instrucciones.appendChild(item);
+    }
+    return instrucciones;
+  }
+
+  /**
    * Panel de edición y modo offline.
    *
-   * Existe porque hasta ahora todo esto era invisible: el juego se cacheaba
-   * entero y se actualizaba solo, pero el jugador no tenía forma de saber si
-   * podía jugar sin conexión, qué edición estaba corriendo, ni de forzar una
-   * comprobación. Un modo offline que no se puede consultar es indistinguible
-   * de un juego que se quedó congelado en una versión vieja.
+   * Existe porque todo esto era invisible: el juego se cachea entero y se
+   * actualiza solo, pero el jugador no tenía forma de saber si podía jugar sin
+   * conexión, qué edición corría, ni de forzar una comprobación. Un modo
+   * offline que no se puede consultar es indistinguible de un juego congelado
+   * en una versión vieja.
    *
-   * La comprobación automática va cada hora. Este botón es para el resto del
-   * tiempo.
+   * La comprobación automática va cada hora. El botón es para el resto.
    */
   _pintarVersion(pantalla) {
     const act = this.actualizador;
@@ -258,7 +360,6 @@ export class Pantallas {
     panel.appendChild(el('div', 'edicion__sello',
       act ? `v${act.version} · ${act.edicion}` : 'edición de desarrollo'));
 
-    // Lo que pasa sin tocar nada. El botón es para quien tiene prisa.
     panel.appendChild(el('div', 'edicion__nota',
       'Se comprueba sola cada hora y la edición nueva entra al terminar una '
       + 'corrida, nunca en mitad de una.'));
@@ -271,7 +372,7 @@ export class Pantallas {
       if (!act) return;
 
       if (act.estado === 'disponible') {
-        // Desde el menú el momento es seguro, así que se aplica al instante.
+        // Desde los ajustes el momento es seguro: se aplica al instante.
         boton_.textContent = 'Instalando…';
         boton_.disabled = true;
         act.aplicar();
@@ -282,9 +383,8 @@ export class Pantallas {
       if (!hay) {
         // OJO CON LO QUE DICE ESTE MENSAJE. Que la comprobación se agote no
         // demuestra que no haya edición nueva: el navegador puede tardar más
-        // que la espera, y de hecho a veces tarda. La escucha sigue puesta y
-        // el panel se enciende solo si llega después, así que el rótulo
-        // informa de lo que pasó y no promete lo que no sabe.
+        // que la espera. La escucha sigue puesta y el panel se enciende solo
+        // si llega después, así que el rótulo informa y no promete.
         boton_.textContent = 'Sin novedades por ahora';
         setTimeout(pintar, 2600);
       }
@@ -318,76 +418,16 @@ export class Pantallas {
     }
     pintar();
 
-    // El estado puede cambiar solo mientras el menú está abierto (termina de
-    // cachearse, aparece una edición nueva). El panel se entera y se repinta.
-    // La escucha se suelta al desmontar la pantalla: sin eso, cada visita al
-    // menú dejaría un callback vivo apuntando a nodos que ya no existen.
+    // El estado puede cambiar solo mientras la pantalla está abierta. Se
+    // repinta, y la escucha se suelta al desmontar: sin eso, cada visita
+    // dejaría un callback vivo apuntando a nodos que ya no existen.
     if (act) {
       act.alCambiar = pintar;
       pantalla.addEventListener('pantalla:desmontada', () => { act.alCambiar = () => {}; });
+      panel.appendChild(boton_);
     }
 
-    if (act) panel.appendChild(boton_);
     return panel;
-  }
-
-  /** Chuleta de controles. Solo se enseña mientras hace falta. */
-  _pintarControles() {
-    const instrucciones = el('div', 'instrucciones');
-    const controles = [
-      [Icono.flecha('izquierda', 18), 'Carril', '← → o swipe lateral'],
-      [Icono.flecha('arriba', 18), 'Saltar', '↑, espacio o swipe arriba'],
-      [Icono.flecha('abajo', 18), 'Agacharse', '↓ o swipe abajo'],
-      [Icono.pausa(18), 'Pausa', 'ESC o el botón'],
-    ];
-    for (const [svgIcono, titulo, desc] of controles) {
-      const item = el('div', 'instruccion');
-      const ic = el('span', 'instruccion__icono');
-      ic.innerHTML = svgIcono;
-      item.appendChild(ic);
-      const txt = el('span');
-      txt.appendChild(el('strong', '', titulo));
-      txt.appendChild(document.createTextNode(desc));
-      item.appendChild(txt);
-      instrucciones.appendChild(item);
-    }
-    return instrucciones;
-  }
-
-  /**
-   * Los cinco potenciadores, abiertos y por abrir.
-   *
-   * Enseñar las casillas cerradas es deliberado: un desbloqueo que no sabías
-   * que existía no tira de ti. Ver cuatro siluetas apagadas y la distancia
-   * exacta que falta para la primera, sí.
-   */
-  _pintarArsenal() {
-    const abiertos = new Set(this.cuaderno.potenciadoresDesbloqueados());
-    const proximo = this.cuaderno.proximoPotenciador();
-
-    const bloque = el('div', 'arsenal');
-
-    const titulo = el('div', 'rotulo-seccion', 'ARSENAL');
-    bloque.appendChild(titulo);
-
-    const fila = el('div', 'arsenal__fila');
-    for (const pot of CATALOGO_POTENCIADORES) {
-      const abierto = abiertos.has(pot.id);
-      const casilla = el('div', `arsenal__casilla ${abierto ? '' : 'arsenal__casilla--cerrada'}`.trim());
-      casilla.innerHTML = Icono.iconoPotenciador(pot.id, 26);
-      casilla.title = abierto
-        ? `${pot.nombre} — ${pot.descripcion}`
-        : `${pot.nombre} — se abre a los ${pot.tramos} tramos`;
-      if (!abierto) casilla.appendChild(el('span', 'arsenal__candado', '?'));
-      fila.appendChild(casilla);
-    }
-    bloque.appendChild(fila);
-
-    bloque.appendChild(el('div', 'arsenal__pista', proximo
-      ? `${proximo.nombre} a ${proximo.faltan} ${proximo.faltan === 1 ? 'tramo' : 'tramos'}`
-      : 'Arsenal completo. Ahora solo queda el expediente perfecto.'));
-
-    return bloque;
   }
 
   // -------------------------------------------------------------------------
@@ -579,62 +619,16 @@ export class Pantallas {
 
   gameOver(datos) {
     const { pantalla, contenido } = pantallaBase();
+    // La pantalla entera es el periódico del día siguiente. No un panel de
+    // resultados con una cabecera bonita: el ejemplar completo. El periodista
+    // deja de firmar la noticia y pasa a ser la noticia, y para que eso se
+    // sienta tiene que ocupar todo, como ocuparía la portada de verdad.
+    pantalla.classList.add('pantalla--plana');
 
-    // La derrota se publica. Es la vuelta de tuerca del cierre: el periodista
-    // deja de firmar la noticia y pasa a ser la noticia, y El Mercio lo saca
-    // en portada con el mismo tono con el que sacaría cualquier otra.
     contenido.appendChild(this._primeraPlana(datos));
 
-    if (datos.esRecord && datos.puntaje > 0) {
-      contenido.appendChild(el('div', 'insignia-record', 'NUEVO RÉCORD'));
-    }
-
-    contenido.appendChild(estadisticas([
-      [datos.papeles.toLocaleString('es-EC'), 'Papeles'],
-      [`${datos.distancia.toLocaleString('es-EC')} m`, 'Distancia'],
-      [datos.puntaje.toLocaleString('es-EC'), 'Puntaje'],
-      [String(datos.evidencias.length), 'Evidencias'],
-    ]));
-
-    // --- Ruta recorrida ----------------------------------------------------
-    if (datos.ruta?.length > 1) {
-      const lista = el('div', 'lista');
-      lista.appendChild(el('div', 'lista__titulo', 'Ruta de esta corrida'));
-      lista.appendChild(this._pintarRuta(datos.ruta));
-      contenido.appendChild(lista);
-    }
-
-    // --- Evidencias de la partida -----------------------------------------
-    if (datos.evidencias?.length > 0) {
-      const lista = el('div', 'lista');
-      lista.appendChild(el('div', 'lista__titulo', 'Lo que lograste sacar'));
-      const fila = el('div', 'lista__fila');
-      for (const ev of datos.evidencias) {
-        fila.appendChild(el('span', 'nodo nodo--evidencia', ev));
-      }
-      lista.appendChild(fila);
-      contenido.appendChild(lista);
-    }
-
-    // --- Páginas recuperadas ----------------------------------------------
-    if (datos.paginasNuevas?.length > 0) {
-      const lista = el('div', 'lista');
-      lista.appendChild(el('div', 'lista__titulo', 'Recuperaste del periódico'));
-      const fila = el('div', 'lista__fila');
-      for (const pag of datos.paginasNuevas) {
-        fila.appendChild(el('span', 'nodo', `Pág. ${pag.numero} · ${pag.nombre}`));
-      }
-      lista.appendChild(fila);
-      contenido.appendChild(lista);
-    }
-
-    this._pintarDesbloqueos(datos, contenido);
-
-    // El botón dice a dónde vuelves. Se retoma donde te capturaron, y decirlo
-    // aquí es lo que convierte la derrota en un capítulo en vez de en un
-    // reinicio.
-    const donde = obtenerEscenario(datos.escenario ?? this.juego.escenarioActual);
     const botones = el('div', 'botones');
+    const donde = obtenerEscenario(datos.escenario ?? this.juego.escenarioActual);
     botones.appendChild(boton(`Volver a ${donde.nombre}`, 'boton--principal',
       () => this.juego.iniciarPartida()));
     botones.appendChild(boton('Archivo de El Mercio', '',
@@ -654,6 +648,7 @@ export class Pantallas {
   _primeraPlana(datos) {
     const plana = el('div', 'plana');
 
+    // --- Mancheta ----------------------------------------------------------
     const cab = el('header', 'plana__cabecera');
     cab.appendChild(el('span', 'plana__nombre', CABECERA.nombre));
     cab.appendChild(el('span', 'plana__fecha', 'EDICIÓN DE MAÑANA'));
@@ -671,16 +666,42 @@ export class Pantallas {
     plana.appendChild(el('h1', 'plana__titular',
       sentencia?.titular ?? titulos[datos.motivo] ?? 'SE ACABÓ'));
 
+    // --- La foto del arresto -----------------------------------------------
+    // Sale del propio juego: es el fotograma del cerco, con el círculo ya
+    // cerrado. Que la imagen sea LA TUYA y no una ilustración genérica es lo
+    // que convierte el resumen en una noticia sobre ti.
+    if (datos.foto) plana.appendChild(this._fotoArresto(datos));
+
     if (sentencia) plana.appendChild(el('p', 'plana__bajada', sentencia.texto));
 
-    // El remate editorial de siempre, ahora como pie de la nota.
-    const cuerpo = el('p', 'plana__cuerpo');
-    cuerpo.appendChild(document.createTextNode(datos.texto ?? ''));
-    plana.appendChild(cuerpo);
+    // --- El puntaje --------------------------------------------------------
+    // La ÚNICA cifra grande. Antes había cuatro recuadros del mismo tamaño y
+    // ninguno destacaba, así que no se sabía qué se estaba puntuando. Lo que
+    // se compara con los demás es el puntaje; lo demás es contexto y va en
+    // letra de pie de foto.
+    const marcador = el('div', 'plana__marcador');
+    marcador.appendChild(el('span', 'plana__marcador-rotulo', 'PUNTAJE'));
+    marcador.appendChild(el('span', 'plana__marcador-cifra',
+      (datos.puntaje ?? 0).toLocaleString('es-EC')));
+    if (datos.esRecord && datos.puntaje > 0) {
+      marcador.appendChild(el('span', 'plana__record', 'RÉCORD PERSONAL'));
+    }
+    plana.appendChild(marcador);
 
-    plana.appendChild(el('div', 'plana__firma', 'El Mercio'));
+    plana.appendChild(el('div', 'plana__datos',
+      `${(datos.papeles ?? 0).toLocaleString('es-EC')} papeles · `
+      + `${(datos.distancia ?? 0).toLocaleString('es-EC')} m · `
+      + `${datos.evidencias?.length ?? 0} evidencias`));
 
-    // Cita verificada, si el equipo cargó alguna.
+    // --- El remate editorial, como pie de la nota --------------------------
+    if (datos.texto) {
+      const cuerpo = el('p', 'plana__cuerpo');
+      cuerpo.appendChild(document.createTextNode(datos.texto));
+      plana.appendChild(cuerpo);
+      plana.appendChild(el('div', 'plana__firma', 'El Mercio'));
+    }
+
+    // --- Cita verificada, si el equipo cargó alguna ------------------------
     if (datos.cita) {
       const cita = el('div', 'cita cita--plana');
       cita.appendChild(el('div', 'cita__texto', `«${datos.cita.texto}»`));
@@ -689,7 +710,80 @@ export class Pantallas {
       plana.appendChild(cita);
     }
 
+    // --- Tabla de posiciones ----------------------------------------------
+    plana.appendChild(this._tablaPosiciones(datos.puntaje ?? 0));
+
+    // --- Lo que se desbloqueó ---------------------------------------------
+    this._pintarDesbloqueos(datos, plana);
+
     return plana;
+  }
+
+  /**
+   * La foto de prensa. Es la captura del juego pasada por un filtro de tinta:
+   * gris, contrastada y con la trama de puntos por encima.
+   *
+   * El tramado va en CSS y no tocando los píxeles, que sería lo "correcto":
+   * procesar una imagen de pantalla completa en el momento en que el jugador
+   * acaba de perder es medio segundo de bloqueo justo donde más se nota.
+   */
+  _fotoArresto(datos) {
+    const figura = el('figure', 'plana__foto');
+
+    const img = document.createElement('img');
+    img.src = datos.foto;
+    img.alt = 'Momento de la detención';
+    img.loading = 'lazy';
+    figura.appendChild(img);
+    figura.appendChild(el('span', 'plana__trama'));
+
+    const esc = obtenerEscenario(datos.escenario ?? 'bahia');
+    figura.appendChild(el('figcaption', 'plana__pie',
+      `El momento de la detención en ${esc.nombre}. Foto: El Mercio`));
+
+    return figura;
+  }
+
+  /**
+   * Tabla de posiciones, maquetada como la de un diario deportivo: puesto,
+   * nombre y cifra, alineada a la derecha y con filete entre filas.
+   *
+   * Solo se enseñan el primero y el entorno del jugador. Los diez completos en
+   * un móvil obligan a hacer scroll dentro de una pantalla que ya es larga, y
+   * a nadie le importa el séptimo.
+   */
+  _tablaPosiciones(puntaje, alrededor = 1) {
+    const bloque = el('section', 'plana__tabla');
+    bloque.appendChild(el('h2', 'plana__seccion', 'TABLA DE POSICIONES'));
+
+    const lista = el('ol', 'posiciones');
+
+    for (const fila of tablaConJugador(puntaje, alrededor)) {
+      if (fila.corte) {
+        lista.appendChild(el('li', 'posiciones__corte', '⋯'));
+        continue;
+      }
+
+      const item = el('li', `posiciones__fila ${fila.esTu ? 'posiciones__fila--tu' : ''}`.trim());
+      item.appendChild(el('span', 'posiciones__puesto', String(fila.puesto)));
+
+      const quien = el('span', 'posiciones__quien');
+      quien.appendChild(el('span', 'posiciones__arroba', fila.arroba));
+      if (fila.nota) quien.appendChild(el('span', 'posiciones__nota', fila.nota));
+      item.appendChild(quien);
+
+      item.appendChild(el('span', 'posiciones__cifra', fila.puntaje.toLocaleString('es-EC')));
+      lista.appendChild(item);
+    }
+
+    bloque.appendChild(lista);
+    // El periódico dice lo que sabe. No hay servidor detrás y fingir que sí lo
+    // hay sería exactamente lo que este juego critica.
+    bloque.appendChild(el('div', 'plana__nota-tabla',
+      'Tabla de muestra. Todavía no hay marcadores en línea: los puestos que no '
+      + 'son el tuyo son de mentira, como tantas cosas.'));
+
+    return bloque;
   }
 
   /**

@@ -310,8 +310,26 @@ progresión del juego que va en tu contra.
 
 ### 3 · La primera plana
 
-La sentencia se publica **en portada de El Mercio**: prisión preventiva,
-extradición, prisión domiciliaria, y las demás.
+Perder **no devuelve a una pantalla de juego**: devuelve un periódico. La
+página entera es la portada de El Mercio del día siguiente, con mancheta,
+antetítulo, titular y bajada, y la sentencia es el titular.
+
+**La foto del arresto es tuya.** En el momento en que el cerco se cierra
+—cuando el círculo de policías ya está formado y la cámara ha retrocedido— se
+captura el fotograma del juego y se imprime en la portada, en blanco y negro,
+con trama de puntos encima como en un impreso de verdad. No es una ilustración
+genérica de detención: es literalmente el instante en que te agarraron, y por
+eso cambia en cada partida.
+
+> Técnicamente: el lienzo se lee con `toDataURL()` **en el mismo fotograma**
+> justo después de renderizar. Sin eso haría falta `preserveDrawingBuffer`, que
+> penaliza el rendimiento de todas las partidas para una foto que se toma una
+> vez.
+
+**La única métrica que se imprime grande es el puntaje.** Metros, papeles y
+evidencia bajan a una línea de datos pequeña, como los datos de una noticia. Un
+periódico no da cinco titulares del mismo tamaño; y si todo se mide, nada se
+mide.
 
 Desde ahí se puede:
 
@@ -322,11 +340,32 @@ La continuidad importa: retomas donde te capturaron, no siempre en la Bahía.
 Volver al principio cada vez convierte cada muerte en un reinicio del relato en
 lugar de en un capítulo.
 
+### 4 · La tabla de posiciones
+
+Debajo de la portada va **la tabla**, maquetada como la tabla de resultados de
+un diario: puesto, arroba y cifra alineada a la derecha. Primero siempre
+`@paquimal`, que es el director; después el hueco marcado con puntos
+suspensivos si lo hay; y luego tú, entre tus dos vecinos.
+
+No se enseñan los diez de golpe. En un móvil eso obliga a hacer scroll dentro
+de una pantalla que ya es larga, y el séptimo puesto no le importa a nadie: lo
+que dice algo es a quién hay que alcanzar y quién te pisa los talones. La tabla
+completa vive en su propia página (**MARCADORES**, desde el menú).
+
+Dos reglas que no se negocian:
+
+- **Los arrobas son inventados** salvo el de la casa. Meter cuentas reales de
+  terceros en el marcador de un juego satírico —aunque sea de muestra— es
+  ponerles palabras en la boca por otra vía.
+- **El pie de la tabla dice que son datos de muestra.** No hay servidor
+  detrás y no se pretende que lo parezca. Cuando lo haya, lo único que cambia
+  es de dónde sale la lista.
+
 ---
 
 ## Lo que sostiene la repetición
 
-Tres cosas, y ninguna es la puntuación:
+Cuatro cosas, y solo una es la puntuación:
 
 1. **El archivo.** Un ejemplar de El Mercio que se arma página a página con
    reportajes reales. Es lo único del juego que no es sátira, y el cambio de
@@ -334,8 +373,25 @@ Tres cosas, y ninguna es la puntuación:
 2. **Los potenciadores.** Se abren a los 3, 6, 10, 15 y 22 tramos recorridos.
    El contador es acumulativo, así que ninguna corrida se pierde del todo.
 3. **La continuidad de escena.** Cada partida es un capítulo, no un reinicio.
+4. **El puesto en la tabla.** Es la única cifra que se imprime grande, y por
+   eso es la única que compite.
 
 ---
+
+## La portada
+
+El menú **no es un menú**: es la escena de la entrevista corriendo en vivo. El
+personaje está de pie con el micrófono en la mano, en la pose del arranque de
+la cinemática, y la cámara se mece despacio a su alrededor.
+
+La interfaz se reparte en dos bandas —cabecera arriba, controles abajo— y
+**deja libre el centro**, que es por donde se ve al personaje. El degradado que
+oscurece la pantalla se abre justo en esa franja para que el 3D se vea nítido:
+la capa de menú lleva desenfoque de fondo, y ahí hay que quitarlo o el
+personaje aparece convertido en una mancha.
+
+Al pulsar JUGAR se suelta la pose y el mismo personaje, sin corte ni carga,
+echa a correr.
 
 ---
 

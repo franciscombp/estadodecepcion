@@ -51,6 +51,7 @@ src/
 │   ├── publicaciones.js← Los reportajes REALES del Archivo ⚠️ hay que rellenarlo
 │   ├── estilo.js       ← Tokens visuales (ver docs/ESTILO.md)
 │   ├── escenarios.js   ← Los 4 escenarios y el mapa del loop
+│   ├── tabla.js        ← Marcadores de muestra + inserción del jugador
 │   └── textos.js       ← Microcopy, remates y fichas del cuaderno
 ├── game/
 │   ├── Game.js         ← Orquestador: bucle y máquina de estados
@@ -80,7 +81,7 @@ src/
 ├── ui/
 │   ├── HUD.js          ← Interfaz durante la partida
 │   ├── iconos.js       ← Set de iconos SVG inline
-│   └── screens.js      ← Menú, escape, victoria, game over, periódico
+│   └── screens.js      ← Portada, escape, primera plana, marcadores, archivo
 └── utils/
     ├── controls.js     ← Teclado + swipe
     ├── collision.js    ← AABB
@@ -123,6 +124,32 @@ El salto usa física balística: `altura_pico = v₀²/(2g)` y
 
 En desarrollo tienes `window.__juego` y `window.__cuaderno` en la consola del
 navegador para trastear en vivo.
+
+---
+
+## La portada: el menú es la escena
+
+El menú **no es un menú**: es la escena de la entrevista corriendo en vivo. El
+personaje está de pie con el micrófono en la mano, en la pose del arranque de
+la cinemática, y la cámara se mece despacio a su alrededor. Al pulsar JUGAR se
+suelta la pose y el mismo personaje, sin corte ni carga, echa a correr.
+
+En el estado `menu` el bucle sigue actualizando el escenario y renderizando;
+lo único que cambia es que la cámara la lleva `Intro.encuadrarMenu()` en vez
+de la lógica de partida. La cámara del menú **no es la de la cinemática**: allí
+el plano es cerrado porque dura segundo y medio y hay que leer el gesto; aquí
+el personaje convive con la interfaz, y a esa distancia le quedaban las piernas
+detrás de los botones.
+
+La interfaz se reparte en tres bandas: cabecera arriba, **hueco en el centro**
+—vacío a propósito, es la ventana al 3D— y controles abajo. Dos cuidados que
+cuestan encontrar:
+
+- El degradado que oscurece la pantalla **se abre en la franja central** para
+  que el personaje se lea nítido sobre el fondo.
+- `.pantalla` lleva `backdrop-filter: blur(18px)`, así que en la portada hay
+  que **anularlo**. Con el desenfoque puesto, la escena 3D se ve como una
+  mancha de color y no como un personaje.
 
 ---
 
@@ -223,6 +250,43 @@ el resultado es exactamente lo que hiciste con el pulgar. **Cada captura
 acelera el selector**, y no hay tope de intentos: siempre tienes tu
 oportunidad, pero la oportunidad se encoge. Esa curva es la única progresión
 del juego que va en tu contra, y es la que hace que la partida acabe.
+
+### La portada del día siguiente
+
+Perder no devuelve una pantalla de juego: devuelve **un periódico**. Mancheta,
+antetítulo, titular —que es la sentencia—, bajada, y el resto de la página
+maquetada como una portada de El Mercio.
+
+**La foto del arresto es tuya.** Cuando el cerco está cerrado y la cámara ya ha
+retrocedido, se captura el fotograma del juego y se imprime en la página en
+blanco y negro, con trama de puntos encima. No es una ilustración: es el
+instante exacto en que te agarraron, y cambia en cada partida.
+
+> Se lee el lienzo con `toDataURL()` **en el mismo fotograma**, justo después
+> de renderizar. Hacerlo de otro modo obligaría a activar
+> `preserveDrawingBuffer`, que penaliza todas las partidas para una foto que se
+> toma una vez.
+
+**La única métrica grande es el puntaje.** Metros, papeles y evidencia bajan a
+una línea de datos pequeña. Un periódico no da cinco titulares del mismo
+tamaño, y si todo se mide, nada se mide.
+
+### La tabla de posiciones
+
+Debajo de la portada va la tabla, maquetada como la de resultados de un diario:
+puesto, arroba y cifra alineada a la derecha. Primero siempre `@paquimal`;
+después el hueco marcado con puntos suspensivos si lo hay; y luego tú, entre
+tus dos vecinos. La tabla completa está en **MARCADORES**, desde el menú.
+
+Enseñar los diez de golpe obliga a hacer scroll dentro de una pantalla que ya
+es larga, y el séptimo puesto no le importa a nadie: lo que dice algo es a
+quién hay que alcanzar y quién te pisa los talones.
+
+Son **datos de muestra** —`config/tabla.js`— y el pie de la tabla lo dice. No
+hay servidor detrás y no se pretende que lo parezca; cuando lo haya, lo único
+que cambia es de dónde sale la lista. Los arrobas son **inventados** salvo el
+de la casa: meter cuentas reales de terceros en el marcador de un juego
+satírico, aunque sea de mentira, es ponerles palabras en la boca por otra vía.
 
 ### Potenciadores
 
@@ -537,7 +601,8 @@ MIT. Ver [LICENSE](LICENSE).
 
 Obra de sátira política. Los personajes, situaciones y textos son ficción
 satírica de El Mercio y no reproducen declaraciones textuales de personas
-reales.
+reales. Los arrobas de la tabla de posiciones son inventados salvo el de la
+casa; no corresponden a cuentas de terceros.
 
 ---
 

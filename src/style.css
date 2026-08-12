@@ -1997,21 +1997,60 @@ html, body {
    pulses nada. */
 
 .pantalla--portada {
-  /* Velo mucho más suave que el resto de pantallas: aquí la escena 3D es el
-     protagonista, no un relleno que hay que tapar. */
+  /* SIN DESENFOQUE. El resto de pantallas difumina lo que hay detrás para que
+     el texto se lea encima; aquí lo de detrás es el protagonista, y con el
+     blur heredado de .pantalla el periodista se veía como una mancha verde.
+     El contraste del texto lo dan las bandas oscuras del degradado. */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+
+  /* El centro se deja CASI limpio: ahí está el periodista entrevistando, y es
+     lo que hay que ver. Las bandas de arriba y abajo se oscurecen para que el
+     texto tenga contraste sin necesidad de una caja opaca detrás. */
   background:
     linear-gradient(180deg,
-      rgba(5, 7, 12, 0.88) 0%,
-      rgba(5, 7, 12, 0.55) 34%,
-      rgba(5, 7, 12, 0.55) 58%,
-      rgba(5, 7, 12, 0.92) 100%);
+      rgba(5, 7, 12, 0.94) 0%,
+      rgba(5, 7, 12, 0.82) 22%,
+      rgba(5, 7, 12, 0.12) 42%,
+      rgba(5, 7, 12, 0.12) 52%,
+      rgba(5, 7, 12, 0.86) 72%,
+      rgba(5, 7, 12, 0.97) 100%);
+}
+
+/* La portada se reparte en tres: banda, hueco y banda. El hueco es la ventana
+   por la que se ve la escena, y no lleva nada dentro a propósito. */
+.portada {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 100%;
+  gap: 0;
+}
+
+.portada__arriba,
+.portada__abajo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.portada__abajo { gap: 10px; }
+
+.portada__hueco {
+  flex: 1 1 auto;
+  /* Suelo mínimo: en pantallas cortas el hueco no puede desaparecer del todo
+     o la portada vuelve a ser un menú que tapa la escena. */
+  min-height: 26vh;
 }
 
 .portada__cabecera { margin-bottom: 4px; }
 
 .titulo--portada {
-  font-size: clamp(1.9rem, 9vw, 3.1rem);
+  font-size: clamp(1.7rem, 8.4vw, 2.8rem);
   line-height: 0.94;
+  margin-bottom: 8px;
 }
 
 .subtitulo--portada { margin-bottom: 14px; }
@@ -2333,18 +2372,30 @@ html, body {
 
 .plana {
   width: 100%;
-  padding: 16px 18px 14px;
+  padding: 18px 18px 16px;
   margin-bottom: 16px;
-  border-radius: 4px;
+  border-radius: 3px;
   background: #f3ecdc;
   color: #16130d;
   box-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.55),
+    0 12px 34px rgba(0, 0, 0, 0.6),
     0 0 0 1px rgba(0, 0, 0, 0.25);
   text-align: left;
-  /* Un grado de inclinación: el periódico está tirado sobre la mesa, no
-     maquetado en pantalla. */
-  transform: rotate(-0.5deg);
+  /* Textura de papel: dos tramas muy tenues cruzadas. Sin esto el crema se ve
+     como un rectángulo de color y no como una hoja. */
+  background-image:
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.016) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.012) 0 1px, transparent 1px 4px);
+}
+
+/* La pantalla de derrota no lleva el velo del resto: el periódico ocupa todo
+   y el fondo solo tiene que dejar de competir. */
+.pantalla--plana {
+  background: #05070c;
+}
+
+.pantalla--plana .pantalla__contenido {
+  padding-top: 18px;
 }
 
 .plana__cabecera {
@@ -2552,4 +2603,293 @@ html, body {
 @keyframes latido-punto {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.45; transform: scale(0.75); }
+}
+
+
+/* --- La foto del arresto ---------------------------------------------------
+   Sale del propio juego: es el fotograma del cerco. Pasa por un filtro de
+   tinta —gris, contrastada— y por una trama de puntos encima, que es lo que
+   la convierte en una foto IMPRESA y no en una captura de pantalla pegada. */
+
+.plana__foto {
+  position: relative;
+  margin: 12px 0 10px;
+  overflow: hidden;
+  background: #1a1610;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+.plana__foto img {
+  display: block;
+  width: 100%;
+  /* Recorte apaisado: una captura vertical entera se lleva media portada. */
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  object-position: center 62%;
+  filter: grayscale(1) contrast(1.32) brightness(1.06) sepia(0.22);
+}
+
+/* La trama. Un patrón radial diminuto multiplicado sobre la imagen: de lejos
+   se lee como grano de periódico y de cerca como puntos, que es justo lo que
+   hace una impresión de verdad. */
+.plana__trama {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,0.55) 0.6px, transparent 0.9px);
+  background-size: 3px 3px;
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+}
+
+.plana__pie {
+  padding: 6px 2px 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 0.6rem;
+  font-style: italic;
+  color: #6b6152;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.14);
+  padding-bottom: 7px;
+}
+
+/* --- El puntaje ------------------------------------------------------------
+   La única cifra grande de la portada. Antes había cuatro recuadros iguales y
+   ninguno destacaba, así que no se sabía qué se estaba puntuando. */
+
+.plana__marcador {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  margin: 12px 0 6px;
+  padding: 10px 12px 12px;
+  border-top: 3px double #16130d;
+  border-bottom: 3px double #16130d;
+}
+
+.plana__marcador-rotulo {
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.26em;
+  color: #6b6152;
+}
+
+.plana__marcador-cifra {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.6rem, 15vw, 4rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #16130d;
+}
+
+.plana__record {
+  margin-top: 4px;
+  padding: 2px 9px;
+  font-size: 0.54rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: #f3ecdc;
+  background: #a3231f;
+}
+
+.plana__datos {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 0.68rem;
+  color: #6b6152;
+  text-align: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.14);
+}
+
+/* --- Tabla de posiciones --------------------------------------------------- */
+
+.plana__seccion {
+  margin: 14px 0 8px;
+  padding-bottom: 4px;
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  color: #16130d;
+  border-bottom: 2px solid #16130d;
+}
+
+.posiciones {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.posiciones__fila {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  padding: 5px 2px;
+  border-bottom: 1px dotted rgba(0, 0, 0, 0.26);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.posiciones__puesto {
+  flex: 0 0 1.4em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #8a7f6a;
+  text-align: right;
+}
+
+.posiciones__quien {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.posiciones__arroba {
+  font-size: 0.84rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.posiciones__nota {
+  flex: 0 0 auto;
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #a3231f;
+}
+
+.posiciones__cifra {
+  flex: 0 0 auto;
+  font-size: 0.84rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* La fila del jugador va en negativo, como el destacado de una tabla impresa. */
+.posiciones__fila--tu {
+  background: #16130d;
+  color: #f3ecdc;
+  margin: 2px -6px;
+  padding: 6px 8px;
+  border-bottom: none;
+}
+
+.posiciones__fila--tu .posiciones__puesto { color: #c9bfa6; }
+
+.posiciones__corte {
+  padding: 2px 2px 4px;
+  font-size: 0.8rem;
+  letter-spacing: 0.3em;
+  color: #8a7f6a;
+}
+
+.plana__nota-tabla {
+  margin-top: 8px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 0.58rem;
+  font-style: italic;
+  line-height: 1.4;
+  color: #6b6152;
+}
+
+/* Los desbloqueos, dentro del periódico, se visten de recuadro impreso. */
+.plana .desbloqueo {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  box-shadow: none;
+  margin-top: 12px;
+}
+
+.plana .desbloqueo__etiqueta { color: #a3231f; }
+.plana .desbloqueo__nombre { color: #16130d; }
+.plana .desbloqueo__desc { color: #4a4234; }
+.plana .desbloqueo__icono svg { filter: grayscale(1) contrast(1.2); }
+
+.plana .siguiente-desbloqueo {
+  background: transparent;
+  border: 1px dashed rgba(0, 0, 0, 0.3);
+  color: #6b6152;
+  margin-top: 10px;
+}
+
+
+/* --- La temporada, en una línea -------------------------------------------
+   Antes era una ficha con borde que ocupaba un quinto de la pantalla para
+   decir dos palabras. Ahora es un renglón y el sitio que sobra se lo queda la
+   escena. */
+
+.temporada-linea {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.temporada-linea__icono { display: flex; }
+
+.temporada-linea__etiqueta {
+  font-size: 0.54rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  color: var(--texto-debil);
+}
+
+.temporada-linea__nombre {
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  color: var(--dorado);
+  text-shadow: 0 0 16px rgba(var(--dorado-rgb), 0.5);
+}
+
+/* --- Elector de personaje --------------------------------------------------
+   Dos fichas y nada más. Al elegido se le VE en la escena, así que describirlo
+   con dos líneas de texto era repetir con palabras lo que ya está dibujado. */
+
+.elector {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.elector__ficha {
+  flex: 1 1 0;
+  padding: 11px 8px;
+  border-radius: var(--r-chico);
+  background: rgba(13, 18, 32, 0.82);
+  border: 2px solid var(--borde);
+  color: var(--texto-tenue);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all var(--t-rapido);
+}
+
+.elector__ficha--elegida {
+  border-color: var(--verde);
+  color: var(--verde);
+  background: rgba(var(--verde-rgb), 0.12);
+  box-shadow: 0 0 18px rgba(var(--verde-rgb), 0.24);
+}
+
+/* En la portada el arsenal es una tira estrecha, no un bloque con título. */
+.portada__abajo .arsenal { margin-bottom: 0; }
+
+.portada__abajo .arsenal__casilla {
+  aspect-ratio: auto;
+  padding: 7px 0;
+}
+
+.portada__abajo .arsenal__pista { margin-top: 5px; }
+
+.portada__secundarios .boton {
+  padding: 11px 8px;
+  font-size: 0.62rem;
 }

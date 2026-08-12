@@ -45,6 +45,13 @@ const ABREVIADA = {
 // distancia deja al personaje comiéndose el cuadro entero.
 const CAMARA_ENTREVISTA = { x: 6.2, y: 2.3, z: 4.0 };
 
+// La del MENÚ es otra, y más lejos. En la cinemática el plano es cerrado
+// porque dura segundo y medio y hay que leer el gesto; en la portada el
+// personaje convive con la interfaz, y a la distancia de la cinemática le
+// quedaban las piernas detrás de los botones.
+const CAMARA_MENU = { x: 7.6, y: 2.9, z: 5.6 };
+const MIRA_MENU = 1.45;
+
 export class Intro {
   constructor() {
     this.activa = false;
@@ -61,6 +68,31 @@ export class Intro {
     this.duracion = Object.values(this.guion).reduce((a, b) => a + b, 0);
     this.tiempo = 0;
     this.activa = true;
+  }
+
+  /**
+   * Encuadre del MENÚ: la misma entrevista, en bucle.
+   *
+   * La portada del juego enseña al periodista trabajando en vez de un fondo
+   * cualquiera. Es la misma pose y la misma cámara de la fase 1 de la
+   * cinemática —no hay dos versiones que mantener— con una deriva lenta para
+   * que la imagen respire: una escena 3D perfectamente quieta se lee como una
+   * foto, y entonces daba igual que fuera 3D.
+   */
+  encuadrarMenu(dt, camara, jugador, perseguidor) {
+    this.tiempo += dt;
+
+    const vaiven = Math.sin(this.tiempo * 0.32);
+    const pos = {
+      x: CAMARA_MENU.x + vaiven * 0.6,
+      y: CAMARA_MENU.y + Math.sin(this.tiempo * 0.21) * 0.16,
+      z: CAMARA_MENU.z + vaiven * 0.34,
+    };
+
+    camara.position.set(pos.x, pos.y, pos.z);
+    camara.lookAt(0, MIRA_MENU, -0.1);
+    this._poseEntrevista(jugador, this.tiempo);
+    this._perseguidoresLejos(perseguidor);
   }
 
   saltar() {
@@ -154,6 +186,12 @@ export class Intro {
     const miraZ = THREE.MathUtils.lerp(CAMARA.MIRA.z, -0.1, cercania);
     const miraY = THREE.MathUtils.lerp(CAMARA.MIRA.y, 1.15, cercania);
     camara.lookAt(jugador.x * (1 - cercania) * 0.35, miraY, miraZ);
+  }
+
+  /** Deja el modelo listo para correr, deshaciendo la pose de entrevista. */
+  soltarPose(jugador) {
+    this._poseEntrevista(jugador, this.tiempo, 0);
+    if (this._microfono) this._microfono.visible = false;
   }
 
   /**

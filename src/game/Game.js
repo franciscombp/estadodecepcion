@@ -97,6 +97,11 @@ export class Game {
     // Sacudida de cámara al chocar.
     this.sacudida = 0;
 
+    // La foto del arresto. Se saca del propio juego en el momento del cerco y
+    // sale al día siguiente en primera plana. Ver _capturarFoto().
+    this.fotoArresto = null;
+    this._pedidoDeFoto = false;
+
     // ¿Estamos en el corredor previo a las bocas de túnel?
     this.enAproximacion = false;
     this.corredorLimpio = false;
@@ -471,6 +476,7 @@ export class Game {
 
     this.intro.saltar();
     this.jugador.reiniciar();
+    this.intro.soltarPose(this.jugador);
     this.perseguidor.modelo.visible = true;
 
     const config = obtenerEscenario(this.escenarioActual);
@@ -512,6 +518,7 @@ export class Game {
 
     this.jugador.caer();
     this._limpiarEfectos();
+    this.fotoArresto = null;
     this.perseguidor.atrapar();
     this.controles.desactivar();
     this.audio.captura();
@@ -554,6 +561,9 @@ export class Game {
       escenario: this.escenarioActual,
       ...cierre,
     };
+
+    // La foto todavía no existe: se saca durante el cerco. finPendiente se
+    // consume después, así que llega a tiempo.
 
     this._establecerEstado('cerco', { motivo });
   }
@@ -960,7 +970,11 @@ export class Game {
     const datos = this.finPendiente ?? {};
     this.finPendiente = null;
     this.cerco.limpiar();
-    this._establecerEstado('gameover', { ...datos, sentencia });
+    this._establecerEstado('gameover', {
+      ...datos,
+      sentencia,
+      foto: this.fotoArresto,
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -1002,12 +1016,22 @@ export class Game {
       return;
     } else if (this.estado === 'cerco') {
       this._actualizarCerco(dt);
+    } else if (this.estado === 'menu') {
+      // La portada del juego ES la escena de la entrevista: el periodista de
+      // pie, preguntando, con la calle detrás. Un fondo con el personaje
+      // corriendo bajo un menú no cuenta nada; este cuenta de qué va el juego
+      // antes de que nadie lea una línea.
+      this.escenario?.actualizar(dt, 0, this.jugador, this.velocidad);
+      this.intro.encuadrarMenu(dt, this.camara, this.jugador, this.perseguidor);
+
+      if (this.compositor) this.compositor.render();
+      else this.renderizador.render(this.escenaThree, this.camara);
+      return;
     } else {
-      // En pausa/menú seguimos animando al jugador y al perseguidor para que
-      // la escena no se vea congelada, pero sin avanzar el mundo.
+      // En pausa seguimos animando al jugador y al perseguidor para que la
+      // escena no se vea congelada, pero sin avanzar el mundo.
       this.jugador.actualizar(dt, this.velocidad);
       this.perseguidor.actualizar(dt, this.jugador, false);
-      // El escenario sigue vivo de fondo: es el telón del menú.
       this.escenario?.actualizar(dt, 0, this.jugador, this.velocidad);
     }
 
@@ -1016,6 +1040,24 @@ export class Game {
     // Con bloom vamos por el compositor; sin él, directo a pantalla.
     if (this.compositor) this.compositor.render();
     else this.renderizador.render(this.escenaThree, this.camara);
+
+    // La foto se saca AQUÍ, en el mismo fotograma en que se acaba de dibujar.
+    //
+    // No es un capricho de sitio: WebGL limpia el buffer de dibujo al terminar
+    // el fotograma salvo que se pida `preserveDrawingBuffer`, y esa opción
+    // cuesta rendimiento en todos los fotogramas para algo que se usa una vez
+    // por partida. Leyendo justo después del render, el buffer todavía está.
+    if (this._pedidoDeFoto) {
+      this._pedidoDeFoto = false;
+      try {
+        this.fotoArresto = this.lienzo.toDataURL('image/jpeg', 0.72);
+      } catch (error) {
+        // Un canvas "contaminado" no se puede leer. No pasa nada: la portada
+        // sale sin foto.
+        console.warn('[Foto] No se pudo capturar el arresto.', error);
+        this.fotoArresto = null;
+      }
+    }
   };
 
   /**
@@ -1028,6 +1070,12 @@ export class Game {
     // Los perseguidores se abalanzan al mismo ritmo que el cerco se cierra.
     this.perseguidor.cercar(t, dt);
     this.escenario?.actualizar(dt, 0, this.jugador, this.velocidad);
+
+    // La foto se pide cerca del final del cerco, cuando el círculo ya está
+    // cerrado: es el fotograma que cuenta la historia.
+    if (t > 0.82 && !this.fotoArresto && !this._pedidoDeFoto) {
+      this._pedidoDeFoto = true;
+    }
 
     if (t < 1) return;
 
@@ -1366,6 +1414,12 @@ export class Game {
     if (nombre === this.cuaderno.personajePreferido) return;
     this.cuaderno.personajePreferido = nombre;
     this.jugador.cambiarPersonaje(nombre);
+    // cambiarPersonaje() reinicia el modelo, así que la pose de entrevista se
+    // pierde. En el menú hay que volver a ponerla o el recién elegido aparece
+    // de pie y de espaldas mientras el otro estaba entrevistando.
+    if (this.estado === 'menu') {
+      this.intro.encuadrarMenu(0, this.camara, this.jugador, this.perseguidor);
+    }
   }
 
   /** Vuelve al menú principal. */
