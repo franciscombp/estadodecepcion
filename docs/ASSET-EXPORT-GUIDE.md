@@ -298,4 +298,92 @@ npx gltf-transform draco character-alondra.glb char-compressed.glb
 
 ---
 
+## 🎮 Sistema de Edición Integrado (Próximas Fases)
+
+Este documento te muestra cómo **exportar los modelos**. Pero hay más: Estado de Excepción necesita herramientas de edición para que cambiar niveles, personajes y gameplay sea **rápido, sin recompilar**.
+
+### Por qué editores visuales
+
+Hoy, cambiar un nivel:
+1. Editas `src/scenes/level3.js` (JavaScript)
+2. `npm run dev` (recompila)
+3. Juegas hasta el nivel
+4. Ves error → vuelves al paso 1
+
+Con editores:
+1. Abres `/creador/mapas/level-3.json` (navegador)
+2. Drag-drop objetos visualmente
+3. Refrescas (`npm run dev` ya está abierto)
+4. Ves cambio al instante ✅
+
+### Las 3 capas
+
+**1. JSON Configuration** (`public/data/`)
+- Niveles, escenas, personajes, balance
+- Editable directamente en GitHub o en editor JSON
+- Motor solo lee JSON, no toca código
+
+**2. Visual Builders** (`public/creador/`)
+- Exportador de modelos GLB (como fanesca)
+- Visor 3D de personajes (como modo-incognito)
+- Colocador de objetos en escenas (como modo-incognito)
+- Editor de configuración de niveles
+
+**3. Sandboxes de Testing** (`tools/`)
+- Scripts de validación (check-*.mjs)
+- Screenshots automáticos (Playwright)
+- Sandbox de prueba rápida
+
+### Fase 1: Exportador de Modelos
+
+Ya existe `scripts/export-models-simple.js`. Siguiente paso: crear `/public/creador/exportar.html` que:
+
+```html
+<!-- Interfaz visual para descargar modelos -->
+<!-- Previsualizaciones en WebGL -->
+<!-- Batch download de todos los .glb -->
+<!-- Genera models-index.json automático -->
+```
+
+Copia el patrón de `/workspace/fanesca/herramientas/exportar-glb.html`.
+
+### Fase 2: Editors de Contenido
+
+Crear bajo `public/creador/`:
+- `mapas/` — editor 2D de escenas (drag-drop zonas, enemigos, items)
+- `niveles/` — editor de configuración (duración, objetivos, flujo)
+- `personajes/` — visor 3D (rotar, poses, screenshot)
+
+Copia el patrón de `/workspace/modo-incognito/creador/`.
+
+### Fase 3: Validación Automática
+
+En `tools/`:
+- `check-levels.mjs` — valida JSON de niveles
+- `check-animations.mjs` — chequea que animaciones funcionen
+- `check-balance.mjs` — verifica multiplicadores
+
+Patrón: `/workspace/modo-incognito/tools/check-*.mjs`
+
+### Empezar hoy
+
+```bash
+# Ver patrón de exportador en fanesca
+cat /workspace/fanesca/herramientas/exportar-glb.html
+
+# Ver patrón de builder en modo-incognito
+cat /workspace/modo-incognito/README.md | grep "creador/"
+
+# Cuando esté listo, crear:
+# /home/user/estadodecepcion/public/creador/exportar.html
+# /home/user/estadodecepcion/public/creador/personajes/index.html
+# /home/user/estadodecepcion/public/creador/mapas/editor.html
+```
+
+### Referencia completa
+
+Ver documento detallado en: `docs/EDITOR-SANDBOX-GUIDE.md` (generado en próxima sesión)
+
+---
+
 **Listo para editar. Diviértete mejorando los assets del Mercio.** 🎨✨
