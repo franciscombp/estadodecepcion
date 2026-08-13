@@ -3622,3 +3622,102 @@ html, body {
   padding: 11px 8px;
   font-size: 0.62rem;
 }
+
+/* ==========================================================================
+   TÓMBOLA DE JUECES (HORIZONTAL)
+   ========================================================================== */
+
+/* Contenedor principal de la tómbola. */
+.tombola-contenedor {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  height: clamp(140px, 35vw, 200px);
+  margin: 20px auto;
+  overflow: hidden;
+  border-radius: var(--r);
+  background: rgba(var(--panel-rgb, 13, 18, 32), 0.6);
+  border: 2px solid var(--borde);
+}
+
+/* La banda de jueces que se desplaza horizontalmente. */
+.tombola-banda {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  height: 100%;
+  will-change: transform;
+  transition: none;
+}
+
+/* Selector visual en el centro (línea o puntero). */
+.tombola-selector {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 80%;
+  background: linear-gradient(180deg, transparent, var(--dorado), transparent);
+  box-shadow: 0 0 12px rgba(var(--dorado-rgb), 0.6),
+              0 0 24px rgba(var(--dorado-rgb), 0.3);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Ficha individual de juez en la tómbola. */
+.tombola-contenedor .juez {
+  flex: 0 0 auto;
+  width: clamp(100px, 22vw, 140px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+  border-radius: var(--r-chico);
+  background: rgba(13, 18, 32, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  color: var(--texto-tenue);
+  font-size: clamp(0.56rem, 2vw, 0.68rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  transition: all var(--t-rapido);
+}
+
+/* Juez seleccionado (en el centro de la tómbola). */
+.tombola-contenedor .juez--senalado {
+  background: rgba(var(--dorado-rgb), 0.15);
+  border-color: rgba(var(--dorado-rgb), 0.5);
+  color: var(--dorado);
+  box-shadow: 0 0 16px rgba(var(--dorado-rgb), 0.25);
+  transform: scale(1.08);
+}
+
+/* Juez comprado (no honesto). */
+.juez--comprado .juez__toga { filter: hue-rotate(250deg) saturate(0.8); }
+
+/* Juez limpio (honesto). */
+.juez--limpio .juez__toga { filter: saturate(1.2); }
+
+/* Resultado de la selección: acertó. */
+.juez--acierto {
+  background: rgba(var(--verde-rgb), 0.2);
+  border-color: rgba(var(--verde-rgb), 0.6);
+  color: var(--verde);
+  box-shadow: 0 0 16px rgba(var(--verde-rgb), 0.4);
+}
+
+/* Resultado de la selección: falló. */
+.juez--fallo {
+  background: rgba(var(--rojo-rgb), 0.2);
+  border-color: rgba(var(--rojo-rgb), 0.6);
+  color: var(--rojo);
+  box-shadow: 0 0 16px rgba(var(--rojo-rgb), 0.4);
+}
+
+/* Revelación del juez honesto cuando fallaste. */
+.juez--revelado {
+  background: rgba(var(--verde-rgb), 0.15);
+  border-color: rgba(var(--verde-rgb), 0.5);
+  color: var(--verde);
+}

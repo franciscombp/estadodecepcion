@@ -680,48 +680,71 @@ export class Pantallas {
     const { pantalla, contenido, plana } = seccionDiario({
       seccion: 'JUDICIALES',
       antetitulo: 'TE RODEARON',
-      titular: 'LE TOCA UN JUEZ',
+      titular: 'SORTEO DE JUEZ QUE LLEVARÁ TU CAUSA',
       bajada: 'Cinco llevan la camiseta. Para el selector en el que no la lleva.',
       clase: 'pantalla--cerco',
     });
 
-    // --- Los seis jueces ---------------------------------------------------
+    // --- La tómbola horizontal de jueces ------------------------------------
     // El honesto está en un puesto distinto cada vez. Si estuviera fijo, esto
     // se aprendería a la segunda captura y dejaría de ser una prueba.
+    //
+    // La tómbola se desplaza infinitamente de izquierda a derecha con jueces
+    // duplicados para crear el efecto de bucle continuo.
     const total = datos.jueces ?? 6;
     const honesto = Math.floor(Math.random() * total);
 
-    const tribunal = el('div', 'tribunal');
+    const contenedorTombola = el('div', 'tombola-contenedor');
+    const banda = el('div', 'tombola-banda');
     const fichas = [];
 
-    for (let i = 0; i < total; i++) {
-      const ficha = el('div', `juez ${i === honesto ? 'juez--limpio' : 'juez--comprado'}`);
-      const toga = el('span', 'juez__toga');
-      toga.innerHTML = Icono.juez(38, i === honesto);
-      ficha.appendChild(toga);
-      // Los seis se llaman igual. Rotular al bueno como «el bueno» convertiría
-      // la prueba en leer una etiqueta; lo que hay que mirar es el pecho.
-      ficha.appendChild(el('span', 'juez__rotulo', `JUEZ ${i + 1}`));
-      tribunal.appendChild(ficha);
-      fichas.push(ficha);
+    // Crear jueces duplicados para el efecto infinito (3 repeticiones)
+    const repeticiones = 3;
+    for (let rep = 0; rep < repeticiones; rep++) {
+      for (let i = 0; i < total; i++) {
+        const indiceReal = (rep * total + i) % total;
+        const ficha = el('div', `juez ${indiceReal === honesto ? 'juez--limpio' : 'juez--comprado'}`);
+        const toga = el('span', 'juez__toga');
+        toga.innerHTML = Icono.juez(38, indiceReal === honesto);
+        ficha.appendChild(toga);
+        // Los seis se llaman igual. Rotular al bueno como «el bueno» convertiría
+        // la prueba en leer una etiqueta; lo que hay que mirar es el pecho.
+        ficha.appendChild(el('span', 'juez__rotulo', `JUEZ ${indiceReal + 1}`));
+        banda.appendChild(ficha);
+        // Solo guarda referencias a la primera repetición para marcar
+        if (rep === 0) fichas.push(ficha);
+      }
     }
-    plana.appendChild(tribunal);
+    contenedorTombola.appendChild(banda);
+
+    // Selector visual en el centro
+    const selector = el('div', 'tombola-selector');
+    contenedorTombola.appendChild(selector);
+
+    plana.appendChild(contenedorTombola);
 
     const zonaResultado = el('div');
     plana.appendChild(zonaResultado);
 
-    // --- El selector -------------------------------------------------------
+    // --- El movimiento de la tómbola ----------------------------------------
     // Va con requestAnimationFrame y reloj real, no con una animación CSS:
     // hace falta saber en qué juez está EXACTAMENTE en el instante del toque,
     // y una animación declarativa no lo dice sin leer estilos computados.
     let indice = 0;
+    let desplazamiento = 0; // Píxeles desplazados
     let acumulado = 0;
     let anterior = performance.now();
     let corriendo = true;
-    const saltosPorSegundo = datos.velocidad ?? 4.2;
+    const velocidadPixelesPorSegundo = datos.velocidad ?? 120; // Píxeles por segundo
+    const anchoJuez = 120; // Ancho aproximado de cada ficha de juez
 
     const marcar = () => {
-      fichas.forEach((f, i) => f.classList.toggle('juez--senalado', i === indice));
+      // Marcar el juez en la primera repetición que está en el centro
+      fichas.forEach((f, i) => {
+        f.classList.toggle('juez--senalado', i === indice);
+      });
+      // Actualizar posición de la banda
+      banda.style.transform = `translateX(-${desplazamiento}px)`;
     };
     marcar();
 
@@ -730,12 +753,17 @@ export class Pantallas {
       const dt = Math.min(0.05, (ahora - anterior) / 1000);
       anterior = ahora;
 
-      acumulado += dt * saltosPorSegundo;
-      while (acumulado >= 1) {
-        acumulado -= 1;
-        indice = (indice + 1) % total;
-        marcar();
+      desplazamiento += dt * velocidadPixelesPorSegundo;
+      indice = Math.floor(desplazamiento / anchoJuez) % total;
+
+      // Reiniciar el desplazamiento cuando alcanza el final de la primera repetición
+      // para mantener el efecto infinito sin saltos visuales
+      const anchoTotalPrimeraRepeticion = anchoJuez * total;
+      if (desplazamiento >= anchoTotalPrimeraRepeticion * 2) {
+        desplazamiento -= anchoTotalPrimeraRepeticion;
       }
+
+      marcar();
       requestAnimationFrame(paso);
     };
     requestAnimationFrame(paso);
