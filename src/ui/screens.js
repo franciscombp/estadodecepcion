@@ -887,6 +887,9 @@ export class Pantallas {
     // sienta tiene que ocupar todo, como ocuparía la portada de verdad.
     pantalla.classList.add('pantalla--plana');
 
+    // Efecto de flash/photo cuando la pantalla aparece, como si tomaran una foto
+    pantalla.classList.add('pantalla--foto-flash');
+
     contenido.appendChild(this._primeraPlana(datos));
 
     // UN SOLO BOTÓN. La portada es una página, no un menú: aquí solo se pasa
@@ -898,6 +901,13 @@ export class Pantallas {
     contenido.appendChild(botones);
 
     escalonar(contenido);
+
+    // Disparar el flash después de montar la pantalla
+    // Esto permite que la animación ocurra visiblemente
+    requestAnimationFrame(() => {
+      pantalla.classList.add('pantalla--foto-flash-active');
+    });
+
     return pantalla;
   }
 
@@ -1226,20 +1236,64 @@ export class Pantallas {
     const diario = el('div', 'diario');
     contenido.appendChild(diario);
 
+    const cambiarPagina = (n) => {
+      if (n !== actual && n >= 1 && n <= paginas.length) {
+        actual = n;
+        pintar();
+      }
+    };
+
     const pintar = () => {
       diario.innerHTML = '';
       const pagina = paginas.find((p) => p.numero === actual) ?? paginas[0];
 
       diario.appendChild(this._cabeceraDiario(pagina));
       diario.appendChild(
-        pagina.desbloqueada ? this._paginaAbierta(pagina) : this._paginaCerrada(pagina, pintar),
+        pagina.desbloqueada ? this._paginaAbierta(pagina) : this._paginaCerrada(pagina, () => pintar()),
       );
-      diario.appendChild(this._navegadorPaginas(paginas, actual, (n) => {
-        actual = n;
-        pintar();
-      }));
+      diario.appendChild(this._navegadorPaginas(paginas, actual, cambiarPagina));
     };
     pintar();
+
+    // --- Swipe para cambiar páginas ------------------------------------------
+    // Detecta swipe horizontal para navegar entre páginas del diario.
+    let touchStart = null;
+    let touchEnd = null;
+
+    const handleSwipe = () => {
+      if (!touchStart || !touchEnd) return;
+      const diferencia = touchStart.clientX - touchEnd.clientX;
+      const minDist = 50; // Distancia mínima para considerar swipe
+
+      if (Math.abs(diferencia) > minDist) {
+        // Swipe izquierda: página siguiente
+        if (diferencia > 0) {
+          cambiarPagina(actual + 1);
+          this.audio?.cambioCarril?.();
+        }
+        // Swipe derecha: página anterior
+        if (diferencia < 0) {
+          cambiarPagina(actual - 1);
+          this.audio?.cambioCarril?.();
+        }
+      }
+      touchStart = null;
+      touchEnd = null;
+    };
+
+    diario.addEventListener('touchstart', (e) => {
+      touchStart = e.changedTouches[0];
+    });
+
+    diario.addEventListener('touchend', (e) => {
+      touchEnd = e.changedTouches[0];
+      handleSwipe();
+    });
+
+    pantalla.addEventListener('pantalla:desmontada', () => {
+      diario.removeEventListener('touchstart', () => {});
+      diario.removeEventListener('touchend', () => {});
+    });
 
     // --- Salida y avisos ---------------------------------------------------
     const botones = el('div', 'botones');

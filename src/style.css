@@ -321,9 +321,8 @@ html, body {
   display: block;
   height: 100%;
   border-radius: 4px;
-  /* Sin transición de anchura: la barra debe reflejar el estado real al
-     instante. Un medidor que persigue al valor miente sobre tu situación. */
-  transition: background-color var(--t-medio);
+  /* Suave transición de anchura para mostrar el progreso siendo añadido. */
+  transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color var(--t-medio);
 }
 
 .medidor__relleno--verde {
@@ -2212,6 +2211,19 @@ html, body {
 
 .expediente--perdido .expediente__aviso { color: var(--rojo); }
 
+/* Animación cuando el expediente progresa */
+.expediente--progresa {
+  animation: expediente-pulse 0.5s ease-out;
+}
+
+.expediente--progresa .expediente__cuenta {
+  animation: progresa-cifra 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.expediente--progresa .medidor__relleno--dorado {
+  animation: progresa-barra 0.5s ease-out;
+}
+
 /* --- Nivel elevado --------------------------------------------------------
    Un marco tenue mientras se corre por encima de la calle. Es información
    periférica: confirma que estás arriba sin obligar a mirar nada. */
@@ -3682,6 +3694,72 @@ html, body {
   font-weight: 800;
   letter-spacing: 0.06em;
   transition: all var(--t-rapido);
+}
+
+/* ==========================================================================
+   TRANSICIONES Y ANIMACIONES
+   ========================================================================== */
+
+/* Flash de foto cuando pierdes - simula tomar una fotografía/captura */
+.pantalla--foto-flash {
+  position: relative;
+}
+
+.pantalla--foto-flash::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 999;
+}
+
+.pantalla--foto-flash-active::before {
+  animation: foto-flash 0.6s ease-out;
+}
+
+@keyframes foto-flash {
+  0% { opacity: 0.7; }
+  60% { opacity: 0.3; }
+  100% { opacity: 0; }
+}
+
+/* Animaciones cuando el expediente progresa */
+@keyframes expediente-pulse {
+  0% {
+    box-shadow: 0 0 24px rgba(var(--dorado-rgb), 0.2);
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    box-shadow: 0 0 36px rgba(var(--dorado-rgb), 0.5), inset 0 0 20px rgba(var(--dorado-rgb), 0.1);
+    transform: translateX(-50%) scale(1.04);
+  }
+  100% {
+    box-shadow: 0 0 24px rgba(var(--dorado-rgb), 0.2);
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+@keyframes progresa-cifra {
+  0% {
+    transform: scale(1);
+    text-shadow: 0 0 16px rgba(var(--dorado-rgb), 0.5);
+  }
+  50% {
+    transform: scale(1.1);
+    text-shadow: 0 0 24px rgba(var(--dorado-rgb), 0.8);
+  }
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 16px rgba(var(--dorado-rgb), 0.5);
+  }
+}
+
+@keyframes progresa-barra {
+  0% { box-shadow: 0 0 10px rgba(var(--dorado-rgb), 0.55); }
+  50% { box-shadow: 0 0 20px rgba(var(--dorado-rgb), 1), inset 0 0 10px rgba(var(--dorado-rgb), 0.3); }
+  100% { box-shadow: 0 0 10px rgba(var(--dorado-rgb), 0.55); }
 }
 
 /* Juez seleccionado (en el centro de la tómbola). */

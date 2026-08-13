@@ -419,9 +419,33 @@ export class HUD {
         ? 'YA SE TE QUEDARON ATRÁS · VALEN ×2'
         : 'RECÓGELOS: VALEN ×2';
       this.cache.tramite = tramite.recogidos;
+
+      // Animación de progreso: pulse visual cuando se actualiza
+      this._animarProgresoExpediente();
     }
 
     this.ref.expedienteProgreso.style.width = `${Math.round(tramite.progreso * 100)}%`;
+  }
+
+  /**
+   * Anima el expediente cuando progresa: pulse visual en el panel y glow en la barra.
+   */
+  _animarProgresoExpediente() {
+    if (!this.ref?.expediente) return;
+
+    // Quitar la clase si ya existe (reiniciar la animación)
+    this.ref.expediente.classList.remove('expediente--progresa');
+
+    // Forzar reflujo para reiniciar la animación
+    void this.ref.expediente.offsetWidth;
+
+    // Añadir la clase para disparar la animación
+    this.ref.expediente.classList.add('expediente--progresa');
+
+    // Remover la clase después de que termine la animación (500ms)
+    setTimeout(() => {
+      this.ref?.expediente?.classList.remove('expediente--progresa');
+    }, 500);
   }
 
   /**
