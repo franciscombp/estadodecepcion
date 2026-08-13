@@ -167,6 +167,14 @@ export class Actualizador {
     setInterval(() => {
       if (navigator.onLine) this.registro.update().catch(() => {});
     }, INTERVALO_COMPROBACION);
+
+    // Comprobación inicial agresiva al cargar: detecta updates pendientes
+    // desde la última sesión o que acaban de deployarse.
+    setTimeout(() => {
+      if (navigator.onLine) {
+        this._forzarComprobacion();
+      }
+    }, 1000);
   }
 
   /**

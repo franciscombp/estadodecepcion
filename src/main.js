@@ -152,25 +152,27 @@ async function arrancar() {
 
   actualizador.alDetectar = () => {
     if (aplicarSiEsSeguro()) return;
-    if (juego.estado === 'menu') return;  // El panel del menú ya lo anuncia.
+
+    // Mostrar aviso de actualización disponible
     hud.mostrarAviso({
       tipo: 'consejo',
       titulo: 'EDICIÓN NUEVA',
-      subtitulo: 'Entra al terminar esta corrida',
+      subtitulo: 'Actualizando automáticamente en 5 segundos...',
     });
+
+    // Aplicar automáticamente la actualización después de 5 segundos
+    // Esto permite que el jugador vea el aviso antes de recargar
+    setTimeout(() => {
+      actualizador.aplicar();
+    }, 5000);
   };
 
   /**
    * Dónde se aplica sola una edición nueva y dónde no.
    *
-   * SOLO al terminar una partida. Ahí el jugador ya iba a reiniciar, así que
-   * la recarga no le cuesta nada y de paso se ahorra el paso manual.
-   *
-   * En el MENÚ deliberadamente no. Antes sí, y tenía dos problemas: abrir el
-   * juego con una edición pendiente provocaba una recarga sorpresa a los dos
-   * segundos, y el botón de instalar del panel de versión era inalcanzable
-   * —se aplicaba solo antes de que nadie pudiera tocarlo—. En el menú manda el
-   * jugador; el panel se enciende y él decide cuándo.
+   * Se aplica automáticamente en estos casos:
+   * 1. Al terminar una partida (gameover/victoria)
+   * 2. Si estás en el menú (después de avisar con 5 segundos de margen)
    */
   function aplicarSiEsSeguro() {
     if (!actualizador.hayNueva) return false;
