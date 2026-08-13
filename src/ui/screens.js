@@ -172,49 +172,21 @@ export class Pantallas {
     // Puede ser null en desarrollo, donde no hay service worker.
     this.actualizador = actualizador;
     this.actual = null;
-    this.fondoCapturado = null;
   }
 
   /**
-   * Captura el canvas actual y lo convierte en un fondo borroso.
-   * Se llama cuando entra una pantalla de menú para darle contexto visual.
+   * Monta una pantalla encima de la partida.
+   *
+   * NO se captura el lienzo para hacer de fondo. Se intentó, y no podía
+   * funcionar: el renderizador se crea sin `preserveDrawingBuffer`, así que el
+   * buffer ya está vaciado cuando `toDataURL()` lo lee y lo que devuelve es un
+   * rectángulo negro. El fondo lo pone el `backdrop-filter` de `.pantalla`,
+   * que desenfoca el lienzo VIVO —el bucle sigue corriendo en los menús— y no
+   * cuesta ni una lectura de GPU.
    */
-  _capturarFondo() {
-    try {
-      // El canvas es accesible a través del renderizador de Three.js
-      if (this.juego.renderizador?.domElement) {
-        const canvas = this.juego.renderizador.domElement;
-        // Crear un data URL con la captura actual
-        this.fondoCapturado = canvas.toDataURL('image/jpeg', 0.7);
-      }
-    } catch (err) {
-      // Un canvas "contaminado" por CORS no se puede leer. No hay problema:
-      // simplemente no tenemos fondo capturado y usamos el gradiente por defecto.
-      console.warn('No se pudo capturar el fondo:', err.message);
-    }
-  }
-
-  /**
-   * Aplica el fondo capturado a una pantalla usando un pseudo-elemento.
-   * El blur se aplica solo al fondo, no al contenido.
-   */
-  _aplicarFondo(pantalla) {
-    if (this.fondoCapturado && pantalla.classList.contains('pantalla--plana')) {
-      // Crear un pseudo-elemento ::before que contenga el fondo borroso
-      // Usamos una variable CSS que se aplica a un pseudo-elemento definido en estilos
-      pantalla.style.setProperty('--fondo-capturado', `url('${this.fondoCapturado}')`);
-      pantalla.classList.add('pantalla--con-fondo');
-    }
-  }
-
   mostrar(elementoPantalla) {
     this.ocultar();
     this.actual = elementoPantalla;
-
-    // Capturar el fondo antes de mostrar la pantalla
-    this._capturarFondo();
-    this._aplicarFondo(elementoPantalla);
-
     this.contenedor.appendChild(elementoPantalla);
   }
 
@@ -695,24 +667,24 @@ export class Pantallas {
 
     const contenedorTombola = el('div', 'tombola-contenedor');
     const banda = el('div', 'tombola-banda');
-    const fichas = [];
 
-    // Crear jueces duplicados para el efecto infinito (3 repeticiones)
-    const repeticiones = 3;
-    for (let rep = 0; rep < repeticiones; rep++) {
-      for (let i = 0; i < total; i++) {
-        const indiceReal = (rep * total + i) % total;
-        const ficha = el('div', `juez ${indiceReal === honesto ? 'juez--limpio' : 'juez--comprado'}`);
-        const toga = el('span', 'juez__toga');
-        toga.innerHTML = Icono.juez(38, indiceReal === honesto);
-        ficha.appendChild(toga);
-        // Los seis se llaman igual. Rotular al bueno como «el bueno» convertiría
-        // la prueba en leer una etiqueta; lo que hay que mirar es el pecho.
-        ficha.appendChild(el('span', 'juez__rotulo', `JUEZ ${indiceReal + 1}`));
-        banda.appendChild(ficha);
-        // Solo guarda referencias a la primera repetición para marcar
-        if (rep === 0) fichas.push(ficha);
-      }
+    // Los jueces se repiten para que la banda no se acabe nunca. Cinco vueltas
+    // son de sobra: se rebobina un ciclo entero cuando lleva dos recorridos, y
+    // el corte cae siempre fuera del trozo visible.
+    const REPETICIONES = 5;
+    const fichas = [];  // Todas, en fila. El índice global manda.
+    for (let i = 0; i < total * REPETICIONES; i++) {
+      const puesto = i % total;
+      const esHonesto = puesto === honesto;
+      const ficha = el('div', `juez ${esHonesto ? 'juez--limpio' : 'juez--comprado'}`);
+      const toga = el('span', 'juez__toga');
+      toga.innerHTML = Icono.juez(38, esHonesto);
+      ficha.appendChild(toga);
+      // Los seis se llaman igual. Rotular al bueno como «el bueno» convertiría
+      // la prueba en leer una etiqueta; lo que hay que mirar es el pecho.
+      ficha.appendChild(el('span', 'juez__rotulo', `JUEZ ${puesto + 1}`));
+      banda.appendChild(ficha);
+      fichas.push(ficha);
     }
     contenedorTombola.appendChild(banda);
 
@@ -727,45 +699,67 @@ export class Pantallas {
 
     // --- El movimiento de la tómbola ----------------------------------------
     // Va con requestAnimationFrame y reloj real, no con una animación CSS:
-    // hace falta saber en qué juez está EXACTAMENTE en el instante del toque,
-    // y una animación declarativa no lo dice sin leer estilos computados.
-    let indice = 0;
-    let desplazamiento = 0; // Píxeles desplazados
-    let acumulado = 0;
+    // hace falta saber en qué juez está EXACTAMENTE bajo el selector en el
+    // instante del toque, y una animación declarativa no lo dice sin leer
+    // estilos computados.
+    //
+    // La geometría se MIDE del DOM en el primer fotograma. Estaba escrita a
+    // mano (120 px por ficha) y no coincidía con el CSS —`clamp(100px, 22vw,
+    // 140px)` más el hueco de la fila—, así que el juez resaltado no era el que
+    // estaba bajo el selector: en pantallas anchas iba dos puestos por detrás.
+    let indiceGlobal = 0;
+    let desplazamiento = 0;   // Píxeles que lleva recorridos la banda
     let anterior = performance.now();
     let corriendo = true;
-    const velocidadPixelesPorSegundo = datos.velocidad ?? 120; // Píxeles por segundo
-    const anchoJuez = 120; // Ancho aproximado de cada ficha de juez
+    let paso1 = 0;            // Ancho de ficha + hueco
+    let offsetPrimera = 0;    // Del borde de la banda al centro de la ficha 0
+
+    // Un poco más de media docena de jueces por segundo: a menos que eso no
+    // parece un sorteo, parece una lista pasando.
+    const velocidad = datos.velocidad ?? 780;
+
+    const medir = () => {
+      const primera = fichas[0];
+      if (!primera?.offsetWidth) return false;
+      const estilo = getComputedStyle(banda);
+      const hueco = parseFloat(estilo.columnGap || estilo.gap) || 0;
+      paso1 = primera.offsetWidth + hueco;
+      offsetPrimera = (parseFloat(estilo.paddingLeft) || 0) + primera.offsetWidth / 2;
+      return paso1 > 0;
+    };
 
     const marcar = () => {
-      // Marcar el juez en la primera repetición que está en el centro
       fichas.forEach((f, i) => {
-        f.classList.toggle('juez--senalado', i === indice);
+        f.classList.toggle('juez--senalado', i === indiceGlobal);
       });
-      // Actualizar posición de la banda
-      banda.style.transform = `translateX(-${desplazamiento}px)`;
+      banda.style.transform = `translateX(${-desplazamiento}px)`;
     };
-    marcar();
 
-    const paso = (ahora) => {
+    const avanzar = (ahora) => {
       if (!corriendo) return;
+      // Hasta que la pantalla no está montada no se puede medir nada.
+      if (!paso1 && !medir()) { requestAnimationFrame(avanzar); return; }
+
       const dt = Math.min(0.05, (ahora - anterior) / 1000);
       anterior = ahora;
+      desplazamiento += dt * velocidad;
 
-      desplazamiento += dt * velocidadPixelesPorSegundo;
-      indice = Math.floor(desplazamiento / anchoJuez) % total;
+      // Rebobinado de un ciclo entero: la banda es idéntica cada `total`
+      // fichas, así que el salto no se ve.
+      const ciclo = paso1 * total;
+      if (desplazamiento >= ciclo * 2) desplazamiento -= ciclo;
 
-      // Reiniciar el desplazamiento cuando alcanza el final de la primera repetición
-      // para mantener el efecto infinito sin saltos visuales
-      const anchoTotalPrimeraRepeticion = anchoJuez * total;
-      if (desplazamiento >= anchoTotalPrimeraRepeticion * 2) {
-        desplazamiento -= anchoTotalPrimeraRepeticion;
-      }
+      // Qué ficha queda bajo el selector, que está en el centro del marco.
+      const centro = contenedorTombola.clientWidth / 2;
+      indiceGlobal = Math.max(0, Math.min(
+        fichas.length - 1,
+        Math.round((desplazamiento + centro - offsetPrimera) / paso1),
+      ));
 
       marcar();
-      requestAnimationFrame(paso);
+      requestAnimationFrame(avanzar);
     };
-    requestAnimationFrame(paso);
+    requestAnimationFrame(avanzar);
 
     const botones = el('div', 'botones');
     contenido.appendChild(botones);
@@ -775,9 +769,28 @@ export class Pantallas {
       corriendo = false;
       botonParar.disabled = true;
 
-      const acerto = indice === honesto;
-      fichas[indice].classList.add(acerto ? 'juez--acierto' : 'juez--fallo');
-      if (!acerto) fichas[honesto].classList.add('juez--revelado');
+      // Se para EN SECO en el juez que estuviera bajo el selector —eso es lo
+      // que el jugador acaba de decidir— y solo después se encaja la ficha en
+      // el centro. Frenar poco a poco movería el resultado después del toque,
+      // que es exactamente lo que no puede pasar en un sorteo.
+      const acerto = indiceGlobal % total === honesto;
+      if (paso1) {
+        desplazamiento = indiceGlobal * paso1 + offsetPrimera
+          - contenedorTombola.clientWidth / 2;
+        banda.style.transition = 'transform 0.22s cubic-bezier(0.22, 0.9, 0.3, 1)';
+        marcar();
+      }
+
+      fichas[indiceGlobal].classList.add(acerto ? 'juez--acierto' : 'juez--fallo');
+      if (!acerto) {
+        // El honesto que se enseña es la copia MÁS CERCANA a donde paró, para
+        // que quede a la vista y no en una vuelta que no está en pantalla.
+        const vuelta = Math.round((indiceGlobal - honesto) / total);
+        const cercano = Math.max(0, Math.min(
+          fichas.length - 1, honesto + vuelta * total,
+        ));
+        fichas[cercano].classList.add('juez--revelado');
+      }
 
       const caja = el('div', `resultado ${acerto ? 'resultado--exito' : 'resultado--fracaso'}`);
       caja.appendChild(el('div', 'resultado__titulo',
@@ -1235,14 +1248,18 @@ export class Pantallas {
     const diario = el('div', 'diario');
     contenido.appendChild(diario);
 
-    const cambiarPagina = (n) => {
-      if (n !== actual && n >= 1 && n <= paginas.length) {
-        actual = n;
-        pintar();
-      }
+    /**
+     * @param {number} n       Página destino
+     * @param {number} sentido +1 avanza, -1 retrocede, 0 sin animación
+     */
+    const cambiarPagina = (n, sentido = 0) => {
+      if (n === actual || n < 1 || n > paginas.length) return;
+      actual = n;
+      pintar(sentido);
+      this.audio?.cambioCarril?.();
     };
 
-    const pintar = () => {
+    const pintar = (sentido = 0) => {
       diario.innerHTML = '';
       const pagina = paginas.find((p) => p.numero === actual) ?? paginas[0];
 
@@ -1250,48 +1267,85 @@ export class Pantallas {
       diario.appendChild(
         pagina.desbloqueada ? this._paginaAbierta(pagina) : this._paginaCerrada(pagina, () => pintar()),
       );
-      diario.appendChild(this._navegadorPaginas(paginas, actual, cambiarPagina));
+      diario.appendChild(this._navegadorPaginas(paginas, actual, (n) =>
+        cambiarPagina(n, Math.sign(n - actual))));
+
+      // La hoja entra por el lado del que viene. Quitar la clase, forzar el
+      // reflujo y volver a ponerla es la única forma de reiniciar una animación
+      // CSS que ya empezó.
+      if (!sentido) return;
+      diario.classList.remove('diario--pasa-avanza', 'diario--pasa-retrocede');
+      void diario.offsetWidth;
+      diario.classList.add(sentido > 0 ? 'diario--pasa-avanza' : 'diario--pasa-retrocede');
     };
     pintar();
 
-    // --- Swipe para cambiar páginas ------------------------------------------
-    // Detecta swipe horizontal para navegar entre páginas del diario.
-    let touchStart = null;
-    let touchEnd = null;
+    // --- Pasar página con el dedo -------------------------------------------
+    // El gesto tiene que ser CLARAMENTE horizontal: el diario se desplaza en
+    // vertical, y un arrastre para leer que además cambie de página convierte
+    // la lectura en una pelea. Por eso se exige que el trazo horizontal sea
+    // mayor que el vertical antes de contarlo como pase.
+    const MINIMO_PASE = 48;
+    let arranqueX = 0;
+    let arranqueY = 0;
 
-    const handleSwipe = () => {
-      if (!touchStart || !touchEnd) return;
-      const diferencia = touchStart.clientX - touchEnd.clientX;
-      const minDist = 50; // Distancia mínima para considerar swipe
-
-      if (Math.abs(diferencia) > minDist) {
-        // Swipe izquierda: página siguiente
-        if (diferencia > 0) {
-          cambiarPagina(actual + 1);
-          this.audio?.cambioCarril?.();
-        }
-        // Swipe derecha: página anterior
-        if (diferencia < 0) {
-          cambiarPagina(actual - 1);
-          this.audio?.cambioCarril?.();
-        }
-      }
-      touchStart = null;
-      touchEnd = null;
+    const alTocar = (e) => {
+      arranqueX = e.changedTouches[0].clientX;
+      arranqueY = e.changedTouches[0].clientY;
     };
 
-    diario.addEventListener('touchstart', (e) => {
-      touchStart = e.changedTouches[0];
-    });
+    const alSoltar = (e) => {
+      const dx = e.changedTouches[0].clientX - arranqueX;
+      const dy = e.changedTouches[0].clientY - arranqueY;
+      if (Math.abs(dx) < MINIMO_PASE || Math.abs(dx) <= Math.abs(dy)) return;
+      // Arrastrar hacia la izquierda trae la página siguiente, como en papel.
+      cambiarPagina(actual + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1);
+    };
 
-    diario.addEventListener('touchend', (e) => {
-      touchEnd = e.changedTouches[0];
-      handleSwipe();
-    });
+    diario.addEventListener('touchstart', alTocar, { passive: true });
+    diario.addEventListener('touchend', alSoltar, { passive: true });
+
+    // --- El ejemplar no cambia de tamaño ------------------------------------
+    // La portada lleva la mancheta entera y las interiores una franja de una
+    // línea, y cada página trae un número distinto de artículos: con el alto
+    // libre el papel encogía un palmo largo entre una página y la siguiente
+    // —medido: 514 px contra 454— y los botones de abajo saltaban con él.
+    //
+    // El alto NO se puede clavar en CSS porque depende de cuánto texto envuelva
+    // en cada ancho de pantalla. Así que se mide: se pinta cada página en seco,
+    // se apunta su alto natural y se fija el mayor de todos. Pasa una sola vez
+    // al abrir el Archivo y no se llega a ver —los repintados caen dentro del
+    // mismo fotograma, y el navegador solo dibuja el último—.
+    const fijarAlto = () => {
+      if (!diario.isConnected) return;
+      const previa = actual;
+      diario.style.minHeight = '';
+      let mayor = 0;
+      for (const p of paginas) {
+        actual = p.numero;
+        pintar();
+        // offsetHeight y NO getBoundingClientRect(): la pantalla entra con una
+        // animación de escala, y el rectángulo devuelve el tamaño YA
+        // transformado. Midiendo a mitad de esa animación salía un 2 % corto y
+        // el salto volvía, ocho píxeles en vez de sesenta pero visible igual.
+        mayor = Math.max(mayor, diario.offsetHeight);
+      }
+      actual = previa;
+      pintar();
+      diario.style.minHeight = `${Math.ceil(mayor)}px`;
+    };
+    // Hasta que `mostrar()` no lo cuelga del documento no hay nada que medir.
+    requestAnimationFrame(fijarAlto);
+
+    // Al girar el teléfono cambia el ancho, y con él lo que envuelve cada
+    // titular: el alto de antes deja de valer y hay que volver a medir.
+    const alRedimensionar = () => fijarAlto();
+    window.addEventListener('resize', alRedimensionar);
 
     pantalla.addEventListener('pantalla:desmontada', () => {
-      diario.removeEventListener('touchstart', () => {});
-      diario.removeEventListener('touchend', () => {});
+      diario.removeEventListener('touchstart', alTocar);
+      diario.removeEventListener('touchend', alSoltar);
+      window.removeEventListener('resize', alRedimensionar);
     });
 
     // --- Salida y avisos ---------------------------------------------------

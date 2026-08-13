@@ -321,8 +321,13 @@ html, body {
   display: block;
   height: 100%;
   border-radius: 4px;
-  /* Suave transición de anchura para mostrar el progreso siendo añadido. */
-  transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color var(--t-medio);
+  /* Sin transición de anchura: la barra debe reflejar el estado real al
+     instante. Un medidor que persigue al valor miente sobre tu situación.
+     Se probó a suavizarla y fue peor por partida doble: lo que mide es el
+     avance DENTRO del túnel, que cambia en cada fotograma, así que una
+     transición no se llega a ver y solo deja la barra por detrás del jugador.
+     Lo que sí se anima es la CIFRA, que es la que da la noticia. */
+  transition: background-color var(--t-medio);
 }
 
 .medidor__relleno--verde {
@@ -643,28 +648,37 @@ html, body {
    Pegados debajo de la fila superior queda la calle entera despejada y el
    aviso sigue en el eje de la mirada. */
 
+/* PEGADOS AL COSTADO DERECHO, NO EN MEDIO.
+   Estaban centrados, y centrados tapan justo el punto de fuga: el trozo de
+   calle donde asoman los obstáculos que aún da tiempo a esquivar. Un aviso que
+   obliga a esquivar a ciegas añade una dificultad que no es la del juego.
+
+   En la columna derecha caen bajo el contador de papeles, que es de donde
+   vienen casi todos, y dejan la calle entera despejada. El arranque vertical
+   NO es negociable: la ficha de racha cuelga del contador hasta los 87 px, y
+   por encima de eso el aviso se monta sobre el marcador. */
 .avisos {
   position: absolute;
   right: calc(var(--seg-der) + 12px);
-  top: calc(var(--seg-arriba) + 14px);
+  top: calc(var(--seg-arriba) + 96px);
   transition: transform 0.42s cubic-bezier(0.2, 0.9, 0.28, 1.06);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 6px;
   width: auto;
-  max-width: min(90%, 360px);
+  max-width: min(62%, 260px);
   pointer-events: none;
   z-index: 5;
-  /* Messages are visible but below HUD elements and exit signs */
 }
 
-/* El cartel de salida ocupa esa misma banda cuando baja, y los dos coinciden:
-   el aviso de «ELIGE TÚNEL» se dispara en el mismo fotograma que el cartel. Se
-   apartan hacia abajo mientras el cartel está puesto, lo justo para pasar por
-   debajo, y vuelven solos cuando se sube. */
+/* El cartel de salida baja hasta esta misma banda, y los dos coinciden: el
+   aviso de «ELIGE TÚNEL» se dispara en el mismo fotograma que el cartel. Se
+   apartan hacia abajo mientras esté puesto y vuelven solos al subirse.
+   Solo vertical: la columna ya está anclada a la derecha, y el translateX que
+   había aquí —de cuando iba centrada— la sacaba media anchura fuera de sitio. */
 .avisos--bajo-rotulo {
-  transform: translateX(-50%) translateY(88px);
+  transform: translateY(76px);
 }
 
 .aviso {
@@ -725,25 +739,33 @@ html, body {
   to { opacity: 0; transform: translateY(-10px); }
 }
 
-/* Animación de pickup para evidencias: vuelan al inventario */
+/* LA EVIDENCIA NO SE DESVANECE: SE GUARDA.
+   El aviso sale arriba a la derecha y la ficha de evidencia vive abajo a la
+   izquierda, así que la tarjeta cruza en diagonal hasta allí y se encoge al
+   llegar. Es la misma idea que el «+3» que sube del contador: la recompensa se
+   ve entrar donde se va a quedar, sin que haya que leer nada.
+
+   Los tiempos están atados a HUD.mostrarAviso(), que retira el nodo a los
+   2400 ms: empieza a 1,5 s y dura 0,75 s, o sea que termina antes de que se lo
+   lleven. Si se pasa, el vuelo se corta a medias y parece un fallo. */
 .aviso--evidencia {
   animation:
     aviso-entra var(--t-medio) var(--rebote),
-    pickup-evidencia 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 1.8s forwards !important;
+    pickup-evidencia 0.75s cubic-bezier(0.5, 0, 0.75, 0) 1.5s forwards !important;
 }
 
 @keyframes pickup-evidencia {
   0% {
     opacity: 1;
-    transform: translateY(0) translateX(0) scale(1);
+    transform: translate(0, 0) scale(1);
   }
-  50% {
-    opacity: 1;
-    transform: translateY(-60px) translateX(-40px) scale(0.8);
+  55% {
+    opacity: 0.9;
+    transform: translate(-22vw, 34vh) scale(0.62) rotate(-6deg);
   }
   100% {
     opacity: 0;
-    transform: translateY(-140px) translateX(-80px) scale(0.5);
+    transform: translate(-42vw, 58vh) scale(0.28) rotate(-10deg);
   }
 }
 
@@ -939,44 +961,31 @@ html, body {
     calc(var(--seg-der) + 16px)
     calc(var(--seg-abajo) + 14px)
     calc(var(--seg-izq) + 16px);
+  /* El velo va TRANSLÚCIDO. Estaba al 96-98 %, y a esa opacidad el desenfoque
+     de abajo no se ve: los menús salían sobre un rectángulo negro, sin ninguna
+     pista de que detrás sigue corriendo la partida. Al 80 % la calle se
+     adivina —desenfocada, que para eso está el blur— y el texto sigue leyéndose
+     encima, porque quien da el contraste es el desenfoque, no la opacidad. */
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(var(--dorado-rgb), 0.08), transparent 55%),
-    linear-gradient(165deg, rgba(10, 14, 23, 0.96), rgba(5, 7, 12, 0.985));
-  backdrop-filter: blur(18px) saturate(1.2);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+    radial-gradient(ellipse at 50% 0%, rgba(var(--dorado-rgb), 0.1), transparent 55%),
+    linear-gradient(165deg, rgba(10, 14, 23, 0.78), rgba(5, 7, 12, 0.86));
+  backdrop-filter: blur(22px) saturate(1.25);
+  -webkit-backdrop-filter: blur(22px) saturate(1.25);
   pointer-events: auto;
   overflow-y: auto;
   overscroll-behavior: contain;
   animation: pantalla-entra var(--t-medio) var(--rebote);
+  /* Por encima del HUD, por debajo de la pantalla de carga. */
   z-index: 50;
-  /* Menu screens appear above HUD but below loading screen */
-  position: relative;
 }
 
-/* Pseudo-elemento para fondo capturado y borroso */
-.pantalla::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--fondo-capturado, none);
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  filter: blur(20px);
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* Fondo capturado solo se aplica a pantallas planas */
-.pantalla--con-fondo::before {
-  opacity: 0.95;
-}
-
-/* El contenido debe estar por encima del fondo borroso */
-.pantalla--con-fondo .pantalla__contenido {
-  position: relative;
-  z-index: 2;
-}
+/* EL FONDO DE LOS MENÚS ES LA PARTIDA, DESENFOCADA.
+   No hay captura de canvas: `backdrop-filter` desenfoca lo que hay DETRÁS de
+   la pantalla, que es el lienzo con el bucle corriendo. Sale gratis, está
+   vivo, y —a diferencia de una captura— no depende de `preserveDrawingBuffer`,
+   que aquí está apagado y hacía que `toDataURL()` devolviera un rectángulo
+   negro. Por eso el velo de cada pantalla TIENE que ser translúcido: si es
+   opaco, el desenfoque queda debajo y no se ve nada. */
 
 @keyframes pantalla-entra {
   from { opacity: 0; transform: scale(0.98); }
@@ -1043,6 +1052,12 @@ html, body {
   .plana__record,
   .pantalla--plana .posiciones__fila--tu,
   .suma-flotante,
+  .aviso--evidencia,
+  .expediente--progresa,
+  .expediente--progresa .expediente__cuenta,
+  .expediente--progresa .medidor__relleno--dorado,
+  .diario--pasa-avanza > *,
+  .diario--pasa-retrocede > *,
   .pantalla {
     animation: none !important;
   }
@@ -1865,10 +1880,45 @@ html, body {
   background-size: 7px 7px, 11px 11px;
   background-position: 0 0, 3px 4px;
   animation: papel-entra var(--t-medio) var(--rebote);
+
+  /* EL EJEMPLAR NO CAMBIA DE TAMAÑO AL PASAR DE PÁGINA.
+     La portada lleva la mancheta entera y las interiores una franja de una
+     línea; con el alto libre, el papel encogía medio palmo entre una página y
+     la siguiente y los botones de abajo saltaban con él. Con un alto mínimo
+     estable la hoja se queda quieta y lo único que cambia es lo impreso.
+     Es `min-height`, no `height`: una página con muchos artículos sigue
+     pudiendo crecer. */
+  min-height: min(58vh, 430px);
+  display: flex;
+  flex-direction: column;
+  /* El paginador se queda pegado abajo aunque la página traiga poco texto. */
+  overflow: hidden;
 }
+
+.diario__cuerpo,
+.diario .pagina-cerrada { flex: 1 1 auto; }
+
+.diario .paginador { margin-top: auto; }
 
 @keyframes papel-entra {
   from { opacity: 0; transform: translateY(10px) rotate(-.35deg); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* --- Pase de página -------------------------------------------------------
+   La hoja entra por el lado del que viene: hacia adelante llega por la
+   derecha, hacia atrás por la izquierda. Solo se mueve lo impreso —el papel
+   se queda donde está— porque lo que se pasa es la página, no el periódico. */
+.diario--pasa-avanza > *,
+.diario--pasa-retrocede > * {
+  animation: hoja-entra 0.28s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+
+.diario--pasa-avanza > *    { --hoja-desde: 26px; }
+.diario--pasa-retrocede > * { --hoja-desde: -26px; }
+
+@keyframes hoja-entra {
+  from { opacity: 0; transform: translateX(var(--hoja-desde, 26px)); }
   to   { opacity: 1; transform: none; }
 }
 
@@ -2808,7 +2858,7 @@ html, body {
 /* La pantalla de derrota no lleva el velo del resto: el periódico ocupa todo
    y el fondo solo tiene que dejar de competir. */
 .pantalla--plana {
-  background: #05070c;
+  background: rgba(5, 7, 12, 0.78);
 }
 
 /* Las tres pantallas con tinte propio también van impresas ahora, y
@@ -2819,19 +2869,19 @@ html, body {
 .pantalla--plana.pantalla--cerco {
   background:
     radial-gradient(ellipse at 50% 40%, rgba(var(--rojo-rgb), 0.16), transparent 62%),
-    #05070c;
+    rgba(5, 7, 12, 0.84);
 }
 
 .pantalla--plana.pantalla--victoria {
   background:
     radial-gradient(ellipse at 50% 35%, rgba(var(--verde-rgb), 0.18), transparent 62%),
-    #05070c;
+    rgba(5, 7, 12, 0.84);
 }
 
 .pantalla--plana.pantalla--relato {
   background:
     radial-gradient(ellipse at 50% 30%, rgba(var(--dorado-rgb), 0.12), transparent 60%),
-    #05070c;
+    rgba(5, 7, 12, 0.84);
 }
 
 .pantalla--plana .pantalla__contenido {
@@ -3682,6 +3732,11 @@ html, body {
    TÓMBOLA DE JUECES (HORIZONTAL)
    ========================================================================== */
 
+/* El ancho de ficha se declara UNA vez y lo usan la ficha y la ventana del
+   selector. Si se escriben por separado dejan de encajar en cuanto una de las
+   dos cambia, y el sorteo pasa a señalar a un juez que no está debajo. */
+.tombola-contenedor { --juez-ancho: clamp(100px, 22vw, 140px); }
+
 /* Contenedor principal de la tómbola. */
 .tombola-contenedor {
   position: relative;
@@ -3691,8 +3746,18 @@ html, body {
   margin: 20px auto;
   overflow: hidden;
   border-radius: var(--r);
-  background: rgba(var(--panel-rgb, 13, 18, 32), 0.6);
+  background: rgba(13, 18, 32, 0.6);
   border: 2px solid var(--borde);
+
+  /* Los costados se difuminan para que las fichas no aparezcan y desaparezcan
+     de golpe contra el borde: así el bombo se lee como algo que sigue girando
+     fuera de cuadro y no como una lista recortada.
+     La máscara va AQUÍ y no en la banda. En la banda no funciona: mide unos
+     3.200 px —treinta fichas— y los porcentajes del degradado se calculan
+     sobre esa anchura, así que el trozo que se ve por la ventana caía entero
+     dentro del primer tramo transparente y los jueces desaparecían. */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 13%, #000 87%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 13%, #000 87%, transparent);
 }
 
 /* La banda de jueces que se desplaza horizontalmente. */
@@ -3705,29 +3770,61 @@ html, body {
   transition: none;
 }
 
-/* Selector visual en el centro (línea o puntero). */
+/* LA VENTANA DEL SORTEO, no una raya.
+   Era una línea de cuatro píxeles en el centro, y con la banda girando el juez
+   resaltado casi nunca caía justo debajo: la raya quedaba entre dos fichas y no
+   había forma de saber a cuál señalaba. Un marco del ANCHO DE UNA FICHA no
+   admite esa duda —lo que está dentro es lo que sale— y al parar la ficha
+   elegida encaja exactamente en él. */
 .tombola-selector {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 4px;
-  height: 80%;
-  background: linear-gradient(180deg, transparent, var(--dorado), transparent);
-  box-shadow: 0 0 12px rgba(var(--dorado-rgb), 0.6),
-              0 0 24px rgba(var(--dorado-rgb), 0.3);
+  width: calc(var(--juez-ancho) + 10px);
+  height: 84%;
+  border: 2px solid var(--dorado);
+  border-radius: var(--r-chico);
+  background: rgba(var(--dorado-rgb), 0.06);
+  box-shadow:
+    0 0 14px rgba(var(--dorado-rgb), 0.45),
+    inset 0 0 18px rgba(var(--dorado-rgb), 0.12);
   pointer-events: none;
   z-index: 10;
+}
+
+/* Las dos marcas de la ventana, arriba y abajo, como el fiel de una balanza. */
+.tombola-selector::before,
+.tombola-selector::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  transform: translateX(-50%);
+}
+
+.tombola-selector::before {
+  top: -1px;
+  border-top: 9px solid var(--dorado);
+}
+
+.tombola-selector::after {
+  bottom: -1px;
+  border-bottom: 9px solid var(--dorado);
 }
 
 /* Ficha individual de juez en la tómbola. */
 .tombola-contenedor .juez {
   flex: 0 0 auto;
-  width: clamp(100px, 22vw, 140px);
+  width: var(--juez-ancho);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   padding: 12px 8px;
   border-radius: var(--r-chico);
   background: rgba(13, 18, 32, 0.7);
@@ -3736,7 +3833,10 @@ html, body {
   font-size: clamp(0.56rem, 2vw, 0.68rem);
   font-weight: 800;
   letter-spacing: 0.06em;
-  transition: all var(--t-rapido);
+  /* Solo color: nada de `all`. Con la banda girando, transicionar geometría
+     deja las fichas persiguiendo su propio tamaño y la fila tiembla. */
+  transition: background-color var(--t-rapido), border-color var(--t-rapido),
+              color var(--t-rapido);
 }
 
 /* ==========================================================================
@@ -3744,10 +3844,10 @@ html, body {
    ========================================================================== */
 
 /* Flash de foto cuando pierdes - simula tomar una fotografía/captura */
-.pantalla--foto-flash {
-  position: relative;
-}
-
+/* Sin `position: relative` aquí: `.pantalla` ya es `absolute` —que es lo que
+   la hace ocupar la pantalla entera— y redeclararla la sacaba de la capa
+   superpuesta, dejando la portada de derrota metida en el flujo. El
+   pseudo-elemento se ancla igual de bien contra un contenedor absoluto. */
 .pantalla--foto-flash::before {
   content: '';
   position: absolute;
@@ -3805,13 +3905,13 @@ html, body {
   100% { box-shadow: 0 0 10px rgba(var(--dorado-rgb), 0.55); }
 }
 
-/* Juez seleccionado (en el centro de la tómbola). */
+/* El juez que está bajo la ventana. SIN escalarlo: la ficha tiene que caber
+   dentro del marco, y una que crece al pasar se sale por los lados y empuja
+   ópticamente a las vecinas cada vez que la banda avanza un puesto. */
 .tombola-contenedor .juez--senalado {
-  background: rgba(var(--dorado-rgb), 0.15);
-  border-color: rgba(var(--dorado-rgb), 0.5);
+  background: rgba(var(--dorado-rgb), 0.16);
+  border-color: rgba(var(--dorado-rgb), 0.55);
   color: var(--dorado);
-  box-shadow: 0 0 16px rgba(var(--dorado-rgb), 0.25);
-  transform: scale(1.08);
 }
 
 /* Juez comprado (no honesto). */
