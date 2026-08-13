@@ -31,9 +31,9 @@ function caja(ancho, alto, profundo, color, emision) {
   return new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, profundo), material(color, emision))
 }
 
-function crearChochologo() {
+function crearTostadologo() {
   const g = new THREE.Group()
-  g.name = 'Chochologo'
+  g.name = 'Tostadologo'
   const torso = caja(0.52, 0.62, 0.3, 0x22c55e)
   torso.name = 'Torso'
   torso.position.y = 1.12
@@ -41,9 +41,9 @@ function crearChochologo() {
   return g
 }
 
-function crearAlondra() {
+function crearAvecilla() {
   const g = new THREE.Group()
-  g.name = 'Alondra'
+  g.name = 'Avecilla'
   const torso = caja(0.52, 0.62, 0.3, 0x14b8a6)
   torso.name = 'Torso'
   torso.position.y = 1.12
@@ -258,8 +258,8 @@ function exportGLB(scene, filename) {
 // ============================================================================
 
 const models = [
-  { name: 'character-chochologo', factory: crearChochologo },
-  { name: 'character-alondra', factory: crearAlondra },
+  { name: 'character-tostadologo', factory: crearTostadologo },
+  { name: 'character-avecilla', factory: crearAvecilla },
 ]
 
 console.log(`📦 Exportando con versión SIMPLE...\n`)
@@ -285,18 +285,18 @@ console.log(`\n✨ Completado`)
 // AGREGAR RESTO DE MODELOS
 // ============================================================================
 
-function crearBuscan() {
+function crearBuencan() {
   const g = new THREE.Group()
-  g.name = 'Buscan'
+  g.name = 'Buencan'
   const torso = caja(0.525, 0.62, 0.3, 0x2f3a4f)
   torso.position.y = 1.12
   g.add(torso)
   return g
 }
 
-function crearBlanki() {
+function crearMonki() {
   const g = new THREE.Group()
-  g.name = 'Blanki'
+  g.name = 'Monki'
   const torso = caja(0.74, 0.62, 0.3, 0xb8452f)
   torso.position.y = 1.12
   g.add(torso)
@@ -381,8 +381,8 @@ function crearPalmera() {
 // ============================================================================
 
 const moreModels = [
-  { name: 'character-buscan', factory: crearBuscan },
-  { name: 'character-blanki', factory: crearBlanki },
+  { name: 'character-buencan', factory: crearBuencan },
+  { name: 'character-monki', factory: crearMonki },
   { name: 'character-ministro', factory: crearMinistro },
   { name: 'characters-perseguidores', factory: crearPerseguidores },
   { name: 'obstacle-saltar', factory: crearObstaculoSaltar },

@@ -8,8 +8,8 @@
 //   · La estética low-poly/vaporwave es coherente con el resto del juego.
 //
 // CÓMO CAMBIAR A MODELOS .GLB REALES (cuando El Mercio tenga los assets):
-//   1. Poner el archivo en public/assets/models/chochologo.glb
-//   2. En Player.js, sustituir `crearChochologo()` por una carga con GLTFLoader.
+//   1. Poner el archivo en public/assets/models/tostadologo.glb
+//   2. En Player.js, sustituir `crearTostadologo()` por una carga con GLTFLoader.
 //   3. Mantener los nombres de los huesos/partes (cuerpo, brazoIzq, piernaDer…)
 //      o adaptar `animarCarrera()` a las animaciones del .glb.
 // El resto del juego no se entera del cambio.
@@ -216,7 +216,7 @@ function anclarCamara(cadera) {
  * CHOCHÓLOGO — sombrero de paja, gafas y libreta.
  * El periodista veterano que ya vio esta película antes.
  */
-export function crearChochologo() {
+export function crearTostadologo() {
   const g = crearHumanoide({
     colorPiel: 0xd9a06b,
     colorRopa: 0x22c55e,       // Verde de camisa, más natural que el neón puro
@@ -257,7 +257,7 @@ export function crearChochologo() {
  * ALONDRA — cabello rizado y ukulele a la espalda.
  * La reportera joven que todavía cree que esto sirve de algo.
  */
-export function crearAlondra() {
+export function crearAvecilla() {
   const g = crearHumanoide({
     colorPiel: 0xc98b5e,
     colorRopa: 0x14b8a6,       // Verde azulado, para distinguirla de Chochólogo
@@ -317,7 +317,7 @@ export function crearAlondra() {
  * juego —que es de espaldas y a ocho metros—, así que va LADEADA y con
  * rabillo. Una boina puesta recta, a esa distancia, es una tapa.
  */
-export function crearBuscan() {
+export function crearBuencan() {
   const g = crearHumanoide({
     colorPiel: 0xcf9a70,
     colorRopa: 0x2f3a4f,       // Chaqueta gris azulada
@@ -389,7 +389,7 @@ export function crearBuscan() {
  * frente a nuca— porque es como va la de verdad y porque de espaldas se ve
  * como una línea horizontal, que no se parece a nada más del juego.
  */
-export function crearBlanki() {
+export function crearMonki() {
   const g = crearHumanoide({
     colorPiel: 0xe0b088,
     colorRopa: 0xb8452f,       // Túnica teja
@@ -532,11 +532,11 @@ export function crearMinistro() {
  */
 export function crearPersonaje(id) {
   switch (id) {
-    case 'alondra': return crearAlondra();
-    case 'buscan': return crearBuscan();
-    case 'blanki': return crearBlanki();
-    case 'chochologo':
-    default: return crearChochologo();
+    case 'avecilla': return crearAvecilla();
+    case 'buencan': return crearBuencan();
+    case 'monki': return crearMonki();
+    case 'tostadologo':
+    default: return crearTostadologo();
   }
 }
 

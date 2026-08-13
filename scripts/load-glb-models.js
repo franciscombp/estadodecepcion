@@ -15,7 +15,7 @@ const cache = new Map()
 
 /**
  * Carga un modelo de personaje desde GLB.
- * @param {string} nombre - 'chochologo' | 'alondra' | 'buscan' | 'blanki' | 'ministro' | 'perseguidores'
+ * @param {string} nombre - 'tostadologo' | 'avecilla' | 'buencan' | 'monki' | 'ministro' | 'perseguidores'
  * @returns {Promise<THREE.Group>} El modelo cargado
  */
 export async function loadCharacter(nombre) {

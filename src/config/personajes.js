@@ -48,36 +48,34 @@
 
 export const PERSONAJES = [
   {
-    id: 'chochologo',
-    nombre: 'Chochólogo',
+    id: 'tostadologo',
+    nombre: 'Tostadologo',
     seccion: 'Política',
     nota: 'Sombrero, gafas y treinta años de oficio',
     ficha: 'Lleva en la redacción más tiempo que casi todos los ministros que ha cubierto. Ese es el problema: se acuerda.',
     tramos: 0,
   },
   {
-    id: 'alondra',
-    nombre: 'Alondra',
+    id: 'avecilla',
+    nombre: 'Avecilla',
     seccion: 'Sociedad',
     nota: 'Rizos, ukulele y todavía cree que esto sirve',
     ficha: 'Entró de pasante y se quedó. Pregunta cosas que en la sala ya nadie pregunta porque dan pereza, y por eso se las contestan.',
     tramos: 0,
   },
-  // Buscán y Blanki llevan el guiño en el nombre (ver cabecera). El guiño NO se
-  // explica en pantalla y esto es deliberado: un guiño explicado deja de ser un
-  // guiño y pasa a ser una atribución. Quien lo pilla, lo pilla; quien no, se
-  // queda con dos personajes que funcionan solos.
+  // Buencan y Monki llevan nombres inventados para proteger privacidad (ver docs/CHARACTER-NAMES.md).
+  // La mecánica de juego y el guiño narrativo se preservan en la forma de trabajar de los personajes.
   {
-    id: 'buscan',
-    nombre: 'Buscán',
+    id: 'buencan',
+    nombre: 'Buencan',
     seccion: 'Investigación',
     nota: 'Boina y traje. Pregunta como si ya supiera',
     ficha: 'Trabaja con documentos. Cuando llega a una rueda de prensa la gente mira de reojo el sobre que trae bajo el brazo.',
     tramos: 8,
   },
   {
-    id: 'blanki',
-    nombre: 'Blanki',
+    id: 'monki',
+    nombre: 'Monki',
     seccion: 'Calle',
     nota: 'Casco de espartana. No se aparta',
     ficha: 'Cubre desde el sitio, con casco, porque en su sección el casco no es un chiste. La mandan a apartarse y no se aparta.',

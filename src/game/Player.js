@@ -18,9 +18,9 @@ import { crearCaja } from '../utils/collision.js';
 export class Player {
   /**
    * @param {THREE.Scene} escena
-   * @param {'chochologo'|'alondra'} personaje
+   * @param {'tostadologo'|'avecilla'|'buencan'|'monki'|'ministro'} personaje
    */
-  constructor(escena, personaje = 'chochologo') {
+  constructor(escena, personaje = 'tostadologo') {
     this.escena = escena;
 
     // ---- Modelo visual ----------------------------------------------------

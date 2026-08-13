@@ -38,7 +38,7 @@ const ESTADO_INICIAL = {
   distanciaHistorica: 0,
   partidasJugadas: 0,
   rutasRecorridas: [],    // Historial de escenarios visitados
-  personajePreferido: 'chochologo',
+  personajePreferido: 'tostadologo',
   // Dónde te capturaron la última vez. La partida siguiente arranca ahí:
   // volver siempre a la Bahía rompía la continuidad de la temporada y
   // convertía cada muerte en un reinicio del relato, no en un capítulo.
