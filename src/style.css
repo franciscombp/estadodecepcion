@@ -645,18 +645,15 @@ html, body {
 
 .avisos {
   position: absolute;
-  left: 50%;
-  /* Justo debajo de la ficha de racha, que cuelga del contador de papeles y
-     llega hasta los 87 px. Con el aviso a la altura del contador, un «×28
-     PRIMERA PLANA» y un «COBERTURA AÉREA» se pisaban en la misma banda. */
-  top: calc(var(--seg-arriba) + 94px);
-  transform: translateX(-50%);
+  right: calc(var(--seg-der) + 12px);
+  top: calc(var(--seg-arriba) + 14px);
   transition: transform 0.42s cubic-bezier(0.2, 0.9, 0.28, 1.06);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-end;
   gap: 6px;
-  width: min(86%, 420px);
+  width: auto;
+  max-width: min(90%, 360px);
   pointer-events: none;
   z-index: 5;
   /* Messages are visible but below HUD elements and exit signs */
@@ -673,14 +670,15 @@ html, body {
 .aviso {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 9px 13px;
+  gap: 7px;
+  padding: 7px 11px;
   border-radius: var(--r-chico);
-  background: rgba(13, 18, 32, 0.94);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 2px solid var(--borde);
+  background: rgba(13, 18, 32, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   max-width: 100%;
+  font-size: 0.85rem;
   animation:
     aviso-entra var(--t-medio) var(--rebote),
     aviso-sale var(--t-medio) ease-in 2.1s forwards;
@@ -725,6 +723,28 @@ html, body {
 
 @keyframes aviso-sale {
   to { opacity: 0; transform: translateY(-10px); }
+}
+
+/* Animación de pickup para evidencias: vuelan al inventario */
+.aviso--evidencia {
+  animation:
+    aviso-entra var(--t-medio) var(--rebote),
+    pickup-evidencia 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 1.8s forwards !important;
+}
+
+@keyframes pickup-evidencia {
+  0% {
+    opacity: 1;
+    transform: translateY(0) translateX(0) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-60px) translateX(-40px) scale(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-140px) translateX(-80px) scale(0.5);
+  }
 }
 
 /* --- Fila inferior -------------------------------------------------------- */
@@ -930,9 +950,32 @@ html, body {
   animation: pantalla-entra var(--t-medio) var(--rebote);
   z-index: 50;
   /* Menu screens appear above HUD but below loading screen */
-  /* Captured background with blur filter */
-  background-blend-mode: multiply;
-  filter: var(--fondo-blur, none);
+  position: relative;
+}
+
+/* Pseudo-elemento para fondo capturado y borroso */
+.pantalla::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--fondo-capturado, none);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  filter: blur(20px);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Fondo capturado solo se aplica a pantallas planas */
+.pantalla--con-fondo::before {
+  opacity: 0.95;
+}
+
+/* El contenido debe estar por encima del fondo borroso */
+.pantalla--con-fondo .pantalla__contenido {
+  position: relative;
+  z-index: 2;
 }
 
 @keyframes pantalla-entra {

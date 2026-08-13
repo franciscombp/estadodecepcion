@@ -195,16 +195,15 @@ export class Pantallas {
   }
 
   /**
-   * Aplica el fondo capturado a una pantalla.
+   * Aplica el fondo capturado a una pantalla usando un pseudo-elemento.
+   * El blur se aplica solo al fondo, no al contenido.
    */
   _aplicarFondo(pantalla) {
     if (this.fondoCapturado && pantalla.classList.contains('pantalla--plana')) {
-      pantalla.style.backgroundImage = `url('${this.fondoCapturado}')`;
-      pantalla.style.backgroundSize = 'cover';
-      pantalla.style.backgroundPosition = 'center';
-      pantalla.style.backgroundAttachment = 'fixed';
-      // El filtro blur + saturate se aplica al fondo capturado
-      pantalla.style.setProperty('--fondo-blur', 'blur(20px)');
+      // Crear un pseudo-elemento ::before que contenga el fondo borroso
+      // Usamos una variable CSS que se aplica a un pseudo-elemento definido en estilos
+      pantalla.style.setProperty('--fondo-capturado', `url('${this.fondoCapturado}')`);
+      pantalla.classList.add('pantalla--con-fondo');
     }
   }
 
