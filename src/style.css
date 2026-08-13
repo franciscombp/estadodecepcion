@@ -109,6 +109,27 @@ html, body {
 }
 
 /* ==========================================================================
+   Z-INDEX STRATEGY
+   ==========================================================================
+   CLEAR HIERARCHY FOR UI LAYERING:
+
+   100  — .cargando                 Loading screen, covers everything
+    50  — .pantalla                 Menus, journals, game-over screens
+    10  — #ui                       HUD container (fixed position)
+    20  —   HUD elements            Counter, buttons, panels (on #ui)
+    15  —   .rotulo                 Exit signs/highway signs
+     5  —   .avisos                 Notifications/messages
+     5  —   .efectos                Active potentiators/boosters
+
+   This ensures:
+   - Loading screen is always on top
+   - Menus are above HUD but below loading
+   - HUD elements are always visible above messages
+   - Messages and potentiators don't interfere with each other
+   - Exit signs appear above messages but below HUD elements
+   ========================================================================== */
+
+/* ==========================================================================
    PIEZAS COMPARTIDAS
    ========================================================================== */
 
@@ -159,6 +180,8 @@ html, body {
     calc(var(--seg-abajo) + 10px)
     calc(var(--seg-izq) + 10px);
   pointer-events: none;
+  /* HUD elements (counter, buttons, panels) sit above messages */
+  z-index: 20;
 }
 
 .hud--visible {
@@ -545,7 +568,8 @@ html, body {
   /* El rebote es el del cartel al frenar sobre su soporte. */
   transition: transform 0.52s cubic-bezier(0.2, 0.9, 0.28, 1.06),
               opacity 0.3s ease;
-  z-index: 4;
+  z-index: 15;
+  /* Exit signs appear above messages but within HUD layer */
 }
 
 /* Fuera de cuadro: se sube ENTERO, contando el margen superior del HUD, o
@@ -635,7 +659,8 @@ html, body {
   gap: 6px;
   width: min(86%, 420px);
   pointer-events: none;
-  z-index: 3;
+  z-index: 5;
+  /* Messages are visible but below HUD elements and exit signs */
 }
 
 /* El cartel de salida ocupa esa misma banda cuando baja, y los dos coinciden:
@@ -660,6 +685,8 @@ html, body {
   animation:
     aviso-entra var(--t-medio) var(--rebote),
     aviso-sale var(--t-medio) ease-in 2.1s forwards;
+  /* Prevent messages from interfering with HUD elements */
+  pointer-events: none;
 }
 
 .aviso__icono { flex: 0 0 auto; display: grid; place-items: center; }
@@ -902,6 +929,11 @@ html, body {
   overflow-y: auto;
   overscroll-behavior: contain;
   animation: pantalla-entra var(--t-medio) var(--rebote);
+  z-index: 50;
+  /* Menu screens appear above HUD but below loading screen */
+  /* Captured background with blur filter */
+  background-blend-mode: multiply;
+  filter: var(--fondo-blur, none);
 }
 
 @keyframes pantalla-entra {
@@ -2208,12 +2240,13 @@ html, body {
 .efectos {
   position: absolute;
   left: calc(var(--seg-izq) + 12px);
-  bottom: calc(var(--seg-abajo) + 128px);
+  bottom: calc(var(--seg-abajo) + 150px);
   display: flex;
   flex-direction: column;
   gap: 10px;
   pointer-events: none;
-  z-index: 3;
+  z-index: 5;
+  /* Potentiators are at message level, but positioned below HUD bottom area */
 }
 
 .efecto {

@@ -172,11 +172,50 @@ export class Pantallas {
     // Puede ser null en desarrollo, donde no hay service worker.
     this.actualizador = actualizador;
     this.actual = null;
+    this.fondoCapturado = null;
+  }
+
+  /**
+   * Captura el canvas actual y lo convierte en un fondo borroso.
+   * Se llama cuando entra una pantalla de menú para darle contexto visual.
+   */
+  _capturarFondo() {
+    try {
+      // El canvas es accesible a través del renderizador de Three.js
+      if (this.juego.renderizador?.domElement) {
+        const canvas = this.juego.renderizador.domElement;
+        // Crear un data URL con la captura actual
+        this.fondoCapturado = canvas.toDataURL('image/jpeg', 0.7);
+      }
+    } catch (err) {
+      // Un canvas "contaminado" por CORS no se puede leer. No hay problema:
+      // simplemente no tenemos fondo capturado y usamos el gradiente por defecto.
+      console.warn('No se pudo capturar el fondo:', err.message);
+    }
+  }
+
+  /**
+   * Aplica el fondo capturado a una pantalla.
+   */
+  _aplicarFondo(pantalla) {
+    if (this.fondoCapturado && pantalla.classList.contains('pantalla--plana')) {
+      pantalla.style.backgroundImage = `url('${this.fondoCapturado}')`;
+      pantalla.style.backgroundSize = 'cover';
+      pantalla.style.backgroundPosition = 'center';
+      pantalla.style.backgroundAttachment = 'fixed';
+      // El filtro blur + saturate se aplica al fondo capturado
+      pantalla.style.setProperty('--fondo-blur', 'blur(20px)');
+    }
   }
 
   mostrar(elementoPantalla) {
     this.ocultar();
     this.actual = elementoPantalla;
+
+    // Capturar el fondo antes de mostrar la pantalla
+    this._capturarFondo();
+    this._aplicarFondo(elementoPantalla);
+
     this.contenedor.appendChild(elementoPantalla);
   }
 
