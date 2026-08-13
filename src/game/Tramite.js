@@ -94,6 +94,9 @@ export class TramiteManager {
     }
 
     this._regar(papeles);
+
+    // DEBUG: Log de lo que se riega
+    console.log(`[TRAMITE] Confiscados: ${this.confiscados}, Piezas: ${this.piezas}, Valor/pieza: ${this.valorPorPieza.toFixed(2)}`);
   }
 
   /**

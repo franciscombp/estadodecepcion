@@ -863,6 +863,9 @@ export class Game {
     const perdidos = this.tramite.papelesPerdidos();
     const perfecto = this.tramite.esPerfecto();
 
+    // DEBUG: Log detallado del túnel
+    console.log(`[TRAMITE SALIDA] Piezas recuperadas: ${this.tramite.recuperadas}, Papeles recuperados: ${recuperados}, Papeles devueltos (×2): ${devueltos}, Perdidos: ${perdidos}, Antes: ${this.papelesPartida - devueltos}`);
+
     // Vuelve a la cuenta lo que se levantó del suelo, POR DOS. Ver
     // TRAMITE.MULTIPLICADOR_RESCATE: sin el ×2 la única jugada correcta era no
     // entrar nunca, y un tramo que solo se puede evitar no es un tramo.
