@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Creador — Estado de Excepción</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='80'>🛠️</text></svg>">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-dark: #0a0e27;
+      --bg-card: #1a1f3a;
+      --border: #2a3f5f;
+      --text: #e4e6eb;
+      --text-muted: #8892b0;
+      --accent-primary: #ff006e;
+      --accent-secondary: #00d9ff;
+      --success: #16c784;
+      --warning: #fca311;
+      --font-mono: 'Courier New', monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --sp-1: 0.25rem;
+      --sp-2: 0.5rem;
+      --sp-3: 1rem;
+      --sp-4: 1.5rem;
+      --sp-5: 2rem;
+      --sp-6: 3rem;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    header {
+      background: linear-gradient(135deg, rgba(255, 0, 110, 0.1), rgba(0, 217, 255, 0.1));
+      border-bottom: 1px solid var(--border);
+      padding: var(--sp-6);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: var(--sp-2);
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    .breadcrumb {
+      margin-top: var(--sp-3);
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .breadcrumb a {
+      color: var(--accent-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .breadcrumb a:hover {
+      color: var(--accent-primary);
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: var(--sp-6);
+    }
+
+    .section {
+      margin-bottom: var(--sp-6);
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      margin-bottom: var(--sp-4);
+      padding-bottom: var(--sp-3);
+      border-bottom: 2px solid var(--border);
+      color: var(--accent-secondary);
+    }
+
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: var(--sp-4);
+    }
+
+    .tool-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: var(--sp-4);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tool-card:hover {
+      border-color: var(--accent-primary);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 32px rgba(255, 0, 110, 0.2);
+    }
+
+    .tool-icon {
+      font-size: 3rem;
+      margin-bottom: var(--sp-3);
+    }
+
+    .tool-name {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: var(--sp-2);
+    }
+
+    .tool-desc {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: var(--sp-3);
+      flex: 1;
+    }
+
+    .tool-status {
+      display: inline-block;
+      padding: var(--sp-1) var(--sp-2);
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-ready {
+      background: rgba(22, 199, 132, 0.2);
+      color: var(--success);
+    }
+
+    .status-wip {
+      background: rgba(252, 163, 17, 0.2);
+      color: var(--warning);
+    }
+
+    .status-soon {
+      background: rgba(138, 146, 176, 0.2);
+      color: var(--text-muted);
+    }
+
+    .info-panel {
+      background: rgba(0, 217, 255, 0.05);
+      border-left: 4px solid var(--accent-secondary);
+      padding: var(--sp-4);
+      border-radius: 4px;
+      margin-bottom: var(--sp-4);
+    }
+
+    .info-panel h3 {
+      color: var(--accent-secondary);
+      margin-bottom: var(--sp-2);
+    }
+
+    .info-panel p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.8;
+    }
+
+    .info-panel a {
+      color: var(--accent-secondary);
+      text-decoration: none;
+    }
+
+    .info-panel a:hover {
+      text-decoration: underline;
+    }
+
+    .warning-panel {
+      background: rgba(255, 0, 110, 0.05);
+      border-left: 4px solid var(--accent-primary);
+      padding: var(--sp-4);
+      border-radius: 4px;
+      margin-bottom: var(--sp-4);
+    }
+
+    .warning-panel h3 {
+      color: var(--accent-primary);
+      margin-bottom: var(--sp-2);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--sp-3);
+      margin-bottom: var(--sp-6);
+    }
+
+    .stat {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: var(--sp-3);
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--accent-secondary);
+      margin-bottom: var(--sp-1);
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    footer {
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      padding: var(--sp-6);
+      margin-top: var(--sp-6);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .footer-links {
+      margin-bottom: var(--sp-3);
+    }
+
+    .footer-links a {
+      color: var(--accent-secondary);
+      text-decoration: none;
+      margin: 0 var(--sp-3);
+    }
+
+    .footer-links a:hover {
+      color: var(--accent-primary);
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 1.75rem;
+      }
+
+      .tools-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .container {
+        padding: var(--sp-4);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <h1>🛠️ Creador</h1>
+      <p class="subtitle">Herramientas de desarrollo integradas para Estado de Excepción</p>
+      <div class="breadcrumb">
+        <a href="/">← Volver al juego</a> · Creador · Herramientas de contenido
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Estadísticas rápidas -->
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value">13</div>
+        <div class="stat-label">Modelos 3D</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">6</div>
+        <div class="stat-label">Personajes</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">3</div>
+        <div class="stat-label">Capas de Edición</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">∞</div>
+        <div class="stat-label">Posibilidades</div>
+      </div>
+    </div>
+
+    <!-- Panel informativo -->
+    <div class="info-panel">
+      <h3>ℹ️ ¿Qué es Creador?</h3>
+      <p>
+        Este es el hub de desarrollo del juego. Aquí puedes <strong>exportar modelos 3D</strong> para editar en Blender,
+        <strong>visualizar personajes</strong>, <strong>colocar obstáculos en escenas</strong>, y <strong>configurar niveles</strong>
+        sin tocar código. Más información: <a href="../docs/EDITOR-SANDBOX-GUIDE.md" target="_blank">EDITOR-SANDBOX-GUIDE.md</a>
+      </p>
+    </div>
+
+    <!-- CAPA 1: Exportación de Modelos -->
+    <section class="section">
+      <h2 class="section-title">📦 Capa 1: Exportación de Modelos</h2>
+
+      <div class="warning-panel">
+        <h3>⚙️ Requisitos</h3>
+        <p>Descarga los modelos procedurales como <strong>.glb</strong> (glTF 2.0 binary). Abre en <strong>Blender</strong> o <strong>Substance Painter</strong>
+        para editar geometría y texturas. Sube versiones mejoradas a <code>public/models/</code>.</p>
+      </div>
+
+      <div class="tools-grid">
+        <a href="./exportador/" class="tool-card">
+          <div class="tool-icon">📥</div>
+          <div class="tool-name">Exportador de Modelos</div>
+          <div class="tool-desc">
+            Descarga todos los modelos 3D en formato .glb listo para editar en Blender o Substance Painter.
+            Previsualizaciones en vivo.
+          </div>
+          <div class="tool-status status-ready">✅ Listo</div>
+        </a>
+
+        <a href="./personajes/" class="tool-card">
+          <div class="tool-icon">👥</div>
+          <div class="tool-name">Visor de Personajes</div>
+          <div class="tool-desc">
+            Visualiza en 3D todos los personajes. Rota con mouse, cambia de pose, ve cómo lucen en el juego.
+          </div>
+          <div class="tool-status status-wip">🔄 En Desarrollo</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- CAPA 2: Builders Visuales -->
+    <section class="section">
+      <h2 class="section-title">🎨 Capa 2: Editors Visuales</h2>
+
+      <div class="warning-panel">
+        <h3>🖱️ Edición sin Código</h3>
+        <p>Arrastra objetos en el plano, coloca enemigos, configura niveles. Exporta JSON. Pega en <code>public/data/</code>
+        sin recompilar. <strong>Hot reload automático</strong> cuando guardas.</p>
+      </div>
+
+      <div class="tools-grid">
+        <a href="./mapas/" class="tool-card">
+          <div class="tool-icon">🗺️</div>
+          <div class="tool-name">Editor de Escenas</div>
+          <div class="tool-desc">
+            Drag-drop zones, enemigos, recolectables, objetivos. Canvas 2D interactivo con paleta de objetos.
+            Export/import JSON automático.
+          </div>
+          <div class="tool-status status-wip">🔄 En Desarrollo</div>
+        </a>
+
+        <a href="./niveles/" class="tool-card">
+          <div class="tool-icon">⚙️</div>
+          <div class="tool-name">Configurador de Niveles</div>
+          <div class="tool-desc">
+            Duración, objetivos, enemigos, diálogos. Interfaz con formularios y preview JSON en vivo.
+            Exporta configuración lista para jugar.
+          </div>
+          <div class="tool-status status-wip">🔄 En Desarrollo</div>
+        </a>
+
+        <a href="./ui/" class="tool-card">
+          <div class="tool-icon">🎨</div>
+          <div class="tool-name">Design System</div>
+          <div class="tool-desc">
+            Visor de tokens de diseño (colores, tipografía, espaciado). Paleta visual compartida con
+            <a href="https://github.com/franciscombp/fanesca" target="_blank">fanesca</a> y
+            <a href="https://github.com/franciscombp/modo-incognito" target="_blank">modo-incognito</a>.
+          </div>
+          <div class="tool-status status-soon">📋 Próximamente</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- CAPA 3: Testing & Validation -->
+    <section class="section">
+      <h2 class="section-title">🧪 Capa 3: Testing & Validación</h2>
+
+      <div class="warning-panel">
+        <h3>🔍 Garantía de Calidad</h3>
+        <p>Scripts automatizados validan JSON, screenshots de personajes, checks de balance.
+        Corre localmente con <code>npm run check:all</code> o desde CI/CD en cada push.</p>
+      </div>
+
+      <div class="tools-grid">
+        <a href="./pruebas/" class="tool-card">
+          <div class="tool-icon">🧩</div>
+          <div class="tool-name">Sandbox de Juego</div>
+          <div class="tool-desc">
+            Juega cualquier nivel sin npm run dev. Selector de niveles, debug mode, logs en vivo.
+            Perfecto para testear cambios rápidamente.
+          </div>
+          <div class="tool-status status-soon">📋 Próximamente</div>
+        </a>
+
+        <a href="https://github.com/franciscombp/estadodecepcion/tree/claude/export-assets-gbl-wxt6rl/tools" class="tool-card">
+          <div class="tool-icon">✔️</div>
+          <div class="tool-name">Scripts de Validación</div>
+          <div class="tool-desc">
+            Valida JSON (check-levels.mjs), animaciones (check-animations.mjs), balance (check-balance.mjs).
+            Automáticos en CI/CD.
+          </div>
+          <div class="tool-status status-soon">📋 Próximamente</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- Recursos -->
+    <section class="section">
+      <h2 class="section-title">📚 Recursos & Documentación</h2>
+
+      <div class="tools-grid">
+        <a href="../docs/ASSET-EXPORT-GUIDE.md" class="tool-card">
+          <div class="tool-icon">📖</div>
+          <div class="tool-name">Guía de Assets</div>
+          <div class="tool-desc">
+            Cómo exportar modelos. Workflow en Blender y Substance Painter. Integración con el juego.
+          </div>
+        </a>
+
+        <a href="../docs/EDITOR-SANDBOX-GUIDE.md" class="tool-card">
+          <div class="tool-icon">🏗️</div>
+          <div class="tool-name">Guía de Arquitectura</div>
+          <div class="tool-desc">
+            Las 3 capas de edición. Patrones de fanesca y modo-incognito. Roadmap Fase 1-3.
+          </div>
+        </a>
+
+        <a href="../docs/CHARACTER-NAMES.md" class="tool-card">
+          <div class="tool-icon">🔐</div>
+          <div class="tool-name">Convención de Nombres</div>
+          <div class="tool-desc">
+            Privacidad primero. Nombres inventados para todos los personajes. Mapeo real → ficticio.
+          </div>
+        </a>
+
+        <a href="https://github.com/franciscombp/estadodecepcion" class="tool-card">
+          <div class="tool-icon">🐙</div>
+          <div class="tool-name">GitHub Repository</div>
+          <div class="tool-desc">
+            Código fuente del juego. Branch <code>claude/export-assets-gbl-wxt6rl</code> con todas las herramientas.
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- Proyectos Referencia -->
+    <section class="section">
+      <h2 class="section-title">🔗 Proyectos Referencia</h2>
+
+      <p style="color: var(--text-muted); margin-bottom: var(--sp-4);">
+        Creador combina patrones probados de estos proyectos. Mira cómo lo hicieron:
+      </p>
+
+      <div class="tools-grid">
+        <a href="https://github.com/franciscombp/fanesca" target="_blank" class="tool-card">
+          <div class="tool-icon">🌽</div>
+          <div class="tool-name">fanesca</div>
+          <div class="tool-desc">
+            Minijuego de preparación. Modelo: <strong>exportador visual</strong> sin build. WebGL previews.
+            Batch download.
+          </div>
+        </a>
+
+        <a href="https://github.com/franciscombp/modo-incognito" target="_blank" class="tool-card">
+          <div class="tool-icon">🕵️</div>
+          <div class="tool-name">modo-incognito</div>
+          <div class="tool-desc">
+            Juego de oficina. Modelo: <strong>data-first + builders</strong>. JSON configuration. Creador integrado.
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- Roadmap -->
+    <section class="section">
+      <h2 class="section-title">🚀 Roadmap</h2>
+
+      <div style="font-family: var(--font-mono); white-space: pre-wrap; background: var(--bg-card); padding: var(--sp-4); border-radius: 8px; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.875rem; line-height: 1.8;">
+✅ FASE 0 (HECHO)
+  • 13 modelos .glb exportados
+  • Documentación completa
+  • Arquitectura diseñada
+
+🔄 FASE 1 (Próximas 2 semanas)
+  • public/data/ structure
+  • Motor lee JSON levels
+  • /creador/exportador.html FUNCIONAL
+
+📅 FASE 2 (Semana 2-3)
+  • /personajes/ viewer
+  • /mapas/ editor
+  • /niveles/ configurator
+
+🎯 FASE 3 (Semana 3+)
+  • Design system UI
+  • Screenshots automatizados
+  • Hot reload JSON
+  • CI/CD validation
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <div class="footer-links">
+      <a href="/">🎮 Volver al juego</a>
+      <a href="https://github.com/franciscombp/estadodecepcion" target="_blank">🐙 GitHub</a>
+      <a href="../docs/">📚 Documentación</a>
+      <a href="https://claudeai.dev">🤖 Claude Code</a>
+    </div>
+    <p>Estado de Excepción — Creador de Contenido</p>
+    <p style="font-size: 0.75rem; margin-top: var(--sp-2); opacity: 0.7;">
+      Herramientas de desarrollo integradas. Construido con patrones de
+      <a href="https://github.com/franciscombp/fanesca" target="_blank">fanesca</a> y
+      <a href="https://github.com/franciscombp/modo-incognito" target="_blank">modo-incognito</a>.
+    </p>
+  </footer>
+</body>
+</html>
