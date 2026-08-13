@@ -863,9 +863,6 @@ export class Game {
     const perdidos = this.tramite.papelesPerdidos();
     const perfecto = this.tramite.esPerfecto();
 
-    // DEBUG: Log detallado del túnel
-    console.log(`[TRAMITE SALIDA] Piezas recuperadas: ${this.tramite.recuperadas}, Papeles recuperados: ${recuperados}, Papeles devueltos (×2): ${devueltos}, Perdidos: ${perdidos}, Antes: ${this.papelesPartida - devueltos}`);
-
     // Vuelve a la cuenta lo que se levantó del suelo, POR DOS. Ver
     // TRAMITE.MULTIPLICADOR_RESCATE: sin el ×2 la única jugada correcta era no
     // entrar nunca, y un tramo que solo se puede evitar no es un tramo.
@@ -1561,6 +1558,9 @@ export class Game {
         ? {
           recogidos: this.tramite.recuperadas,
           total: this.tramite.piezas,
+          // Cuántos han quedado ya atrás. Es con lo que el HUD decide si vas
+          // por encima o por debajo de la mitad, que es la cuenta del tramo.
+          pasados: this.tramite.piezasPasadas(),
           progreso: this.tramite.progreso(),
           institucion: this.tramite.institucion?.nombre ?? 'TRÁMITE',
         }

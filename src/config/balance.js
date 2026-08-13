@@ -194,7 +194,17 @@ export const PAPELES = {
   // Altura de la hilera cuando acompaña a un salto (arco sobre el obstáculo).
   ALTURA_ARCO: 2.1,
   DISTANCIA_APARICION: 200,
-  TAMANO_POOL: 90,
+  // A partir de aquí no se mandan a pintar. La niebla es FogExp2 con densidad
+  // 0.017, así que a 100 metros ya queda tapado el 94 % de la pieza: lo que se
+  // dibuja más allá no se ve, pero se paga. Importa en el trámite, donde el
+  // reguero mide trescientos metros y cabe entero dentro del cono de la cámara.
+  DISTANCIA_VISIBLE: 100,
+  // Da para el reguero entero del trámite (TRAMITE.PIEZAS_MAXIMAS) más los de
+  // la calle. El pasillo riega todos tus papeles de golpe, y con el pool corto
+  // eso eran doscientas mallas creadas y destruidas en el fotograma de entrada.
+  // Guardarlas cuesta memoria de sobra —geometría y material van compartidos—
+  // y ahorra el tirón justo al cruzar la puerta.
+  TAMANO_POOL: 340,
   // Radio de imán: los papeles cercanos se atraen al jugador. Suaviza el juego
   // en móvil, donde la precisión del swipe es menor.
   RADIO_IMAN: 2.4,
@@ -461,20 +471,39 @@ export function tramoRacha(combo) {
 export const TRAMITE = {
   LONGITUD: 340,        // Metros dentro del pasillo del ente de control.
 
-  // CUÁNTAS PIEZAS SE DIBUJAN.
-  // No son papeles nuevos: son los tuyos. Pero la cantidad no puede ser la
-  // real —con cuatrocientos encima no se pueden pintar cuatrocientas piezas, y
-  // con tres no habría trámite—, así que se acota y cada pieza en pista
-  // representa una parte proporcional del montón.
-  PIEZAS_MINIMAS: 24,
-  PIEZAS_MAXIMAS: 72,
+  // UN PAPEL EN EL SUELO ES UN PAPEL TUYO.
+  //
+  // Antes se acotaba el reguero entre 24 y 72 piezas y cada una representaba
+  // una parte proporcional del montón —con trescientos encima se regaban 50 y
+  // cada una valía seis—. La cuenta cuadraba, pero no había forma de leerla:
+  // entrabas con trescientos, veías cincuenta cosas por el suelo, recogías
+  // veinticinco y el marcador saltaba a trescientos. Ni el reguero se parecía a
+  // lo que te habían quitado, ni la suma se parecía a lo que habías recogido.
+  //
+  // Ahora se riegan TODOS. Uno a uno, hasta donde caben. Y lo que caben lo
+  // decide el pasillo, no un número redondo: ver el reparto en Tramite._regar().
+  PIEZAS_MAXIMAS: 320,
 
-  // Reparto en zigzag por los tres carriles. La separación es MENOR que lo que
-  // tarda un cambio de carril a velocidad de crucero, y eso es deliberado:
-  // recuperarlo todo tiene que ser prácticamente imposible.
-  SEPARACION: 3.0,
-  // Cada cuántas piezas cambia de carril el reguero.
-  PIEZAS_POR_TRAMO: 3,
+  // Dónde arranca el reguero y cuánto se deja libre al final, para que el
+  // último papel alcance a pasar por delante antes de que se acabe el pasillo.
+  ENTRADA: 20,
+  COLA: 18,
+
+  // Hueco mínimo entre papeles seguidos. Por debajo de esto la hilera se lee
+  // como una cinta continua en vez de como papeles sueltos —la cuenta está en
+  // PAPELES.SEPARACION—, pero aquí se admite bastante más apretado a propósito:
+  // esto no es una hilera de recompensa, es un expediente reventado por el
+  // suelo, y ahí la masa ES el mensaje.
+  PASO_MINIMO: 1.6,
+
+  // Cada cuántos METROS cambia de carril el reguero. Va en metros y no en
+  // número de papeles porque el reparto ahora se aprieta o se estira según
+  // cuántos lleves: contando papeles, un montón grande cambiaría de carril
+  // cada palmo y el reguero dejaría de tener forma.
+  //
+  // Diez metros a velocidad de crucero es cambiar de carril tres veces por
+  // segundo. Recuperarlo todo tiene que ser prácticamente imposible.
+  TRAMO_CARRIL: 10,
 
   // Fracción a partir de la cual el expediente "entra". Es 1: todo o nada.
   // Y aun recuperándolo todo el ente te da con la puerta en las narices; lo

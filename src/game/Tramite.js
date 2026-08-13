@@ -94,47 +94,89 @@ export class TramiteManager {
     }
 
     this._regar(papeles);
-
-    // DEBUG: Log de lo que se riega
-    console.log(`[TRAMITE] Confiscados: ${this.confiscados}, Piezas: ${this.piezas}, Valor/pieza: ${this.valorPorPieza.toFixed(2)}`);
   }
 
   /**
-   * Desparrama el montón por el pasillo.
+   * Desparrama el montón por el pasillo. TODO el montón.
    *
-   * Cuántas piezas se dibujan NO es cuántos papeles llevabas: con cuatrocientos
-   * encima no se pueden pintar cuatrocientas piezas, y con tres no habría
-   * trámite. Se acota el número y cada pieza representa una parte proporcional
-   * del montón, de modo que recuperar la mitad de las piezas es recuperar la
-   * mitad de los papeles.
+   * UN PAPEL DEL SUELO ES UN PAPEL TUYO. Antes se regaba un número acotado de
+   * piezas y cada una valía una fracción del montón; la cuenta cuadraba pero
+   * era ilegible —trescientos papeles se convertían en cincuenta cosas por el
+   * suelo que valían seis cada una—. Ahora se planta uno por papel y
+   * `valorPorPieza` vale exactamente 1 en cuanto caben todos, que es el caso
+   * normal.
    *
-   * El reguero va en zigzag por los tres carriles con las piezas más juntas de
-   * lo que tarda un cambio de carril. No es un descuido: recuperarlo todo
-   * tiene que ser prácticamente imposible.
+   * EL REGUERO OCUPA SIEMPRE EL PASILLO ENTERO. El hueco entre papeles sale de
+   * dividir el recorrido útil entre los que hay, no de una separación fija.
+   * Con una separación fija, el reguero medía lo que midiera: setenta y dos
+   * papeles a tres metros llenaban 216 de los 340, y trescientos se habrían
+   * salido novecientos metros por detrás del final del pasillo —o sea que la
+   * mayoría no habría llegado a pasar nunca por delante del jugador—.
+   *
+   * UNO POR RODAJA, Y LA RODAJA CAMBIA DE CARRIL. Es lo que sostiene el
+   * equilibrio del tramo: con un solo carril ocupado de tres, quien no se mueve
+   * levanta un tercio del reguero, y un tercio por dos es menos de lo que
+   * entró. Hay que tejer para salir ganando. Solo cuando ya no caben más
+   * rodajas se ponen dos papeles en una, y entonces en carriles distintos.
    */
   _regar(papeles) {
-    this.piezas = Math.min(
-      TRAMITE.PIEZAS_MAXIMAS,
-      Math.max(TRAMITE.PIEZAS_MINIMAS, Math.round(this.confiscados / 6)),
-    );
+    const util = TRAMITE.LONGITUD - TRAMITE.ENTRADA - TRAMITE.COLA;
+    const rodajasMax = Math.max(1, Math.floor(util / TRAMITE.PASO_MINIMO) + 1);
+
+    // Hasta dos por rodaja antes de rendirse y empezar a agrupar valor.
+    const tope = Math.min(TRAMITE.PIEZAS_MAXIMAS, rodajasMax * 2);
+    this.piezas = Math.max(1, Math.min(this.confiscados, tope));
+    // Vale 1 mientras quepan todos. Solo se despega de 1 en marcadores enormes.
     this.valorPorPieza = this.confiscados / this.piezas;
 
-    let carril = CARRILES.CENTRO;
+    const rodajas = Math.min(this.piezas, rodajasMax);
+    const paso = rodajas > 1 ? util / (rodajas - 1) : 0;
 
-    for (let i = 0; i < this.piezas; i++) {
-      // Cambio de carril cada pocas piezas, y nunca al mismo del que vienes.
-      if (i % TRAMITE.PIEZAS_POR_TRAMO === 0) {
+    let carril = CARRILES.CENTRO;
+    let ultimoCambio = -Infinity;
+    let puestos = 0;
+
+    for (let r = 0; r < rodajas; r++) {
+      const avance = r * paso;
+
+      // El cambio de carril se mide en METROS recorridos, no en papeles: con el
+      // reparto apretándose según cuántos lleves, contar papeles haría que un
+      // montón grande zigzagueara cada palmo y el reguero perdería la forma.
+      if (avance - ultimoCambio >= TRAMITE.TRAMO_CARRIL) {
         const opciones = [0, 1, 2].filter((c) => c !== carril);
         carril = opciones[Math.floor(Math.random() * opciones.length)];
+        ultimoCambio = avance;
       }
 
-      papeles.plantarPapel(
-        CARRILES.POSICIONES[carril],
-        // Casi por el suelo: se los tiraron, no se los colocaron.
-        PAPELES.ALTURA * 0.55,
-        -26 - i * TRAMITE.SEPARACION,
-      );
+      // El resto se reparte parejo entre las rodajas que quedan, para que la
+      // cola del reguero no se quede vacía ni se amontone al final.
+      const enEsta = Math.ceil((this.piezas - puestos) / (rodajas - r));
+      const z = -TRAMITE.ENTRADA - avance;
+      const ocupados = [carril];
+
+      for (let k = 0; k < enEsta; k++) {
+        let c = carril;
+        if (k > 0) {
+          const libres = [0, 1, 2].filter((x) => !ocupados.includes(x));
+          if (!libres.length) break;
+          c = libres[Math.floor(Math.random() * libres.length)];
+          ocupados.push(c);
+        }
+        papeles.plantarPapel(
+          CARRILES.POSICIONES[c],
+          // Casi por el suelo: se los tiraron, no se los colocaron.
+          PAPELES.ALTURA * 0.55,
+          z,
+        );
+        puestos += 1;
+      }
     }
+
+    // Si algo se quedó fuera por el tope de carriles, la cuenta tiene que
+    // reflejar lo que HAY en el suelo: si no, el expediente pediría recoger
+    // papeles que nunca se plantaron y jamás se podría completar.
+    this.piezas = puestos;
+    this.valorPorPieza = puestos > 0 ? this.confiscados / puestos : 0;
   }
 
   /**
@@ -186,6 +228,22 @@ export class TramiteManager {
    */
   papelesPerdidos() {
     return Math.max(0, this.confiscados - this.papelesRecuperados());
+  }
+
+  /**
+   * Cuántos papeles del reguero han quedado ya por detrás.
+   *
+   * Se saca de la MISMA geometría con la que se plantaron, no de la barra de
+   * avance del pasillo. Aproximarlo con `progreso × total` sale mal en los dos
+   * extremos: el reguero empieza en el metro 20 y termina 18 antes del final,
+   * así que al entrar decía que ya habían pasado veinte papeles cuando no había
+   * pasado ninguno —y el marcador te daba por perdido antes de empezar—.
+   */
+  piezasPasadas() {
+    if (this.piezas === 0) return 0;
+    const util = TRAMITE.LONGITUD - TRAMITE.ENTRADA - TRAMITE.COLA;
+    const f = (this.recorrido - TRAMITE.ENTRADA) / util;
+    return Math.round(Math.min(1, Math.max(0, f)) * this.piezas);
   }
 
   /** Fracción 0..1 de expediente recuperado. */

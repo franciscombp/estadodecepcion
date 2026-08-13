@@ -439,20 +439,25 @@ export class HUD {
 
     if (tramite.recogidos !== this.cache.tramite) {
       this.ref.expedienteRecogidos.textContent = String(tramite.recogidos);
-      // En cuanto se escapa el primer papel, el expediente ya está perdido.
-      // Decirlo de inmediato es más honesto que dejar que el jugador siga
-      // creyendo que va bien hasta el recuento final.
-      // En cuanto se te queda uno atrás, el expediente ya está incompleto.
-      // Decirlo de inmediato es más honesto que dejar creer que va bien hasta
-      // el recuento final.
-      const perdido = tramite.recogidos < Math.round(tramite.progreso * tramite.total) - 2;
-      this.ref.expediente.classList.toggle('expediente--perdido', perdido);
+
+      // LA SEÑAL ES SI VAS POR ENCIMA O POR DEBAJO DE LA MITAD, no si se te
+      // escapó alguno. Antes se encendía en rojo al dejar atrás el tercer
+      // papel, y con el reguero acotado a unas decenas eso decía algo; ahora se
+      // riegan TODOS los que llevabas, así que se te quedan atrás docenas
+      // siempre y el aviso estaría permanentemente encendido sin informar de
+      // nada.
+      //
+      // La mitad no es un número cualquiera: como lo recuperado vale ×2, en la
+      // mitad exacta sales igual que entraste. Por debajo el pasillo te costó
+      // papeles y por encima te pagó, que es LA pregunta del tramo.
+      const bajoLaMitad = tramite.recogidos * 2 < (tramite.pasados ?? 0);
+      this.ref.expediente.classList.toggle('expediente--perdido', bajoLaMitad);
       // El ×2 va en el rótulo permanente del expediente, no en un aviso que se
       // va solo: es la regla del tramo, y hay que poder consultarla en
       // cualquier momento de los trescientos cuarenta metros que dura.
-      this.ref.expedienteAviso.textContent = perdido
-        ? 'YA SE TE QUEDARON ATRÁS · VALEN ×2'
-        : 'RECÓGELOS: VALEN ×2';
+      this.ref.expedienteAviso.textContent = bajoLaMitad
+        ? 'VAS POR DEBAJO DE LA MITAD · VALEN ×2'
+        : 'VAS SALVANDO EL EXPEDIENTE · VALEN ×2';
       this.cache.tramite = tramite.recogidos;
 
       // Animación de progreso: pulse visual cuando se actualiza

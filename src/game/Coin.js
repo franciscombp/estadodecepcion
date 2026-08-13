@@ -275,6 +275,22 @@ export class CoinManager {
 
       item.malla.position.set(item.x, item.y, item.z);
 
+      // --- Recorte por distancia --------------------------------------------
+      // El pasillo del trámite riega TODOS tus papeles de una vez y el reguero
+      // mide trescientos metros, así que sin esto hay hasta trescientas piezas
+      // dentro del cono de la cámara a la vez. El descarte por volumen de Three
+      // no las quita —están delante, aunque la niebla las haya borrado ya— y
+      // cada una se cobra su llamada de dibujo: medido, +67 % de tiempo de
+      // fotograma dentro del túnel.
+      //
+      // Se apagan las que quedan más lejos de lo que la niebla deja ver. La
+      // lógica no las toca: siguen avanzando, sumando y recogiéndose igual; lo
+      // único que cambia es que no se mandan a pintar hasta que hay algo que
+      // ver. En la calle no cambia nada, porque ahí nunca llegan tan lejos.
+      const visible = item.z > -PAPELES.DISTANCIA_VISIBLE;
+      if (item.malla.visible !== visible) item.malla.visible = visible;
+      if (!visible) continue;
+
       // --- Animación de reposo ---------------------------------------------
       if (item.tipo === 'papel') {
         // Cada papel gira desfasado según su Z: una hilera girando al unísono
