@@ -189,6 +189,47 @@ html, body {
   animation: hud-entra var(--t-medio) var(--rebote);
 }
 
+/* ==========================================================================
+   PRIORIDAD: QUÉ MANDA EN CADA MOMENTO
+   ==========================================================================
+   La banda de arriba la comparten tres piezas —el marcador del expediente, el
+   cartel de salida y la ficha de racha— y las tres salían a la vez, montadas.
+   No es un problema de z-index: es que las tres pedían atención al mismo
+   tiempo, y en pantalla solo cabe una.
+
+   Dentro del TÚNEL lo único que se puede hacer es recoger, así que manda el
+   marcador. En la BIFURCACIÓN lo único que hay que decidir es por dónde salir,
+   así que manda el cartel. Lo demás se atenúa o se retira mientras dure, y
+   vuelve solo. Los avisos ni se crean —eso se corta en HUD.mostrarAviso()—.
+
+   El botón de pausa NO se toca nunca: dejar sin salida a quien quiere parar es
+   peor que cualquier solapamiento. */
+
+/* La ruta actual estorba en los dos casos: en el túnel no hay ruta que elegir,
+   y en la bifurcación la eligen las vías del cartel, no este rótulo. Se probó a
+   dejarla atenuada al 22 % durante la bifurcación y no valía: el cartel es
+   opaco y le parte el nombre por la mitad, así que lo que se leía era media
+   palabra colgando por el costado. O se ve entera o no se ve. */
+.hud--tramite .riel,
+.hud--rotulo .riel { opacity: 0; }
+
+/* La racha cuelga del contador y cae justo en la banda disputada. */
+.hud--tramite .racha,
+.hud--rotulo .racha {
+  opacity: 0;
+  transform: scale(0.88);
+}
+
+/* En el túnel el contador marca cero —te acaban de confiscar los papeles— y un
+   cero grande al lado de un «12 / 45» solo confunde sobre cuál es la cuenta
+   buena. Se queda visible, pero en segundo plano. */
+.hud--tramite .contador { opacity: 0.32; }
+
+.hud .riel,
+.hud .contador {
+  transition: opacity var(--t-medio) ease;
+}
+
 @keyframes hud-entra {
   from { opacity: 0; transform: scale(0.97); }
   to   { opacity: 1; transform: scale(1); }
@@ -583,57 +624,79 @@ html, body {
   opacity: 0;
 }
 
+/* La pestaña de arriba, colgando del pórtico como el cajetín de kilometraje de
+   una señal de verdad. */
 .rotulo__salida {
-  padding: 2px 12px 3px;
-  border-radius: 0 0 4px 4px;
-  background: #14532d;
+  position: relative;
+  z-index: 2;
+  padding: 3px 14px 4px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, #1d6b3c, #124827);
   border: 2px solid #f2f4f0;
-  border-top: none;
+  border-bottom: none;
   color: #f2f4f0;
   font-size: clamp(0.44rem, 1.8vw, 0.56rem);
   font-weight: 900;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 .rotulo__vias {
+  position: relative;
   display: flex;
-  gap: 4px;
+  gap: 5px;
   margin-top: -1px;
+  /* Sombra proyectada del conjunto: lo despega de la calle y hace que se lea
+     como una chapa colgada y no como un dibujo pegado a la pantalla. */
+  filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.6));
 }
 
 .via {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 2px;
   min-width: clamp(74px, 24vw, 118px);
-  padding: 6px 8px 7px;
-  background: #14532d;
+  padding: 8px 8px 9px;
+  /* Degradado suave de arriba abajo: las señales reales devuelven la luz por
+     la parte alta, y ese matiz es lo que las hace parecer chapa reflectante en
+     vez de un rectángulo verde. */
+  background: linear-gradient(180deg, #1d6b3c 0%, #16572f 55%, #103f22 100%);
   border: 2px solid #f2f4f0;
-  border-radius: 3px;
+  border-radius: 4px;
   color: #f2f4f0;
   text-align: center;
+  /* El filete interior blanco que llevan todas las señales de dirección. */
+  box-shadow:
+    inset 0 0 0 1px rgba(242, 244, 240, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 /* El del centro cuando es el cerco. Rojo y no verde: en señalización el color
    ya dice lo que pasa antes de leer la palabra. */
 .via--peligro {
-  background: #7f1420;
+  background: linear-gradient(180deg, #a01a2a 0%, #7f1420 55%, #5d0d17 100%);
   border-color: #ffd9d9;
   color: #fff0f0;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 217, 217, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .via__flecha {
-  font-size: clamp(0.85rem, 3.4vw, 1.05rem);
+  font-size: clamp(0.95rem, 3.8vw, 1.2rem);
   line-height: 1;
   font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .via__nombre {
-  font-size: clamp(0.5rem, 2.1vw, 0.64rem);
+  font-size: clamp(0.52rem, 2.2vw, 0.66rem);
   font-weight: 800;
   letter-spacing: 0.05em;
   line-height: 1.15;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 /* --- Avisos flotantes ------------------------------------------------------
@@ -2238,7 +2301,12 @@ html, body {
 
 .expediente {
   position: absolute;
-  top: 78px;
+  /* CON EL MARGEN SEGURO. Estaba en 78px pelados, y los elementos absolutos se
+     colocan contra la caja de RELLENO del HUD, o sea desde el borde mismo de la
+     pantalla: en un teléfono con muesca la fila de arriba baja unos 50 px y el
+     panel no, así que se metía debajo del botón de pausa y del contador. La
+     fila de arriba ocupa 48 px a partir de +10, o sea que acaba en +58. */
+  top: calc(var(--seg-arriba) + 68px);
   left: 50%;
   transform: translateX(-50%);
   width: min(300px, 76vw);

@@ -43,6 +43,20 @@ export class HUD {
 
     // El hint de deslizar solo se muestra las primeras partidas.
     this.mostrarHint = true;
+
+    // QUÉ MANDA EN PANTALLA AHORA MISMO.
+    //
+    // El HUD tiene tres cosas peleándose por la misma banda de arriba: el
+    // marcador del expediente, el cartel de salida y la ficha de racha, y las
+    // tres salían a la vez montadas unas encima de otras. Se apilaban de
+    // verdad —el panel del trámite tapaba el botón de pausa, el cartel tapaba
+    // la racha, y el aviso de «EN RACHA» se ponía encima del cartel—.
+    //
+    // La regla es que en cada momento hay UNA cosa importante y el resto se
+    // aparta: dentro del túnel lo único que importa es recoger, y en la
+    // bifurcación lo único que importa es a dónde lleva cada vía. Mientras haya
+    // algo aquí dentro, lo demás se atenúa y los avisos ni se crean.
+    this.prioridad = new Set();
   }
 
   _cacheVacia() {
@@ -391,6 +405,7 @@ export class HUD {
     if (!tramite) {
       if (this.cache.tramite !== -1) {
         this.ref.expediente.classList.add('expediente--oculto');
+        this._prioridad('tramite', false);
         this.cache.tramite = -1;
       }
       return;
@@ -400,6 +415,9 @@ export class HUD {
       this.ref.expediente.classList.remove('expediente--oculto');
       this.ref.expedienteInstitucion.textContent = tramite.institucion;
       this.ref.expedienteTotal.textContent = String(tramite.total);
+      // Dentro del túnel no hay obstáculos ni desvíos: recoger es lo único que
+      // se puede hacer, así que el marcador se queda solo en la banda.
+      this._prioridad('tramite', true);
     }
 
     if (tramite.recogidos !== this.cache.tramite) {
@@ -425,6 +443,27 @@ export class HUD {
     }
 
     this.ref.expedienteProgreso.style.width = `${Math.round(tramite.progreso * 100)}%`;
+  }
+
+  /**
+   * Enciende o apaga un modo de prioridad y lo refleja en la raíz del HUD.
+   *
+   * El CSS hace el resto: `.hud--tramite` y `.hud--rotulo` atenúan o retiran lo
+   * que estorba a la pieza que manda en ese momento.
+   *
+   * @param {'tramite'|'rotulo'} modo
+   * @param {boolean} activo
+   */
+  _prioridad(modo, activo) {
+    if (activo) this.prioridad.add(modo);
+    else this.prioridad.delete(modo);
+    this.raiz?.classList.toggle(`hud--${modo}`, activo);
+
+    // Se barren los avisos que ya estuvieran puestos. Bloquear solo los nuevos
+    // no bastaba: un aviso dura 2,4 segundos, así que recoger una evidencia
+    // justo antes de entrar al túnel dejaba la tarjeta colgando encima del
+    // marcador del expediente durante los dos primeros segundos del tramo.
+    if (activo && this.ref?.avisos) this.ref.avisos.innerHTML = '';
   }
 
   /**
@@ -546,6 +585,12 @@ export class HUD {
   mostrarAviso({ tipo, titulo, subtitulo }) {
     if (!this.ref?.avisos) return;
 
+    // Mientras el trámite o el cartel manden, ni se crea. Un «EN RACHA» encima
+    // del cartel de salida no informa de nada: quita medio segundo de lectura
+    // justo cuando hay que decidir por dónde salir. Y el aviso de la propia
+    // bifurcación es redundante con el cartel, que dice lo mismo y mejor.
+    if (this.prioridad.size) return;
+
     // Tope de tres: si el jugador encadena golpes no queremos una torre.
     while (this.ref.avisos.childElementCount >= 3) {
       this.ref.avisos.removeChild(this.ref.avisos.firstChild);
@@ -651,9 +696,13 @@ export class HUD {
 
     this.ref.rotuloSalida.textContent = centroEsPeligro ? 'SIN SALIDA' : 'PRÓXIMA SALIDA';
     this.ref.rotulo.classList.toggle('rotulo--peligro', centroEsPeligro);
-    // Los avisos viven en esta misma banda: se apartan mientras el cartel esté
-    // puesto. El aviso de «ELIGE TÚNEL» sale en el mismo fotograma que él.
-    this.ref.avisos?.classList.add('avisos--bajo-rotulo');
+    // Mientras el cartel esté puesto, manda él: la ficha de racha se recoge y
+    // los avisos dejan de salir. Antes se limitaban a bajar un poco y seguían
+    // cayendo encima de las vías.
+    // Enciende el modo y de paso barre los avisos que hubiera puestos. No se
+    // usa limpiarAvisos() porque termina llamando a ocultarRotulo() y se
+    // llevaría por delante el cartel que acabamos de bajar.
+    this._prioridad('rotulo', true);
     // Dos fotogramas de margen: aplicar la clase en el mismo tick en que se
     // rellena el contenido se salta la transición y el cartel aparece de golpe.
     requestAnimationFrame(() => {
@@ -664,6 +713,6 @@ export class HUD {
   /** Lo sube otra vez. La transición la lleva el CSS. */
   ocultarRotulo() {
     this.ref?.rotulo?.classList.add('rotulo--oculto');
-    this.ref?.avisos?.classList.remove('avisos--bajo-rotulo');
+    this._prioridad('rotulo', false);
   }
 }
