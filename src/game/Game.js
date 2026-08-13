@@ -1402,7 +1402,13 @@ export class Game {
 
     const recogido = this.papeles.recoger(this.jugador);
     if (recogido.papeles > 0) {
-      this.papelesPartida += recogido.papeles * this.multiplicadorPapeles;
+      // IMPORTANTE: Durante el trámite, NO sumamos papeles aquí. Se registran en
+      // tramite.contar() y se devuelven al salir (con el ×2 incluido). Si sumáramos
+      // aquí ADEMÁS de sumar al salir, se contarían dos veces.
+      if (!this.tramite.activo) {
+        this.papelesPartida += recogido.papeles * this.multiplicadorPapeles;
+      }
+
       this.combo += 1;
       this.temporizadorCombo = RACHA.CADUCIDAD;
       this.audio.papel(this.combo);
