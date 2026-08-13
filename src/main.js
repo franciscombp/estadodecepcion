@@ -269,7 +269,9 @@ async function arrancar() {
 
   const pistaSalto = document.createElement('div');
   pistaSalto.className = 'salto-intro';
-  pistaSalto.textContent = 'TOCA PARA EMPEZAR';
+  // El texto puede ser ambiguo: "TOCA" implica que necesitas tocarlo. En realidad
+  // la cinemática avanza sola, pero puedes saltarla tocando. Cambiar a algo más claro.
+  pistaSalto.textContent = 'O TOCA PARA SALTARLA';
   contenedorUI.appendChild(pistaSalto);
 
   function mostrarSaltoIntro(visible) {
