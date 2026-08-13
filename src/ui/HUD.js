@@ -57,6 +57,11 @@ export class HUD {
     // bifurcación lo único que importa es a dónde lleva cada vía. Mientras haya
     // algo aquí dentro, lo demás se atenúa y los avisos ni se crean.
     this.prioridad = new Set();
+
+    // Espejo del DOM, no de los datos: dice si el marcador del expediente está
+    // puesto. Ver _actualizarExpediente() — deliberadamente FUERA de la caché,
+    // porque invalidar() la vacía y dejaba el panel colgado toda la partida.
+    this.expedientePuesto = false;
   }
 
   _cacheVacia() {
@@ -402,22 +407,34 @@ export class HUD {
    * tiempo el panel ni existe en pantalla.
    */
   _actualizarExpediente(tramite) {
+    // Si está puesto o no se lleva APARTE de la caché de valores, y no es
+    // duplicar estado por gusto: `invalidar()` vacía la caché entera al volver
+    // de cualquier pantalla, y el HUD la invalida justo al reanudar el juego
+    // —o sea, al salir del túnel—. Con la marca dentro de la caché, ese vaciado
+    // dejaba escrito «ya está oculto» mientras el panel seguía en pantalla, y
+    // la rama de abajo no volvía a entrar nunca: el marcador del expediente se
+    // quedaba puesto el resto de la partida, y con él el modo de prioridad, así
+    // que la ruta y la racha tampoco volvían. Esta marca refleja el DOM, y el
+    // DOM no lo vacía `invalidar()`.
     if (!tramite) {
-      if (this.cache.tramite !== -1) {
+      if (this.expedientePuesto) {
         this.ref.expediente.classList.add('expediente--oculto');
         this._prioridad('tramite', false);
+        this.expedientePuesto = false;
         this.cache.tramite = -1;
       }
       return;
     }
 
-    if (this.cache.tramite === -1) {
+    if (!this.expedientePuesto) {
       this.ref.expediente.classList.remove('expediente--oculto');
       this.ref.expedienteInstitucion.textContent = tramite.institucion;
       this.ref.expedienteTotal.textContent = String(tramite.total);
       // Dentro del túnel no hay obstáculos ni desvíos: recoger es lo único que
       // se puede hacer, así que el marcador se queda solo en la banda.
       this._prioridad('tramite', true);
+      this.expedientePuesto = true;
+      this.cache.tramite = -1;  // Fuerza el pintado de la cuenta más abajo.
     }
 
     if (tramite.recogidos !== this.cache.tramite) {

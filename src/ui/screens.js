@@ -714,9 +714,13 @@ export class Pantallas {
     let paso1 = 0;            // Ancho de ficha + hueco
     let offsetPrimera = 0;    // Del borde de la banda al centro de la ficha 0
 
-    // Un poco más de media docena de jueces por segundo: a menos que eso no
-    // parece un sorteo, parece una lista pasando.
-    const velocidad = datos.velocidad ?? 780;
+    // OJO CON LAS UNIDADES. `datos.velocidad` viene de CERCO.SELECTOR_VELOCIDAD
+    // y está en JUECES POR SEGUNDO —4,2 la primera captura, subiendo hasta 15—,
+    // porque el selector original saltaba de puesto en puesto. Al pasar la
+    // tómbola a desplazamiento continuo hay que convertirla a píxeles, y eso
+    // solo se puede hacer después de medir el ancho real de una ficha.
+    // Sin convertir, la banda corría a 4,2 PÍXELES por segundo: congelada.
+    const juecesPorSegundo = datos.velocidad ?? 7;
 
     const medir = () => {
       const primera = fichas[0];
@@ -742,7 +746,7 @@ export class Pantallas {
 
       const dt = Math.min(0.05, (ahora - anterior) / 1000);
       anterior = ahora;
-      desplazamiento += dt * velocidad;
+      desplazamiento += dt * juecesPorSegundo * paso1;
 
       // Rebobinado de un ciclo entero: la banda es idéntica cada `total`
       // fichas, así que el salto no se ve.
