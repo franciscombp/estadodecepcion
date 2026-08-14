@@ -34,12 +34,25 @@ import { COLOR3D } from '../config/estilo.js';
 // MATERIALES
 // ---------------------------------------------------------------------------
 
-/** Material sólido con emisión ajustable. */
-function mat(color, emision = 0.25, rugosidad = 0.72) {
+/**
+ * Material sólido con emisión ajustable.
+ *
+ * NADA DE METAL Y MUY POCO BRILLO. Llevaba `metalness: 0.14`, y ese catorce por
+ * ciento es justo lo que hacía que todo se viera de plástico: en un PBR el
+ * metal tiñe el reflejo especular con el color del propio objeto y lo
+ * concentra, así que cada caja tenía su lustre. Aquí no hay ni una superficie
+ * metálica —son toldos, madera pintada, cartón y hormigón—, y una rugosidad
+ * alta reparte ese reflejo hasta que desaparece.
+ *
+ * Es lo que separa el aspecto de juguete de vinilo del de figurita de plástico
+ * barato: mate y de color plano, con el volumen puesto por la luz y por el
+ * flatShading, no por los brillos.
+ */
+function mat(color, emision = 0.25, rugosidad = 0.94) {
   return new THREE.MeshStandardMaterial({
     color,
     roughness: rugosidad,
-    metalness: 0.14,
+    metalness: 0,
     emissive: color,
     emissiveIntensity: emision,
     flatShading: true,

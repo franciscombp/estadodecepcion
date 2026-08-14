@@ -173,10 +173,19 @@ export class Game {
     // aportan: el volumen lo da el flatShading y el contraste de la niebla.
     this.renderizador.shadowMap.enabled = false;
 
-    // Tonemapping cinematográfico: comprime los altos para que el neón se
-    // sature sin quemarse a blanco puro.
-    this.renderizador.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderizador.toneMappingExposure = 1.15;
+    // CINEON Y NO ACES. Los dos comprimen los altos para que el neón se sature
+    // sin quemarse a blanco, que es lo que hacía falta; la diferencia está en el
+    // camino hasta ahí. ACES es una curva de cine: le quita saturación a todo el
+    // tramo medio a propósito, porque busca que la imagen parezca rodada. En una
+    // paleta de colores planos eso se traduce en que un toldo naranja llega a
+    // pantalla como un naranja terroso y un cielo azul como un gris azulado, y
+    // el escenario entero se apaga.
+    //
+    // Cineon comprime bastante menos el medio, así que los colores llegan a
+    // pantalla parecidos a como están escritos en la paleta. La exposición baja
+    // un poco para compensar que ahora los medios pesan más.
+    this.renderizador.toneMapping = THREE.CineonToneMapping;
+    this.renderizador.toneMappingExposure = 1.05;
 
     this._configurarPostproceso();
   }

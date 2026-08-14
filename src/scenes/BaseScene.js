@@ -55,8 +55,29 @@ export class BaseScene {
     const c = this.colores;
 
     // 1. Ambiente: define el suelo tonal del escenario.
-    this.luzAmbiente = new THREE.AmbientLight(c.luzAmbiente, c.intensidadAmbiente);
+    //
+    // Se reparte entre una ambiental y una HEMISFÉRICA, y ahí está la mitad del
+    // cambio de aspecto. La ambiental suma el mismo color por todas las caras de
+    // un objeto: aplana el volumen y, sobre todo, deja las cinco caras del mismo
+    // gris, que es de donde venía la sensación de maqueta apagada.
+    //
+    // La hemisférica separa cielo y suelo: las caras que miran arriba reciben la
+    // luz del cielo y las que miran abajo el rebote cálido del asfalto. Un cubo
+    // liso pasa a tener tres tonos sin necesidad de más focos, y el rebote
+    // caliente por debajo es exactamente el truco que hace que los juegos de
+    // esta familia se vean soleados en vez de tristes.
+    this.luzAmbiente = new THREE.AmbientLight(
+      c.luzAmbiente, c.intensidadAmbiente * 0.45,
+    );
     this.grupo.add(this.luzAmbiente);
+
+    this.luzCielo = new THREE.HemisphereLight(
+      c.luzCielo ?? c.nieblaLejos,
+      c.rebote ?? c.luzAmbiente,
+      c.intensidadAmbiente * 0.95,
+    );
+    this.luzCielo.position.set(0, 30, 0);
+    this.grupo.add(this.luzCielo);
 
     // 2. Direccional cálida: da volumen a las cajas low-poly.
     this.luzDireccional = new THREE.DirectionalLight(c.luzDireccional, c.intensidadDireccional);

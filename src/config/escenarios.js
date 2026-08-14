@@ -52,16 +52,27 @@ export const ESCENARIOS = {
     //   · Un mercado popular es un sitio diurno. Se abre a las siete, se
     //     cierra al caer el sol, y las fotos del sector son todas de un
     //     mediodía nublado y blanco.
+    // SOL, NO NUBLADO. Estaba escrito como un mediodía blanco y encapotado, y
+    // era fiel a las fotos del sector, pero en pantalla dejaba el mercado entero
+    // gris azulado: un sitio de toldos de colores no puede ser lo más apagado
+    // del juego. El argumento de arriba se sostiene igual con sol —el mercado
+    // sigue siendo diurno y el Apagón sigue siendo el escenario oscuro—, y de
+    // hecho se sostiene mejor: cuanto más luminosa la Bahía, más se nota
+    // quedarse sin luz.
     colores: {
-      nieblaLejos: 0x7d97ae,   // Cielo de mediodía nublado guayaquileño
-      nieblaCerca: 0x93aabd,
-      calle: 0x4c5058,         // Asfalto gris, no azul de noche
-      acento: 0xffcf3f,        // Dorado mercado
-      props: 0xc9884a,         // Madera / toldos
-      luzAmbiente: 0xaec4da,
-      luzDireccional: 0xfff2d8,
-      intensidadAmbiente: 1.35,
-      intensidadDireccional: 1.85,
+      nieblaLejos: 0x8fc4e8,   // Cielo abierto de mediodía guayaquileño
+      nieblaCerca: 0xa9d6f2,
+      calle: 0x6b6a68,         // Asfalto caliente, no gris de sombra
+      acento: 0xffc21f,        // Dorado mercado
+      props: 0xe0913f,         // Madera / toldos
+      luzAmbiente: 0xd9e9f7,
+      luzDireccional: 0xfff0cf,
+      // Cielo claro arriba y rebote del asfalto tostado abajo: es lo que le da
+      // tres tonos a cada caja sin poner un foco más.
+      luzCielo: 0xa8d8f7,
+      rebote: 0xc9a878,
+      intensidadAmbiente: 1.5,
+      intensidadDireccional: 1.95,
     },
 
     // Etiquetas de los obstáculos, para el HUD y los mensajes de choque.
@@ -140,7 +151,9 @@ export const ESCENARIOS = {
       // otras tres escenas están entre 1.15 y 1.35 de ambiente, así que
       // entrar aquí divide la luz por cinco de golpe. Antes la diferencia
       // era de 0.75 a 0.28 y el apagón se leía como "un poco más de noche".
-      intensidadAmbiente: 0.24,
+      luzCielo: 0x2b3a5c,
+      rebote: 0x2a2620,
+      intensidadAmbiente: 0.3,
       intensidadDireccional: 0.3,
     },
 
@@ -217,7 +230,9 @@ export const ESCENARIOS = {
       props: 0x8a68c4,
       luzAmbiente: 0x9a86c0,
       luzDireccional: 0xffc8e4,
-      intensidadAmbiente: 1.3,
+      luzCielo: 0xc9a6f0,
+      rebote: 0xd08a7a,
+      intensidadAmbiente: 1.45,
       intensidadDireccional: 1.55,
     },
 
@@ -275,7 +290,9 @@ export const ESCENARIOS = {
       props: 0x8a6754,
       luzAmbiente: 0xb08078,
       luzDireccional: 0xffc0aa,
-      intensidadAmbiente: 1.15,
+      luzCielo: 0xe0a894,
+      rebote: 0xa8654f,
+      intensidadAmbiente: 1.3,
       intensidadDireccional: 1.35,
     },
 
