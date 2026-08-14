@@ -153,30 +153,45 @@ async function arrancar() {
   actualizador.alDetectar = () => {
     if (aplicarSiEsSeguro()) return;
 
-    // Mostrar aviso de actualización disponible
+    // Aquí solo se llega estando ya jugando. El aviso se queda puesto y la
+    // edición entra al terminar la corrida: recargar en mitad de una partida se
+    // la borra al jugador por una razón que no tiene nada que ver con el juego.
     hud.mostrarAviso({
       tipo: 'consejo',
       titulo: 'EDICIÓN NUEVA',
-      subtitulo: 'Actualizando automáticamente en 5 segundos...',
+      subtitulo: 'Entra al terminar esta corrida',
     });
-
-    // Aplicar automáticamente la actualización después de 5 segundos
-    // Esto permite que el jugador vea el aviso antes de recargar
-    setTimeout(() => {
-      actualizador.aplicar();
-    }, 5000);
   };
 
   /**
-   * Dónde se aplica sola una edición nueva y dónde no.
+   * Dónde entra sola una edición nueva y dónde no.
    *
-   * Se aplica automáticamente en estos casos:
-   * 1. Al terminar una partida (gameover/victoria)
-   * 2. Si estás en el menú (después de avisar con 5 segundos de margen)
+   *   · ABRIENDO EL JUEGO, siempre y al instante. Es el caso que importa: la
+   *     edición nueva se descargó en una sesión anterior y estaba esperando, y
+   *     lo que el jugador espera al abrir es tener la última. Como la pantalla
+   *     de carga sigue delante, la recarga no interrumpe nada y la versión
+   *     vieja no llega a verse.
+   *
+   *     Antes esto tardaba CINCO SEGUNDOS y se hacía con el menú ya puesto: se
+   *     avisaba, se contaba hasta cinco y se recargaba encima del jugador. Eso
+   *     es justo lo contrario de inmediato, y además enseñaba la edición vieja.
+   *
+   *   · AL TERMINAR UNA PARTIDA, porque el jugador ya iba a reiniciar y la
+   *     recarga no le cuesta nada.
+   *
+   *   · EN MITAD DE UNA CORRIDA, nunca.
+   *
+   *   · EN EL MENÚ, si aparece una edición mientras el jugador está ahí
+   *     parado, tampoco: manda él. El panel de versión se enciende y decide
+   *     cuándo. Si se aplicara sola, ese botón sería inalcanzable —se
+   *     instalaría antes de que nadie llegara a tocarlo—.
    */
   function aplicarSiEsSeguro() {
     if (!actualizador.hayNueva) return false;
-    if (juego.estado !== 'gameover' && juego.estado !== 'victoria') return false;
+    const momentoSeguro = actualizador.arrancando
+      || juego.estado === 'gameover'
+      || juego.estado === 'victoria';
+    if (!momentoSeguro) return false;
     return actualizador.aplicar();
   }
 
@@ -327,6 +342,18 @@ async function arrancar() {
   juego.alCambiarEstado('menu', {});
 
   setTimeout(() => carga.cerrar(), 300);
+
+  // Se acabó la ventana de arranque: el menú ya está puesto y es del jugador.
+  // A partir de aquí una edición nueva deja de entrar sola y pasa a esperar
+  // —al final de la corrida, o a que la instale desde el panel de versión—.
+  //
+  // El margen va POR ENCIMA del cierre de la pantalla de carga a propósito. La
+  // comprobación sale con el registro del service worker, y entre pedirla y
+  // que el worker nuevo termine de instalarse hay una descarga por medio;
+  // cerrando la ventana en el mismo instante en que aparece el menú, una
+  // respuesta que llegue doscientos milisegundos tarde se quedaría esperando a
+  // la siguiente partida, que es justo lo que se venía a arreglar.
+  setTimeout(() => { actualizador.arrancando = false; }, 2500);
 
   // Piezas expuestas en consola para depurar desde el navegador. Es
   // deliberado: el equipo de El Mercio puede tocar el balance en vivo.

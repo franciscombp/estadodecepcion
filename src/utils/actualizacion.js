@@ -64,12 +64,29 @@ export class Actualizador {
     this.aplicando = false;
     this.estado = ESTADOS.SIN_SOPORTE;
 
+    /**
+     * ARRANCANDO: la ventana en la que una edición nueva entra SOLA y de
+     * inmediato, sin preguntar y sin avisar.
+     *
+     * Dura desde que se abre el juego hasta que el menú está puesto y en manos
+     * del jugador. Dentro de ella todavía no hay nada que interrumpir —la
+     * pantalla de carga sigue delante— así que recargar no le cuesta nada a
+     * nadie: el jugador nunca llega a ver la edición vieja.
+     *
+     * Fuera de ella manda el jugador, que para eso ya está jugando. Ver
+     * main.js: en mitad de una corrida el aviso se guarda, y en el menú se
+     * enciende el panel de versión con su botón.
+     */
+    this.arrancando = true;
+
     /** Se llama cuando aparece una versión nueva, para avisar por la interfaz. */
     this.alDetectar = () => {};
     /** Se llama en cada cambio de estado, para repintar el panel de versión. */
     this.alCambiar = () => {};
 
     this.registro = null;
+    // El worker instalado y a la espera de tomar el control. Ver _vigilar().
+    this.enEspera = null;
   }
 
   /** La edición que está corriendo ahora mismo. La inyecta el build. */
@@ -95,7 +112,10 @@ export class Actualizador {
 
     // Al recargar con una versión ya instalada y en espera, hay que avisar
     // igual: el service worker nuevo no vuelve a emitir 'updatefound'.
-    if (registro.waiting && navigator.serviceWorker.controller) this._marcar();
+    if (registro.waiting && navigator.serviceWorker.controller) {
+      this.enEspera = registro.waiting;
+      this._marcar();
+    }
 
     registro.addEventListener('updatefound', () => {
       const entrante = registro.installing;
@@ -106,6 +126,20 @@ export class Actualizador {
         // instalación. Sin la comprobación del controlador avisaríamos de una
         // "versión nueva" a quien acaba de entrar por primera vez.
         if (entrante.state === 'installed' && navigator.serviceWorker.controller) {
+          // SE GUARDA EL WORKER, no se busca luego en `registro.waiting`.
+          //
+          // En el instante en que salta este 'installed', el registro todavía
+          // puede tener el worker colgando de `installing` y no de `waiting`:
+          // el navegador mueve la referencia después de despachar el evento.
+          // Quien preguntara por `waiting` en ese momento se encontraba un
+          // null, aplicar() se rendía y la edición nueva se quedaba sin
+          // instalar hasta la siguiente visita.
+          //
+          // Antes esto no se notaba porque entre el aviso y el aplicar había
+          // cinco segundos de espera, tiempo de sobra para que la referencia
+          // se moviera sola. Al hacer la instalación inmediata —que es lo que
+          // se pedía— el hueco quedó a la vista.
+          this.enEspera = entrante;
           this._marcar();
         }
       });
@@ -168,13 +202,11 @@ export class Actualizador {
       if (navigator.onLine) this.registro.update().catch(() => {});
     }, INTERVALO_COMPROBACION);
 
-    // Comprobación inicial agresiva al cargar: detecta updates pendientes
-    // desde la última sesión o que acaban de deployarse.
-    setTimeout(() => {
-      if (navigator.onLine) {
-        this._forzarComprobacion();
-      }
-    }, 1000);
+    // Comprobación inicial SIN ESPERA. Llevaba un segundo de retraso, y ese
+    // segundo se lo comía justo la ventana que interesa: la pantalla de carga.
+    // Preguntando ya, la respuesta llega mientras el juego todavía se está
+    // montando y la recarga cae antes de que haya nada que interrumpir.
+    if (navigator.onLine) this._forzarComprobacion();
   }
 
   /**
@@ -257,7 +289,9 @@ export class Actualizador {
   aplicar() {
     if (!this.hayNueva || this.aplicando) return false;
 
-    const enEspera = this.registro?.waiting;
+    // El guardado manda sobre `registro.waiting`, que puede ir un tick por
+    // detrás justo cuando más falta hace. Ver _vigilar().
+    const enEspera = this.enEspera ?? this.registro?.waiting;
     if (!enEspera) return false;
 
     this.aplicando = true;
