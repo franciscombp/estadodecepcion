@@ -40,6 +40,34 @@ export default defineConfig({
   },
 
   plugins: [
+    // Índices de directorio para las herramientas del creador, SOLO en
+    // desarrollo. GitHub Pages sirve el index.html de una carpeta cuando pides
+    // la carpeta; el servidor de Vite no, y como /creador vive en public/ no
+    // hay nada que resuelva /creador/mapas/ — se caía al index del juego y
+    // salía la partida en vez del editor.
+    //
+    // Sin esto la única forma de abrir una herramienta en local era escribir el
+    // /index.html a mano, y los enlaces de la barra compartida —que apuntan a
+    // la carpeta, como en producción— no llevaban a ninguna parte.
+    {
+      name: 'indices-del-creador',
+      configureServer(servidor) {
+        servidor.middlewares.use((peticion, _respuesta, siguiente) => {
+          const [ruta, consulta] = (peticion.url ?? '').split('?');
+          if (ruta.startsWith('/creador')) {
+            const tramo = ruta.split('/').pop();
+            // Carpeta si acaba en barra, o si el último tramo no tiene
+            // extensión: así valen /creador/mapas/ y /creador/mapas por igual.
+            if (ruta.endsWith('/') || !tramo.includes('.')) {
+              const base = ruta.endsWith('/') ? ruta : `${ruta}/`;
+              peticion.url = `${base}index.html${consulta ? `?${consulta}` : ''}`;
+            }
+          }
+          siguiente();
+        });
+      },
+    },
+
     VitePWA({
       // 'prompt', no 'autoUpdate'. Con autoUpdate el service worker nuevo se
       // activa y recarga la página en cuanto está listo, y eso puede pasar en
