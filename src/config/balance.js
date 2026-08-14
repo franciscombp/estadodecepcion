@@ -482,7 +482,13 @@ export const TRAMITE = {
   //
   // Ahora se riegan TODOS. Uno a uno, hasta donde caben. Y lo que caben lo
   // decide el pasillo, no un número redondo: ver el reparto en Tramite._regar().
-  PIEZAS_MAXIMAS: 320,
+  //
+  // Este tope es de DIBUJO, no de cuenta. Pasado él, varios papeles viajan en
+  // la misma pieza y esa pieza vale lo que lleva —en entero, nunca en
+  // fracción—, así que lo que vuelve al marcador sigue siendo exactamente lo
+  // recogido por dos. Lo que se pierde por encima del tope es resolución
+  // visual, jamás papeles.
+  PIEZAS_MAXIMAS: 520,
 
   // Dónde arranca el reguero y cuánto se deja libre al final, para que el
   // último papel alcance a pasar por delante antes de que se acabe el pasillo.
@@ -494,7 +500,7 @@ export const TRAMITE = {
   // PAPELES.SEPARACION—, pero aquí se admite bastante más apretado a propósito:
   // esto no es una hilera de recompensa, es un expediente reventado por el
   // suelo, y ahí la masa ES el mensaje.
-  PASO_MINIMO: 1.6,
+  PASO_MINIMO: 0.6,
 
   // Cada cuántos METROS cambia de carril el reguero. Va en metros y no en
   // número de papeles porque el reparto ahora se aprieta o se estira según

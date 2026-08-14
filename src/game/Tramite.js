@@ -120,24 +120,34 @@ export class TramiteManager {
    * rodajas se ponen dos papeles en una, y entonces en carriles distintos.
    */
   _regar(papeles) {
+    if (this.confiscados <= 0) { this.piezas = 0; return; }
+
     const util = TRAMITE.LONGITUD - TRAMITE.ENTRADA - TRAMITE.COLA;
     const rodajasMax = Math.max(1, Math.floor(util / TRAMITE.PASO_MINIMO) + 1);
 
-    // Hasta dos por rodaja antes de rendirse y empezar a agrupar valor.
-    const tope = Math.min(TRAMITE.PIEZAS_MAXIMAS, rodajasMax * 2);
-    this.piezas = Math.max(1, Math.min(this.confiscados, tope));
-    // Vale 1 mientras quepan todos. Solo se despega de 1 en marcadores enormes.
-    this.valorPorPieza = this.confiscados / this.piezas;
+    // Cuántas PIEZAS se dibujan. Es un tope de dibujo, no de cuenta.
+    this.piezas = Math.max(1, Math.min(this.confiscados, TRAMITE.PIEZAS_MAXIMAS, rodajasMax));
+    const paso = this.piezas > 1 ? util / (this.piezas - 1) : 0;
 
-    const rodajas = Math.min(this.piezas, rodajasMax);
-    const paso = rodajas > 1 ? util / (rodajas - 1) : 0;
+    // CADA PIEZA LLEVA UN NÚMERO ENTERO DE PAPELES, Y LA SUMA CUADRA EXACTA.
+    //
+    // Antes cada pieza valía `confiscados / piezas` —un decimal— y lo devuelto
+    // se redondeaba al final. Mientras cupieran todos daba igual, porque ese
+    // decimal valía 1; en cuanto el montón pasaba del tope, cada pieza pasaba a
+    // valer 1,25 o 2,5 y entonces recoger 320 cosas devolvía 800 papeles. Ese
+    // es el «el cálculo final es mayor al de lo recogido por dos»: no era el
+    // ×2, era que cada cosa del suelo valía más de un papel sin decirlo.
+    //
+    // Repartiendo en enteros —unas piezas llevan uno más que otras— lo que
+    // vuelve al marcador es SIEMPRE la suma de lo que levantaste, por dos.
+    const base = Math.floor(this.confiscados / this.piezas);
+    const sobran = this.confiscados - base * this.piezas;
 
     let carril = CARRILES.CENTRO;
     let ultimoCambio = -Infinity;
-    let puestos = 0;
 
-    for (let r = 0; r < rodajas; r++) {
-      const avance = r * paso;
+    for (let i = 0; i < this.piezas; i++) {
+      const avance = i * paso;
 
       // El cambio de carril se mide en METROS recorridos, no en papeles: con el
       // reparto apretándose según cuántos lleves, contar papeles haría que un
@@ -148,35 +158,21 @@ export class TramiteManager {
         ultimoCambio = avance;
       }
 
-      // El resto se reparte parejo entre las rodajas que quedan, para que la
-      // cola del reguero no se quede vacía ni se amontone al final.
-      const enEsta = Math.ceil((this.piezas - puestos) / (rodajas - r));
-      const z = -TRAMITE.ENTRADA - avance;
-      const ocupados = [carril];
+      // Los que sobran se reparten POR TODO EL PASILLO, no desde el principio.
+      // Es el reparto de Bresenham: da exactamente `sobran` piezas gordas y las
+      // deja lo más separadas posible entre sí. Amontonándolas al principio, el
+      // primer tercio del túnel valía el doble que el último y la jugada óptima
+      // pasaba a ser recoger pronto y desentenderse del resto.
+      const extra = (i * sobran) % this.piezas < sobran ? 1 : 0;
 
-      for (let k = 0; k < enEsta; k++) {
-        let c = carril;
-        if (k > 0) {
-          const libres = [0, 1, 2].filter((x) => !ocupados.includes(x));
-          if (!libres.length) break;
-          c = libres[Math.floor(Math.random() * libres.length)];
-          ocupados.push(c);
-        }
-        papeles.plantarPapel(
-          CARRILES.POSICIONES[c],
-          // Casi por el suelo: se los tiraron, no se los colocaron.
-          PAPELES.ALTURA * 0.55,
-          z,
-        );
-        puestos += 1;
-      }
+      papeles.plantarPapel(
+        CARRILES.POSICIONES[carril],
+        // Casi por el suelo: se los tiraron, no se los colocaron.
+        PAPELES.ALTURA * 0.55,
+        -TRAMITE.ENTRADA - avance,
+        base + extra,
+      );
     }
-
-    // Si algo se quedó fuera por el tope de carriles, la cuenta tiene que
-    // reflejar lo que HAY en el suelo: si no, el expediente pediría recoger
-    // papeles que nunca se plantaron y jamás se podría completar.
-    this.piezas = puestos;
-    this.valorPorPieza = puestos > 0 ? this.confiscados / puestos : 0;
   }
 
   /**
@@ -197,14 +193,21 @@ export class TramiteManager {
     return false;
   }
 
-  /** Registra piezas levantadas del suelo. */
-  contar(cantidad) {
-    this.recuperadas += cantidad;
+  /**
+   * Registra PAPELES levantados del suelo, no piezas.
+   *
+   * Quien llama pasa el valor sumado de lo recogido este fotograma, que es lo
+   * que llevaba cada pieza. Contando piezas y multiplicando después había que
+   * fiarse de una media, y la media mentía en cuanto las piezas no valían todas
+   * lo mismo.
+   */
+  contar(papelesLevantados) {
+    this.recuperadas += papelesLevantados;
   }
 
   /** Cuántos papeles levantaste del suelo, en crudo y sin el ×2. */
   papelesRecuperados() {
-    return Math.round(this.recuperadas * this.valorPorPieza);
+    return Math.min(this.confiscados, this.recuperadas);
   }
 
   /**
@@ -240,21 +243,22 @@ export class TramiteManager {
    * pasado ninguno —y el marcador te daba por perdido antes de empezar—.
    */
   piezasPasadas() {
-    if (this.piezas === 0) return 0;
+    if (this.confiscados === 0) return 0;
     const util = TRAMITE.LONGITUD - TRAMITE.ENTRADA - TRAMITE.COLA;
     const f = (this.recorrido - TRAMITE.ENTRADA) / util;
-    return Math.round(Math.min(1, Math.max(0, f)) * this.piezas);
+    return Math.round(Math.min(1, Math.max(0, f)) * this.confiscados);
   }
 
   /** Fracción 0..1 de expediente recuperado. */
   fraccion() {
-    if (this.piezas === 0) return 0;
-    return Math.min(1, this.recuperadas / this.piezas);
+    if (this.confiscados === 0) return 0;
+    return Math.min(1, this.recuperadas / this.confiscados);
   }
 
   /** ¿Se recuperó absolutamente todo? Prácticamente imposible. */
   esPerfecto() {
-    return this.piezas > 0 && this.recuperadas >= this.piezas * TRAMITE.UMBRAL_PERFECTO;
+    return this.confiscados > 0
+      && this.recuperadas >= this.confiscados * TRAMITE.UMBRAL_PERFECTO;
   }
 
   /** Progreso 0..1 dentro del pasillo, para la barra del HUD. */

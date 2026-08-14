@@ -1431,9 +1431,12 @@ export class Game {
         this.alMostrarAviso({ tipo: 'racha', titulo: t.nombre, subtitulo: `${this.combo} seguidos` });
       }
 
-      // El trámite se puntúa por PIEZAS, no por valor: el expediente está
-      // completo o no lo está.
-      if (this.tramite.activo) this.tramite.contar(recogido.cantidad);
+      // Dentro del trámite se cuenta el VALOR, no el número de piezas. Cada
+      // pieza del reguero lleva sus papeles escritos —normalmente uno— y así lo
+      // que vuelve al marcador es exactamente lo que levantaste, por dos.
+      // Contando piezas había que multiplicar por una media al salir, y esa
+      // media se separaba de la realidad en cuanto no todas valían lo mismo.
+      if (this.tramite.activo) this.tramite.contar(recogido.papeles);
     }
     for (const ev of recogido.evidencias) {
       if (!this.evidenciasPartida.includes(ev.nombre)) {
@@ -1556,8 +1559,10 @@ export class Game {
       // Marcador del expediente mientras se está dentro del túnel del centro.
       tramite: this.tramite.activo
         ? {
-          recogidos: this.tramite.recuperadas,
-          total: this.tramite.piezas,
+          // En PAPELES, no en piezas: el marcador dice «12 / 300» sobre los que
+          // te quitaron, que es la única cuenta que el jugador puede comprobar.
+          recogidos: this.tramite.papelesRecuperados(),
+          total: this.tramite.confiscados,
           // Cuántos han quedado ya atrás. Es con lo que el HUD decide si vas
           // por encima o por debajo de la mitad, que es la cuenta del tramo.
           pasados: this.tramite.piezasPasadas(),

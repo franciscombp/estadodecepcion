@@ -220,7 +220,12 @@ export class CoinManager {
    * dibuja su propio patrón y no quiere que nadie se lo filtre por densidad ni
    * se lo recorte por tope de tramo: ahí los papeles SON la prueba.
    */
-  plantarPapel(x, y, z) {
+  /**
+   * @param {number} valor Cuántos papeles vale esta pieza. Normalmente 1: el
+   *   trámite riega uno por papel. Solo sube si el montón no cabe entero en el
+   *   pasillo y hay que juntar varios en la misma pieza (ver Tramite._regar).
+   */
+  plantarPapel(x, y, z, valor = PAPELES.VALOR_MINIMO) {
     const malla = this._obtenerPapel();
     malla.visible = true;
     malla.position.set(x, y, z);
@@ -231,7 +236,7 @@ export class CoinManager {
       x,
       y,
       z,
-      valor: PAPELES.VALOR_MINIMO,
+      valor,
       recogido: false,
     });
   }
