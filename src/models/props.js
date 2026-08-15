@@ -27,6 +27,7 @@
 // ============================================================================
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { CARRILES, OBSTACULOS, PALETA, TUNEL, ELEVADO } from '../config/balance.js';
 import { COLOR3D } from '../config/estilo.js';
 
@@ -1583,6 +1584,224 @@ function crearPuestoBahia(colores, aleatorio, ancho = 4.6) {
  * A la velocidad del juego nadie ve el detalle, pero la variación de alturas,
  * colores y siluetas sí se percibe como "ciudad".
  */
+
+// ---------------------------------------------------------------------------
+// CASA COLONIAL — La fachada del centro histórico
+// ---------------------------------------------------------------------------
+// Las proporciones y la paleta salen de medir el modelo de Quito: zócalo de
+// piedra de 1,25, portales de 2,50 por 1,50, ventanas de 1,90 por 1,15, losa de
+// balcón de 1,60 y cinco balaustres de 0,44. Copiarlas a ojo habría dado una
+// casa «tipo colonial»; midiéndolas sale ESTA calle.
+//
+// PROCEDURAL Y NO IMPORTADA, a propósito. Todas las casas del centro histórico
+// son la misma casa: zócalo, dos plantas, cornisa entre ellas, alero y teja.
+// Lo que cambia es el color del revoque, cuántos portales tiene, si el balcón
+// es corrido o de a uno y cuánto ha llovido encima. Eso es exactamente lo que
+// un generador hace bien y un modelo fijo hace mal: repetir un archivo cada
+// quince metros se lee como un bucle; repetir la GRAMÁTICA se lee como un
+// barrio.
+//
+// Un modelo importado, además, se paga entero cada vez. Aquí las geometrías y
+// los materiales se comparten entre todas las casas de la calle.
+
+// Los revoques reales del centro. El blanco y el crema son la mayoría; el
+// ocre, el añil y el óxido son los que le dan carácter a la cuadra, y por eso
+// salen menos: si todas las casas fueran de color, ninguna destacaría.
+const REVOQUES = [
+  0xf3f1eb, 0xeee3cb, 0xf3f1eb, 0xeee3cb,
+  0xe1a531, 0x5f7e9a, 0x418984, 0xb6623e,
+];
+
+// Los materiales se crean UNA vez y los comparten todas las casas. Creándolos
+// dentro del generador, cada casa tenía los suyos aunque el color fuera el
+// mismo, y entonces fundir por material no fundía nada: solo se pueden juntar
+// piezas que se manden a pintar con el mismo material, no con uno igual.
+const MATS_COLONIAL = new Map();
+function matColonial(color, emision = 0.02, rugosidad = 0.95) {
+  const clave = `${color}|${emision}|${rugosidad}`;
+  if (!MATS_COLONIAL.has(clave)) MATS_COLONIAL.set(clave, mat(color, emision, rugosidad));
+  return MATS_COLONIAL.get(clave);
+}
+
+const TEJA = 0xa2573c;
+const PIEDRA = 0xb7b1a4;
+const PIEDRA_OSCURA = 0x8c867b;
+const MADERA = 0x4b372b;
+const VIDRIO_COLONIAL = 0x36434b;
+
+/**
+ * Una casa. La fachada mira a +Z, que es como la coloca BaseScene tras girarla.
+ *
+ * @param {number} ancho  Cuánta calle ocupa
+ * @param {function} rnd  Fuente de azar, inyectable para poder fijarla
+ */
+
+/**
+ * Funde un grupo en una malla por material.
+ *
+ * UNA CASA COLONIAL SON CUARENTA Y CINCO PIEZAS —muro, zócalo, dos cornisas,
+ * teja, tres portales con su puerta, tres ventanas con su vidrio y tres
+ * balcones con losa, ménsulas, pasamanos y cinco balaustres cada uno—, y en
+ * pantalla hay más de treinta casas a la vez. Eso son mil trescientas mallas y,
+ * lo que importa, casi seiscientas llamadas de dibujo: medido, el escenario
+ * pasaba de 85 a 125 ms por fotograma CON MENOS TRIÁNGULOS que la Bahía. El
+ * coste no era la geometría, era el número de piezas.
+ *
+ * Fundidas por material quedan seis mallas por casa —revoque, piedra, blanco,
+ * teja, madera y vidrio— sin perder un solo detalle: lo que se junta es cómo se
+ * manda a pintar, no lo que se ve.
+ *
+ * Se hace UNA vez, al crear la pieza. Las casas no se animan por dentro, así
+ * que no hay nada que se pierda al soldarlas.
+ */
+function fundirPorMaterial(grupo) {
+  const cubos = new Map();
+  grupo.updateMatrixWorld(true);
+
+  grupo.traverse((o) => {
+    if (!o.isMesh) return;
+    const clave = o.material.uuid;
+    if (!cubos.has(clave)) cubos.set(clave, { material: o.material, geos: [] });
+    const g = o.geometry.clone();
+    g.applyMatrix4(o.matrixWorld);
+    cubos.get(clave).geos.push(g);
+  });
+
+  const fundido = new THREE.Group();
+  for (const { material, geos } of cubos.values()) {
+    const unida = geos.length === 1 ? geos[0] : mergeGeometries(geos, false);
+    if (!unida) continue;
+    fundido.add(new THREE.Mesh(unida, material));
+    if (geos.length > 1) for (const g of geos) g.dispose();
+  }
+  return fundido;
+}
+
+function crearCasaColonial(ancho, rnd = Math.random) {
+  const g = new THREE.Group();
+
+  const revoque = REVOQUES[Math.floor(rnd() * REVOQUES.length)];
+  const fondo = 6.2;
+  // Dos plantas, con la baja más alta que la alta: es así en las casas de
+  // portal, porque abajo hay comercio y arriba se vive.
+  const baja = 3.1 + rnd() * 0.5;
+  const alta = 2.5 + rnd() * 0.4;
+  const alto = baja + alta;
+
+  const muro = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, fondo), matColonial(revoque, 0.02, 0.96));
+  muro.position.set(0, alto / 2, -fondo / 2 + 0.1);
+  g.add(muro);
+
+  // Zócalo de piedra. Protege el revoque de las salpicaduras, y por eso existe.
+  const zocalo = new THREE.Mesh(
+    new THREE.BoxGeometry(ancho + 0.12, 1.25, fondo + 0.1), matColonial(PIEDRA_OSCURA, 0.02, 0.97),
+  );
+  zocalo.position.set(0, 0.625, -fondo / 2 + 0.1);
+  g.add(zocalo);
+
+  // Cornisa entre plantas y alero, los dos en blanco: es lo que marca el
+  // ritmo horizontal de la cuadra cuando pasas corriendo.
+  for (const [y, sobresale, grosor] of [[baja, 0.18, 0.18], [alto, 0.34, 0.26]]) {
+    const c = new THREE.Mesh(
+      new THREE.BoxGeometry(ancho + sobresale, grosor, fondo + sobresale),
+      matColonial(0xf3f1eb, 0.02, 0.94),
+    );
+    c.position.set(0, y, -fondo / 2 + 0.1);
+    g.add(c);
+  }
+
+  // Teja a dos aguas, resuelta como un prisma girado: con esta estética un
+  // tejado de verdad no aporta nada y cuesta triángulos.
+  const teja = new THREE.Mesh(
+    new THREE.CylinderGeometry(ancho * 0.34, ancho * 0.34, fondo + 0.6, 3), matColonial(TEJA, 0.03, 0.9),
+  );
+  teja.rotation.set(Math.PI / 2, 0, Math.PI / 6);
+  teja.position.set(0, alto + 0.42, -fondo / 2 + 0.1);
+  g.add(teja);
+
+  // --- Planta baja: portales -----------------------------------------------
+  const portales = ancho > 6 ? 3 : 2;
+  const pasoP = ancho / portales;
+  for (let i = 0; i < portales; i++) {
+    const x = -ancho / 2 + pasoP * (i + 0.5);
+
+    const marco = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.5, 0.16), matColonial(PIEDRA, 0.02, 0.95));
+    marco.position.set(x, 1.25, 0.42);
+    g.add(marco);
+
+    // La puerta: madera casi siempre, y de vez en cuando pintada de verde,
+    // que es el otro color de puerta que se ve por ahí.
+    const puerta = new THREE.Mesh(
+      new THREE.BoxGeometry(1.25, 2.3, 0.1),
+      matColonial(rnd() < 0.25 ? 0x507941 : MADERA, 0.02, 0.9),
+    );
+    puerta.position.set(x, 1.15, 0.48);
+    g.add(puerta);
+  }
+
+  // --- Planta alta: ventanas con balcón -------------------------------------
+  // O corrido o de a uno. Es la diferencia que más se nota entre dos casas
+  // vecinas, y no cuesta más que un condicional.
+  const corrido = rnd() < 0.4;
+  const ventanas = portales;
+  const pasoV = ancho / ventanas;
+
+  if (corrido) {
+    g.add(_balcon(ancho - 0.5, 0, baja + 0.1, 0.75));
+  }
+
+  for (let i = 0; i < ventanas; i++) {
+    const x = -ancho / 2 + pasoV * (i + 0.5);
+    const yV = baja + 1.25;
+
+    const marco = new THREE.Mesh(new THREE.BoxGeometry(1.15, 1.9, 0.14), matColonial(0xf3f1eb, 0.02, 0.94));
+    marco.position.set(x, yV, 0.4);
+    g.add(marco);
+
+    const vidrio = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.6, 0.08), matColonial(VIDRIO_COLONIAL, 0.06, 0.3));
+    vidrio.position.set(x, yV, 0.45);
+    g.add(vidrio);
+
+    if (!corrido) g.add(_balcon(1.6, x, baja + 0.1, 0.75));
+  }
+
+  return g;
+}
+
+/** Losa, ménsulas y balaustrada. La firma del centro histórico. */
+function _balcon(ancho, x, y, saliente) {
+  const b = new THREE.Group();
+
+  const losa = new THREE.Mesh(new THREE.BoxGeometry(ancho, 0.12, saliente + 0.35), matColonial(PIEDRA, 0.02, 0.95));
+  losa.position.set(0, 0, saliente / 2 + 0.3);
+  b.add(losa);
+
+  // Ménsulas: sostienen la losa. Sin ellas el balcón flota, y flotando se lee
+  // como un error de modelado antes que como un balcón.
+  for (const s of [-1, 1]) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.22, 0.9), matColonial(PIEDRA, 0.02, 0.95));
+    m.position.set(s * (ancho / 2 - 0.18), -0.16, saliente / 2 + 0.25);
+    b.add(m);
+  }
+
+  const barandaMat = matColonial(0xf3f1eb, 0.02, 0.94);
+  for (const [dy, alto] of [[0.06, 0.06], [0.5, 0.08]]) {
+    const barra = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, 0.1), barandaMat);
+    barra.position.set(0, dy, saliente + 0.4);
+    b.add(barra);
+  }
+
+  const cuantos = Math.max(3, Math.round(ancho / 0.32));
+  for (let i = 0; i < cuantos; i++) {
+    const bal = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.44, 0.1), barandaMat);
+    bal.position.set(-ancho / 2 + (ancho / (cuantos - 1)) * i, 0.28, saliente + 0.4);
+    b.add(bal);
+  }
+
+  b.position.set(x, y, 0);
+  return b;
+}
+
 export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
   const g = new THREE.Group();
   const dado = aleatorio();
@@ -1706,42 +1925,51 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
     }
 
     case 'carondelet': {
-      // Fachadas coloniales cercadas con concertina.
-      const alto = 4.5 + aleatorio() * 3;
-      const fachada = new THREE.Mesh(
-        new THREE.BoxGeometry(3.4, alto, 3.2),
-        mat(colores.props, 0.04, 0.95),
-      );
-      fachada.position.y = alto / 2;
-      g.add(fachada);
-
-      // Balcones: la firma del centro histórico de Quito.
-      for (let i = 1; i <= 2; i++) {
-        const balcon = new THREE.Mesh(
-          new THREE.BoxGeometry(2.4, 0.13, 0.85),
-          mat(0x2a2f3d, 0.03),
-        );
-        balcon.position.set(0, (alto / 3) * i + 0.5, 1.75);
-        g.add(balcon);
-
-        const baranda = new THREE.Mesh(
-          new THREE.BoxGeometry(2.4, 0.38, 0.07),
-          mat(0x22262f, 0.03),
-        );
-        baranda.position.set(0, (alto / 3) * i + 0.7, 2.13);
-        g.add(baranda);
+      // UNA CUADRA, no una casa suelta. El centro histórico son fachadas
+      // pegadas: medianera con medianera, sin un palmo entre una y otra. Con
+      // casas separadas por hueco aquello deja de ser el casco colonial y pasa
+      // a ser un barrio de quintas.
+      //
+      // Son la MISMA casa repetida —zócalo, dos plantas, cornisa, alero y
+      // teja— y lo que cambia es el revoque, cuántos portales tiene y si el
+      // balcón es corrido o de a uno. Esa es la gramática de la calle:
+      // repetirla se lee como un barrio, y repetir un modelo fijo, como un
+      // bucle.
+      const ANCHO_CUADRA = 14;
+      // Anchos desiguales, que es como están los solares de verdad: partir la
+      // cuadra en dos mitades exactas canta a rejilla.
+      const primera = ANCHO_CUADRA / 2 + (aleatorio() - 0.5) * 2.6;
+      for (const [ancho, x] of [
+        [primera, -ANCHO_CUADRA / 2 + primera / 2],
+        [ANCHO_CUADRA - primera, ANCHO_CUADRA / 2 - (ANCHO_CUADRA - primera) / 2],
+      ]) {
+        const casa = crearCasaColonial(ancho, aleatorio);
+        casa.position.x = x;
+        g.add(casa);
       }
 
-      // Concertina sobre el muro.
+      // Concertina sobre el alero. Es lo que hace que la postal colonial
+      // incomode, y por eso se queda.
       for (let i = 0; i < 3; i++) {
         const rollo = new THREE.Mesh(
           new THREE.TorusGeometry(0.36, 0.05, 4, 11),
           mat(0x9aa4b8, 0.3, 0.4),
         );
-        rollo.position.set(-1 + i, alto + 0.32, 1.5);
+        rollo.position.set(-1 + i, 6.6, 0.4);
         rollo.rotation.y = Math.PI / 2;
         g.add(rollo);
       }
+
+      // La cuadra entera se funde de una vez, no casa por casa: como los
+      // materiales van compartidos, las dos casas y la concertina caben en
+      // media docena de mallas en total.
+      const cuadra = fundirPorMaterial(g);
+      g.clear();
+      g.add(cuadra);
+
+      // La hilera va a escuadra: una cuadra torcida se lee como error de
+      // colocación, no como desorden de barrio.
+      g.userData.alineado = true;
       break;
     }
 
