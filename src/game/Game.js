@@ -53,7 +53,7 @@ import { PERSONAJES } from '../config/personajes.js';
 import { Controles } from '../utils/controls.js';
 import { remateCaptura, remateExhausto, citaVerificada } from '../config/textos.js';
 import {
-  VELOCIDAD, TRAMO, CAMARA, JUGADOR, CARRILES, CERCO, PAPELES,
+  VELOCIDAD, TRAMO, CAMARA, JUGADOR, CARRILES, CERCO, EVIDENCIA,
   POTENCIADORES, SENTENCIAS, TRAMITE, RACHA, tramoRacha,
 } from '../config/balance.js';
 import { BLOOM, CALIDAD } from '../config/estilo.js';
@@ -89,8 +89,8 @@ export class Game {
     this.velocidadBase = VELOCIDAD.INICIAL;
     this.distanciaTotal = 0;
     this.distanciaTramo = 0;
-    this.papelesPartida = 0;
-    this.evidenciasPartida = [];
+    this.evidenciaPartida = 0;
+    this.pruebasPartida = [];
     this.rutaPartida = [];
     this.combo = 0;
     this.temporizadorCombo = 0;
@@ -114,7 +114,7 @@ export class Game {
     // Potenciadores activos: id → segundos restantes. El salvoconducto no
     // entra aquí porque no caduca; vive como bandera en el jugador.
     this.efectos = new Map();
-    this.multiplicadorPapeles = 1;
+    this.multiplicadorEvidencia = 1;
 
     // Cuántas veces te han atrapado en esta partida. No limita los intentos
     // —siempre tienes tu sorteo— pero acelera el selector cada vez.
@@ -281,7 +281,7 @@ export class Game {
     this.pista = new Track(this.escenaThree);
     this.jugador = new Player(this.escenaThree, this.cuaderno.personajePreferido);
     this.obstaculos = new ObstacleManager(this.escenaThree);
-    this.papeles = new CoinManager(this.escenaThree);
+    this.evidencia = new CoinManager(this.escenaThree);
     this.perseguidor = new Chaser(this.escenaThree);
     this.rutas = new Rutas();
     this.bifurcacion = new Bifurcacion(this.escenaThree);
@@ -376,7 +376,7 @@ export class Game {
    */
   _precargarPista() {
     this.obstaculos.precargar(this.velocidad, (carrilesLibres, z, gap) => {
-      this.papeles.generarHilera(carrilesLibres, z, gap, Math.random() < 0.33);
+      this.evidencia.generarHilera(carrilesLibres, z, gap, Math.random() < 0.33);
     });
   }
 
@@ -393,14 +393,14 @@ export class Game {
     if (!grupo) return;
 
     // La hilera va en arco (sobre un salto) una de cada tres veces.
-    const carrilPapeles = this.papeles.generarHilera(
+    const carrilEvidencia = this.evidencia.generarHilera(
       grupo.carrilesLibres,
       grupo.z,
       grupo.gap,
       Math.random() < 0.33,
     );
 
-    const libres = grupo.carrilesLibres.filter((c) => c !== carrilPapeles);
+    const libres = grupo.carrilesLibres.filter((c) => c !== carrilEvidencia);
     if (libres.length === 0) return;
 
     // Lo único que se ofrece en el hueco es un potenciador. Antes competía
@@ -425,7 +425,7 @@ export class Game {
 
     this.pista.aplicarTema(colores);
     this.obstaculos.aplicarTema(colores, id);
-    this.papeles.aplicarTema(config);
+    this.evidencia.aplicarTema(config);
     this.elevado.aplicarTema(colores);
 
     this.rutaPartida.push(id);
@@ -472,8 +472,8 @@ export class Game {
     this.velocidadBase = VELOCIDAD.INICIAL;
     this.distanciaTotal = 0;
     this.distanciaTramo = 0;
-    this.papelesPartida = 0;
-    this.evidenciasPartida = [];
+    this.evidenciaPartida = 0;
+    this.pruebasPartida = [];
     this.rutaPartida = [];
     this.combo = 0;
     this.temporizadorCombo = 0;
@@ -486,7 +486,7 @@ export class Game {
     this.jugador.reiniciar();
     this.bifurcacion.reiniciar();
     this.obstaculos.reiniciar();
-    this.papeles.reiniciar();
+    this.evidencia.reiniciar();
     this.perseguidor.reiniciar();
     this.elevado.reiniciar();
     this.tramite.limpiar();
@@ -573,16 +573,16 @@ export class Game {
     // Si el equipo cargó citas verificadas, se añade la que aplique.
     const cita = citaVerificada(this.escenarioActual);
 
-    const puntaje = this.papelesPartida + Math.floor(this.distanciaTotal / 10);
+    const puntaje = this.evidenciaPartida + Math.floor(this.distanciaTotal / 10);
 
     // CONTINUIDAD: la próxima partida arranca aquí, donde te capturaron.
     this.cuaderno.ultimoEscenario = this.escenarioActual;
 
     const cierre = this._cerrarEnCuaderno({
-      papeles: this.papelesPartida,
+      papeles: this.evidenciaPartida,
       distancia: Math.floor(this.distanciaTotal),
       puntaje,
-      evidencias: this.evidenciasPartida,
+      pruebas: this.pruebasPartida,
       ruta: [...this.rutaPartida],
     });
 
@@ -590,16 +590,16 @@ export class Game {
       motivo,
       texto,
       cita,
-      papeles: this.papelesPartida,
+      papeles: this.evidenciaPartida,
       distancia: Math.floor(this.distanciaTotal),
       puntaje,
-      evidencias: this.evidenciasPartida,
+      pruebas: this.pruebasPartida,
       ruta: this.rutaPartida,
-      // El récord que se anuncia es el de PAPELES, que es lo que mide el
+      // El récord que se anuncia es el de EVIDENCIA, que es lo que mide el
       // juego: cuánta documentación sacaste antes de que te pararan. El
       // cuaderno ya se cerró unas líneas más arriba, así que la marca de esta
       // corrida ya está dentro y la comparación va con `>=`.
-      esRecord: this.papelesPartida >= this.cuaderno.mejorPapeles,
+      esRecord: this.evidenciaPartida >= this.cuaderno.mejorEvidencia,
       escenario: this.escenarioActual,
       ...cierre,
     };
@@ -698,7 +698,7 @@ export class Game {
   /** Limpia la pista y arranca un tramo nuevo en el escenario indicado. */
   _entrarEnTramo(destino) {
     this.obstaculos.limpiar();
-    this.papeles.limpiar();
+    this.evidencia.limpiar();
     // Las chispas también: al cambiar de temporada el mundo entero salta, y un
     // estallido de la calle anterior quedaría flotando sobre la nueva.
     this.particulas.limpiar();
@@ -706,7 +706,7 @@ export class Game {
     this.elevado.limpiar();
     this.tramite.limpiar();
     this.potenciadores.limpiar();
-    this.papeles.nuevoTramo();
+    this.evidencia.nuevoTramo();
     this.obstaculos.generacionPausada = false;
     this.elevado.generacionPausada = false;
     this.enAproximacion = false;
@@ -803,7 +803,7 @@ export class Game {
     }
     if (extra.hallazgo) {
       this.alMostrarAviso({
-        tipo: 'evidencia',
+        tipo: 'prueba',
         titulo: 'PERO SALES CON ALGO',
         subtitulo: `${extra.hallazgo} · ${extra.perdidos ?? 0} se quedaron en el suelo`,
       });
@@ -835,7 +835,7 @@ export class Game {
     this.obstaculos.generacionPausada = true;
     this.elevado.limpiar();
     this.elevado.generacionPausada = true;
-    this.papeles.limpiar();
+    this.evidencia.limpiar();
     this.potenciadores.limpiar();
     this.bifurcacion.limpiar();
     this._limpiarEfectos();
@@ -844,14 +844,14 @@ export class Game {
 
     // TE LOS QUITAN. El marcador se vacía en el acto: lo que había pasa a
     // estar por el suelo, y lo que se recupere volverá a sumar.
-    const confiscados = this.papelesPartida;
-    this.papelesPartida = 0;
+    const confiscados = this.evidenciaPartida;
+    this.evidenciaPartida = 0;
     this.combo = 0;
 
     this.tramite.iniciar(
       this.escenario.obtenerColores(),
       institucion,
-      this.papeles,
+      this.evidencia,
       confiscados,
     );
 
@@ -867,20 +867,20 @@ export class Game {
    */
   _salirDelTramite() {
     const institucion = this.rutas.datosInstitucion(this.escenarioActual);
-    const recuperados = this.tramite.papelesRecuperados();
-    const devueltos = this.tramite.papelesDevueltos();
-    const perdidos = this.tramite.papelesPerdidos();
+    const recuperados = this.tramite.evidenciaRecuperada();
+    const devueltos = this.tramite.evidenciaDevuelta();
+    const perdidos = this.tramite.evidenciaPerdida();
     const perfecto = this.tramite.esPerfecto();
 
     // Vuelve a la cuenta lo que se levantó del suelo, POR DOS. Ver
     // TRAMITE.MULTIPLICADOR_RESCATE: sin el ×2 la única jugada correcta era no
     // entrar nunca, y un tramo que solo se puede evitar no es un tramo.
-    this.papelesPartida += devueltos;
+    this.evidenciaPartida += devueltos;
 
     // El hallazgo del caso. Es lo único que compensa haber entrado.
     const hallazgo = institucion?.hallazgo;
-    if (hallazgo && !this.evidenciasPartida.includes(hallazgo)) {
-      this.evidenciasPartida.push(hallazgo);
+    if (hallazgo && !this.pruebasPartida.includes(hallazgo)) {
+      this.pruebasPartida.push(hallazgo);
       this.audio.evidencia();
     }
 
@@ -901,21 +901,21 @@ export class Game {
    * Recuperaste el reguero entero, que es prácticamente imposible. El ente te
    * da igual con la puerta en las narices, pero el caso sigue vivo.
    */
-  _ganarPartida(institucion, papelesRecuperados) {
+  _ganarPartida(institucion, evidenciaRecuperada) {
     this.jugador.vivo = true;
     this.controles.desactivar();
     this.audio.evidencia();
 
-    const puntaje = this.papelesPartida + Math.floor(this.distanciaTotal / 10);
+    const puntaje = this.evidenciaPartida + Math.floor(this.distanciaTotal / 10);
 
     this.cuaderno.denunciaPresentada = true;
     this.cuaderno.ultimoEscenario = this.escenarioActual;
 
     const cierre = this._cerrarEnCuaderno({
-      papeles: this.papelesPartida,
+      papeles: this.evidenciaPartida,
       distancia: Math.floor(this.distanciaTotal),
       puntaje,
-      evidencias: this.evidenciasPartida,
+      pruebas: this.pruebasPartida,
       ruta: [...this.rutaPartida],
     });
 
@@ -923,11 +923,11 @@ export class Game {
       institucion: institucion?.nombre ?? 'LA INSTITUCIÓN',
       texto: institucion?.textoExito
         ?? 'Los recogiste todos. Alguien, en algún piso, tuvo que leerlo.',
-      papelesEntregados: papelesRecuperados,
-      papeles: this.papelesPartida,
+      papelesEntregados: evidenciaRecuperada,
+      papeles: this.evidenciaPartida,
       distancia: Math.floor(this.distanciaTotal),
       puntaje,
-      evidencias: this.evidenciasPartida,
+      pruebas: this.pruebasPartida,
       ruta: this.rutaPartida,
       ...cierre,
     });
@@ -989,7 +989,7 @@ export class Game {
         break;
 
       case 'portada':
-        this.multiplicadorPapeles = 2;
+        this.multiplicadorEvidencia = 2;
         this.efectos.set(def.id, def.duracion);
         break;
 
@@ -1003,7 +1003,7 @@ export class Game {
 
       case 'iman':
       default:
-        this.papeles.radioIman = POTENCIADORES.RADIO_IMAN;
+        this.evidencia.radioIman = POTENCIADORES.RADIO_IMAN;
         this.efectos.set(def.id, def.duracion);
         break;
     }
@@ -1112,8 +1112,8 @@ export class Game {
     switch (id) {
       case 'botas': this.jugador.multiplicadorSalto = 1; break;
       case 'cobertura': this.jugador.volar(false); break;
-      case 'portada': this.multiplicadorPapeles = 1; break;
-      case 'iman': this.papeles.radioIman = PAPELES.RADIO_IMAN; break;
+      case 'portada': this.multiplicadorEvidencia = 1; break;
+      case 'iman': this.evidencia.radioIman = EVIDENCIA.RADIO_IMAN; break;
       default: break;
     }
   }
@@ -1122,7 +1122,7 @@ export class Game {
   _limpiarEfectos() {
     for (const id of this.efectos.keys()) this._desactivarPotenciador(id);
     this.efectos.clear();
-    this.multiplicadorPapeles = 1;
+    this.multiplicadorEvidencia = 1;
     this.jugador.escudo = false;
   }
 
@@ -1175,7 +1175,7 @@ export class Game {
 
     // La pista quedó parada bajo los pies del jugador: hay que rellenarla.
     this.obstaculos.limpiar();
-    this.papeles.limpiar();
+    this.evidencia.limpiar();
     this.elevado.limpiar();
     this.potenciadores.limpiar();
 
@@ -1388,11 +1388,11 @@ export class Game {
     // Niveles elevados. Devuelve la altura del suelo bajo los pies, que puede
     // ser el asfalto o el tablado de una tarima.
     const alturaSuelo = this.elevado.actualizar(
-      dt, avance, this.jugador, this.obstaculos, this.papeles,
+      dt, avance, this.jugador, this.obstaculos, this.evidencia,
     );
     this.jugador.establecerSuelo(alturaSuelo);
 
-    this.papeles.actualizar(dt, avance, this.jugador);
+    this.evidencia.actualizar(dt, avance, this.jugador);
     this.potenciadores.actualizar(dt, avance);
     this._actualizarEfectos(dt);
 
@@ -1409,13 +1409,13 @@ export class Game {
     const potenciador = this.potenciadores.recoger(this.jugador);
     if (potenciador) this._activarPotenciador(potenciador);
 
-    const recogido = this.papeles.recoger(this.jugador);
+    const recogido = this.evidencia.recoger(this.jugador);
     if (recogido.papeles > 0) {
       // IMPORTANTE: Durante el trámite, NO sumamos papeles aquí. Se registran en
       // tramite.contar() y se devuelven al salir (con el ×2 incluido). Si sumáramos
       // aquí ADEMÁS de sumar al salir, se contarían dos veces.
       if (!this.tramite.activo) {
-        this.papelesPartida += recogido.papeles * this.multiplicadorPapeles;
+        this.evidenciaPartida += recogido.papeles * this.multiplicadorEvidencia;
       }
 
       this.combo += 1;
@@ -1447,12 +1447,12 @@ export class Game {
       // media se separaba de la realidad en cuanto no todas valían lo mismo.
       if (this.tramite.activo) this.tramite.contar(recogido.papeles);
     }
-    for (const ev of recogido.evidencias) {
-      if (!this.evidenciasPartida.includes(ev.nombre)) {
-        this.evidenciasPartida.push(ev.nombre);
+    for (const ev of recogido.pruebas) {
+      if (!this.pruebasPartida.includes(ev.nombre)) {
+        this.pruebasPartida.push(ev.nombre);
       }
       this.audio.evidencia();
-      this.alMostrarAviso({ tipo: 'evidencia', titulo: 'PRUEBA', subtitulo: ev.nombre });
+      this.alMostrarAviso({ tipo: 'prueba', titulo: 'PRUEBA', subtitulo: ev.nombre });
     }
 
     // El combo caduca si dejas de recoger.
@@ -1552,7 +1552,7 @@ export class Game {
    */
   _publicarHUD(velocidadEfectiva) {
     this.alActualizarHUD({
-      papeles: this.papelesPartida,
+      papeles: this.evidenciaPartida,
       distancia: Math.floor(this.distanciaTotal),
       velocidad: velocidadEfectiva,
       cercania: this.perseguidor.cercania(),
@@ -1562,15 +1562,15 @@ export class Game {
       progresoTramo: this.distanciaTramo / TRAMO.LONGITUD,
       linterna: this.escenarioActual === 'apagon' ? this.escenario.fraccionLinterna() : null,
       // El HUD pinta una ficha por tipo de evidencia con su contador.
-      evidencias: this.evidenciasPartida,
+      pruebas: this.pruebasPartida,
       // Destello blanco que tapa el corte de escenario al tomar un desvío.
       destello: this.bifurcacion.destello(),
       // Marcador del expediente mientras se está dentro del túnel del centro.
       tramite: this.tramite.activo
         ? {
-          // En PAPELES, no en piezas: el marcador dice «12 / 300» sobre los que
+          // En EVIDENCIA, no en piezas: el marcador dice «12 / 300» sobre los que
           // te quitaron, que es la única cuenta que el jugador puede comprobar.
-          recogidos: this.tramite.papelesRecuperados(),
+          recogidos: this.tramite.evidenciaRecuperada(),
           total: this.tramite.confiscados,
           // Cuántos han quedado ya atrás. Es con lo que el HUD decide si vas
           // por encima o por debajo de la mitad, que es la cuenta del tramo.
@@ -1710,7 +1710,7 @@ export class Game {
     this.controles.desactivar();
     this.jugador.reiniciar();
     this.obstaculos.reiniciar();
-    this.papeles.reiniciar();
+    this.evidencia.reiniciar();
     this.perseguidor.reiniciar();
     this.bifurcacion.reiniciar();
     this.elevado.reiniciar();

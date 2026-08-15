@@ -20,16 +20,16 @@ import { ESCENARIOS } from '../config/escenarios.js';
 
 const ESTADO_INICIAL = {
   version: 1,
-  totalPapeles: 0,        // Papeles disponibles para gastar
-  papelesHistoricos: 0,   // Total acumulado de siempre (nunca baja)
+  totalEvidencia: 0,        // Papeles disponibles para gastar
+  evidenciaHistorica: 0,   // Total acumulado de siempre (nunca baja)
   paginasDesbloqueadas: [],
-  evidenciasEncontradas: [],
+  pruebasEncontradas: [],
   mejorDistancia: 0,
   mejorPuntaje: 0,
-  // Papeles de la MEJOR corrida, que no es lo mismo que `totalPapeles` (lo que
-  // te queda por gastar) ni que `papelesHistoricos` (lo que juntaste desde
+  // Papeles de la MEJOR corrida, que no es lo mismo que `totalEvidencia` (lo que
+  // te queda por gastar) ni que `evidenciaHistorica` (lo que juntaste desde
   // siempre). Es la marca personal, y es la cifra que compite en la tabla.
-  mejorPapeles: 0,
+  mejorEvidencia: 0,
   // Entes de control cuyo relato ya se leyó. Se cuenta UNA vez cada uno; a
   // partir de la segunda visita solo queda la acusación de siempre. Ver
   // Game._contarInstitucion().
@@ -85,11 +85,41 @@ export class Notebook {
       const guardado = JSON.parse(crudo);
       // Fusionamos con el estado inicial para tolerar versiones antiguas
       // a las que les falten campos nuevos.
-      return { ...ESTADO_INICIAL, ...guardado };
+      return { ...ESTADO_INICIAL, ...Notebook._migrar(guardado) };
     } catch (e) {
       console.warn('[Cuaderno] Progreso corrupto, se empieza de cero.', e);
       return { ...ESTADO_INICIAL };
     }
+  }
+
+  /**
+   * TRAE EL PROGRESO DE LOS NOMBRES VIEJOS.
+   *
+   * Al renombrar el dominio —los papeles pasaron a ser evidencia y las
+   * evidencias a ser pruebas— cambiaron también las claves que se guardan en
+   * el navegador. Sin esto, quien ya venía jugando abriría el juego y se
+   * encontraría el archivo en blanco: los campos nuevos no existirían en su
+   * partida guardada y el estado inicial los pondría a cero.
+   *
+   * Es una traducción de una sola dirección y se puede aplicar siempre: si la
+   * clave vieja no está, no hay nada que traer. Las viejas se borran para que
+   * el guardado no arrastre dos nombres de lo mismo.
+   */
+  static _migrar(guardado) {
+    const equivalencias = [
+      ['totalPapeles', 'totalEvidencia'],
+      ['papelesHistoricos', 'evidenciaHistorica'],
+      ['mejorPapeles', 'mejorEvidencia'],
+      ['evidenciasEncontradas', 'pruebasEncontradas'],
+    ];
+    const estado = { ...guardado };
+    for (const [viejo, nuevo] of equivalencias) {
+      if (estado[viejo] === undefined) continue;
+      // Si por lo que sea ya existe el nuevo, manda el nuevo: es el vigente.
+      if (estado[nuevo] === undefined) estado[nuevo] = estado[viejo];
+      delete estado[viejo];
+    }
+    return estado;
   }
 
   guardar() {
@@ -110,7 +140,7 @@ export class Notebook {
   /**
    * Cierra una partida y consolida su resultado.
    * @param {{papeles:number, distancia:number, puntaje:number,
-   *          evidencias:string[], ruta:string[]}} resultado
+   *          pruebas:string[], ruta:string[]}} resultado
    * @returns {{paginasNuevas:Array}} Lo que se desbloqueó con esta partida
    */
   registrarPartida(resultado) {
@@ -118,19 +148,19 @@ export class Notebook {
     // salida, así que la primera partida ya suma uno.
     this.estado.tramosRecorridos += resultado.ruta?.length ?? 0;
 
-    this.estado.totalPapeles += resultado.papeles;
-    this.estado.papelesHistoricos += resultado.papeles;
+    this.estado.totalEvidencia += resultado.papeles;
+    this.estado.evidenciaHistorica += resultado.papeles;
     this.estado.partidasJugadas += 1;
 
     this.estado.mejorDistancia = Math.max(this.estado.mejorDistancia, resultado.distancia);
     this.estado.mejorPuntaje = Math.max(this.estado.mejorPuntaje, resultado.puntaje);
-    this.estado.mejorPapeles = Math.max(this.estado.mejorPapeles ?? 0, resultado.papeles);
+    this.estado.mejorEvidencia = Math.max(this.estado.mejorEvidencia ?? 0, resultado.papeles);
     this.estado.distanciaHistorica = (this.estado.distanciaHistorica ?? 0) + resultado.distancia;
 
     // Evidencias: guardamos cada tipo una sola vez.
-    for (const ev of resultado.evidencias ?? []) {
-      if (!this.estado.evidenciasEncontradas.includes(ev)) {
-        this.estado.evidenciasEncontradas.push(ev);
+    for (const ev of resultado.pruebas ?? []) {
+      if (!this.estado.pruebasEncontradas.includes(ev)) {
+        this.estado.pruebasEncontradas.push(ev);
       }
     }
 
@@ -179,7 +209,7 @@ export class Notebook {
     // el total —que es lo que pasaba mirando solo la longitud de la lista—
     // dejaba que un puñado de material falso abriera el último reportaje, que
     // es exactamente lo contrario de lo que la mecánica quiere decir.
-    const mias = (this.estado.evidenciasEncontradas ?? [])
+    const mias = (this.estado.pruebasEncontradas ?? [])
       .filter((n) => !Notebook.esFalsa(n));
     if (!caso) return mias.length;
     return mias.filter((n) => Notebook._casoDeLaPrueba(n) === caso).length;
@@ -265,13 +295,13 @@ export class Notebook {
   // CONSULTAS
   // -------------------------------------------------------------------------
 
-  get papeles() { return this.estado.totalPapeles; }
-  get papelesHistoricos() { return this.estado.papelesHistoricos; }
+  get papeles() { return this.estado.totalEvidencia; }
+  get evidenciaHistorica() { return this.estado.evidenciaHistorica; }
   get mejorDistancia() { return this.estado.mejorDistancia; }
   get mejorPuntaje() { return this.estado.mejorPuntaje; }
   // Con `?? 0` porque a quien ya venía jugando no se le guardó nunca: el
   // estado se lee de localStorage y las partidas viejas no traen este campo.
-  get mejorPapeles() { return this.estado.mejorPapeles ?? 0; }
+  get mejorEvidencia() { return this.estado.mejorEvidencia ?? 0; }
   get distanciaHistorica() { return this.estado.distanciaHistorica ?? 0; }
 
   /** ¿Ya se contó el relato de este ente de control? */
@@ -287,7 +317,7 @@ export class Notebook {
     this.guardar();
   }
   get partidasJugadas() { return this.estado.partidasJugadas; }
-  get evidencias() { return this.estado.evidenciasEncontradas; }
+  get pruebas() { return this.estado.pruebasEncontradas; }
   get rutas() { return this.estado.rutasRecorridas; }
 
   /**

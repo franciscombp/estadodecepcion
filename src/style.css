@@ -786,7 +786,7 @@ html, body {
 }
 
 .aviso--golpe       { border-color: rgba(var(--rojo-rgb), 0.6);    color: var(--rojo); }
-.aviso--evidencia   { border-color: rgba(var(--naranja-rgb), 0.6); color: var(--naranja); }
+.aviso--prueba   { border-color: rgba(var(--naranja-rgb), 0.6); color: var(--naranja); }
 .aviso--escenario   { border-color: rgba(var(--dorado-rgb), 0.6);  color: var(--dorado); }
 .aviso--bifurcacion { border-color: rgba(var(--verde-rgb), 0.6);   color: var(--verde); }
 .aviso--consejo     { border-color: rgba(var(--cian-rgb), 0.6);    color: var(--cian); }
@@ -802,7 +802,7 @@ html, body {
   to { opacity: 0; transform: translateY(-10px); }
 }
 
-/* LA EVIDENCIA NO SE DESVANECE: SE GUARDA.
+/* LA PRUEBAS NO SE DESVANECE: SE GUARDA.
    El aviso sale arriba a la derecha y la ficha de evidencia vive abajo a la
    izquierda, así que la tarjeta cruza en diagonal hasta allí y se encoge al
    llegar. Es la misma idea que el «+3» que sube del contador: la recompensa se
@@ -811,13 +811,13 @@ html, body {
    Los tiempos están atados a HUD.mostrarAviso(), que retira el nodo a los
    2400 ms: empieza a 1,5 s y dura 0,75 s, o sea que termina antes de que se lo
    lleven. Si se pasa, el vuelo se corta a medias y parece un fallo. */
-.aviso--evidencia {
+.aviso--prueba {
   animation:
     aviso-entra var(--t-medio) var(--rebote),
-    pickup-evidencia 0.75s cubic-bezier(0.5, 0, 0.75, 0) 1.5s forwards !important;
+    pickup-prueba 0.75s cubic-bezier(0.5, 0, 0.75, 0) 1.5s forwards !important;
 }
 
-@keyframes pickup-evidencia {
+@keyframes pickup-prueba {
   0% {
     opacity: 1;
     transform: translate(0, 0) scale(1);
@@ -875,12 +875,12 @@ html, body {
 }
 
 .panel--distancia { border-color: rgba(var(--verde-rgb), 0.35); }
-.panel--evidencia { border-color: rgba(var(--naranja-rgb), 0.3); }
+.panel--prueba { border-color: rgba(var(--naranja-rgb), 0.3); }
 
 /* Fichas de evidencia */
-.fichas-evidencia { display: flex; gap: 5px; }
+.fichas-prueba { display: flex; gap: 5px; }
 
-.ficha-evidencia {
+.ficha-prueba {
   position: relative;
   width: 36px;
   height: 36px;
@@ -1115,7 +1115,7 @@ html, body {
   .plana__record,
   .pantalla--plana .posiciones__fila--tu,
   .suma-flotante,
-  .aviso--evidencia,
+  .aviso--prueba,
   .expediente--progresa,
   .expediente--progresa .expediente__cuenta,
   .expediente--progresa .medidor__relleno--dorado,

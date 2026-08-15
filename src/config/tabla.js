@@ -66,7 +66,7 @@ export const CLASIFICACIONES = [
     epigrafe: 'Ordenados por lo que llevan documentado. Cuanto más arriba, más estorbas',
     notaLider: 'prioridad uno',
     unidad: '',
-    valor: (c) => c.papelesHistoricos,
+    valor: (c) => c.evidenciaHistorica,
     marcas: [46_820, 39_140, 34_505, 29_960, 24_340, 19_775, 15_190, 11_640, 8_020, 5_615],
   },
   {
@@ -86,7 +86,7 @@ export const CLASIFICACIONES = [
     antetitulo: 'QUIÉN DOCUMENTA MÁS DE UNA SENTADA',
     epigrafe: 'Papeles recogidos en una sola partida',
     unidad: '',
-    valor: (c) => c.mejorPapeles,
+    valor: (c) => c.mejorEvidencia,
     marcas: [3_180, 2_740, 2_455, 2_090, 1_815, 1_530, 1_265, 1_010, 780, 545],
   },
 ];

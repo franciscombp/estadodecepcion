@@ -870,7 +870,7 @@ function _figuraDeUniforme(g, colorRopa, colorOscuro, conEscudo = false) {
 // ---------------------------------------------------------------------------
 
 // Compartidos por todas las instancias.
-let _geoPapel = null;
+let _geoEvidencia = null;
 let _matPapel = null;
 
 /**
@@ -880,11 +880,11 @@ let _matPapel = null;
  * geometría aparte. A la velocidad del juego se ve igual y ahorra tres draw
  * calls por papel (más de 200 con la pista llena).
  */
-export function crearPapel() {
-  if (!_geoPapel) {
+export function crearEvidencia() {
+  if (!_geoEvidencia) {
     // Algo más pequeño y casi cuadrado: cuanto menos alto es el papel,
     // menos separación hace falta para que se vea el hueco entre dos.
-    _geoPapel = new THREE.BoxGeometry(0.46, 0.5, 0.03);
+    _geoEvidencia = new THREE.BoxGeometry(0.46, 0.5, 0.03);
 
     const tex = textura('papel', (ctx, w, h) => {
       ctx.fillStyle = '#ffd94f';
@@ -915,7 +915,7 @@ export function crearPapel() {
     });
   }
 
-  const papel = new THREE.Mesh(_geoPapel, _matPapel);
+  const papel = new THREE.Mesh(_geoEvidencia, _matPapel);
   papel.userData.tipo = 'papel';
   return papel;
 }
@@ -940,8 +940,8 @@ export function crearPapel() {
  *   justo donde hay que mirar. En el resto de escenas estorbaría, porque un
  *   objeto que no se funde con el fondo se lee como pegatina.
  */
-export function ajustarBrilloPapel(intensidad, atraviesaNiebla = false) {
-  if (!_matPapel) crearPapel();
+export function ajustarBrilloEvidencia(intensidad, atraviesaNiebla = false) {
+  if (!_matPapel) crearEvidencia();
   _matPapel.emissiveIntensity = intensidad;
   _matPapel.fog = !atraviesaNiebla;
   _matPapel.toneMapped = !atraviesaNiebla;
@@ -949,10 +949,10 @@ export function ajustarBrilloPapel(intensidad, atraviesaNiebla = false) {
 }
 
 /**
- * EVIDENCIA — la gema. Un USB con carcasa naranja, conector metálico y
+ * PRUEBAS — la gema. Un USB con carcasa naranja, conector metálico y
  * halo pulsante. Vale mucho más que un papel y tiene que notarse.
  */
-export function crearEvidencia() {
+export function crearPrueba() {
   const g = new THREE.Group();
 
   const cuerpo = new THREE.Mesh(

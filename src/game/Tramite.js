@@ -33,7 +33,7 @@
 // ============================================================================
 
 import * as THREE from 'three';
-import { CARRILES, TRAMITE, PAPELES } from '../config/balance.js';
+import { CARRILES, TRAMITE, EVIDENCIA } from '../config/balance.js';
 import { crearGaleriaTramite } from '../models/props.js';
 
 export class TramiteManager {
@@ -63,16 +63,16 @@ export class TramiteManager {
    * @param {object} colores      Paleta de la escena de entrada
    * @param {object} institucion  Ficha del ente (config/escenarios.js)
    * @param {CoinManager} papeles
-   * @param {number} papelesDelJugador Lo que llevaba recogido al entrar
+   * @param {number} evidenciaDelJugador Lo que llevaba recogido al entrar
    */
-  iniciar(colores, institucion, papeles, papelesDelJugador) {
+  iniciar(colores, institucion, papeles, evidenciaDelJugador) {
     this.limpiar();
 
     this.activo = true;
     this.recorrido = 0;
     this.recuperadas = 0;
     this.institucion = institucion;
-    this.confiscados = Math.max(0, Math.floor(papelesDelJugador));
+    this.confiscados = Math.max(0, Math.floor(evidenciaDelJugador));
 
     const largo = TRAMITE.LONGITUD + 60;
     this.galeria = crearGaleriaTramite(largo, colores, institucion?.nombre ?? 'TRÁMITE');
@@ -129,7 +129,7 @@ export class TramiteManager {
     this.piezas = Math.max(1, Math.min(this.confiscados, TRAMITE.PIEZAS_MAXIMAS, rodajasMax));
     const paso = this.piezas > 1 ? util / (this.piezas - 1) : 0;
 
-    // CADA PIEZA LLEVA UN NÚMERO ENTERO DE PAPELES, Y LA SUMA CUADRA EXACTA.
+    // CADA PIEZA LLEVA UN NÚMERO ENTERO DE EVIDENCIA, Y LA SUMA CUADRA EXACTA.
     //
     // Antes cada pieza valía `confiscados / piezas` —un decimal— y lo devuelto
     // se redondeaba al final. Mientras cupieran todos daba igual, porque ese
@@ -165,10 +165,10 @@ export class TramiteManager {
       // pasaba a ser recoger pronto y desentenderse del resto.
       const extra = (i * sobran) % this.piezas < sobran ? 1 : 0;
 
-      papeles.plantarPapel(
+      papeles.plantarEvidencia(
         CARRILES.POSICIONES[carril],
         // Casi por el suelo: se los tiraron, no se los colocaron.
-        PAPELES.ALTURA * 0.55,
+        EVIDENCIA.ALTURA * 0.55,
         -TRAMITE.ENTRADA - avance,
         base + extra,
       );
@@ -194,7 +194,7 @@ export class TramiteManager {
   }
 
   /**
-   * Registra PAPELES levantados del suelo, no piezas.
+   * Registra EVIDENCIA levantados del suelo, no piezas.
    *
    * Quien llama pasa el valor sumado de lo recogido este fotograma, que es lo
    * que llevaba cada pieza. Contando piezas y multiplicando después había que
@@ -206,7 +206,7 @@ export class TramiteManager {
   }
 
   /** Cuántos papeles levantaste del suelo, en crudo y sin el ×2. */
-  papelesRecuperados() {
+  evidenciaRecuperada() {
     return Math.min(this.confiscados, this.recuperadas);
   }
 
@@ -217,8 +217,8 @@ export class TramiteManager {
    * cuenta del jugador saquen la cifra del mismo sitio. Cuando estaban en dos
    * lados, la pantalla decía una cosa y el contador otra.
    */
-  papelesDevueltos() {
-    return this.papelesRecuperados() * TRAMITE.MULTIPLICADOR_RESCATE;
+  evidenciaDevuelta() {
+    return this.evidenciaRecuperada() * TRAMITE.MULTIPLICADOR_RESCATE;
   }
 
   /**
@@ -229,8 +229,8 @@ export class TramiteManager {
    * recuperar más de la mitad daría «perdidos: 0» con medio pasillo aún lleno
    * de papeles, y la cifra dejaría de significar nada.
    */
-  papelesPerdidos() {
-    return Math.max(0, this.confiscados - this.papelesRecuperados());
+  evidenciaPerdida() {
+    return Math.max(0, this.confiscados - this.evidenciaRecuperada());
   }
 
   /**

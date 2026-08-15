@@ -179,7 +179,7 @@ export function iconoPotenciador(id, tamano = 24) {
 // RECOLECTABLES
 // ---------------------------------------------------------------------------
 
-/** PAPELES — la moneda. Pila de hojas con renglones. */
+/** EVIDENCIA — la moneda. Pila de hojas con renglones. */
 export const papeles = (t) => svg(`
   <rect x="3.4" y="6.4" width="12" height="14.4" rx="1.4" fill="#c9a227" transform="rotate(-7 9.4 13.6)"/>
   <rect x="5.4" y="5" width="12" height="14.4" rx="1.4" fill="#e6bf3d" transform="rotate(-2 11.4 12.2)"/>
@@ -221,7 +221,7 @@ export const foto = (t) => svg(`
 `, { tamano: t });
 
 /** Icono de evidencia según su nombre. Reparte por palabras clave. */
-export function iconoEvidencia(nombre, tamano = 24) {
+export function iconoPrueba(nombre, tamano = 24) {
   const n = (nombre ?? '').toLowerCase();
   if (n.includes('usb') || n.includes('contrato') || n.includes('factura') || n.includes('nómina')) {
     return usb(tamano);

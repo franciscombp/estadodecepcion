@@ -159,9 +159,9 @@ export const OBSTACULOS = {
 };
 
 // ---------------------------------------------------------------------------
-// PAPELES Y EVIDENCIA (las monedas)
+// EVIDENCIA Y PRUEBAS (las monedas)
 // ---------------------------------------------------------------------------
-export const PAPELES = {
+export const EVIDENCIA = {
   VALOR_MINIMO: 1,
   VALOR_MAXIMO: 5,
   // Los papeles salen en hileras, como las monedas del original.
@@ -211,7 +211,7 @@ export const PAPELES = {
   VELOCIDAD_IMAN: 9,
 };
 
-export const EVIDENCIA = {
+export const PRUEBAS = {
   VALOR_MINIMO: 10,
   VALOR_MAXIMO: 20,
   // Aparece con mucha menos frecuencia que los papeles.
@@ -419,7 +419,7 @@ export const TUNEL = {
 // ---------------------------------------------------------------------------
 // LOS ENTES DE CONTROL — el túnel del centro
 // ---------------------------------------------------------------------------
-// Entrar de frente no abre una ruleta: la institución te RIEGA LOS PAPELES.
+// Entrar de frente no abre una ruleta: la institución te RIEGA LOS EVIDENCIA.
 // Se desparraman por el pasillo los que traías y sales con lo que alcances a
 // recoger del suelo. Ver docs/GUION.md y game/Tramite.js.
 // ============================================================================
@@ -497,7 +497,7 @@ export const TRAMITE = {
 
   // Hueco mínimo entre papeles seguidos. Por debajo de esto la hilera se lee
   // como una cinta continua en vez de como papeles sueltos —la cuenta está en
-  // PAPELES.SEPARACION—, pero aquí se admite bastante más apretado a propósito:
+  // EVIDENCIA.SEPARACION—, pero aquí se admite bastante más apretado a propósito:
   // esto no es una hilera de recompensa, es un expediente reventado por el
   // suelo, y ahí la masa ES el mensaje.
   PASO_MINIMO: 0.6,
@@ -741,7 +741,7 @@ export const PALETA = {
   LINEA_CARRIL: 0xffcf3f,
   JUGADOR: 0x7cffb2,
   PAPEL: 0xffcf3f,
-  EVIDENCIA: 0xff6b35,
+  PRUEBAS: 0xff6b35,
   OBSTACULO: 0xd9a441,
   BRILLO_PELIGRO: 0xff4f6d,
   PERSEGUIDOR: 0xff4f6d,

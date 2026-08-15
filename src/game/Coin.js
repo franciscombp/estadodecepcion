@@ -1,5 +1,5 @@
 // ============================================================================
-// PAPELES Y EVIDENCIA — Los recolectables
+// EVIDENCIA Y PRUEBAS — Los recolectables
 // ============================================================================
 // Papeles = las monedas. Salen en hileras, como en Subway Surfers, y guían al
 // jugador por la ruta buena: si sigues los papeles, sobrevives.
@@ -11,8 +11,8 @@
 // ============================================================================
 
 import * as THREE from 'three';
-import { CARRILES, PAPELES, EVIDENCIA, OBSTACULOS } from '../config/balance.js';
-import { crearPapel, crearEvidencia, ajustarBrilloPapel } from '../models/props.js';
+import { CARRILES, EVIDENCIA, PRUEBAS, OBSTACULOS } from '../config/balance.js';
+import { crearEvidencia, crearPrueba, ajustarBrilloEvidencia } from '../models/props.js';
 import { crearCaja, hayColisionPlana, distanciaHorizontal } from '../utils/collision.js';
 
 export class CoinManager {
@@ -22,30 +22,30 @@ export class CoinManager {
     escena.add(this.grupo);
 
     this.activos = [];
-    this.poolPapeles = [];
     this.poolEvidencia = [];
+    this.poolPruebas = [];
 
     this.tiempo = 0;
 
     // Radio del imán. Es un campo y no una constante porque el potenciador
     // "Fuente anónima" lo agranda temporalmente.
-    this.radioIman = PAPELES.RADIO_IMAN;
+    this.radioIman = EVIDENCIA.RADIO_IMAN;
     // Multiplicador de densidad que impone cada escenario (Carondelet ≈ 0.25).
     this.densidad = 1.0;
     // Tope duro de papeles por tramo, para escenarios áridos.
     this.maximoPorTramo = Infinity;
     this.generadosEsteTramo = 0;
 
-    this.tiposEvidencia = ['Documento'];
+    this.tiposPrueba = ['Documento'];
   }
 
   // -------------------------------------------------------------------------
   // POOL
   // -------------------------------------------------------------------------
 
-  _obtenerPapel() {
-    if (this.poolPapeles.length > 0) return this.poolPapeles.pop();
-    const m = crearPapel();
+  _obtenerEvidencia() {
+    if (this.poolEvidencia.length > 0) return this.poolEvidencia.pop();
+    const m = crearEvidencia();
     this.grupo.add(m);
     return m;
   }
@@ -58,28 +58,28 @@ export class CoinManager {
    * objeto sería una segunda fuente de verdad para lo mismo, y las dos se
    * acabarían separando en cuanto alguien edite el catálogo.
    */
-  _nombreDeEvidencia() {
+  _nombreDePrueba() {
     const falsas = this.tiposFalsos ?? [];
     if (falsas.length && Math.random() < 0.34) {
       return falsas[Math.floor(Math.random() * falsas.length)];
     }
-    return this.tiposEvidencia[Math.floor(Math.random() * this.tiposEvidencia.length)];
+    return this.tiposPrueba[Math.floor(Math.random() * this.tiposPrueba.length)];
   }
 
-  _obtenerEvidencia() {
-    if (this.poolEvidencia.length > 0) return this.poolEvidencia.pop();
-    const m = crearEvidencia();
+  _obtenerPrueba() {
+    if (this.poolPruebas.length > 0) return this.poolPruebas.pop();
+    const m = crearPrueba();
     this.grupo.add(m);
     return m;
   }
 
   _devolver(item) {
     item.malla.visible = false;
-    if (item.tipo === 'evidencia') {
-      if (this.poolEvidencia.length < EVIDENCIA.TAMANO_POOL) this.poolEvidencia.push(item.malla);
+    if (item.tipo === 'prueba') {
+      if (this.poolPruebas.length < PRUEBAS.TAMANO_POOL) this.poolPruebas.push(item.malla);
       else this._destruirMalla(item.malla);
     } else {
-      if (this.poolPapeles.length < PAPELES.TAMANO_POOL) this.poolPapeles.push(item.malla);
+      if (this.poolEvidencia.length < EVIDENCIA.TAMANO_POOL) this.poolEvidencia.push(item.malla);
       else this._destruirMalla(item.malla);
     }
   }
@@ -88,7 +88,7 @@ export class CoinManager {
    * Saca una malla de la escena.
    *
    * OJO: NO libera geometría ni material. Los papeles comparten ambos entre
-   * todas sus instancias (ver crearPapel en models/props.js), así que
+   * todas sus instancias (ver crearEvidencia en models/props.js), así que
    * liberarlos aquí dejaría invisibles al resto de papeles vivos. Son un puñado
    * de recursos de tamaño fijo que viven lo que dura la aplicación: no hay
    * nada que recuperar liberándolos.
@@ -126,12 +126,12 @@ export class CoinManager {
     // La hilera empieza pasado el grupo y tiene que caber ANTES del siguiente.
     // Los carriles libres lo son para ESTE grupo; el siguiente tiene otro
     // reparto, así que invadirlo pondría papeles dentro de un muro.
-    const z = zGrupo - PAPELES.MARGEN_TRAS_GRUPO;
-    const espacioDisponible = Math.max(0, gap - PAPELES.MARGEN_TRAS_GRUPO - PAPELES.MARGEN_ANTES_GRUPO);
-    const cabenPorEspacio = Math.floor(espacioDisponible / PAPELES.SEPARACION) + 1;
+    const z = zGrupo - EVIDENCIA.MARGEN_TRAS_GRUPO;
+    const espacioDisponible = Math.max(0, gap - EVIDENCIA.MARGEN_TRAS_GRUPO - EVIDENCIA.MARGEN_ANTES_GRUPO);
+    const cabenPorEspacio = Math.floor(espacioDisponible / EVIDENCIA.SEPARACION) + 1;
 
-    const largoDeseado = PAPELES.LARGO_HILERA_MIN +
-      Math.floor(Math.random() * (PAPELES.LARGO_HILERA_MAX - PAPELES.LARGO_HILERA_MIN + 1));
+    const largoDeseado = EVIDENCIA.LARGO_HILERA_MIN +
+      Math.floor(Math.random() * (EVIDENCIA.LARGO_HILERA_MAX - EVIDENCIA.LARGO_HILERA_MIN + 1));
 
     const largo = Math.min(largoDeseado, cabenPorEspacio);
     if (largo < 1) return null;
@@ -139,32 +139,32 @@ export class CoinManager {
     for (let i = 0; i < largo; i++) {
       if (this.generadosEsteTramo >= this.maximoPorTramo) break;
 
-      const zPapel = z - i * PAPELES.SEPARACION;
+      const zEvidencia = z - i * EVIDENCIA.SEPARACION;
 
       // En arco, la hilera describe una parábola que coincide con la
       // trayectoria del salto. Es la señal visual de "salta aquí".
-      let y = PAPELES.ALTURA;
+      let y = EVIDENCIA.ALTURA;
       if (enArco) {
         const t = i / Math.max(1, largo - 1);
-        y = PAPELES.ALTURA + Math.sin(t * Math.PI) * (PAPELES.ALTURA_ARCO - PAPELES.ALTURA);
+        y = EVIDENCIA.ALTURA + Math.sin(t * Math.PI) * (EVIDENCIA.ALTURA_ARCO - EVIDENCIA.ALTURA);
       } else {
         // Ondulación: dos papeles seguidos nunca están a la misma altura, así
         // que aunque se junten en pantalla se siguen distinguiendo.
-        y = PAPELES.ALTURA + Math.sin(i * 1.15) * PAPELES.ONDA;
+        y = EVIDENCIA.ALTURA + Math.sin(i * 1.15) * EVIDENCIA.ONDA;
       }
 
-      const malla = this._obtenerPapel();
+      const malla = this._obtenerEvidencia();
       malla.visible = true;
-      malla.position.set(x, y, zPapel);
+      malla.position.set(x, y, zEvidencia);
 
       this.activos.push({
         malla,
-        tipo: 'papel',
+        tipo: 'evidencia',
         x,
         y,
-        z: zPapel,
-        valor: PAPELES.VALOR_MINIMO +
-          Math.floor(Math.random() * (PAPELES.VALOR_MAXIMO - PAPELES.VALOR_MINIMO + 1)),
+        z: zEvidencia,
+        valor: EVIDENCIA.VALOR_MINIMO +
+          Math.floor(Math.random() * (EVIDENCIA.VALOR_MAXIMO - EVIDENCIA.VALOR_MINIMO + 1)),
         recogido: false,
       });
 
@@ -172,24 +172,24 @@ export class CoinManager {
     }
 
     // ¿Cae una evidencia al final de la hilera?
-    if (Math.random() < EVIDENCIA.PROBABILIDAD_POR_GRUPO) {
-      const malla = this._obtenerEvidencia();
+    if (Math.random() < PRUEBAS.PROBABILIDAD_POR_GRUPO) {
+      const malla = this._obtenerPrueba();
       malla.visible = true;
-      const zEvidencia = z - largo * PAPELES.SEPARACION;
-      malla.position.set(x, EVIDENCIA.ALTURA, zEvidencia);
+      const zPrueba = z - largo * EVIDENCIA.SEPARACION;
+      malla.position.set(x, PRUEBAS.ALTURA, zPrueba);
 
       this.activos.push({
         malla,
-        tipo: 'evidencia',
+        tipo: 'prueba',
         x,
-        y: EVIDENCIA.ALTURA,
-        z: zEvidencia,
-        valor: EVIDENCIA.VALOR_MINIMO +
-          Math.floor(Math.random() * (EVIDENCIA.VALOR_MAXIMO - EVIDENCIA.VALOR_MINIMO + 1)),
+        y: PRUEBAS.ALTURA,
+        z: zPrueba,
+        valor: PRUEBAS.VALOR_MINIMO +
+          Math.floor(Math.random() * (PRUEBAS.VALOR_MAXIMO - PRUEBAS.VALOR_MINIMO + 1)),
         // UNA DE CADA TRES ES PLANTADA, donde las haya. Menos y no llegas a
         // desconfiar; más y recoger deja de compensar, que es peor: el juego
         // pasaría a premiar no coger nada.
-        nombre: this._nombreDeEvidencia(),
+        nombre: this._nombreDePrueba(),
         recogido: false,
       });
     }
@@ -212,22 +212,22 @@ export class CoinManager {
    */
   generarHileraElevada(carril, zInicio, largo, altura) {
     const x = CARRILES.POSICIONES[carril];
-    const cuantos = Math.max(2, Math.floor(largo / PAPELES.SEPARACION));
+    const cuantos = Math.max(2, Math.floor(largo / EVIDENCIA.SEPARACION));
 
     for (let i = 0; i < cuantos; i++) {
-      const zPapel = zInicio - i * PAPELES.SEPARACION;
-      const malla = this._obtenerPapel();
+      const zEvidencia = zInicio - i * EVIDENCIA.SEPARACION;
+      const malla = this._obtenerEvidencia();
       malla.visible = true;
-      const y = altura + PAPELES.ALTURA;
-      malla.position.set(x, y, zPapel);
+      const y = altura + EVIDENCIA.ALTURA;
+      malla.position.set(x, y, zEvidencia);
 
       this.activos.push({
         malla,
-        tipo: 'papel',
+        tipo: 'evidencia',
         x,
         y,
-        z: zPapel,
-        valor: PAPELES.VALOR_MAXIMO, // Arriba se paga mejor. Para eso subiste.
+        z: zEvidencia,
+        valor: EVIDENCIA.VALOR_MAXIMO, // Arriba se paga mejor. Para eso subiste.
         recogido: false,
       });
       this.generadosEsteTramo++;
@@ -244,14 +244,14 @@ export class CoinManager {
    *   trámite riega uno por papel. Solo sube si el montón no cabe entero en el
    *   pasillo y hay que juntar varios en la misma pieza (ver Tramite._regar).
    */
-  plantarPapel(x, y, z, valor = PAPELES.VALOR_MINIMO) {
-    const malla = this._obtenerPapel();
+  plantarEvidencia(x, y, z, valor = EVIDENCIA.VALOR_MINIMO) {
+    const malla = this._obtenerEvidencia();
     malla.visible = true;
     malla.position.set(x, y, z);
 
     this.activos.push({
       malla,
-      tipo: 'papel',
+      tipo: 'evidencia',
       x,
       y,
       z,
@@ -290,7 +290,7 @@ export class CoinManager {
           ? true
           : Math.abs(item.y - (jugador.y + 0.9)) < 1.6;
         if (d < this.radioIman && alcanceVertical) {
-          const factor = 1 - Math.exp(-PAPELES.VELOCIDAD_IMAN * dt);
+          const factor = 1 - Math.exp(-EVIDENCIA.VELOCIDAD_IMAN * dt);
           item.x += (jugador.x - item.x) * factor;
           const yObjetivo = jugador.y + 0.9;
           item.y += (yObjetivo - item.y) * factor;
@@ -311,12 +311,12 @@ export class CoinManager {
       // lógica no las toca: siguen avanzando, sumando y recogiéndose igual; lo
       // único que cambia es que no se mandan a pintar hasta que hay algo que
       // ver. En la calle no cambia nada, porque ahí nunca llegan tan lejos.
-      const visible = item.z > -PAPELES.DISTANCIA_VISIBLE;
+      const visible = item.z > -EVIDENCIA.DISTANCIA_VISIBLE;
       if (item.malla.visible !== visible) item.malla.visible = visible;
       if (!visible) continue;
 
       // --- Animación de reposo ---------------------------------------------
-      if (item.tipo === 'papel') {
+      if (item.tipo === 'evidencia') {
         // Cada papel gira desfasado según su Z: una hilera girando al unísono
         // se lee como una sola pieza articulada, no como ocho objetos.
         item.malla.rotation.y = this.tiempo * 3 + item.z * 0.55;
@@ -340,8 +340,8 @@ export class CoinManager {
 
   /**
    * Recoge todo lo que toque el jugador.
-   * @returns {{papeles:number, cantidad:number, evidencias:Array}}
-   *          Valor sumado, número de piezas y evidencias de este fotograma.
+   * @returns {{papeles:number, cantidad:number, pruebas:Array}}
+   *          Valor sumado, número de piezas y pruebas de este fotograma.
    *          La CANTIDAD importa aparte del valor: el trámite se puntúa por
    *          piezas recogidas, no por papeles sumados.
    */
@@ -355,7 +355,7 @@ export class CoinManager {
 
     let papeles = 0;
     let cantidad = 0;
-    const evidencias = [];
+    const pruebas = [];
 
     for (let i = this.activos.length - 1; i >= 0; i--) {
       const item = this.activos[i];
@@ -373,8 +373,8 @@ export class CoinManager {
         item.recogido = true;
         papeles += item.valor;
         cantidad += 1;
-        if (item.tipo === 'evidencia') {
-          evidencias.push({ nombre: item.nombre, valor: item.valor });
+        if (item.tipo === 'prueba') {
+          pruebas.push({ nombre: item.nombre, valor: item.valor });
         }
 
         this._devolver(item);
@@ -382,7 +382,7 @@ export class CoinManager {
       }
     }
 
-    return { papeles, cantidad, evidencias };
+    return { papeles, cantidad, pruebas };
   }
 
   // -------------------------------------------------------------------------
@@ -391,19 +391,19 @@ export class CoinManager {
 
   /** Configura densidad y tipos de evidencia según el escenario. */
   aplicarTema(escenario) {
-    this.densidad = escenario.densidadPapeles ?? 1.0;
-    this.maximoPorTramo = escenario.maximoPapelesPorTramo ?? Infinity;
-    this.tiposEvidencia = escenario.evidencia ?? ['Documento'];
+    this.densidad = escenario.densidadEvidencia ?? 1.0;
+    this.maximoPorTramo = escenario.maximoEvidenciaPorTramo ?? Infinity;
+    this.tiposPrueba = escenario.evidencia ?? ['Documento'];
     // Material plantado. Solo lo tienen los escenarios tardíos: ver
     // config/escenarios.js, donde está explicado por qué no aparece antes.
     this.tiposFalsos = escenario.pruebasFalsas ?? [];
     this.generadosEsteTramo = 0;
 
-    // A OSCURAS, LOS PAPELES ALUMBRAN. Es lo que sostiene el Apagón desde que
+    // A OSCURAS, LOS EVIDENCIA ALUMBRAN. Es lo que sostiene el Apagón desde que
     // la linterna dejó de ser un consumible garantizado: sin luz sigues sin
     // ver la calle, pero ves por dónde va, porque la hilera dibuja la ruta.
-    const aOscuras = !!escenario.papelesBrillan;
-    ajustarBrilloPapel(aOscuras ? 2.1 : 0.55, aOscuras);
+    const aOscuras = !!escenario.evidenciaBrilla;
+    ajustarBrilloEvidencia(aOscuras ? 2.1 : 0.55, aOscuras);
   }
 
   /** Reinicia el contador al empezar un tramo nuevo. */

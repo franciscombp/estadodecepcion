@@ -87,7 +87,7 @@ export const ESCENARIOS = {
     evidencia: ['USB sin cadena de custodia', 'Chat del grupo "Los Panas"', 'Video de vigilancia', 'Acta borroneada'],
 
     // Densidad de recolectables: la Bahía es generosa, es donde se aprende.
-    densidadPapeles: 1.0,
+    densidadEvidencia: 1.0,
 
     // El ente de control al que lleva la boca del centro. Ver docs/GUION.md:
     // entrar no es un premio. Te riegan los papeles, recuperas lo que puedas,
@@ -166,7 +166,7 @@ export const ESCENARIOS = {
     // Y los papeles brillan, y atraviesan la niebla. Es lo único que se ve
     // cuando la linterna se apaga: la hilera marca la ruta aunque no se vea la
     // calle. Ver Coin.aplicarTema.
-    papelesBrillan: true,
+    evidenciaBrilla: true,
 
     obstaculos: {
       saltar: 'Tubería reventada',
@@ -177,7 +177,7 @@ export const ESCENARIOS = {
 
     evidencia: ['Contrato con sobreprecio', 'Audio del ministro', 'Chat del gabinete', 'Informe técnico ignorado'],
 
-    densidadPapeles: 0.8,
+    densidadEvidencia: 0.8,
 
     // MECÁNICA ESPECIAL: la pantalla se oscurece. El potenciador linterna
     // abre el radio de visión mientras dura.
@@ -259,7 +259,7 @@ export const ESCENARIOS = {
     // así que perderlas es un error de lectura y no una trampa.
     pruebasFalsas: ['Acta \"corregida\" a mano', 'Captura de pantalla sin metadatos'],
 
-    densidadPapeles: 0.9,
+    densidadEvidencia: 0.9,
 
     institucion: {
       nombre: 'CNE',
@@ -321,8 +321,8 @@ export const ESCENARIOS = {
     pruebasFalsas: ['Denuncia anónima sin respaldo', 'Audio editado'],
 
     // Carondelet es árido: casi no hay qué documentar. Es el punto del juego.
-    densidadPapeles: 0.25,
-    maximoPapelesPorTramo: 3,
+    densidadEvidencia: 0.25,
+    maximoEvidenciaPorTramo: 3,
 
     // AQUÍ NO HAY ENTE DE CONTROL. Carondelet está cercado: ir de frente es
     // estrellarse contra el cerco, sin trámite y sin trámite que negar.

@@ -73,7 +73,7 @@ export class HUD {
       combo: -1,
       escenario: null,
       linterna: -1,
-      evidencias: -1,
+      pruebas: -1,
       tramite: -1,
       porArriba: null,
       efectos: '',
@@ -164,10 +164,10 @@ export class HUD {
 
       <!-- ══ FILA INFERIOR ══ -->
       <div class="hud__inferior">
-        <div class="panel panel--evidencia">
+        <div class="panel panel--prueba">
           <div class="panel__titulo">PRUEBAS</div>
-          <div class="fichas-evidencia" data-campo="evidencias">
-            <div class="ficha-evidencia ficha-evidencia--vacia">—</div>
+          <div class="fichas-prueba" data-campo="pruebas">
+            <div class="ficha-prueba ficha-evidencia--vacia">—</div>
           </div>
         </div>
 
@@ -214,7 +214,7 @@ export class HUD {
       rotulo: q('rotulo'),
       rotuloSalida: q('rotulo-salida'),
       rotuloVias: q('rotulo-vias'),
-      evidencias: q('evidencias'),
+      pruebas: q('pruebas'),
       avisos: q('avisos'),
       hint: q('hint'),
       tinte: q('tinte'),
@@ -401,10 +401,10 @@ export class HUD {
     this._actualizarEfectos(datos.efectos ?? []);
 
     // --- Evidencias --------------------------------------------------------
-    const nEvidencias = datos.evidencias?.length ?? 0;
-    if (nEvidencias !== c.evidencias) {
-      this._pintarEvidencias(datos.evidencias ?? []);
-      c.evidencias = nEvidencias;
+    const nPruebas = datos.pruebas?.length ?? 0;
+    if (nPruebas !== c.pruebas) {
+      this._pintarEvidencias(datos.pruebas ?? []);
+      c.pruebas = nPruebas;
     }
   }
 
@@ -580,8 +580,8 @@ export class HUD {
 
   _pintarEvidencias(lista) {
     if (lista.length === 0) {
-      this.ref.evidencias.innerHTML =
-        '<div class="ficha-evidencia ficha-evidencia--vacia">—</div>';
+      this.ref.pruebas.innerHTML =
+        '<div class="ficha-prueba ficha-evidencia--vacia">—</div>';
       return;
     }
 
@@ -589,16 +589,16 @@ export class HUD {
     // mucho mejor que veinte iconos repetidos.
     const grupos = new Map();
     for (const nombre of lista) {
-      const svg = Icono.iconoEvidencia(nombre, 24);
+      const svg = Icono.iconoPrueba(nombre, 24);
       grupos.set(svg, (grupos.get(svg) ?? 0) + 1);
     }
 
-    this.ref.evidencias.innerHTML = '';
+    this.ref.pruebas.innerHTML = '';
     for (const [svg, cuenta] of grupos) {
       const ficha = document.createElement('div');
-      ficha.className = 'ficha-evidencia';
+      ficha.className = 'ficha-prueba';
       ficha.innerHTML = `${svg}<span class="ficha-evidencia__cuenta">${cuenta}</span>`;
-      this.ref.evidencias.appendChild(ficha);
+      this.ref.pruebas.appendChild(ficha);
     }
   }
 
@@ -626,7 +626,7 @@ export class HUD {
 
     const iconos = {
       golpe: Icono.alerta(18),
-      evidencia: Icono.usb(18),
+      prueba: Icono.usb(18),
       escenario: Icono.ruta(18),
       bifurcacion: Icono.ruta(18),
       consejo: Icono.alerta(18),

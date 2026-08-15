@@ -871,7 +871,7 @@ export class Pantallas {
       [datos.papeles.toLocaleString('es-EC'), 'Evidencia'],
       [`${datos.distancia.toLocaleString('es-EC')} m`, 'Distancia'],
       [datos.puntaje.toLocaleString('es-EC'), 'Puntaje'],
-      [String(datos.evidencias.length), 'Evidencias'],
+      [String(datos.pruebas.length), 'Pruebas'],
     ]));
 
     if (datos.ruta?.length > 1) {
@@ -916,7 +916,7 @@ export class Pantallas {
     // encima obligaban a decidir antes de haber terminado de leer.
     const botones = el('div', 'botones');
     botones.appendChild(boton('CONTINUAR', 'boton--principal',
-      () => this.mostrar((datos.evidencias?.length)
+      () => this.mostrar((datos.pruebas?.length)
         ? this.botin(datos)
         : this.deportes(datos))));
     contenido.appendChild(botones);
@@ -1068,7 +1068,7 @@ export class Pantallas {
     if (sentencia) plana.appendChild(el('p', 'plana__bajada', sentencia.texto));
 
     // --- Los papeles -------------------------------------------------------
-    // La ÚNICA cifra grande, y son PAPELES, no puntaje. El puntaje suma
+    // La ÚNICA cifra grande, y son EVIDENCIA, no puntaje. El puntaje suma
     // papeles y metros, así que puntúa igual documentar que salir corriendo; y
     // lo que este juego mide es cuánta documentación sacaste antes de que te
     // pararan. Los metros son el precio que pagaste, no el logro.
@@ -1078,7 +1078,7 @@ export class Pantallas {
     // letra de pie de foto.
     const papeles = datos.papeles ?? 0;
     const marcador = el('div', 'plana__marcador');
-    marcador.appendChild(el('span', 'plana__marcador-rotulo', 'EVIDENCIA RECOGIDA'));
+    marcador.appendChild(el('span', 'plana__marcador-rotulo', 'PRUEBAS RECOGIDA'));
 
     const cifra = el('span', 'plana__marcador-cifra', '0');
     marcador.appendChild(cifra);
@@ -1105,7 +1105,7 @@ export class Pantallas {
     // la mitad del sentido del juego —documentar no se castiga; correr mal, sí—
     // y era justo lo que faltaba: la pantalla contaba metros y puntos, o sea
     // solo lo que habías perdido.
-    const pruebas = datos.evidencias ?? [];
+    const pruebas = datos.pruebas ?? [];
     if (pruebas.length) {
       const caja = el('div', 'plana__pruebas');
       caja.appendChild(el('div', 'plana__pruebas-rotulo',
@@ -1195,7 +1195,7 @@ export class Pantallas {
 
     contenido.appendChild(el('div', 'botin__antetitulo', 'SALISTE CON ESTO'));
 
-    const pruebas = datos.evidencias ?? [];
+    const pruebas = datos.pruebas ?? [];
     const buenas = pruebas.filter((n) => !Notebook.esFalsa(n)).length;
     contenido.appendChild(el('h1', 'botin__titular',
       buenas === 0 ? 'NADA QUE SOSTENGA'
@@ -1214,7 +1214,7 @@ export class Pantallas {
 
       const caja = el('div', 'botin__caja');
       const cara = el('div', 'botin__cara');
-      cara.innerHTML = Icono.iconoEvidencia(nombre, 78);
+      cara.innerHTML = Icono.iconoPrueba(nombre, 78);
       caja.appendChild(cara);
       caja.appendChild(el('span', 'botin__destello'));
       pieza.appendChild(caja);

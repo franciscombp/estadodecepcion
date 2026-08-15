@@ -33,7 +33,7 @@
 // se los quita de encima. Es la misma regla de siempre —se satiriza el trámite,
 // nunca una cara—, y ninguna de estas dos caras es la satirizada.
 //
-// POR QUÉ SE DESBLOQUEAN POR TRAMOS Y NO POR PAPELES
+// POR QUÉ SE DESBLOQUEAN POR TRAMOS Y NO POR EVIDENCIA
 // Los papeles son la moneda del Archivo, y el Archivo es la meta del juego:
 // meterle un segundo sumidero le quita fuerza al primero, y encima obligaría a
 // elegir entre un reportaje y un sombrero. Los tramos recorridos, en cambio,
