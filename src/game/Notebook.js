@@ -374,7 +374,9 @@ export class Notebook {
    */
   proximaPagina() {
     const candidatas = PAGINAS
-      .filter((p) => !this.estaDesbloqueada(p.numero))
+      // Las que no piden pruebas se abren solas al terminar la corrida: como
+      // meta no sirven, no hay nada que ir a buscar.
+      .filter((p) => !this.estaDesbloqueada(p.numero) && (p.pruebas ?? 0) > 0)
       .map((p) => {
         const pedidas = p.pruebas ?? 0;
         const reunidas = Math.min(this.pruebasDelCaso(p.caso ?? null), pedidas);

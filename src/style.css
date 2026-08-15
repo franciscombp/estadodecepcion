@@ -4229,3 +4229,156 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .plana__meta-casilla--hecha { animation: none !important; }
 }
+
+/* ==========================================================================
+   BOTÍN — Las pruebas, grandes y con volumen
+   ==========================================================================
+   En la portada salían como una lista de viñetas, y una lista es un dato: dice
+   qué tienes, no que sea importante. Aquí ocupan la pantalla, giran y brillan,
+   que es la pausa que hace cualquier juego al soltar un objeto raro.
+
+   El volumen es perspectiva y giro en CSS sobre el mismo icono que ya usa el
+   HUD. Un segundo lienzo 3D para enseñar cuatro fichas costaría memoria y un
+   tirón de arranque justo donde se busca fluidez. */
+
+.pantalla--botin { background: rgba(5, 7, 12, 0.9); }
+
+.botin__antetitulo {
+  font-size: clamp(0.55rem, 2.3vw, 0.68rem);
+  font-weight: 900;
+  letter-spacing: 0.3em;
+  color: var(--texto-tenue);
+}
+
+.botin__titular {
+  margin: 4px 0 22px;
+  font-size: clamp(1.7rem, 8vw, 2.6rem);
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  color: var(--naranja);
+  text-shadow: 0 0 26px rgba(var(--naranja-rgb), 0.5);
+}
+
+.botin__rejilla {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(14px, 5vw, 26px);
+  /* La perspectiva vive en el PADRE: puesta en cada pieza, cada una tendría su
+     propio punto de fuga y el conjunto se leería plano por mucho que giren. */
+  perspective: 620px;
+}
+
+.botin__pieza {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  width: clamp(112px, 34vw, 150px);
+  animation: botin-entra 0.62s cubic-bezier(0.2, 1.5, 0.4, 1) var(--retardo, 0s) both;
+}
+
+@keyframes botin-entra {
+  from { opacity: 0; transform: translateY(26px) scale(0.62); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* La pieza: una losa con canto, girando despacio sobre su eje vertical. */
+.botin__caja {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--r);
+  background: linear-gradient(155deg, #26314a, #131a2b 62%, #0b0f1a);
+  border: 2px solid rgba(var(--naranja-rgb), 0.55);
+  box-shadow:
+    0 0 30px rgba(var(--naranja-rgb), 0.3),
+    inset 0 2px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -10px 22px rgba(0, 0, 0, 0.5);
+  transform-style: preserve-3d;
+  overflow: hidden;
+  animation: botin-gira 5.5s ease-in-out infinite;
+}
+
+@keyframes botin-gira {
+  0%, 100% { transform: rotateY(-17deg) rotateX(5deg); }
+  50%      { transform: rotateY(17deg) rotateX(-3deg); }
+}
+
+.botin__cara { filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.6)); }
+
+/* El barrido de luz que cruza la cara. Es lo que dice «esto es un objeto y
+   tiene superficie»: sin él la losa es un rectángulo con un icono encima. */
+.botin__destello {
+  position: absolute;
+  inset: -40%;
+  background: linear-gradient(
+    100deg,
+    transparent 38%,
+    rgba(255, 255, 255, 0.28) 48%,
+    rgba(255, 255, 255, 0.5) 51%,
+    transparent 62%
+  );
+  pointer-events: none;
+  animation: botin-brillo 3.4s ease-in-out infinite;
+  animation-delay: calc(var(--retardo, 0s) + 0.5s);
+}
+
+@keyframes botin-brillo {
+  0%        { transform: translateX(-115%); }
+  55%, 100% { transform: translateX(115%); }
+}
+
+.botin__nombre {
+  font-size: clamp(0.6rem, 2.5vw, 0.72rem);
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--texto);
+  text-align: center;
+}
+
+.botin__pie {
+  margin-top: 22px;
+  font-size: clamp(0.58rem, 2.4vw, 0.7rem);
+  color: var(--texto-tenue);
+  max-width: 34ch;
+  margin-inline: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .botin__pieza, .botin__caja, .botin__destello { animation: none !important; }
+  .botin__destello { opacity: 0; }
+}
+
+/* --- El ascenso en la tabla -----------------------------------------------
+   La fila del jugador entra por abajo y sube hasta su puesto mientras la cifra
+   cuenta. Ya ordenada y quieta, la tabla se leía como una consulta; subiendo,
+   se lee como el resultado de la partida que se acaba de jugar. */
+.posiciones__fila--sube {
+  animation: posicion-sube 1.15s cubic-bezier(0.22, 0.85, 0.24, 1) 0.25s both;
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes posicion-sube {
+  from { transform: translateY(var(--sube, 0px)); }
+  to   { transform: translateY(0); }
+}
+
+/* El rival, en el instante en que lo pasas. */
+.posiciones__fila--rebasado {
+  animation: posicion-rebasado 0.5s ease-out both;
+}
+
+@keyframes posicion-rebasado {
+  0%   { background: transparent; }
+  35%  { background: rgba(var(--dorado-rgb), 0.28); }
+  100% { background: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .posiciones__fila--sube,
+  .posiciones__fila--rebasado { animation: none !important; }
+}

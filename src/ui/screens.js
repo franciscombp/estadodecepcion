@@ -130,8 +130,9 @@ function escalonar(contenedor, desde = 0) {
  * lo que se anima es el TEXTO, y eso no se puede interpolar declarativamente.
  * Se corta sola si el elemento sale de pantalla antes de terminar.
  */
-function contarHasta(nodo, valor, duracion = 900) {
-  if (valor <= 0) { nodo.textContent = '0'; return; }
+function contarHasta(nodo, valor, duracion = 900, formato = null) {
+  const pinta = (n) => { nodo.textContent = formato ? formato(n) : n.toLocaleString('es-EC'); };
+  if (valor <= 0) { pinta(0); return; }
 
   const arranque = performance.now();
   const paso = (ahora) => {
@@ -140,10 +141,10 @@ function contarHasta(nodo, valor, duracion = 900) {
     // Desaceleración fuerte: sube de golpe y frena al final, que es donde el
     // ojo lee la cifra.
     const suave = 1 - (1 - t) ** 3;
-    nodo.textContent = Math.round(valor * suave).toLocaleString('es-EC');
+    pinta(Math.round(valor * suave));
     if (t < 1) requestAnimationFrame(paso);
   };
-  nodo.textContent = '0';
+  pinta(0);
   requestAnimationFrame(paso);
 }
 
@@ -914,7 +915,9 @@ export class Pantallas {
     // encima obligaban a decidir antes de haber terminado de leer.
     const botones = el('div', 'botones');
     botones.appendChild(boton('CONTINUAR', 'boton--principal',
-      () => this.mostrar(this.deportes(datos))));
+      () => this.mostrar((datos.evidencias?.length)
+        ? this.botin(datos)
+        : this.deportes(datos))));
     contenido.appendChild(botones);
 
     escalonar(contenido);
@@ -1166,6 +1169,67 @@ export class Pantallas {
     return plana;
   }
 
+  // -------------------------------------------------------------------------
+  // BOTÍN — Lo que sacaste, en la mano
+  // -------------------------------------------------------------------------
+
+  /**
+   * LAS PRUEBAS, GRANDES Y GIRANDO.
+   *
+   * En la portada salían como una lista de viñetas, y una lista es un dato:
+   * dice qué tienes y no que sea importante. Lo que hace que un hallazgo se
+   * sienta hallazgo es verlo ocupar la pantalla, con volumen y con brillo,
+   * antes de que se vaya al inventario. Es la pausa que todos los juegos hacen
+   * al soltar un objeto raro, y es donde está la recompensa de una corrida que
+   * por lo demás terminó en captura.
+   *
+   * El volumen se hace con perspectiva y giro en CSS sobre el mismo icono que
+   * ya usa el HUD, no con un segundo lienzo 3D: montar un renderizador nuevo
+   * para enseñar cuatro fichas costaría más memoria y un tirón de arranque
+   * justo en el momento en que se busca fluidez.
+   */
+  botin(datos) {
+    const { pantalla, contenido } = pantallaBase();
+    pantalla.classList.add('pantalla--botin');
+
+    contenido.appendChild(el('div', 'botin__antetitulo', 'SALISTE CON ESTO'));
+
+    const pruebas = datos.evidencias ?? [];
+    contenido.appendChild(el('h1', 'botin__titular',
+      pruebas.length === 1 ? 'UNA PRUEBA' : `${pruebas.length} PRUEBAS`));
+
+    const rejilla = el('div', 'botin__rejilla');
+    pruebas.forEach((nombre, i) => {
+      const pieza = el('div', 'botin__pieza');
+      // Cada una entra un poco después que la anterior: de golpe se leen como
+      // un bloque, en cascada se cuentan una a una.
+      pieza.style.setProperty('--retardo', `${i * 0.42}s`);
+
+      const caja = el('div', 'botin__caja');
+      const cara = el('div', 'botin__cara');
+      cara.innerHTML = Icono.iconoEvidencia(nombre, 78);
+      caja.appendChild(cara);
+      caja.appendChild(el('span', 'botin__destello'));
+      pieza.appendChild(caja);
+      pieza.appendChild(el('div', 'botin__nombre', nombre));
+      rejilla.appendChild(pieza);
+
+      // El golpe de sonido de cada pieza, en su turno.
+      setTimeout(() => this.audio?.evidencia?.(), 120 + i * 420);
+    });
+    contenido.appendChild(rejilla);
+
+    contenido.appendChild(el('div', 'botin__pie',
+      'Se quedan en el archivo aunque te capturen. Son las que arman el reportaje.'));
+
+    const botones = el('div', 'botones');
+    botones.appendChild(boton('CONTINUAR', 'boton--principal',
+      () => this.mostrar(this.deportes(datos))));
+    contenido.appendChild(botones);
+
+    return pantalla;
+  }
+
   /**
    * La foto de prensa. Es la captura del juego pasada por un filtro de tinta:
    * gris, contrastada y con la trama de puntos por encima.
@@ -1208,6 +1272,8 @@ export class Pantallas {
     // partida antes de pintar nada: no hay que sumarle el resultado a mano.
     const mio = clase.valor(this.cuaderno);
     const lista = el('ol', 'posiciones');
+    const filas = [];
+    let miFila = null; let miCifra = null; let miValor = 0;
 
     for (const fila of tablaConJugador(clase, mio)) {
       if (fila.corte) {
@@ -1223,12 +1289,45 @@ export class Pantallas {
       if (fila.nota) quien.appendChild(el('span', 'posiciones__nota', fila.nota));
       item.appendChild(quien);
 
-      item.appendChild(el('span', 'posiciones__cifra',
-        fila.valor.toLocaleString('es-EC') + clase.unidad));
+      const cifra = el('span', 'posiciones__cifra',
+        fila.valor.toLocaleString('es-EC') + clase.unidad);
+      item.appendChild(cifra);
+      if (fila.esTu) { miFila = item; miCifra = cifra; miValor = fila.valor; }
+      filas.push({ item, fila });
       lista.appendChild(item);
     }
 
     escalonar(lista);
+
+    // --- EL ASCENSO --------------------------------------------------------
+    //
+    // Solo al terminar una partida, que es cuando hay algo que celebrar. La
+    // tabla salía ya ordenada, con el jugador puesto en su sitio: se leía como
+    // una consulta, no como un resultado. Aquí la fila ENTRA POR ABAJO y sube
+    // hasta su puesto mientras la cifra cuenta, y cada rival al que adelanta
+    // parpadea al ser rebasado.
+    //
+    // Se sube desde donde estarías con el peor valor de la ventana, no desde
+    // una posición inventada: si no has adelantado a nadie no se mueve nada, y
+    // eso también es información.
+    const adelantados = filas.filter(({ fila }) => !fila.esTu && fila.valor < miValor);
+    if (datos && miFila && adelantados.length) {
+      const alto = miFila.offsetHeight || 34;
+      miFila.style.setProperty('--sube', `${adelantados.length * alto}px`);
+      miFila.classList.add('posiciones__fila--sube');
+      miCifra.textContent = (0).toLocaleString('es-EC') + clase.unidad;
+
+      requestAnimationFrame(() => {
+        contarHasta(miCifra, miValor, 1100, (v) =>
+          v.toLocaleString('es-EC') + clase.unidad);
+        // Cada rival se enciende justo cuando la fila pasa por encima.
+        adelantados.forEach(({ item }, i) => {
+          setTimeout(() => item.classList.add('posiciones__fila--rebasado'),
+            420 + i * (700 / Math.max(1, adelantados.length)));
+        });
+      });
+    }
+
     return lista;
   }
 
