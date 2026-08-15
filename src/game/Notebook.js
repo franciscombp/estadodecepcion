@@ -16,6 +16,7 @@
 import { PROGRESO, CATALOGO_POTENCIADORES } from '../config/balance.js';
 import { PERSONAJES } from '../config/personajes.js';
 import { PAGINAS } from '../config/publicaciones.js';
+import { ESCENARIOS } from '../config/escenarios.js';
 
 const ESTADO_INICIAL = {
   version: 1,
@@ -149,17 +150,50 @@ export class Notebook {
   }
 
   /**
-   * Abre las páginas gratuitas. Las de costo se compran desde el periódico.
+   * De qué caso es una prueba. Se deduce del catálogo de los escenarios, que
+   * es donde ya está escrito qué suelta cada uno: mantener aquí una segunda
+   * lista sería garantizar que las dos se separen.
+   */
+  static _casoDeLaPrueba(nombre) {
+    for (const id of Object.keys(ESCENARIOS)) {
+      if ((ESCENARIOS[id].evidencia ?? []).includes(nombre)) return id;
+    }
+    return null;
+  }
+
+  /** Cuántas pruebas distintas tienes de un caso. Sin `caso`, de todos. */
+  pruebasDelCaso(caso = null) {
+    const mias = this.estado.evidenciasEncontradas ?? [];
+    if (!caso) return mias.length;
+    return mias.filter((n) => Notebook._casoDeLaPrueba(n) === caso).length;
+  }
+
+  /**
+   * ABRE LAS PÁGINAS QUE YA TIENEN PRUEBAS SUFICIENTES.
+   *
+   * Antes se compraban con papeles: juntabas ochocientos corriendo y pagabas.
+   * Eso hacía que el periódico se armara CORRIENDO, y correr es justo lo que un
+   * periodista no hace para publicar. La evidencia —los papeles— mide cuánto
+   * aguantaste; lo que arma el reportaje son las PRUEBAS: el USB, el video, el
+   * chat, el documento reservado.
+   *
+   * Y por eso ya no se compra nada. Una página no se paga: se completa. En
+   * cuanto tienes las pruebas del caso, el reportaje sale —aunque te hayan
+   * capturado en esa misma corrida, que es lo normal—.
    */
   _desbloquearPorAcumulacion() {
     const nuevas = [];
 
     for (const pagina of PAGINAS) {
       if (this.estado.paginasDesbloqueadas.includes(pagina.numero)) continue;
-      if (pagina.costo === 0) {
-        this.estado.paginasDesbloqueadas.push(pagina.numero);
-        nuevas.push(pagina);
+
+      const hacenFalta = pagina.pruebas ?? 0;
+      if (hacenFalta > 0 && this.pruebasDelCaso(pagina.caso ?? null) < hacenFalta) {
+        continue;
       }
+
+      this.estado.paginasDesbloqueadas.push(pagina.numero);
+      nuevas.push(pagina);
     }
 
     return nuevas;
@@ -175,24 +209,22 @@ export class Notebook {
   }
 
   /**
-   * Gasta papeles para desbloquear una página del periódico.
-   * @returns {{exito:boolean, motivo?:string}}
+   * Ya no se compra ninguna página: se completan con pruebas.
+   *
+   * Se deja el método porque la interfaz vieja podría llamarlo, y devolver un
+   * motivo legible es mejor que reventar. La apertura la hace
+   * _desbloquearPorAcumulacion() al terminar cada partida.
    */
   desbloquearPagina(numeroPagina) {
     const pagina = PAGINAS.find((p) => p.numero === numeroPagina);
     if (!pagina) return { exito: false, motivo: 'No existe.' };
     if (this.estaDesbloqueada(numeroPagina)) return { exito: false, motivo: 'Ya la tienes.' };
 
-    if (this.estado.totalPapeles < pagina.costo) {
-      const faltan = pagina.costo - this.estado.totalPapeles;
-      return { exito: false, motivo: `Te falta evidencia: ${faltan}` };
-    }
-
-    this.estado.totalPapeles -= pagina.costo;
-    this.estado.paginasDesbloqueadas.push(numeroPagina);
-    this.guardar();
-
-    return { exito: true };
+    const faltan = (pagina.pruebas ?? 0) - this.pruebasDelCaso(pagina.caso ?? null);
+    return {
+      exito: false,
+      motivo: faltan > 0 ? `Te faltan ${faltan} pruebas` : 'Se abre al terminar la corrida',
+    };
   }
 
   /** Todas las páginas con su estado, para maquetar el periódico. */
@@ -200,7 +232,10 @@ export class Notebook {
     return PAGINAS.map((pagina) => ({
       ...pagina,
       desbloqueada: this.estaDesbloqueada(pagina.numero),
-      alcanzable: this.estado.totalPapeles >= pagina.costo,
+      // Cuántas pruebas del caso pide y cuántas llevas. Es lo que la página
+      // cerrada enseña en vez de un precio.
+      pruebasPedidas: pagina.pruebas ?? 0,
+      pruebasReunidas: this.pruebasDelCaso(pagina.caso ?? null),
     }));
   }
 

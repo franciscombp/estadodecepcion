@@ -4083,3 +4083,83 @@ html, body {
    enseñar cuál te tocó y cuánto le queda solo informa de algo sobre lo que el
    jugador no decide nada mientras no haya tienda donde comprarlos. */
 .efectos--ocultos { display: none; }
+
+/* --- Progreso de pruebas de una página sin armar --------------------------
+   Sustituye al precio en papeles que había aquí: un reportaje no se compra, se
+   completa. Una casilla por prueba, rellenas las que ya tienes. Se cuentan de
+   un vistazo, que es lo que un número solo no permite. */
+.pagina-cerrada__medidor {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+
+.pagina-cerrada__prueba {
+  width: 22px;
+  height: 8px;
+  border-radius: 2px;
+  border: 1.5px solid var(--tinta-media);
+  background: transparent;
+}
+
+.pagina-cerrada__prueba--hecha {
+  background: var(--tinta);
+  border-color: var(--tinta);
+}
+
+/* --- Lo que sí sacaste, en la portada de la derrota -----------------------
+   Te capturaron, pero saliste con pruebas y las pruebas se quedan: son lo que
+   arma el reportaje. Va recuadrado como un despiece de periódico, que es
+   exactamente lo que es: la nota al margen de la noticia principal. */
+.plana__pruebas {
+  margin: 12px 0 4px;
+  padding: 9px 12px;
+  border-left: 4px solid var(--tinta);
+  background: rgba(90, 76, 52, 0.07);
+  text-align: left;
+}
+
+.plana__pruebas-rotulo {
+  font-family: var(--tipo);
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: var(--tinta);
+}
+
+.plana__pruebas-lista {
+  margin: 5px 0 0 16px;
+  font-family: var(--serif);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--tinta-media);
+}
+
+/* El reportaje que se completó con esas pruebas. Es el premio de verdad de la
+   corrida perdida, así que se sella en rojo y ocupa su propia línea. */
+.plana__reportaje {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 9px;
+  padding: 8px 11px;
+  border: 2px solid var(--rojo-prensa, #b3122e);
+  border-radius: 3px;
+}
+
+.plana__reportaje-sello {
+  font-family: var(--tipo);
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: var(--rojo-prensa, #b3122e);
+  white-space: nowrap;
+}
+
+.plana__reportaje-nombre {
+  font-family: var(--serif);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--tinta);
+}

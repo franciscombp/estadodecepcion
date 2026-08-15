@@ -1092,8 +1092,33 @@ export class Pantallas {
 
     plana.appendChild(el('div', 'plana__datos',
       `${(datos.distancia ?? 0).toLocaleString('es-EC')} m corridos · `
-      + `${datos.evidencias?.length ?? 0} evidencias · `
       + `${(datos.puntaje ?? 0).toLocaleString('es-EC')} de puntaje`));
+
+    // --- LO QUE SÍ SACASTE -------------------------------------------------
+    //
+    // Te capturaron, sí. Pero saliste con pruebas, y las pruebas se quedan: son
+    // lo que arma el reportaje. Enseñarlas AQUÍ, en la portada de la derrota, es
+    // la mitad del sentido del juego —documentar no se castiga; correr mal, sí—
+    // y era justo lo que faltaba: la pantalla contaba metros y puntos, o sea
+    // solo lo que habías perdido.
+    const pruebas = datos.evidencias ?? [];
+    if (pruebas.length) {
+      const caja = el('div', 'plana__pruebas');
+      caja.appendChild(el('div', 'plana__pruebas-rotulo',
+        pruebas.length === 1 ? 'SACASTE UNA PRUEBA' : `SACASTE ${pruebas.length} PRUEBAS`));
+      const lista = el('ul', 'plana__pruebas-lista');
+      for (const nombre of pruebas) lista.appendChild(el('li', '', nombre));
+      caja.appendChild(lista);
+      plana.appendChild(caja);
+    }
+
+    // --- Y si con ellas se completó un reportaje ---------------------------
+    for (const pagina of datos.paginasNuevas ?? []) {
+      const abierta = el('div', 'plana__reportaje');
+      abierta.appendChild(el('span', 'plana__reportaje-sello', 'REPORTAJE COMPLETO'));
+      abierta.appendChild(el('span', 'plana__reportaje-nombre', pagina.nombre));
+      plana.appendChild(abierta);
+    }
 
     // --- El remate editorial, como pie de la nota --------------------------
     if (datos.texto) {
@@ -1501,27 +1526,30 @@ export class Pantallas {
     }
     cerrada.appendChild(temas);
 
+    // LO QUE FALTA SON PRUEBAS, NO DINERO.
+    //
+    // Aquí había un precio en papeles y un botón de comprar. Un reportaje no se
+    // compra: se arma. Lo que se enseña ahora es cuántas pruebas del caso
+    // llevas y cuántas hacen falta, y la página se abre sola al terminar la
+    // corrida en que reúnes la última.
+    const pedidas = pagina.pruebasPedidas ?? 0;
+    const reunidas = Math.min(pagina.pruebasReunidas ?? 0, pedidas);
+
     cerrada.appendChild(el('div', 'pagina-cerrada__precio',
-      `${pagina.costo.toLocaleString('es-EC')} de evidencia`));
+      `${reunidas} de ${pedidas} pruebas`));
 
-    const btn = boton('Recuperar la página', 'boton--comprar', () => {
-      const res = this.cuaderno.desbloquearPagina(pagina.numero);
-      if (res.exito) {
-        this.audio.evidencia();
-        this.mostrar(this.notebook());
-      } else {
-        btn.textContent = res.motivo;
-        setTimeout(() => { btn.textContent = 'Recuperar la página'; }, 1800);
-      }
-    });
-    btn.disabled = !pagina.alcanzable;
-    cerrada.appendChild(btn);
-
-    if (!pagina.alcanzable) {
-      cerrada.appendChild(el('div', 'pagina-cerrada__ayuda',
-        `Tienes ${this.cuaderno.papeles.toLocaleString('es-EC')} de evidencia. ` +
-        'Se consigue corriendo.'));
+    const medidor = el('div', 'pagina-cerrada__medidor');
+    for (let i = 0; i < pedidas; i++) {
+      medidor.appendChild(el('span',
+        `pagina-cerrada__prueba${i < reunidas ? ' pagina-cerrada__prueba--hecha' : ''}`));
     }
+    cerrada.appendChild(medidor);
+
+    cerrada.appendChild(el('div', 'pagina-cerrada__ayuda',
+      reunidas >= pedidas
+        ? 'Ya tienes con qué. Sale al terminar la próxima corrida.'
+        : 'Las pruebas están en la calle: USB, videos, chats, actas. '
+          + 'Recógelas aunque te capturen; lo recogido se queda.'));
 
     return cerrada;
   }

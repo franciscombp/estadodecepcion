@@ -86,6 +86,10 @@ export const PAGINAS = [
     numero: 2,
     nombre: 'ENERGÍA',
     seccion: 'El apagón',
+    // Se arma con PRUEBAS del caso, no comprándola con evidencia suelta.
+    // El Apagón suelta cuatro tipos distintos; con dos ya hay reportaje.
+    caso: 'apagon',
+    pruebas: 2,
     costo: 150,
     articulos: [
       {
@@ -109,6 +113,8 @@ export const PAGINAS = [
     numero: 3,
     nombre: 'POLÍTICA',
     seccion: 'Las elecciones',
+    caso: 'elecciones',
+    pruebas: 2,
     costo: 300,
     articulos: [
       {
@@ -132,6 +138,9 @@ export const PAGINAS = [
     numero: 4,
     nombre: 'DERECHOS',
     seccion: 'Carondelet',
+    // Carondelet solo suelta dos tipos de prueba: hacen falta los dos.
+    caso: 'carondelet',
+    pruebas: 2,
     costo: 500,
     articulos: [
       {
@@ -155,6 +164,10 @@ export const PAGINAS = [
     numero: 5,
     nombre: 'SEGUIMIENTO',
     seccion: 'La última',
+    // El seguimiento no es de un caso: cruza todos. Seis pruebas de
+    // cualquiera de ellos, que es media investigación completa.
+    caso: null,
+    pruebas: 6,
     costo: 800,
     articulos: [
       {
