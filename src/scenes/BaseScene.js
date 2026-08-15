@@ -21,7 +21,18 @@ import { ANCHO_PISTA } from '../game/Track.js';
 import { CALIDAD } from '../config/estilo.js';
 
 const SEPARACION_DECORADO = 15;
+
+// El hito pasa una vez por vuelta larga. Los números salen de la niebla: a 620
+// metros todavía no se ve, y para cuando entra en el cono ya viene de frente.
+const DISTANCIA_HITO = 620;
+// Cuánto se le deja quedarse atrás antes de rebobinar. Un edificio grande se
+// sigue viendo por detrás mucho después de haberlo pasado.
+const DISTANCIA_HITO_SALIDA = 80;
+// A qué distancia del eje se planta, medido a su costado.
+const DISTANCIA_HITO_LATERAL = 16;
 const OFFSET_LATERAL = ANCHO_PISTA / 2 + 3.4;
+
+import { clonarHito } from '../models/hitos.js';
 
 export class BaseScene {
   /**
@@ -44,6 +55,7 @@ export class BaseScene {
     this._crearLuces();
     this._crearNiebla();
     this._crearDecorado();
+    this._crearHito();
     this._crearDron();
   }
 
@@ -137,6 +149,34 @@ export class BaseScene {
   }
 
   /**
+   * EL EDIFICIO QUE SE RECONOCE.
+   *
+   * Va aparte del decorado y con sus propias reglas: es único, es grande y
+   * pasa UNA vez cada vuelta larga. Repetido cada cincuenta metros dejaría de
+   * ser un hito para ser una textura, y el centro histórico se leería como un
+   * bucle en vez de como una ciudad.
+   *
+   * Se coloca al costado, mirando a la pista, y a ras de suelo: el modelo trae
+   * su propia base y hundirlo o levantarlo se nota enseguida en un edificio
+   * con zócalo.
+   *
+   * Si el modelo no cargó, aquí no pasa nada. Los hitos son decorado, y el
+   * juego se juega igual sin ellos.
+   */
+  _crearHito() {
+    this.hito = null;
+    const pieza = clonarHito(this.config.id);
+    if (!pieza) return;
+
+    // A la izquierda y girado hacia la calle. Al fondo del ciclo, para que
+    // aparezca de lejos y dé tiempo a verlo llegar.
+    pieza.position.set(-DISTANCIA_HITO_LATERAL, 0, -DISTANCIA_HITO);
+    pieza.rotation.y = Math.PI / 2;
+    this.grupo.add(pieza);
+    this.hito = pieza;
+  }
+
+  /**
    * Dron de vigilancia. Sobrevuela la pista describiendo un vaivén lateral:
    * está siempre presente pero nunca tapa el carril del jugador.
    */
@@ -162,6 +202,17 @@ export class BaseScene {
    */
   actualizar(dt, avance, jugador) {
     this.tiempo += dt;
+
+    // --- El hito -----------------------------------------------------------
+    if (this.hito) {
+      this.hito.position.z += avance;
+      // Se rebobina el ciclo entero cuando ya quedó atrás, no cuando sale de
+      // cuadro: un edificio de cincuenta metros de fondo sigue viéndose por el
+      // retrovisor un buen rato después de pasarlo.
+      if (this.hito.position.z > DISTANCIA_HITO_SALIDA) {
+        this.hito.position.z -= DISTANCIA_HITO + DISTANCIA_HITO_SALIDA;
+      }
+    }
 
     // --- Decorado ----------------------------------------------------------
     for (const d of this.decorados) {

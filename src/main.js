@@ -18,6 +18,7 @@ import { Audio } from './utils/audio.js';
 import { HUD } from './ui/HUD.js';
 import { Pantallas } from './ui/screens.js';
 import { AssetCache } from './utils/assetCache.js';
+import { cargarHitos } from './models/hitos.js';
 import { detectarCalidad } from './utils/calidad.js';
 import { Actualizador } from './utils/actualizacion.js';
 import { PAGINAS } from './config/publicaciones.js';
@@ -127,6 +128,12 @@ async function arrancar() {
   // procedural, así que no hay nada que bajar.
   const cache = new AssetCache();
   await cache.abrir();
+
+  // Los edificios reconocibles de la ciudad. Se esperan AQUÍ, con la pantalla
+  // de carga puesta, porque las escenas los clonan al construirse: llegando
+  // tarde, la primera partida saldría sin ellos. Si falla, se sigue sin hitos.
+  carga.progreso(0.68, 'Levantando la ciudad…');
+  await cargarHitos(import.meta.env.BASE_URL ?? '/');
 
   carga.progreso(0.75, 'Levantando el escenario…');
   const juego = new Game(lienzo, cuaderno, audio, calidad);
