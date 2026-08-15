@@ -1452,7 +1452,7 @@ export class Game {
         this.evidenciasPartida.push(ev.nombre);
       }
       this.audio.evidencia();
-      this.alMostrarAviso({ tipo: 'evidencia', titulo: 'EVIDENCIA', subtitulo: ev.nombre });
+      this.alMostrarAviso({ tipo: 'evidencia', titulo: 'PRUEBA', subtitulo: ev.nombre });
     }
 
     // El combo caduca si dejas de recoger.

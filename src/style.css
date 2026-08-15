@@ -1958,10 +1958,78 @@ html, body {
   overflow: hidden;
 }
 
+/* El cuerpo de la hoja: lo único que se rehace al pasar de página. */
+.diario__hoja {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+
 .diario__cuerpo,
 .diario .pagina-cerrada { flex: 1 1 auto; }
 
 .diario .paginador { margin-top: auto; }
+
+/* --- Pie del ejemplar -----------------------------------------------------
+   Las acciones van impresas dentro del papel, bajo un filete, como el pie de
+   una página de periódico. Fuera de la hoja se leían como botones de
+   aplicación pegados debajo de un dibujo de periódico, que es justo lo que la
+   maqueta lleva evitando en todas las demás pantallas. */
+.diario__pie {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 3px double var(--tinta);
+}
+
+.diario__acciones {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+/* Botones IMPRESOS: tinta sobre papel, no pastillas de neón. Los del juego son
+   dorados y brillantes porque van sobre negro; aquí encima del crema
+   destrozarían la página. */
+.boton--diario {
+  flex: 1 1 auto;
+  padding: 11px 14px;
+  border-radius: 3px;
+  border: 2px solid var(--tinta);
+  background: transparent;
+  color: var(--tinta);
+  font-family: var(--tipo);
+  font-size: clamp(0.62rem, 2.6vw, 0.76rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background var(--t-rapido), color var(--t-rapido);
+}
+
+.boton--diario-principal {
+  background: var(--tinta);
+  color: var(--papel);
+}
+
+.boton--diario-peligro {
+  flex: 0 1 auto;
+  border-color: var(--tinta-media);
+  color: var(--tinta-media);
+}
+
+@media (hover: hover) {
+  .boton--diario:hover { background: var(--tinta); color: var(--papel); }
+  .boton--diario-principal:hover { background: var(--tinta-media); }
+}
+
+.diario__nota {
+  margin-top: 10px;
+  font-family: var(--tipo);
+  font-size: 0.6rem;
+  line-height: 1.5;
+  color: var(--tinta-media);
+}
 
 @keyframes papel-entra {
   from { opacity: 0; transform: translateY(10px) rotate(-.35deg); }
@@ -4010,3 +4078,8 @@ html, body {
   border-color: rgba(var(--verde-rgb), 0.5);
   color: var(--verde);
 }
+
+/* Los potenciadores activos, escondidos. Ver el comentario en HUD.montar():
+   enseñar cuál te tocó y cuánto le queda solo informa de algo sobre lo que el
+   jugador no decide nada mientras no haya tienda donde comprarlos. */
+.efectos--ocultos { display: none; }

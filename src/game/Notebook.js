@@ -185,7 +185,7 @@ export class Notebook {
 
     if (this.estado.totalPapeles < pagina.costo) {
       const faltan = pagina.costo - this.estado.totalPapeles;
-      return { exito: false, motivo: `Te faltan ${faltan} papeles` };
+      return { exito: false, motivo: `Te falta evidencia: ${faltan}` };
     }
 
     this.estado.totalPapeles -= pagina.costo;

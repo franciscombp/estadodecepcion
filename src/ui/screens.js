@@ -230,8 +230,9 @@ export class Pantallas {
     const icono = el('span', 'temporada-linea__icono');
     icono.innerHTML = Icono.iconoTemporada(esc.id, 20);
     temporada.appendChild(icono);
-    temporada.appendChild(el('span', 'temporada-linea__etiqueta',
-      this.cuaderno.partidasJugadas > 0 ? 'RETOMAS EN' : 'EMPIEZAS EN'));
+    // Solo el nombre del escenario. El «RETOMAS EN / EMPIEZAS EN» sobraba: el
+    // icono ya dice que es la temporada y el jugador no necesita que le
+    // expliquen que vuelve donde lo dejó.
     temporada.appendChild(el('span', 'temporada-linea__nombre', esc.nombre));
     arriba.appendChild(temporada);
 
@@ -360,13 +361,13 @@ export class Pantallas {
       'Sátira política de El Mercio. Los personajes y textos son ficción y no '
       + 'reproducen declaraciones de personas reales.'));
 
-    const botones = el('div', 'botones');
-    botones.appendChild(boton('Volver', 'boton--principal',
+    const botones = el('div', 'diario__acciones');
+    botones.appendChild(boton('Volver', 'boton--diario boton--diario-principal',
       () => this.juego.volverAlMenu()));
 
     if (this.cuaderno.partidasJugadas > 0) {
       let confirmando = false;
-      const btn = boton('Borrar progreso', 'boton--tenue boton--peligro', () => {
+      const btn = boton('Borrar progreso', 'boton--diario boton--diario-peligro', () => {
         if (!confirmando) {
           confirmando = true;
           btn.textContent = '¿Seguro? Pulsa otra vez';
@@ -865,7 +866,7 @@ export class Pantallas {
       'No sabemos cómo lo lograste, pero lo lograste.'));
 
     plana.appendChild(estadisticas([
-      [datos.papeles.toLocaleString('es-EC'), 'Papeles'],
+      [datos.papeles.toLocaleString('es-EC'), 'Evidencia'],
       [`${datos.distancia.toLocaleString('es-EC')} m`, 'Distancia'],
       [datos.puntaje.toLocaleString('es-EC'), 'Puntaje'],
       [String(datos.evidencias.length), 'Evidencias'],
@@ -1073,7 +1074,7 @@ export class Pantallas {
     // letra de pie de foto.
     const papeles = datos.papeles ?? 0;
     const marcador = el('div', 'plana__marcador');
-    marcador.appendChild(el('span', 'plana__marcador-rotulo', 'PAPELES RECOGIDOS'));
+    marcador.appendChild(el('span', 'plana__marcador-rotulo', 'EVIDENCIA RECOGIDA'));
 
     const cifra = el('span', 'plana__marcador-cifra', '0');
     marcador.appendChild(cifra);
@@ -1249,7 +1250,23 @@ export class Pantallas {
     const abiertas = paginas.filter((p) => p.desbloqueada);
     let actual = abiertas.length ? abiertas[abiertas.length - 1].numero : 1;
 
+    // EL EJEMPLAR ENTERO ES LA INTERFAZ: los botones van DENTRO del papel.
+    //
+    // Estaban colgados de `contenido`, o sea flotando fuera de la hoja, y eso
+    // rompía la idea de que todo lo que no es correr sale impreso: quedaba una
+    // hoja de periódico con dos botones de aplicación debajo. Ahora el papel
+    // tiene cuerpo y pie, como una página de verdad, y el pie lleva las
+    // acciones —igual que el panel de versión lleva su «buscar actualización»
+    // dentro de su propia caja—.
+    //
+    // La separación en dos también hace falta para el alto fijo: `pintar()`
+    // vacía y rehace el CUERPO en cada cambio de página, así que los botones
+    // tienen que vivir fuera de ese vaciado o desaparecerían al pasar la hoja.
     const diario = el('div', 'diario');
+    const hoja = el('div', 'diario__hoja');
+    const pie = el('div', 'diario__pie');
+    diario.appendChild(hoja);
+    diario.appendChild(pie);
     contenido.appendChild(diario);
 
     /**
@@ -1264,23 +1281,23 @@ export class Pantallas {
     };
 
     const pintar = (sentido = 0) => {
-      diario.innerHTML = '';
+      hoja.innerHTML = '';
       const pagina = paginas.find((p) => p.numero === actual) ?? paginas[0];
 
-      diario.appendChild(this._cabeceraDiario(pagina));
-      diario.appendChild(
+      hoja.appendChild(this._cabeceraDiario(pagina));
+      hoja.appendChild(
         pagina.desbloqueada ? this._paginaAbierta(pagina) : this._paginaCerrada(pagina, () => pintar()),
       );
-      diario.appendChild(this._navegadorPaginas(paginas, actual, (n) =>
+      hoja.appendChild(this._navegadorPaginas(paginas, actual, (n) =>
         cambiarPagina(n, Math.sign(n - actual))));
 
       // La hoja entra por el lado del que viene. Quitar la clase, forzar el
       // reflujo y volver a ponerla es la única forma de reiniciar una animación
       // CSS que ya empezó.
       if (!sentido) return;
-      diario.classList.remove('diario--pasa-avanza', 'diario--pasa-retrocede');
-      void diario.offsetWidth;
-      diario.classList.add(sentido > 0 ? 'diario--pasa-avanza' : 'diario--pasa-retrocede');
+      hoja.classList.remove('diario--pasa-avanza', 'diario--pasa-retrocede');
+      void hoja.offsetWidth;
+      hoja.classList.add(sentido > 0 ? 'diario--pasa-avanza' : 'diario--pasa-retrocede');
     };
     pintar();
 
@@ -1323,7 +1340,7 @@ export class Pantallas {
     const fijarAlto = () => {
       if (!diario.isConnected) return;
       const previa = actual;
-      diario.style.minHeight = '';
+      hoja.style.minHeight = '';
       let mayor = 0;
       for (const p of paginas) {
         actual = p.numero;
@@ -1332,11 +1349,11 @@ export class Pantallas {
         // animación de escala, y el rectángulo devuelve el tamaño YA
         // transformado. Midiendo a mitad de esa animación salía un 2 % corto y
         // el salto volvía, ocho píxeles en vez de sesenta pero visible igual.
-        mayor = Math.max(mayor, diario.offsetHeight);
+        mayor = Math.max(mayor, hoja.offsetHeight);
       }
       actual = previa;
       pintar();
-      diario.style.minHeight = `${Math.ceil(mayor)}px`;
+      hoja.style.minHeight = `${Math.ceil(mayor)}px`;
     };
     // Hasta que `mostrar()` no lo cuelga del documento no hay nada que medir.
     requestAnimationFrame(fijarAlto);
@@ -1353,13 +1370,13 @@ export class Pantallas {
     });
 
     // --- Salida y avisos ---------------------------------------------------
-    const botones = el('div', 'botones');
-    botones.appendChild(boton('Volver', 'boton--principal',
+    const botones = el('div', 'diario__acciones');
+    botones.appendChild(boton('Volver', 'boton--diario boton--diario-principal',
       () => this.juego.volverAlMenu()));
 
     if (this.cuaderno.partidasJugadas > 0) {
       let confirmando = false;
-      const btn = boton('Borrar progreso', 'boton--tenue boton--peligro', () => {
+      const btn = boton('Borrar progreso', 'boton--diario boton--diario-peligro', () => {
         if (!confirmando) {
           confirmando = true;
           btn.textContent = '¿Seguro? Pulsa otra vez';
@@ -1371,10 +1388,10 @@ export class Pantallas {
       });
       botones.appendChild(btn);
     }
-    contenido.appendChild(botones);
+    pie.appendChild(botones);
 
     if (hayPendientes()) {
-      contenido.appendChild(el('div', 'nota',
+      pie.appendChild(el('div', 'diario__nota',
         `Redacción: ${cuantosListos()} de ${paginas.reduce((n, p) => n + p.articulos.length, 0)} ` +
         'reportajes cargados. Los huecos se rellenan en src/config/publicaciones.js ' +
         'con titular, autoría, fecha y enlace reales. El periódico reserva el ' +
@@ -1382,7 +1399,7 @@ export class Pantallas {
     }
 
     if (!this.cuaderno.almacenamientoDisponible) {
-      contenido.appendChild(el('div', 'nota',
+      pie.appendChild(el('div', 'diario__nota',
         'Tu navegador tiene el almacenamiento bloqueado (suele pasar en modo ' +
         'privado). Puedes jugar igual, pero el ejemplar no se guardará.'));
     }
@@ -1485,7 +1502,7 @@ export class Pantallas {
     cerrada.appendChild(temas);
 
     cerrada.appendChild(el('div', 'pagina-cerrada__precio',
-      `${pagina.costo.toLocaleString('es-EC')} papeles`));
+      `${pagina.costo.toLocaleString('es-EC')} de evidencia`));
 
     const btn = boton('Recuperar la página', 'boton--comprar', () => {
       const res = this.cuaderno.desbloquearPagina(pagina.numero);
@@ -1502,8 +1519,8 @@ export class Pantallas {
 
     if (!pagina.alcanzable) {
       cerrada.appendChild(el('div', 'pagina-cerrada__ayuda',
-        `Tienes ${this.cuaderno.papeles.toLocaleString('es-EC')} papeles. ` +
-        'Se consiguen corriendo.'));
+        `Tienes ${this.cuaderno.papeles.toLocaleString('es-EC')} de evidencia. ` +
+        'Se consigue corriendo.'));
     }
 
     return cerrada;

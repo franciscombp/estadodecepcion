@@ -10,7 +10,7 @@
 //   │  ● ○ ○ ○                    └──────────┘ │
 //   │            (la escena respira aquí)      │
 //   │ ┌────────┐  ┌──────────┐   ┌─────────┐  │
-//   │ │EVIDENCIA│ │ DISTANCIA│   │ DESLIZA │  │  resumen y ayuda
+//   │ │ PRUEBAS │ │ DISTANCIA│   │ DESLIZA │  │  resumen y ayuda
 //   │ └────────┘  └──────────┘   └─────────┘  │
 //   └──────────────────────────────────────────┘
 //
@@ -130,9 +130,15 @@ export class HUD {
         </div>
       </div>
 
-      <!-- Potenciadores activos. Van bajo la fila superior y a la izquierda,
-           donde ya está el riel: es la columna de "en qué estado estás". -->
-      <div class="efectos" data-campo="efectos"></div>
+      <!-- Potenciadores activos. OCULTOS.
+           Enseñar qué potenciador te tocó y cuánto le queda solo sirve si se
+           puede hacer algo al respecto, y hoy no se puede: caen solos, duran lo
+           que duran y no hay dónde elegirlos ni comprarlos. Es una fila de
+           iconos que ocupa la columna izquierda para informar de algo sobre lo
+           que el jugador no decide nada.
+           El marcado se queda montado y el estado se sigue llevando: cuando
+           haya tienda donde comprarlos, la fila vuelve quitando esta clase. -->
+      <div class="efectos efectos--ocultos" data-campo="efectos"></div>
 
       <!-- Cartel de salida. Es señalización de autopista, y va en el HUD y no
            en la calle: un pórtico dentro del mundo se lee de refilón, en
@@ -159,7 +165,7 @@ export class HUD {
       <!-- ══ FILA INFERIOR ══ -->
       <div class="hud__inferior">
         <div class="panel panel--evidencia">
-          <div class="panel__titulo">EVIDENCIA</div>
+          <div class="panel__titulo">PRUEBAS</div>
           <div class="fichas-evidencia" data-campo="evidencias">
             <div class="ficha-evidencia ficha-evidencia--vacia">—</div>
           </div>
