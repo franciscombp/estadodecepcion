@@ -11,7 +11,7 @@
 // Estilo en docs/ESTILO.md.
 // ============================================================================
 
-import { obtenerEscenario, ORDEN_ESCENARIOS } from '../config/escenarios.js';
+import { obtenerEscenario, ORDEN_ESCENARIOS, ESCENARIOS } from '../config/escenarios.js';
 import { CABECERA, hayPendientes, cuantosListos } from '../config/publicaciones.js';
 import { CATALOGO_POTENCIADORES } from '../config/balance.js';
 import { CLASIFICACIONES, clasificacion, tablaConJugador } from '../config/tabla.js';
@@ -237,6 +237,44 @@ export class Pantallas {
     // expliquen que vuelve donde lo dejó.
     temporada.appendChild(el('span', 'temporada-linea__nombre', esc.nombre));
     arriba.appendChild(temporada);
+
+    // --- LA INVESTIGACIÓN, EN LA PORTADA ------------------------------------
+    //
+    // El menú decía dónde ibas a correr y nada más. Lo que sostiene el juego
+    // —cuánto llevas armado del periódico y qué falta para el siguiente
+    // reportaje— solo se veía al perder, o sea después de jugar. Puesto aquí,
+    // es lo primero que se lee al abrir: se entra sabiendo a qué se entra.
+    //
+    // Los números son los de verdad: pruebas reunidas contra las que existen en
+    // el catálogo de escenarios. Nada de porcentajes inventados.
+    const totalPruebas = Object.values(ESCENARIOS)
+      .reduce((n, e) => n + (e.evidencia?.length ?? 0), 0);
+    const misPruebas = this.cuaderno.pruebasDelCaso(null);
+    const pct = totalPruebas ? Math.round((misPruebas / totalPruebas) * 100) : 0;
+
+    const caso = el('div', 'caso');
+    const cabecera = el('div', 'caso__cabecera');
+    cabecera.appendChild(el('span', 'caso__rotulo', 'INVESTIGACIÓN DEL CASO'));
+    cabecera.appendChild(el('span', 'caso__cifra', `${pct}% · ${misPruebas}/${totalPruebas} pruebas`));
+    caso.appendChild(cabecera);
+
+    const medidor = el('div', 'caso__medidor');
+    const relleno = el('span', 'caso__relleno');
+    // Se pinta en el fotograma siguiente para que la barra se vea CRECER al
+    // abrir el menú. Puesta ya al ancho final es un dato; creciendo, es tu
+    // avance.
+    requestAnimationFrame(() => { relleno.style.width = `${pct}%`; });
+    medidor.appendChild(relleno);
+    caso.appendChild(medidor);
+
+    const siguiente = this.cuaderno.proximaPagina?.();
+    caso.appendChild(el('div', 'caso__meta', siguiente
+      ? (siguiente.faltan === 0
+        ? `PRÓXIMA META: «${siguiente.nombre}» sale al terminar la corrida`
+        : `PRÓXIMA META: ${siguiente.faltan} ${siguiente.faltan === 1 ? 'prueba' : 'pruebas'} para «${siguiente.nombre}»`)
+      : 'EL EJEMPLAR ESTÁ COMPLETO'));
+
+    arriba.appendChild(caso);
 
     contenido.appendChild(arriba);
 
@@ -476,35 +514,14 @@ export class Pantallas {
     panel.appendChild(el('div', 'edicion__sello',
       act ? `v${act.version} · ${act.edicion}` : 'edición de desarrollo'));
 
+    // SIN BOTÓN DE BUSCAR. Se comprueba al abrir el juego y cada hora, y la
+    // edición nueva entra sola: durante el arranque de inmediato —con la
+    // pantalla de carga aún puesta, así que ni se ve— y si aparece jugando, al
+    // terminar la corrida. Un botón para pedir a mano lo que ya pasa solo no
+    // da control, da la duda de si hace falta pulsarlo.
     panel.appendChild(el('div', 'edicion__nota',
-      'Se comprueba sola cada hora y la edición nueva entra al terminar una '
-      + 'corrida, nunca en mitad de una.'));
-
-    // El botón tiene UN solo dueño de su texto y de si está activo: pintar().
-    // Repartir eso entre el manejador del clic y el repintado es lo que dejaba
-    // el botón deshabilitado para siempre cuando una comprobación tardaba más
-    // de lo previsto.
-    const boton_ = boton('Buscar actualización', 'boton--tenue boton--edicion', async () => {
-      if (!act) return;
-
-      if (act.estado === 'disponible') {
-        // Desde los ajustes el momento es seguro: se aplica al instante.
-        boton_.textContent = 'Instalando…';
-        boton_.disabled = true;
-        act.aplicar();
-        return;
-      }
-
-      const hay = await act.comprobar();
-      if (!hay) {
-        // OJO CON LO QUE DICE ESTE MENSAJE. Que la comprobación se agote no
-        // demuestra que no haya edición nueva: el navegador puede tardar más
-        // que la espera. La escucha sigue puesta y el panel se enciende solo
-        // si llega después, así que el rótulo informa y no promete.
-        boton_.textContent = 'Sin novedades por ahora';
-        setTimeout(pintar, 2600);
-      }
-    });
+      'Se comprueba al abrir y cada hora. La edición nueva entra sola: al '
+      + 'arrancar, o al terminar la corrida si estabas jugando.'));
 
     const ESTADOS_TEXTO = {
       'sin-soporte': ['Sin modo offline en este navegador', 'edicion--tenue'],
@@ -514,23 +531,11 @@ export class Pantallas {
       disponible: ['Hay una edición nueva. Toca para instalarla', 'edicion--nueva'],
     };
 
-    const ESTADOS_BOTON = {
-      'sin-soporte': ['Buscar actualización', true],
-      preparando: ['Buscar actualización', false],
-      listo: ['Buscar actualización', false],
-      buscando: ['Buscando…', true],
-      disponible: ['Instalar y reiniciar', false],
-    };
-
     function pintar() {
       const estado = act?.estado ?? 'sin-soporte';
       const [frase, clase] = ESTADOS_TEXTO[estado] ?? ESTADOS_TEXTO['sin-soporte'];
       texto.textContent = frase;
       panel.className = `edicion ${clase}`;
-
-      const [rotulo, bloqueado] = ESTADOS_BOTON[estado] ?? ESTADOS_BOTON['sin-soporte'];
-      boton_.textContent = rotulo;
-      boton_.disabled = bloqueado;
     }
     pintar();
 
@@ -540,7 +545,6 @@ export class Pantallas {
     if (act) {
       act.alCambiar = pintar;
       pantalla.addEventListener('pantalla:desmontada', () => { act.alCambiar = () => {}; });
-      panel.appendChild(boton_);
     }
 
     return panel;

@@ -4409,3 +4409,73 @@ html, body {
   color: var(--rojo);
   transform: rotate(-4deg);
 }
+
+/* --- La investigación, en la portada --------------------------------------
+   El menú decía dónde ibas a correr y nada más. Lo que sostiene el juego
+   —cuánto llevas armado y qué falta— solo se veía al perder, o sea después de
+   jugar. Aquí es lo primero que se lee al abrir. */
+.caso {
+  width: 100%;
+  max-width: 420px;
+  margin: 12px auto 0;
+  padding: 9px 12px 10px;
+  border-radius: var(--r-chico);
+  background: rgba(13, 18, 32, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.caso__cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.caso__rotulo {
+  font-size: clamp(0.5rem, 2.1vw, 0.6rem);
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: var(--texto-tenue);
+}
+
+.caso__cifra {
+  font-size: clamp(0.56rem, 2.3vw, 0.68rem);
+  font-weight: 900;
+  color: var(--verde);
+  white-space: nowrap;
+}
+
+.caso__medidor {
+  height: 9px;
+  margin-top: 6px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.caso__relleno {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #1fbf6d, var(--verde));
+  box-shadow: 0 0 12px rgba(var(--verde-rgb), 0.55);
+  /* Crece al abrir el menú: puesta ya al ancho final es un dato, creciendo es
+     tu avance. */
+  transition: width 0.9s cubic-bezier(0.22, 0.9, 0.28, 1) 0.35s;
+}
+
+.caso__meta {
+  margin-top: 7px;
+  font-size: clamp(0.52rem, 2.2vw, 0.62rem);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--dorado);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caso__relleno { transition: none; }
+}
