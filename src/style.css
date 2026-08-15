@@ -4163,3 +4163,69 @@ html, body {
   font-weight: 800;
   color: var(--tinta);
 }
+
+/* --- El motivo para volver a jugar ----------------------------------------
+   Va al pie de la portada de derrota, después de la palmadita por lo que
+   cerraste. La pantalla contaba bien lo que habías hecho, pero no daba ninguna
+   razón para pulsar otra vez; «te falta UNA prueba para Política» es esa razón,
+   y funciona porque es concreto, corto y depende del jugador. */
+.plana__meta {
+  margin-top: 12px;
+  padding: 10px 12px 11px;
+  border-top: 3px double var(--tinta);
+  text-align: center;
+}
+
+.plana__meta-rotulo {
+  font-family: var(--tipo);
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  color: var(--tinta-media);
+}
+
+.plana__meta-frase {
+  margin-top: 4px;
+  font-family: var(--serif);
+  font-size: clamp(0.95rem, 4vw, 1.15rem);
+  font-weight: 800;
+  color: var(--tinta);
+}
+
+.plana__meta-casillas {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.plana__meta-casilla {
+  width: 26px;
+  height: 9px;
+  border-radius: 2px;
+  border: 1.5px solid var(--tinta-media);
+}
+
+.plana__meta-casilla--hecha {
+  background: var(--tinta);
+  border-color: var(--tinta);
+  /* Entran una tras otra, de izquierda a derecha: el progreso se ve LLENARSE
+     en vez de aparecer ya lleno, que es la diferencia entre un dato y un logro. */
+  animation: meta-casilla 0.36s var(--rebote) both;
+}
+
+.plana__meta-casilla--hecha:nth-child(1) { animation-delay: 1.05s; }
+.plana__meta-casilla--hecha:nth-child(2) { animation-delay: 1.20s; }
+.plana__meta-casilla--hecha:nth-child(3) { animation-delay: 1.35s; }
+.plana__meta-casilla--hecha:nth-child(4) { animation-delay: 1.50s; }
+.plana__meta-casilla--hecha:nth-child(5) { animation-delay: 1.65s; }
+.plana__meta-casilla--hecha:nth-child(6) { animation-delay: 1.80s; }
+
+@keyframes meta-casilla {
+  from { transform: scaleX(0.2); opacity: 0; }
+  to   { transform: scaleX(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plana__meta-casilla--hecha { animation: none !important; }
+}

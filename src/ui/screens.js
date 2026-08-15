@@ -1120,6 +1120,37 @@ export class Pantallas {
       plana.appendChild(abierta);
     }
 
+    // --- LO QUE VIENE ------------------------------------------------------
+    //
+    // La razón para volver a jugar, dicha en una línea y con un número que
+    // falta. Es lo único que faltaba en esta pantalla: contaba lo que habías
+    // hecho —bien— pero no daba ningún motivo para pulsar otra vez. «Te falta
+    // UNA prueba para Política» es ese motivo, y funciona porque es concreto,
+    // es corto y depende de ti.
+    //
+    // Va después del reportaje completado a propósito: primero la palmadita por
+    // lo que cerraste, y encima, el siguiente al alcance de la mano.
+    const siguiente = this.cuaderno?.proximaPagina?.();
+    if (siguiente && siguiente.pruebasPedidas > 0) {
+      const meta = el('div', 'plana__meta');
+      meta.appendChild(el('div', 'plana__meta-rotulo', 'EN LA SIGUIENTE CORRIDA'));
+
+      const frase = siguiente.faltan === 0
+        ? `«${siguiente.nombre}» sale con lo que ya tienes.`
+        : siguiente.faltan === 1
+          ? `Te falta UNA prueba para «${siguiente.nombre}».`
+          : `Te faltan ${siguiente.faltan} pruebas para «${siguiente.nombre}».`;
+      meta.appendChild(el('div', 'plana__meta-frase', frase));
+
+      const barra = el('div', 'plana__meta-casillas');
+      for (let i = 0; i < siguiente.pruebasPedidas; i++) {
+        barra.appendChild(el('span',
+          `plana__meta-casilla${i < siguiente.pruebasReunidas ? ' plana__meta-casilla--hecha' : ''}`));
+      }
+      meta.appendChild(barra);
+      plana.appendChild(meta);
+    }
+
     // --- El remate editorial, como pie de la nota --------------------------
     if (datos.texto) {
       const cuerpo = el('p', 'plana__cuerpo');

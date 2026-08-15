@@ -364,10 +364,25 @@ export class Notebook {
   }
 
   /** La siguiente página comprable, para orientar al jugador. */
+  /**
+   * El reportaje que tienes MÁS CERCA de completar, y cuánto le falta.
+   *
+   * Ordenaba por `costo`, que era el precio en papeles y ya no significa nada:
+   * proponía la página más barata aunque no tuvieras ni una de sus pruebas. Lo
+   * que hace volver a jugar es saber que te falta UNA, así que se ordena por
+   * eso —y a igualdad, primero la que menos pide, que es la más asequible—.
+   */
   proximaPagina() {
-    return PAGINAS
+    const candidatas = PAGINAS
       .filter((p) => !this.estaDesbloqueada(p.numero))
-      .sort((a, b) => a.costo - b.costo)[0] ?? null;
+      .map((p) => {
+        const pedidas = p.pruebas ?? 0;
+        const reunidas = Math.min(this.pruebasDelCaso(p.caso ?? null), pedidas);
+        return { ...p, pruebasPedidas: pedidas, pruebasReunidas: reunidas,
+                 faltan: Math.max(0, pedidas - reunidas) };
+      })
+      .sort((a, b) => a.faltan - b.faltan || a.pruebasPedidas - b.pruebasPedidas);
+    return candidatas[0] ?? null;
   }
 
   /** Borra todo el progreso. Pide confirmación quien la llame. */
