@@ -4479,3 +4479,138 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .caso__relleno { transition: none; }
 }
+
+/* ==========================================================================
+   LA PORTADA, IMPRESA
+   ==========================================================================
+   Era la única pantalla que seguía siendo interfaz de aplicación —neón sobre
+   negro— mientras el Archivo, la derrota, el juez y la pausa ya salían sobre
+   papel. Esa excepción rompía la idea que sostiene todo lo demás: aquí lo que
+   no es correr sale impreso, y el juego entero es un ejemplar de El Mercio. */
+
+/* SIN DESENFOQUE, y esta vez por el troquel. El velo de las demás pantallas
+   difumina lo de detrás para que el texto se lea encima; aquí lo de detrás se
+   ve por un hueco recortado en el papel y ES la foto de la portada. Una foto
+   desenfocada no es una foto: es un fondo. El contraste del texto no lo
+   necesita, porque el texto va sobre papel opaco. */
+.pantalla--plana.pantalla--portada {
+  background: rgba(5, 7, 12, 0.55);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.plana--menu {
+  text-align: center;
+  /* El papel lo ponen los DOS bloques, no la hoja: entre ellos queda el hueco
+     por el que se ve la partida. Ver el comentario en menu(). */
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.plana__bloque {
+  background: var(--papel);
+  background-image:
+    radial-gradient(rgba(90, 76, 52, .05) 1px, transparent 1px),
+    radial-gradient(rgba(90, 76, 52, .04) 1px, transparent 1px);
+  background-size: 7px 7px, 11px 11px;
+  padding: clamp(12px, 4vw, 20px);
+  border-radius: 3px 3px 0 0;
+  box-shadow: 0 -2px 0 var(--papel-sombra), 0 -14px 34px rgba(0, 0, 0, .55);
+}
+
+.plana__mancheta {
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 3px double var(--tinta);
+}
+
+/* La cabeza del diario: es lo más grande de la página, como en cualquier
+   portada. Con la tipografía de titulares y bien apretada. */
+.plana__cabeza {
+  font-family: var(--serif);
+  font-size: clamp(2.2rem, 11vw, 3.4rem);
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: var(--tinta);
+}
+
+.plana__lema {
+  margin-top: 3px;
+  font-family: var(--tipo);
+  font-size: clamp(0.48rem, 2.1vw, 0.58rem);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--tinta-media);
+}
+
+.plana__titular--menu {
+  font-size: clamp(1.25rem, 6.2vw, 1.85rem);
+  line-height: 1.05;
+  margin-bottom: 2px;
+}
+
+.plana__epigrafe--menu {
+  font-style: italic;
+  margin-bottom: 10px;
+}
+
+/* LA ESCENA, ENCUADRADA COMO UNA FOTO DE PRENSA.
+   Antes era el fondo y la interfaz se apartaba a los bordes para no taparla.
+   Dentro de su recuadro y con su pie tiene más presencia, no menos: un
+   periódico enseña una imagen así, y de paso deja de competir con el texto. */
+/* El troquel: sin fondo, para que se vea el lienzo por detrás. El marco lo
+   dan los cantos de los dos bloques de papel, arriba y abajo. */
+.portada__foto {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.pantalla--portada .portada__hueco {
+  /* Transparente a propósito: por aquí se ve el lienzo con la partida
+     corriendo detrás del papel. */
+  height: clamp(150px, 34vh, 260px);
+  background: transparent;
+  border: 0;
+  /* El velo del papel no llega aquí: se recorta para que la escena se vea
+     nítida dentro del marco. */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: inset 0 0 0 1px rgba(90, 76, 52, 0.25);
+}
+
+.pantalla--portada .portada__abajo {
+  background: var(--papel);
+  background-image:
+    radial-gradient(rgba(90, 76, 52, .05) 1px, transparent 1px),
+    radial-gradient(rgba(90, 76, 52, .04) 1px, transparent 1px);
+  background-size: 7px 7px, 11px 11px;
+  padding: clamp(10px, 3.4vw, 16px) clamp(12px, 4vw, 20px) clamp(12px, 4vw, 18px);
+  border-radius: 0 0 3px 3px;
+  box-shadow: 0 2px 0 var(--papel-sombra), 0 16px 38px rgba(0, 0, 0, .6);
+}
+
+.plana__pie--foto {
+  padding-bottom: 8px;
+  margin-bottom: 9px;
+  border-bottom: 1px solid var(--tinta-tenue);
+  text-align: left;
+}
+
+.boton--jugar-plana {
+  width: 100%;
+  margin-top: 10px;
+  font-size: clamp(0.9rem, 4.4vw, 1.15rem);
+  letter-spacing: 0.2em;
+}
+
+.pantalla--portada .portada__secundarios {
+  display: flex;
+  gap: 7px;
+  margin-top: 9px;
+}

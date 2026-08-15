@@ -210,77 +210,56 @@ export class Pantallas {
 
   menu() {
     const { pantalla, contenido } = pantallaBase();
-    // LA PORTADA ES LA ESCENA. La interfaz se aparta a los bordes —una banda
-    // arriba y otra abajo— y deja el centro libre, que es donde está el
-    // periodista entrevistando. Un menú que tapa la escena convierte el 3D en
-    // un fondo de pantalla; apartándolo, la escena cuenta de qué va el juego
-    // antes de que nadie lea una línea.
-    pantalla.classList.add('pantalla--portada');
+    // LA PORTADA ES UNA PORTADA. Impresa, no un panel.
+    //
+    // Era la única pantalla del juego que seguía siendo interfaz de aplicación
+    // —neón sobre negro, con la escena 3D de fondo—, mientras el Archivo, la
+    // derrota, el juez y la pausa ya salían sobre papel. Esa excepción rompía
+    // justo la idea que sostiene todo lo demás: que aquí lo que no es correr
+    // sale IMPRESO, y que el juego entero es un ejemplar de El Mercio.
+    //
+    // La escena no se pierde: pasa a ser LA FOTO de la portada, dentro de su
+    // recuadro y con su pie, que es como un periódico enseña una imagen. Antes
+    // era el fondo y la interfaz se apartaba a los bordes para no taparla;
+    // ahora está encuadrada, que le da más presencia y no menos.
+    pantalla.classList.add('pantalla--plana', 'pantalla--portada');
     contenido.classList.add('portada');
 
     const esc = obtenerEscenario(this.juego.escenarioActual);
 
-    // ══ BANDA SUPERIOR ══════════════════════════════════════════════════
+    const plana = el('div', 'plana plana--menu');
+    // La hoja va en DOS bloques con un hueco entre medias, y no de una pieza,
+    // porque por ese hueco tiene que verse la partida corriendo. Un papel de
+    // una pieza es opaco por definición: la «ventana» quedaba tapada por su
+    // propio fondo. Partido, el hueco es hueco de verdad —como el troquel de
+    // una portada—, y las dos mitades siguen leyéndose como la misma página
+    // porque comparten grano, filetes y márgenes.
+    const bloqueAlto = el('div', 'plana__bloque');
+
+    // ══ MANCHETA ════════════════════════════════════════════════════════
+    const mancheta = el('header', 'plana__mancheta');
+    mancheta.appendChild(el('h1', 'plana__cabeza', CABECERA.nombre));
+    mancheta.appendChild(el('div', 'plana__lema', CABECERA.lema));
+    bloqueAlto.appendChild(mancheta);
+
+    // ══ TITULAR ═════════════════════════════════════════════════════════
+    // El escenario va EN el titular y no en una ficha aparte: es la noticia de
+    // esta edición, no un dato de configuración.
+    bloqueAlto.appendChild(el('h2', 'plana__titular plana__titular--menu',
+      `ESTADO DE EXCEPCIÓN: ${esc.nombre}`));
+    bloqueAlto.appendChild(el('div', 'plana__epigrafe plana__epigrafe--menu', esc.subtitulo));
+    plana.appendChild(bloqueAlto);
+
+    // ══ LA FOTO ═════════════════════════════════════════════════════════
+    // El hueco por el que se ve la escena, ahora encuadrado como una foto de
+    // prensa: filete, fondo transparente y pie debajo.
+    const figura = el('figure', 'portada__foto');
+    figura.appendChild(el('div', 'portada__hueco'));
+    plana.appendChild(figura);
+
     const arriba = el('div', 'portada__arriba');
-
-    arriba.appendChild(marca('EL MERCIO PRESENTA'));
-    arriba.appendChild(el('h1', 'titulo titulo--portada', 'ESTADO DE EXCEPCIÓN'));
-
-    // La temporada, en una línea. Antes era una ficha con borde que ocupaba un
-    // quinto de la pantalla para decir dos palabras.
-    const temporada = el('div', 'temporada-linea');
-    const icono = el('span', 'temporada-linea__icono');
-    icono.innerHTML = Icono.iconoTemporada(esc.id, 20);
-    temporada.appendChild(icono);
-    // Solo el nombre del escenario. El «RETOMAS EN / EMPIEZAS EN» sobraba: el
-    // icono ya dice que es la temporada y el jugador no necesita que le
-    // expliquen que vuelve donde lo dejó.
-    temporada.appendChild(el('span', 'temporada-linea__nombre', esc.nombre));
-    arriba.appendChild(temporada);
-
-    // --- LA INVESTIGACIÓN, EN LA PORTADA ------------------------------------
-    //
-    // El menú decía dónde ibas a correr y nada más. Lo que sostiene el juego
-    // —cuánto llevas armado del periódico y qué falta para el siguiente
-    // reportaje— solo se veía al perder, o sea después de jugar. Puesto aquí,
-    // es lo primero que se lee al abrir: se entra sabiendo a qué se entra.
-    //
-    // Los números son los de verdad: pruebas reunidas contra las que existen en
-    // el catálogo de escenarios. Nada de porcentajes inventados.
-    const totalPruebas = Object.values(ESCENARIOS)
-      .reduce((n, e) => n + (e.evidencia?.length ?? 0), 0);
-    const misPruebas = this.cuaderno.pruebasDelCaso(null);
-    const pct = totalPruebas ? Math.round((misPruebas / totalPruebas) * 100) : 0;
-
-    const caso = el('div', 'caso');
-    const cabecera = el('div', 'caso__cabecera');
-    cabecera.appendChild(el('span', 'caso__rotulo', 'INVESTIGACIÓN DEL CASO'));
-    cabecera.appendChild(el('span', 'caso__cifra', `${pct}% · ${misPruebas}/${totalPruebas} pruebas`));
-    caso.appendChild(cabecera);
-
-    const medidor = el('div', 'caso__medidor');
-    const relleno = el('span', 'caso__relleno');
-    // Se pinta en el fotograma siguiente para que la barra se vea CRECER al
-    // abrir el menú. Puesta ya al ancho final es un dato; creciendo, es tu
-    // avance.
-    requestAnimationFrame(() => { relleno.style.width = `${pct}%`; });
-    medidor.appendChild(relleno);
-    caso.appendChild(medidor);
-
-    const siguiente = this.cuaderno.proximaPagina?.();
-    caso.appendChild(el('div', 'caso__meta', siguiente
-      ? (siguiente.faltan === 0
-        ? `PRÓXIMA META: «${siguiente.nombre}» sale al terminar la corrida`
-        : `PRÓXIMA META: ${siguiente.faltan} ${siguiente.faltan === 1 ? 'prueba' : 'pruebas'} para «${siguiente.nombre}»`)
-      : 'EL EJEMPLAR ESTÁ COMPLETO'));
-
-    arriba.appendChild(caso);
-
-    contenido.appendChild(arriba);
-
-    // ══ HUECO ═══════════════════════════════════════════════════════════
-    // No lleva nada. Es la ventana por la que se ve la entrevista.
-    contenido.appendChild(el('div', 'portada__hueco'));
+    plana.appendChild(arriba);
+    contenido.appendChild(plana);
 
     // ══ BANDA INFERIOR ══════════════════════════════════════════════════
     const abajo = el('div', 'portada__abajo');
@@ -334,7 +313,7 @@ export class Pantallas {
     abajo.appendChild(this._pintarArsenal());
 
     // --- Jugar -------------------------------------------------------------
-    abajo.appendChild(boton('JUGAR', 'boton--jugar', () => {
+    abajo.appendChild(boton('JUGAR', 'boton--diario boton--diario-principal boton--jugar-plana', () => {
       this.audio.iniciar();
       this.audio.reanudar();
       this.juego.iniciarPartida(elegido);
@@ -342,19 +321,25 @@ export class Pantallas {
 
     // --- Secundarios -------------------------------------------------------
     const secundarios = el('div', 'portada__secundarios');
-    secundarios.appendChild(boton('Archivo', 'boton--tenue', () => {
+    secundarios.appendChild(boton('Archivo', 'boton--diario', () => {
       this.mostrar(this.notebook());
     }));
-    secundarios.appendChild(boton('Marcadores', 'boton--tenue', () => {
+    secundarios.appendChild(boton('Marcadores', 'boton--diario', () => {
       this.mostrar(this.marcadores());
     }));
-    secundarios.appendChild(boton('Ajustes', 'boton--tenue', () => {
+    secundarios.appendChild(boton('Ajustes', 'boton--diario', () => {
       this.mostrar(this.ajustes());
     }));
     abajo.appendChild(secundarios);
     escalonar(abajo);
 
-    contenido.appendChild(abajo);
+    abajo.insertBefore(el('div', 'plana__pie plana__pie--foto',
+      `${esc.caso} · Fotografía de archivo`), abajo.firstChild);
+
+    // DENTRO del papel, no debajo. Fuera de la hoja se leían como una barra de
+    // aplicación pegada a un dibujo de periódico, que es exactamente lo que el
+    // resto de pantallas lleva evitando.
+    arriba.parentNode.appendChild(abajo);
     return pantalla;
   }
 
