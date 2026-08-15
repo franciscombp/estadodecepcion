@@ -4382,3 +4382,30 @@ html, body {
   .posiciones__fila--sube,
   .posiciones__fila--rebasado { animation: none !important; }
 }
+
+/* --- Material plantado ----------------------------------------------------
+   La pieza falsa se revela AQUÍ, no al recogerla: se detecta al contrastarla,
+   nunca al encontrarla. Va apagada, sin el halo naranja de las buenas y con el
+   icono desaturado, para que la diferencia se vea antes de leer el rótulo. */
+.botin__pieza--falsa .botin__caja {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 -10px 22px rgba(0, 0, 0, 0.55);
+  animation: none;
+  transform: rotateY(-8deg);
+}
+
+.botin__pieza--falsa .botin__cara { filter: grayscale(1) brightness(0.55); }
+.botin__pieza--falsa .botin__destello { display: none; }
+.botin__pieza--falsa .botin__nombre { color: var(--texto-debil); }
+
+.botin__falsa {
+  margin-top: 2px;
+  padding: 2px 7px;
+  border: 1.5px solid var(--rojo);
+  border-radius: 3px;
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: var(--rojo);
+  transform: rotate(-4deg);
+}

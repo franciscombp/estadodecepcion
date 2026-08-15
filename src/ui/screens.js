@@ -16,6 +16,7 @@ import { CABECERA, hayPendientes, cuantosListos } from '../config/publicaciones.
 import { CATALOGO_POTENCIADORES } from '../config/balance.js';
 import { CLASIFICACIONES, clasificacion, tablaConJugador } from '../config/tabla.js';
 import { PERSONAJES } from '../config/personajes.js';
+import { Notebook } from '../game/Notebook.js';
 import * as Icono from './iconos.js';
 
 // ---------------------------------------------------------------------------
@@ -1195,12 +1196,18 @@ export class Pantallas {
     contenido.appendChild(el('div', 'botin__antetitulo', 'SALISTE CON ESTO'));
 
     const pruebas = datos.evidencias ?? [];
+    const buenas = pruebas.filter((n) => !Notebook.esFalsa(n)).length;
     contenido.appendChild(el('h1', 'botin__titular',
-      pruebas.length === 1 ? 'UNA PRUEBA' : `${pruebas.length} PRUEBAS`));
+      buenas === 0 ? 'NADA QUE SOSTENGA'
+        : buenas === 1 ? 'UNA PRUEBA' : `${buenas} PRUEBAS`));
 
     const rejilla = el('div', 'botin__rejilla');
     pruebas.forEach((nombre, i) => {
-      const pieza = el('div', 'botin__pieza');
+      // SE REVELA AQUÍ, no al recogerla. El material plantado se detecta al
+      // contrastarlo, nunca al encontrarlo, y esa es justamente la broma: lo
+      // metiste en la mochila creyendo que servía.
+      const falsa = Notebook.esFalsa(nombre);
+      const pieza = el('div', `botin__pieza${falsa ? ' botin__pieza--falsa' : ''}`);
       // Cada una entra un poco después que la anterior: de golpe se leen como
       // un bloque, en cascada se cuentan una a una.
       pieza.style.setProperty('--retardo', `${i * 0.42}s`);
@@ -1212,6 +1219,7 @@ export class Pantallas {
       caja.appendChild(el('span', 'botin__destello'));
       pieza.appendChild(caja);
       pieza.appendChild(el('div', 'botin__nombre', nombre));
+      if (falsa) pieza.appendChild(el('div', 'botin__falsa', 'NO SE SOSTIENE'));
       rejilla.appendChild(pieza);
 
       // El golpe de sonido de cada pieza, en su turno.
@@ -1219,8 +1227,12 @@ export class Pantallas {
     });
     contenido.appendChild(rejilla);
 
+    const plantadas = pruebas.length - buenas;
     contenido.appendChild(el('div', 'botin__pie',
-      'Se quedan en el archivo aunque te capturen. Son las que arman el reportaje.'));
+      plantadas > 0
+        ? `${plantadas === 1 ? 'Una' : plantadas} de las que recogiste no aguanta un `
+          + 'contraste: te la dejaron ahí. Las buenas se quedan en el archivo.'
+        : 'Se quedan en el archivo aunque te capturen. Son las que arman el reportaje.'));
 
     const botones = el('div', 'botones');
     botones.appendChild(boton('CONTINUAR', 'boton--principal',

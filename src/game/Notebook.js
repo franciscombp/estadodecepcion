@@ -161,9 +161,26 @@ export class Notebook {
     return null;
   }
 
+  /**
+   * ¿Es material plantado? Se responde mirando el catálogo, no una bandera
+   * guardada con la pieza: el nombre ya lo dice y una segunda fuente de verdad
+   * para el mismo dato acaba separándose de la primera.
+   */
+  static esFalsa(nombre) {
+    for (const id of Object.keys(ESCENARIOS)) {
+      if ((ESCENARIOS[id].pruebasFalsas ?? []).includes(nombre)) return true;
+    }
+    return false;
+  }
+
   /** Cuántas pruebas distintas tienes de un caso. Sin `caso`, de todos. */
   pruebasDelCaso(caso = null) {
-    const mias = this.estado.evidenciasEncontradas ?? [];
+    // Las plantadas NO cuentan, ni para su caso ni para el total. Contarlas en
+    // el total —que es lo que pasaba mirando solo la longitud de la lista—
+    // dejaba que un puñado de material falso abriera el último reportaje, que
+    // es exactamente lo contrario de lo que la mecánica quiere decir.
+    const mias = (this.estado.evidenciasEncontradas ?? [])
+      .filter((n) => !Notebook.esFalsa(n));
     if (!caso) return mias.length;
     return mias.filter((n) => Notebook._casoDeLaPrueba(n) === caso).length;
   }

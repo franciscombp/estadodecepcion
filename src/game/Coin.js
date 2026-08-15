@@ -50,6 +50,22 @@ export class CoinManager {
     return m;
   }
 
+  /**
+   * Qué prueba sale. Con probabilidad fija, una plantada.
+   *
+   * El nombre ES el dato: quien quiera saber si una prueba vale mira si está en
+   * la lista de falsas de algún escenario. Guardar además una bandera en el
+   * objeto sería una segunda fuente de verdad para lo mismo, y las dos se
+   * acabarían separando en cuanto alguien edite el catálogo.
+   */
+  _nombreDeEvidencia() {
+    const falsas = this.tiposFalsos ?? [];
+    if (falsas.length && Math.random() < 0.34) {
+      return falsas[Math.floor(Math.random() * falsas.length)];
+    }
+    return this.tiposEvidencia[Math.floor(Math.random() * this.tiposEvidencia.length)];
+  }
+
   _obtenerEvidencia() {
     if (this.poolEvidencia.length > 0) return this.poolEvidencia.pop();
     const m = crearEvidencia();
@@ -170,7 +186,10 @@ export class CoinManager {
         z: zEvidencia,
         valor: EVIDENCIA.VALOR_MINIMO +
           Math.floor(Math.random() * (EVIDENCIA.VALOR_MAXIMO - EVIDENCIA.VALOR_MINIMO + 1)),
-        nombre: this.tiposEvidencia[Math.floor(Math.random() * this.tiposEvidencia.length)],
+        // UNA DE CADA TRES ES PLANTADA, donde las haya. Menos y no llegas a
+        // desconfiar; más y recoger deja de compensar, que es peor: el juego
+        // pasaría a premiar no coger nada.
+        nombre: this._nombreDeEvidencia(),
         recogido: false,
       });
     }
@@ -375,6 +394,9 @@ export class CoinManager {
     this.densidad = escenario.densidadPapeles ?? 1.0;
     this.maximoPorTramo = escenario.maximoPapelesPorTramo ?? Infinity;
     this.tiposEvidencia = escenario.evidencia ?? ['Documento'];
+    // Material plantado. Solo lo tienen los escenarios tardíos: ver
+    // config/escenarios.js, donde está explicado por qué no aparece antes.
+    this.tiposFalsos = escenario.pruebasFalsas ?? [];
     this.generadosEsteTramo = 0;
 
     // A OSCURAS, LOS PAPELES ALUMBRAN. Es lo que sostiene el Apagón desde que

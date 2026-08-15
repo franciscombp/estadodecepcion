@@ -246,6 +246,19 @@ export const ESCENARIOS = {
 
     evidencia: ['Prueba de campaña anticipada', 'Nómina con apellidos repetidos', 'Factura de publicidad fantasma', 'Acta con más votos que votantes'],
 
+    // PRUEBAS FALSAS. Aparecen a partir de aquí y no antes: en la Bahía y en el
+    // Apagón se aprende qué es una prueba, y solo cuando el jugador ya se fía
+    // de lo que recoge tiene gracia empezar a colárselas.
+    //
+    // No suman a ningún reportaje. Se recogen igual, se guardan igual y se
+    // revelan al final de la corrida, que es donde duele y donde se entiende el
+    // chiste: el material plantado se detecta al contrastarlo, nunca al
+    // encontrarlo.
+    //
+    // Se distinguen en la calle —salen apagadas, sin el halo de las buenas—,
+    // así que perderlas es un error de lectura y no una trampa.
+    pruebasFalsas: ['Acta \"corregida\" a mano', 'Captura de pantalla sin metadatos'],
+
     densidadPapeles: 0.9,
 
     institucion: {
@@ -305,6 +318,7 @@ export const ESCENARIOS = {
     },
 
     evidencia: ['Orden de allanamiento sin firma', 'Lista de periodistas vigilados'],
+    pruebasFalsas: ['Denuncia anónima sin respaldo', 'Audio editado'],
 
     // Carondelet es árido: casi no hay qué documentar. Es el punto del juego.
     densidadPapeles: 0.25,
