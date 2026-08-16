@@ -323,9 +323,14 @@ export class HUD {
       this.ref.papeles.textContent = datos.papeles.toLocaleString('es-EC');
       // Latido al sumar: confirma la recogida sin necesidad de leer el número.
       if (datos.papeles > c.papeles && c.papeles >= 0) {
-        this.ref.papeles.classList.remove('late');
-        void this.ref.papeles.offsetWidth; // Reinicia la animación.
-        this.ref.papeles.classList.add('late');
+        // El golpe: la cifra crece de golpe y vuelve. Es lo único de la
+        // pantalla que responde a lo que acaba de hacer el jugador, así que
+        // responde de verdad y no con un parpadeo.
+        this.ref.papeles.classList.add('contador__valor--golpe');
+        clearTimeout(this._golpe);
+        this._golpe = setTimeout(
+          () => this.ref.papeles.classList.remove('contador__valor--golpe'), 150,
+        );
         this._sumarFlotante(datos.papeles - c.papeles);
       }
       c.papeles = datos.papeles;

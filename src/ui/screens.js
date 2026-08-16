@@ -294,53 +294,25 @@ export class Pantallas {
     const abajo = el('div', 'portada__abajo');
     abajo.appendChild(pie);
 
-    // --- Personaje ---------------------------------------------------------
-    // Fichas pequeñas: al que eliges se le ve en la escena, así que el texto no
-    // tiene que describirlo.
-    //
-    // LOS BLOQUEADOS SE ENSEÑAN IGUAL, en gris y con el candado. Un personaje
-    // que no sabías que existía no tira de ti; ver una ficha apagada con lo que
-    // falta para ficharla, sí. Es lo mismo que hace el arsenal justo debajo.
+    // Quién sale a la calle. La ficha se elige en Ajustes (ver más abajo); aquí
+    // solo hace falta saber a quién mandar cuando se toque JUGAR.
     const abiertos = new Set(this.cuaderno.personajesDesbloqueados());
-    let elegido = abiertos.has(this.cuaderno.personajePreferido)
+    const elegido = abiertos.has(this.cuaderno.personajePreferido)
       ? this.cuaderno.personajePreferido
       : PERSONAJES[0].id;
 
-    const personajes = el('div', 'elector');
-    const fichas = PERSONAJES.map((def) => {
-      const abierto = abiertos.has(def.id);
-      const ficha = el('button', `elector__ficha ${abierto ? '' : 'elector__ficha--cerrada'}`.trim());
-      ficha.type = 'button';
-      ficha.appendChild(el('span', 'elector__nombre', abierto ? def.nombre : '???'));
-      // Debajo del nombre, la SECCIÓN. Es una palabra y hace todo el trabajo
-      // del lore: cuatro fichas que ponen Política, Sociedad, Investigación y
-      // Calle no se leen como cuatro skins, se leen como una redacción. Sin
-      // esto, que todos trabajen para El Mercio era algo que solo sabía yo.
-      if (abierto) ficha.appendChild(el('span', 'elector__seccion', def.seccion));
-      ficha.title = abierto ? `${def.nombre} — ${def.nota}` : `Se ficha a los ${def.tramos} tramos`;
-
-      if (!abierto) {
-        ficha.appendChild(el('span', 'elector__candado', `${def.tramos} tramos`));
-        ficha.disabled = true;
-      } else if (def.id === elegido) {
-        ficha.classList.add('elector__ficha--elegida');
-      }
-
-      ficha.addEventListener('click', () => {
-        elegido = def.id;
-        fichas.forEach((f) => f.classList.remove('elector__ficha--elegida'));
-        ficha.classList.add('elector__ficha--elegida');
-        this.juego.previsualizarPersonaje(def.id);
-        this.audio.cambioCarril();
-      });
-
-      personajes.appendChild(ficha);
-      return ficha;
-    });
-    abajo.appendChild(personajes);
-
-    // --- Arsenal, en una tira ---------------------------------------------
-    abajo.appendChild(this._pintarArsenal());
+    // LA PORTADA NO ELIGE PERSONAJE NI ENSEÑA EL ARSENAL.
+    //
+    // Estaban las dos filas aquí —cuatro fichas de periodista y cinco casillas
+    // de potenciador— y ninguna de las dos ayuda a empezar a jugar. La de
+    // personajes es una decisión que se toma una vez cada muchas partidas; la
+    // de potenciadores informa de cosas que caen solas y sobre las que el
+    // jugador no decide nada mientras la mecánica no cambie. Entre las dos se
+    // comían media portada y empujaban la foto y el titular fuera de sitio.
+    //
+    // El personaje se elige en Ajustes, que es donde vive lo que se cambia de
+    // vez en cuando. Las dos funciones siguen aquí enteras: el día que los
+    // potenciadores se compren, la tira vuelve a la portada con una línea.
 
     // --- Jugar -------------------------------------------------------------
     abajo.appendChild(boton('Toca para investigar', 'boton--diario boton--diario-principal boton--jugar-plana', () => {
@@ -407,6 +379,11 @@ export class Pantallas {
     // le toque y se desplaza por dentro en pantallas cortas, en vez de estirar
     // la hoja y sacar los botones fuera de cuadro.
     const cuerpo = el('div', 'se-estira se-estira--desplazable');
+    cuerpo.appendChild(ladillo('LA REDACCIÓN'));
+    cuerpo.appendChild(this._pintarElectorPersonajes());
+    cuerpo.appendChild(ladillo('EL ARSENAL'));
+    cuerpo.appendChild(this._pintarArsenal());
+
     cuerpo.appendChild(ladillo('CONTROLES'));
     cuerpo.appendChild(this._pintarControles());
 
@@ -451,6 +428,58 @@ export class Pantallas {
 
     escalonar(plana);
     return pantalla;
+  }
+
+  /**
+   * EL ELECTOR DE PERIODISTA. Vive en Ajustes.
+   *
+   * Estuvo en la portada, y ahí no iba: elegir con quién sales pasa una vez
+   * cada muchas partidas, y la fila se comía media primera página. Ajustes es
+   * donde vive lo que se cambia de vez en cuando.
+   *
+   * LOS BLOQUEADOS SE ENSEÑAN IGUAL, en gris y con el candado. Un personaje
+   * que no sabías que existía no tira de ti; ver una ficha apagada con lo que
+   * falta para ficharla, sí.
+   */
+  _pintarElectorPersonajes() {
+    const abiertos = new Set(this.cuaderno.personajesDesbloqueados());
+    let elegido = abiertos.has(this.cuaderno.personajePreferido)
+      ? this.cuaderno.personajePreferido
+      : PERSONAJES[0].id;
+
+    const personajes = el('div', 'elector');
+    const fichas = PERSONAJES.map((def) => {
+      const abierto = abiertos.has(def.id);
+      const ficha = el('button', `elector__ficha ${abierto ? '' : 'elector__ficha--cerrada'}`.trim());
+      ficha.type = 'button';
+      ficha.appendChild(el('span', 'elector__nombre', abierto ? def.nombre : '???'));
+      // Debajo del nombre, la SECCIÓN. Es una palabra y hace todo el trabajo
+      // del lore: cuatro fichas que ponen Política, Sociedad, Investigación y
+      // Calle no se leen como cuatro skins, se leen como una redacción.
+      if (abierto) ficha.appendChild(el('span', 'elector__seccion', def.seccion));
+      ficha.title = abierto ? `${def.nombre} — ${def.nota}` : `Se ficha a los ${def.tramos} tramos`;
+
+      if (!abierto) {
+        ficha.appendChild(el('span', 'elector__candado', `${def.tramos} tramos`));
+        ficha.disabled = true;
+      } else if (def.id === elegido) {
+        ficha.classList.add('elector__ficha--elegida');
+      }
+
+      ficha.addEventListener('click', () => {
+        elegido = def.id;
+        fichas.forEach((f) => f.classList.remove('elector__ficha--elegida'));
+        ficha.classList.add('elector__ficha--elegida');
+        this.cuaderno.personajePreferido = def.id;
+        this.cuaderno.guardar?.();
+        this.audio.cambioCarril();
+      });
+
+      personajes.appendChild(ficha);
+      return ficha;
+    });
+
+    return personajes;
   }
 
   /**

@@ -88,6 +88,13 @@
   --rebote: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* --- Zonas seguras (notch, barra de gestos) --- */
+  /* EL MARGEN DE PÁGINA ES 24 Y NO CRECE. Iba en clamp(24px, 7vh, 64px), o
+     sea 64 en cualquier móvil de pantalla larga, y encima de la zona segura:
+     en la aplicación instalada quedaban casi cien píxeles de papel en blanco
+     antes del titular. Veinticuatro dentro de la zona segura es lo que pide la
+     maqueta, y en pantalla completa es lo que se ve. */
+  --margen-pagina: 24px;
+
   --seg-arriba: env(safe-area-inset-top, 0px);
   --seg-abajo: env(safe-area-inset-bottom, 0px);
   --seg-izq: env(safe-area-inset-left, 0px);
@@ -210,9 +217,9 @@ html, body {
      de juego con su propia retícula. Estaba en 10 px por los cuatro costados,
      que es margen de aplicación, no de publicación. */
   padding:
-    calc(var(--seg-arriba) + clamp(24px, 7vh, 64px))
+    calc(var(--seg-arriba) + var(--margen-pagina))
     calc(var(--seg-der) + 24px)
-    calc(var(--seg-abajo) + clamp(20px, 6vh, 64px))
+    calc(var(--seg-abajo) + var(--margen-pagina))
     calc(var(--seg-izq) + 24px);
   pointer-events: none;
   /* HUD elements (counter, buttons, panels) sit above messages */
@@ -283,7 +290,14 @@ html, body {
    opaco y le parte el nombre por la mitad, así que lo que se leía era media
    palabra colgando por el costado. O se ve entera o no se ve. */
 .hud--tramite .riel,
-.hud--rotulo .riel { opacity: 0; }
+.hud--rotulo /* LA LÍNEA DE RUTA, RETIRADA. Era una hilera de nodos que decía por qué tramo
+   del escenario ibas, y no se entendía: sin etiqueta ni escala, cuatro puntos
+   encendiéndose no dicen nada, y encima competían por la mirada con el carril.
+   El marcado se queda —el estado se sigue llevando— y basta con quitar este
+   `display` el día que haya algo que contar ahí. */
+.hud__medio { display: none; }
+
+.riel { opacity: 0; }
 
 /* La racha cuelga del contador y cae justo en la banda disputada. */
 .hud--tramite .racha,
@@ -321,13 +335,18 @@ html, body {
   border-bottom: 1px solid rgba(230, 230, 230, 0.75);
 }
 
+/* BLANCO, Y SIN HALO. Iba en rojo con un resplandor blanco detrás para
+   despegarlo de la calle, y en los escenarios oscuros —el Apagón, el trámite—
+   ese halo se veía como una mancha sucia alrededor de cada letra. Blanco sobre
+   una calle oscura no necesita nada detrás; sobre una clara, el filete de la
+   cabecera ya lo sostiene. */
 .hud__rotulo-evidencia {
   font-family: var(--sans);
   font-size: 0.875rem;
   font-weight: 700;
   line-height: 1.4;
-  color: var(--rojo-diario);
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.85);
+  color: #ffffff;
+  text-shadow: none;
 }
 
 /* Botón de icono (pausa). 48×48 mínimo: un botón de pausa que falla en un
@@ -531,10 +550,23 @@ html, body {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.0125em;
   line-height: 1.15;
-  color: var(--rojo-diario);
-  /* El halo blanco del Figma: es lo que despega la cifra de la calle sin
-     meterla en una cápsula. */
-  text-shadow: 0 0 16px rgba(255, 255, 255, 0.95), 0 0 6px rgba(255, 255, 255, 0.8);
+  color: #ffffff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+  /* El golpe al recoger. La cifra es lo único que responde a lo que hace el
+     jugador, así que responde de verdad: crece de golpe y vuelve. Sin esto,
+     recoger un papel no se notaba en ninguna parte de la pantalla. */
+  transform-origin: 100% 50%;
+  transition: transform 240ms var(--rebote), color 180ms;
+}
+
+.contador__valor--golpe {
+  transform: scale(1.42);
+  color: var(--dorado, #ffcf3f);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contador__valor { transition: color 180ms; }
+  .contador__valor--golpe { transform: none; }
 }
 
 /* --- La racha --------------------------------------------------------------
@@ -698,7 +730,7 @@ html, body {
      superior (el de la página) MÁS la altura de la fila de arriba: 48 del
      botón, 10 de aire y el filete. Con los 58 de antes, calculados para un
      margen de 10 px, los carteles caían encima del contador. */
-  top: calc(var(--seg-arriba) + clamp(24px, 7vh, 64px) + 68px);
+  top: calc(var(--seg-arriba) + var(--margen-pagina) + 68px);
   left: 50%;
   transform: translateX(-50%) translateY(0);
   display: flex;
@@ -822,7 +854,11 @@ html, body {
 .avisos {
   position: absolute;
   right: calc(var(--seg-der) + 12px);
-  top: calc(var(--seg-arriba) + 96px);
+  /* POR DEBAJO DE LA CABECERA DEL BARRIO. A 96 los avisos caían justo encima
+     del lema y el nombre del escenario —«LA BAHÍA» tapado por un toast de
+     obstáculo— y las dos piezas se estorbaban cada vez que coincidían. La
+     cabecera acaba sobre los 165, así que los avisos empiezan ahí. */
+  top: calc(var(--seg-arriba) + 172px);
   transition: transform 0.42s cubic-bezier(0.2, 0.9, 0.28, 1.06);
   display: flex;
   flex-direction: column;
@@ -1172,9 +1208,9 @@ html, body {
   /* Los 64 de la maqueta, encogiendo en pantallas cortas: en un móvil de 640
      de alto, 128 px de margen serían una quinta parte de la página. */
   padding:
-    calc(var(--seg-arriba) + clamp(24px, 7vh, 64px))
+    calc(var(--seg-arriba) + var(--margen-pagina))
     calc(var(--seg-der) + 24px)
-    calc(var(--seg-abajo) + clamp(20px, 6vh, 64px))
+    calc(var(--seg-abajo) + var(--margen-pagina))
     calc(var(--seg-izq) + 24px);
   overflow: hidden;
   /* El velo va TRANSLÚCIDO. Estaba al 96-98 %, y a esa opacidad el desenfoque
@@ -5005,12 +5041,32 @@ html, body {
    periódico enseña una imagen así, y de paso deja de competir con el texto. */
 /* El troquel: sin fondo, para que se vea el lienzo por detrás. El marco lo
    dan los cantos de los dos bloques de papel, arriba y abajo. */
+/* LA FOTO LLEVA MÁRGENES, como cualquier fotografía de un diario. Sangraba de
+   borde a borde de la pantalla y con eso dejaba de leerse como una imagen
+   dentro de una página: era la página. Las dos barras de papel a los lados son
+   lo único que hace falta —el mismo margen de 24 que el resto de la maqueta—
+   para que vuelva a ser una foto puesta en una plana. */
 .portada__foto {
+  position: relative;
   margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
 }
+
+.pantalla--portada .portada__foto::before,
+.pantalla--portada .portada__foto::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: max(var(--margen-pagina), calc(50vw - 230px));
+  background: var(--papel);
+  z-index: 1;
+}
+
+.pantalla--portada .portada__foto::before { left: calc(50% - 50vw); }
+.pantalla--portada .portada__foto::after { right: calc(50% - 50vw); }
 
 .pantalla--portada .portada__hueco {
   /* Transparente a propósito: por aquí se ve el lienzo con la partida
