@@ -2073,6 +2073,146 @@ function crearCartelDestino(texto, colorAcento, esPeligro = false) {
  * @param {{izquierda:string, centro:string, derecha:string}} destinos
  * @param {boolean} centroEsPeligro Si ir de frente mata (Carondelet)
  */
+
+// ---------------------------------------------------------------------------
+// EL CRUCE — Los edificios que bifurcan
+// ---------------------------------------------------------------------------
+// Antes había una fachada abstracta con tres bocas de túnel dibujadas: un
+// paredón con tres agujeros, igual en las cuatro escenas y sin pertenecer a
+// ninguna. Cumplía la función —marcaba dónde se decide— pero mentía sobre el
+// sitio: en el centro histórico no hay bocas de túnel, hay una esquina con un
+// palacio enfrente.
+//
+// Ahora bifurca la CIUDAD. De frente está el edificio de la institución, con su
+// puerta, que es por donde se entra al trámite. A los lados no hay boca
+// ninguna: la calle sigue, y lo que la enmarca son las medianeras de las casas
+// del barrio. Entrar por un costado es doblar la esquina, no meterse por un
+// agujero.
+//
+// La geometría respeta lo que ya sabía leer el jugador: el hueco del centro
+// sigue estando en el carril del centro y los laterales siguen alineados con
+// los suyos, porque eso es lo que decide la partida y no puede cambiar por un
+// cambio de aspecto.
+
+/**
+ * @param {string} nombre        Rótulo de la institución del centro
+ * @param {object} colores       Paleta del escenario
+ * @param {boolean} centroEsPeligro El de frente es el cerco, no una entrada
+ */
+export function crearCruceDeEdificios(nombre, colores, centroEsPeligro = false) {
+  const g = new THREE.Group();
+  const acento = colores.acento ?? COLOR3D.dorado;
+  const hueco = CARRILES.ANCHO * 1.02;   // por donde se pasa, en cada carril
+
+  // --- El edificio del centro ----------------------------------------------
+  // Es la institución, y va CENTRADO y macizo salvo por su portal. Ir de frente
+  // significa entrar por esa puerta.
+  const fachada = crearFachadaInstitucion(nombre, colores, centroEsPeligro);
+  fachada.position.z = -2;
+  g.add(fachada);
+
+  // El portal, recortado sobre la fachada: un marco iluminado a la altura del
+  // carril central. No es un agujero en la geometría —eso obligaría a CSG— sino
+  // un vano oscuro con su marco, que a esta velocidad se lee igual.
+  if (!centroEsPeligro) {
+    const vano = new THREE.Mesh(
+      new THREE.BoxGeometry(hueco, 4.6, 0.5),
+      mat(0x05070c, 0.0, 1),
+    );
+    vano.position.set(0, 2.3, 0.2);
+    g.add(vano);
+
+    const marco = new THREE.Mesh(
+      new THREE.BoxGeometry(hueco + 0.7, 5.3, 0.35),
+      neon(acento, 1.35),
+    );
+    marco.position.set(0, 2.65, 0.05);
+    g.add(marco);
+    // El marco se ve por delante del vano, así que el vano tapa su centro y lo
+    // que queda es un rectángulo de luz: el portal.
+    vano.position.z = 0.3;
+  }
+
+  // --- Las medianeras que enmarcan los laterales ---------------------------
+  // Dos bloques de casa que dejan pasar por fuera. No cierran la calle: la
+  // estrechan, que es lo que hace una esquina.
+  for (const lado of [-1, 1]) {
+    const medianera = new THREE.Mesh(
+      new THREE.BoxGeometry(3.2, 7.5, 4),
+      mat(colores.props ?? 0x8a7f6d, 0.03, 0.95),
+    );
+    medianera.position.set(lado * (CARRILES.ANCHO * 1.5 + 1.6), 3.75, -2);
+    g.add(medianera);
+
+    // Rótulo de esquina con el nombre de la calle: es lo que convierte un
+    // bloque en una esquina de verdad.
+    const chapa = new THREE.Mesh(
+      new THREE.BoxGeometry(2.2, 0.5, 0.12),
+      neon(acento, 0.9),
+    );
+    chapa.position.set(lado * (CARRILES.ANCHO * 1.5 + 1.6), 5.4, 0.1);
+    g.add(chapa);
+  }
+
+  return g;
+}
+
+/**
+ * EL PASO LATERAL — la cinemática de doblar la esquina.
+ *
+ * Entrar por un costado cambiaba el decorado de golpe, tapado con un destello.
+ * Funcionaba, pero no se sentía como ir a ninguna parte: la calle era otra sin
+ * que hubiera pasado nada. Esto es un pasaje corto —soportales, que es como se
+ * pasa de una calle a otra en un casco antiguo— que se atraviesa mientras el
+ * barrio de detrás se sustituye por el nuevo.
+ *
+ * Es el mismo recurso que el pasillo del trámite y a propósito: lo que separa
+ * una escena de otra es cruzar algo, no un corte.
+ */
+export function crearPasoLateral(largo, colores) {
+  const g = new THREE.Group();
+  const acento = colores.acento ?? COLOR3D.dorado;
+  const ancho = CARRILES.ANCHO * 3 + 2.4;
+  const alto = 6.2;
+
+  // Techo del soportal.
+  const techo = new THREE.Mesh(
+    new THREE.BoxGeometry(ancho + 1.2, 0.5, largo),
+    mat(colores.props ?? 0x6b5f4d, 0.03, 0.95),
+  );
+  techo.position.set(0, alto, -largo / 2);
+  g.add(techo);
+
+  // Los dos muros, con sus arcos. El interior va oscuro para que la salida al
+  // fondo se lea como salida.
+  for (const lado of [-1, 1]) {
+    const muro = new THREE.Mesh(
+      new THREE.BoxGeometry(0.7, alto, largo),
+      mat(0x2c2b30, 0.02, 0.97),
+    );
+    muro.position.set(lado * (ancho / 2), alto / 2, -largo / 2);
+    g.add(muro);
+
+    // Columnas cada pocos metros: son las que dan el ritmo al pasar y hacen
+    // que se note la velocidad dentro del pasaje.
+    const cuantas = Math.max(2, Math.round(largo / 6));
+    for (let i = 0; i < cuantas; i++) {
+      const col = new THREE.Mesh(
+        new THREE.BoxGeometry(0.85, alto, 0.85),
+        mat(colores.props ?? 0x8a7f6d, 0.03, 0.95),
+      );
+      col.position.set(lado * (ancho / 2 - 0.4), alto / 2, -(largo / cuantas) * i);
+      g.add(col);
+
+      const farol = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), neon(acento, 1.6));
+      farol.position.set(lado * (ancho / 2 - 1), alto - 1.2, -(largo / cuantas) * i);
+      g.add(farol);
+    }
+  }
+
+  return g;
+}
+
 export function crearTunelesBifurcacion(destinos, colores, centroEsPeligro = false) {
   const g = new THREE.Group();
 

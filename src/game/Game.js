@@ -672,7 +672,7 @@ export class Game {
   _cruzarBifurcacion(carril) {
     this.enAproximacion = false;
     this.corredorLimpio = false;
-    this.bifurcacion.iniciarViraje(carril);
+    this.bifurcacion.iniciarViraje(carril, this.escenario.obtenerColores());
     this.audio.cambioEscenario();
     this.alQuitarSenal();
 

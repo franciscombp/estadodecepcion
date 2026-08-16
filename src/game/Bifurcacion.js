@@ -32,7 +32,8 @@
 import * as THREE from 'three';
 import { CARRILES } from '../config/balance.js';
 import {
-  crearTunelesBifurcacion,
+  crearCruceDeEdificios,
+  crearPasoLateral,
   crearFlechaAsfalto,
 } from '../models/props.js';
 import { obtenerEscenario } from '../config/escenarios.js';
@@ -44,8 +45,8 @@ export class Bifurcacion {
     this.grupo = new THREE.Group();
     escena.add(this.grupo);
 
-    this.activa = false;       // ¿Hay bocas de túnel en pista?
-    this.tuneles = null;       // La fachada con las tres bocas
+    this.activa = false;       // ¿Hay cruce en pista?
+    this.tuneles = null;       // El cruce de edificios
     this.flechas = [];
     this.z = 0;                // Posición de la fachada
 
@@ -54,6 +55,14 @@ export class Bifurcacion {
     this.direccionViraje = 0;  // -1 izquierda, 0 centro, 1 derecha
     this.tiempoViraje = 0;
     this.DURACION_VIRAJE = 0.75;
+
+    // El soportal que se cruza al doblar la esquina.
+    this.paso = null;
+    this.zPaso = 0;
+    // Treinta metros: a velocidad de crucero es algo más de un segundo dentro.
+    // Menos y no da tiempo a leerlo como un sitio; más y se hace un túnel, que
+    // es lo que tiene que seguir siendo exclusivo del trámite.
+    this.LARGO_PASO = 30;
   }
 
   // -------------------------------------------------------------------------
@@ -85,7 +94,10 @@ export class Bifurcacion {
 
     this.z = -distancia;
 
-    this.tuneles = crearTunelesBifurcacion(destinos, colores, centroEsPeligro);
+    // BIFURCA LA CIUDAD, no un paredón con tres agujeros. De frente está el
+    // edificio de la institución con su portal; a los lados la calle sigue,
+    // enmarcada por las medianeras del barrio. Ver crearCruceDeEdificios().
+    this.tuneles = crearCruceDeEdificios(destinos.centro, colores, centroEsPeligro);
     this.tuneles.position.z = this.z;
     this.grupo.add(this.tuneles);
 
@@ -146,6 +158,16 @@ export class Bifurcacion {
       }
     }
 
+    // El soportal viaja hacia atrás y se retira al quedar cruzado.
+    if (this.paso) {
+      this.zPaso += avance;
+      this.paso.position.z = this.zPaso;
+      if (this.zPaso > this.LARGO_PASO + 20) {
+        this._destruir(this.paso);
+        this.paso = null;
+      }
+    }
+
     if (!this.activa) return false;
 
     this.z += avance;
@@ -172,10 +194,30 @@ export class Bifurcacion {
    * Arranca el tránsito hacia el carril elegido.
    * @param {number} carril 0 izquierda, 1 centro, 2 derecha
    */
-  iniciarViraje(carril) {
+  iniciarViraje(carril, colores) {
     this.direccionViraje = carril - 1; // -1, 0, 1
     this.virando = true;
     this.tiempoViraje = 0;
+
+    // POR UN COSTADO SE CRUZA ALGO. El decorado cambiaba de golpe, tapado con
+    // un destello: funcionaba, pero no se sentía como ir a ninguna parte —la
+    // calle era otra sin que hubiera pasado nada—. Ahora se atraviesa un
+    // soportal mientras el barrio de detrás se sustituye, que es el mismo
+    // recurso del pasillo del trámite y por la misma razón: lo que separa una
+    // escena de otra es cruzar algo, no un corte.
+    if (this.direccionViraje !== 0 && colores) {
+      this._montarPaso(colores);
+    }
+  }
+
+  _montarPaso(colores) {
+    this._destruir(this.paso);
+    this.paso = crearPasoLateral(this.LARGO_PASO, colores);
+    // Arranca justo encima del jugador: se entra en el mismo fotograma en que
+    // se dobla la esquina.
+    this.zPaso = 4;
+    this.paso.position.z = this.zPaso;
+    this.grupo.add(this.paso);
   }
 
   /**
@@ -202,6 +244,10 @@ export class Bifurcacion {
   // -------------------------------------------------------------------------
 
   _destruir(objeto) {
+    // Tolera null: lo llaman rutas que no saben si había algo montado —el paso
+    // lateral solo existe cuando se dobla por un costado—, y obligarlas a
+    // comprobarlo antes reparte la misma condición por cuatro sitios.
+    if (!objeto) return;
     this.grupo.remove(objeto);
     objeto.traverse((o) => {
       if (o.geometry) o.geometry.dispose();
@@ -209,6 +255,17 @@ export class Bifurcacion {
     });
   }
 
+  /**
+   * Retira el cruce. NO toca el soportal a propósito.
+   *
+   * A limpiar() lo llama el cambio de tramo, que es exactamente el momento en
+   * que el jugador está DENTRO del paso: si se llevara el soportal por delante,
+   * desaparecería en el mismo fotograma en que se entra en él y el cambio de
+   * decorado volvería a verse a pelo, que es lo que el paso venía a tapar.
+   *
+   * El soportal se retira solo al quedar cruzado (ver actualizar) y se fuerza
+   * en reiniciar(), que es cuando de verdad no queda nada en pista.
+   */
   limpiar() {
     if (this.tuneles) {
       this._destruir(this.tuneles);
@@ -222,6 +279,8 @@ export class Bifurcacion {
   }
 
   reiniciar() {
+    this._destruir(this.paso);
+    this.paso = null;
     this.limpiar();
     this.virando = false;
     this.tiempoViraje = 0;
