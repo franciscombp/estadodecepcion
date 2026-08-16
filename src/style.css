@@ -118,7 +118,12 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: var(--abismo);
+  /* PAPEL, NO ABISMO. Con `black-translucent` en iOS la página se mete debajo
+     de la barra de estado y del indicador de inicio, y lo que se ve en esas
+     franjas es EL FONDO DEL DOCUMENTO. Estando en azul noche, la aplicación
+     instalada salía con dos barras negras —arriba y abajo— enmarcando una
+     página blanca. Con el papel, esas franjas son papel y no se ven. */
+  background: var(--papel);
   color: var(--texto);
   font-family: var(--sans);
   overscroll-behavior: none;
