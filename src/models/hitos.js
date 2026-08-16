@@ -37,10 +37,76 @@ export const HITO_POR_ESCENARIO = {
 let raiz = null;
 let cargando = null;
 
+// ---------------------------------------------------------------------------
+// PIEZAS SOBREESCRITAS — Lo que vuelve de Blender
+// ---------------------------------------------------------------------------
+// El juego genera sus piezas con código. Si alguien baja una del exportador, la
+// retoca en Blender y la deja en public/modelos/piezas/ con el mismo nombre, a
+// partir de ahí manda el archivo.
+//
+// SE INTENTA UNA VEZ Y EN SILENCIO. No hay lista de qué archivos existen —eso
+// obligaría a mantener un índice a mano y a acordarse de tocarlo cada vez—, así
+// que se pide la pieza y, si el servidor responde 404, se usa la procedural. El
+// 404 en consola es ruido, pero es el precio de que añadir una pieza sea dejar
+// un archivo en una carpeta y nada más.
+const piezas = new Map();
+
+/**
+ * Registra una pieza editada, si existe. Se llama al arrancar con la lista de
+ * las que el juego sabe sustituir.
+ */
+async function intentarCargarPieza(id, base) {
+  try {
+    const respuesta = await fetch(`${base}modelos/piezas/${id}.glb`, { method: 'HEAD' });
+    if (!respuesta.ok) return false;
+  } catch {
+    return false;
+  }
+
+  return new Promise((resolver) => {
+    new GLTFLoader().load(
+      `${base}modelos/piezas/${id}.glb`,
+      (gltf) => { piezas.set(id, gltf.scene); resolver(true); },
+      undefined,
+      () => resolver(false),
+    );
+  });
+}
+
+/**
+ * ¿Hay una versión editada de esta pieza? Devuelve una copia o null.
+ *
+ * Quien genera una pieza pregunta primero por aquí y, si no hay nada, sigue con
+ * su código de siempre. Así el juego funciona igual sin un solo archivo, y
+ * cambiar una casa no obliga a tocar JavaScript.
+ */
+export function piezaEditada(id) {
+  const original = piezas.get(id);
+  return original ? original.clone(true) : null;
+}
+
+export function hayPiezaEditada(id) {
+  return piezas.has(id);
+}
+
 /** Descarga el modelo. Se llama una vez, desde la pantalla de carga. */
+// Qué piezas admiten sustitución desde Blender. Es la lista de lo que el
+// generador consulta antes de construir; añadir una es añadirla aquí y meter la
+// consulta en su generador.
+export const PIEZAS_SUSTITUIBLES = [
+  'personaje-tostadologo', 'personaje-avecilla', 'personaje-buencan',
+  'personaje-monki', 'personaje-ministro',
+  'evidencia', 'prueba', 'policia', 'dron',
+];
+
 export function cargarHitos(base = '/') {
   if (raiz) return Promise.resolve(true);
   if (cargando) return cargando;
+
+  // Las piezas editadas van en paralelo con el modelo de la ciudad: son
+  // independientes y esperar una por una alargaría la pantalla de carga.
+  Promise.all(PIEZAS_SUSTITUIBLES.map((id) => intentarCargarPieza(id, base)))
+    .catch(() => {});
 
   cargando = new Promise((resolver) => {
     new GLTFLoader().load(

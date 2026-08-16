@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exportador de Modelos — Estado de Excepción</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='80'>📥</text></svg>">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root { --bg:#0a0e27; --card:#1a1f3a; --borde:#2a3f5f; --texto:#e4e6eb;
+            --tenue:#8892b0; --rosa:#ff006e; --cian:#00d9ff; }
+    body { background:var(--bg); color:var(--texto); line-height:1.6;
+           font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+    .envoltorio { max-width:1100px; margin:0 auto; padding:24px 16px 60px; }
+    h1 { font-size:1.9rem; margin-bottom:4px; }
+    .bajada { color:var(--tenue); margin-bottom:20px; }
+    .columnas { display:grid; grid-template-columns:1fr; gap:20px; }
+    @media (min-width:860px) { .columnas { grid-template-columns:340px 1fr; } }
+    .panel { background:var(--card); border:1px solid var(--borde); border-radius:12px; padding:16px; }
+    #visor { width:100%; aspect-ratio:1; display:block; border-radius:10px;
+             background:linear-gradient(160deg,#121a30,#0a0e27); }
+    .medidas { margin-top:10px; font-size:.8rem; color:var(--tenue); font-family:'Courier New',monospace; }
+    .grupo { margin-bottom:14px; }
+    .grupo h3 { font-size:.7rem; letter-spacing:.14em; text-transform:uppercase;
+                color:var(--tenue); margin-bottom:6px; }
+    .pieza { display:flex; width:100%; align-items:center; gap:8px; padding:8px 10px;
+             margin-bottom:4px; border-radius:8px; border:1px solid transparent;
+             background:transparent; color:var(--texto); font:inherit; font-size:.86rem;
+             text-align:left; cursor:pointer; }
+    .pieza:hover { background:#22284a; }
+    .pieza[aria-current="true"] { background:rgba(255,0,110,.14); border-color:rgba(255,0,110,.5); color:#ff4d94; }
+    .acciones { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+    button.accion { padding:11px 18px; border-radius:9px; border:0; cursor:pointer;
+                    font-weight:800; font-size:.85rem; }
+    .bajar { background:linear-gradient(135deg,var(--rosa),var(--cian)); color:#06080f; }
+    .todo { background:#22284a; color:var(--texto); border:1px solid var(--borde); }
+    .aviso { margin-top:12px; font-size:.78rem; color:var(--tenue); }
+    code { background:#0d1220; padding:2px 6px; border-radius:4px; font-size:.85em; }
+    .pasos { margin:14px 0 0 18px; font-size:.84rem; color:var(--tenue); }
+    .pasos li { margin-bottom:5px; }
+  </style>
+</head>
+<body>
+  <div class="envoltorio">
+    <h1>📥 Exportador de Modelos</h1>
+    <p class="bajada">
+      Baja cualquier pieza del juego en <code>.glb</code>, ábrela en Blender, retócala
+      y devuélvela. Se exporta el mismo código que corre en la partida.
+    </p>
+
+    <div class="columnas">
+      <div class="panel">
+        <canvas id="visor"></canvas>
+        <div class="medidas" id="medidas">—</div>
+        <div class="acciones">
+          <button class="accion bajar" id="bajar">Descargar .glb</button>
+          <button class="accion todo" id="bajarTodo">Descargar todo</button>
+        </div>
+        <ol class="pasos">
+          <li>Descarga la pieza y ábrela en Blender (<em>File ▸ Import ▸ glTF 2.0</em>).</li>
+          <li>Edítala sin cambiar el nombre del objeto raíz.</li>
+          <li>Exporta con <em>File ▸ Export ▸ glTF 2.0 (.glb)</em>.</li>
+          <li>Déjala en <code>public/modelos/piezas/</code> con el mismo nombre.</li>
+        </ol>
+        <p class="aviso">
+          El juego prefiere el archivo si existe y usa el procedural si no. No hay que
+          tocar código para cambiar una pieza.
+        </p>
+      </div>
+
+      <div class="panel" id="catalogo"></div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/creador/exportador-pagina.js"></script>
+  <script src="/creador/nav.js"></script>
+</body>
+</html>

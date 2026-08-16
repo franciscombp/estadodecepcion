@@ -1,6 +1,10 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const paquete = JSON.parse(readFileSync('./package.json', 'utf8'));
 
@@ -29,6 +33,16 @@ export default defineConfig({
     outDir: 'dist',
     assetsInlineLimit: 4096,
     rollupOptions: {
+      // DOS ENTRADAS. El exportador tiene que importar el MISMO código que el
+      // juego —los mismos generadores y la misma versión de Three— o lo que
+      // baja no es la pieza del juego, es otra parecida. Por eso vive dentro
+      // del build y no en public/, que Vite copia tal cual sin resolver
+      // imports: la versión anterior tiraba de un CDN en r128 mientras el juego
+      // iba por r184, y exportaba unos cubos de demostración.
+      input: {
+        principal: resolve(__dirname, 'index.html'),
+        exportador: resolve(__dirname, 'creador/exportador/index.html'),
+      },
       output: {
         // Separamos Three.js en su propio chunk para que el Service Worker
         // lo cachee una sola vez y las actualizaciones del juego no lo invaliden.

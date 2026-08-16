@@ -726,35 +726,96 @@ Ver `src/utils/actualizacion.js`.
 
 ## Sobre los modelos 3D
 
-Los personajes y los props son **procedurales**: se construyen con primitivas
-de Three.js en `src/models/`, no se cargan desde archivos `.glb`.
+Los personajes y los props son **procedurales**: se construyen con primitivas de
+Three.js en `src/models/`, no se cargan de archivos. El juego entero pesa poco
+más de medio mega, no hay descargas que puedan fallar y la estética low-poly
+encaja con el resto.
 
-Se hizo así porque no existían modelos de Chochólogo, Alondra, Noboa ni
-Reimberg que pudiéramos usar. Las ventajas resultaron ser varias: el juego
-entero pesa unos 570 KB, no hay descargas que puedan fallar, y la estética
-low-poly encaja con el vaporwave.
+Pero procedural no significa cerrado. Hay un **camino de ida y vuelta con
+Blender** para cualquiera que no quiera tocar JavaScript.
 
-### Cambiar a modelos .glb reales
+### El taller: `/creador/`
 
-Cuando El Mercio tenga assets de verdad:
+Seis herramientas con menú compartido, así que da igual por cuál entres:
 
-1. Poner el archivo en `public/assets/models/chochologo.glb`
-2. En `src/models/characters.js`, sustituir `crearChochologo()` por una carga
-   con `GLTFLoader`
-3. Mantener los nombres de las partes (`torso`, `cabeza`, `brazoIzq`,
-   `piernaDer`…) o adaptar `animarCarrera()` a las animaciones del `.glb`
+| Herramienta | Ruta | Para qué |
+|---|---|---|
+| Portal | `/creador/` | Índice de todo |
+| **Exportador** | `/creador/exportador/` | **Bajar piezas del juego a `.glb`** |
+| Escenas | `/creador/mapas/` | Editor de escenas *(en desarrollo)* |
+| Niveles | `/creador/niveles/` | Configurador *(en desarrollo)* |
+| Personajes | `/creador/personajes/` | Visor de personajes |
+| Design System | `/creador/ui/` | Tokens de diseño |
+| Sandbox | `/creador/pruebas/` | Pruebas de juego |
 
-El resto del juego no se entera del cambio.
+Se abren con `npm run dev` en `http://localhost:5174/creador/`, y en producción
+cuelgan de la misma URL del juego.
 
-Para binarios pesados usa `src/utils/assetCache.js`, que ya está escrito: es un
-envoltorio de IndexedDB que descarga una vez y sirve desde local a partir de
-ahí. El Service Worker no es buen sitio para archivos grandes porque su caché
-se invalida en cada despliegue; IndexedDB los conserva entre versiones.
+### Editar una pieza en Blender
+
+1. Abre **`/creador/exportador/`**. Ahí están todas las piezas del juego
+   agrupadas: personajes, cuadras de decorado, obstáculos, recolectables y
+   elementos de escena. Cada una se previsualiza girando y con sus medidas
+   reales en metros.
+2. **Descargar `.glb`** (o *Descargar todo*, que baja el catálogo entero).
+3. En Blender: *File ▸ Import ▸ glTF 2.0*, retocas, y *File ▸ Export ▸ glTF 2.0
+   (.glb)*.
+4. Deja el archivo en **`public/modelos/piezas/`** con el mismo nombre.
+
+A partir de ahí el juego usa el archivo. Si no está, usa el procedural. **No hay
+que tocar código ni registrar nada**: la comprobación se hace al arrancar, y una
+pieza que no existe simplemente no sustituye a nada.
+
+Qué piezas admiten sustitución está en `PIEZAS_SUSTITUIBLES`
+(`src/models/hitos.js`). Añadir una es meterla en esa lista y hacer que su
+generador pregunte por `piezaEditada(id)` antes de construir.
+
+> **El exportador exporta lo que corre.** Vive dentro del build de Vite y no en
+> `public/`, así que importa los mismos generadores y la misma versión de Three
+> que el juego. Una versión anterior vivía suelta en `public/`, tiraba de un CDN
+> con Three r128 —el juego va por r184— y exportaba unos cubos de demostración:
+> lo que bajabas no era la pieza del juego, era otra cosa parecida.
+
+### Dos avisos que ahorran un rato
+
+**Los personajes importados no se animan.** `animarCarrera()` mueve los miembros
+buscándolos por nombre (`piernaIzq`, `brazoDer`, `torso`, `cabeza`…). Si el
+`.glb` no los trae con esos nombres, el personaje corre quieto. O mantienes los
+nombres en Blender, o adaptas `animarCarrera()` a las animaciones del archivo.
+
+**Cuidado con el número de piezas.** El coste en móvil no son los triángulos,
+son las llamadas de dibujo. Una cuadra colonial son cuarenta y cinco piezas y en
+pantalla hay más de treinta casas: sin fundir, eran 597 llamadas y 125 ms por
+fotograma; fundidas por material, 451 llamadas y 110 ms —con MÁS triángulos—.
+Si traes una pieza muy despiezada de Blender, júntala por material antes de
+exportar (en Blender, *Join* por color).
+
+### Edificios reconocibles
+
+Aparte de las piezas sustituibles, hay **hitos**: los edificios que el jugador
+tiene que reconocer, modelados y no generados, en `public/modelos/quito.glb`. Se
+cargan una vez en la pantalla de carga y cada escena clona el suyo:
+
+| Escenario | Hito |
+|---|---|
+| Carondelet | Palacio de Carondelet |
+| El Apagón | Central térmica |
+| La Bahía | Fiscalía General del Estado |
+| Las Elecciones | *(ninguno: el CNE no está modelado)* |
+
+Una casa colonial genérica se genera con cajas y queda bien; un edificio que hay
+que **reconocer**, no. Por eso el decorado sigue siendo procedural y solo los
+hitos vienen de archivo.
+
+Para binarios pesados está `src/utils/assetCache.js`: un envoltorio de IndexedDB
+que descarga una vez y sirve desde local. El Service Worker no es buen sitio
+para archivos grandes porque su caché se invalida en cada despliegue; IndexedDB
+los conserva entre versiones.
 
 ```js
 const cache = new AssetCache();
 await cache.abrir();
-const buffer = await cache.obtenerOBajar('noboa.glb', '/assets/models/noboa.glb');
+const buffer = await cache.obtenerOBajar('pieza.glb', '/modelos/pieza.glb');
 ```
 
 ---

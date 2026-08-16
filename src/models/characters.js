@@ -16,6 +16,7 @@
 // ============================================================================
 
 import * as THREE from 'three';
+import { piezaEditada } from './hitos.js';
 
 // ---------------------------------------------------------------------------
 // UTILIDADES DE CONSTRUCCIÓN
@@ -531,6 +532,16 @@ export function crearMinistro() {
  * sitios del jugador, y con cuatro personajes eso ya no escala.
  */
 export function crearPersonaje(id) {
+  // ¿Hay una versión retocada en Blender? Manda ella. Ver models/hitos.js: el
+  // archivo se busca al arrancar y, si no está, se sigue con el procedural de
+  // siempre. Así se puede cambiar un personaje sin tocar una línea de código.
+  //
+  // OJO: una pieza importada NO se anima. animarCarrera() busca los miembros
+  // por nombre (`piernaIzq`, `brazoDer`…), y si el archivo no los trae, el
+  // personaje corre quieto. Está documentado en el README.
+  const editada = piezaEditada(`personaje-${id}`);
+  if (editada) return editada;
+
   switch (id) {
     case 'avecilla': return crearAvecilla();
     case 'buencan': return crearBuencan();
