@@ -29,7 +29,7 @@
 import * as THREE from 'three';
 import { CAMARA, PERSEGUIDOR } from '../config/balance.js';
 import { crearMinistro } from '../models/characters.js';
-import { esGLB, poseEntrevistaGLB } from '../models/personajeGLB.js';
+import { esGLB, poseEntrevistaGLB, poseMinistroGLB } from '../models/personajeGLB.js';
 
 // Guiones de la secuencia, en segundos.
 const COMPLETA = {
@@ -173,6 +173,11 @@ export class Intro {
 
     // Mientras responde asiente despacio. Es lo único que lo distingue de un
     // maniquí, y basta con eso.
+    if (esGLB(m)) {
+      poseMinistroGLB(m, tiempo, f);
+      return;
+    }
+
     const p = m.userData.partes;
     if (p) {
       p.cabeza.rotation.x = Math.sin(tiempo * 1.7) * 0.09 * f;

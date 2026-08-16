@@ -60,6 +60,7 @@ import { clone as clonarConEsqueleto } from 'three/examples/jsm/utils/SkeletonUt
 const PALETAS = {
   tostadologo: {
     piel: 0xd9a06b,
+    antebrazo: 0xd9a06b,   // Manga corta
     ropa: 0x22c55e,       // Camisa verde
     // El azul del pantalón va bastante más claro de lo que pediría un vaquero
     // porque debajo hay zapatos negros: con el marino de siempre, pierna y
@@ -75,6 +76,7 @@ const PALETAS = {
   },
   avecilla: {
     piel: 0xc98b5e,
+    antebrazo: 0xc98b5e,   // Manga corta
     ropa: 0x14b8a6,       // Verde azulado
     pantalon: 0x6a4b85,   // Morado, y claro por lo mismo que el otro pantalón
     zapato: 0x18181f,
@@ -86,14 +88,76 @@ const PALETAS = {
     gafas: 0x0a0e17,
     instrumento: 0xd9a441, // El ukelele
   },
+
+  // Los tres que salen del cuerpo del tostadólogo. Sin sombrero ni mochila, lo
+  // único que los separa a ocho metros y de espaldas es el color de la ropa y
+  // lo que llevan puesto en la cabeza, así que las tres ropas van lo más lejos
+  // posible unas de otras: gris azulado, teja y azul marino.
+  buencan: {
+    piel: 0xcf9a70,
+    antebrazo: 0x2f3a4f,   // De traje: la manga llega a la muñeca
+    ropa: 0x2f3a4f,       // Chaqueta gris azulada
+    pantalon: 0x4a5a7d,
+    zapato: 0x18181f,
+    pelo: 0x2a1c14,
+    gafas: 0x0a0e17,
+  },
+  monki: {
+    piel: 0xe0b088,
+    antebrazo: 0xe0b088,   // Túnica sin mangas
+    ropa: 0xb8452f,       // Túnica teja
+    pantalon: 0x5a534a,
+    zapato: 0x18181f,
+    pelo: 0x241a12,
+    gafas: 0x0a0e17,
+  },
+  ministro: {
+    piel: 0xd8b08c,
+    antebrazo: 0x1f2c4a,   // De traje
+    ropa: 0x1f2c4a,       // Traje azul
+    pantalon: 0x2c3a5c,
+    zapato: 0x18181f,
+    pelo: 0x241a12,
+    gafas: 0x0a0e17,
+  },
 };
 
-// Qué archivo es cada quién. Los personajes que no están aquí siguen siendo
-// procedurales (ver characters.js): no hay modelo suyo, y media redacción de
-// cajas junto a dos modelados es peor que las cinco de cajas.
-const ARCHIVOS = {
-  tostadologo: 'tostadologo',
-  avecilla: 'avecilla',
+// ---------------------------------------------------------------------------
+// LA REDACCIÓN
+// ---------------------------------------------------------------------------
+// Llegaron DOS modelos y hacen falta CINCO personajes. El resto se saca del
+// mismo cuerpo que el tostadólogo, que es lo que hace que todos tengan el
+// mismo estilo: la misma malla, el mismo esqueleto y el mismo ciclo de
+// carrera, y encima ni un triángulo más de descarga.
+//
+// Cada uno declara tres cosas:
+//   archivo    de qué .glb sale su cuerpo
+//   quitar     qué piezas de ese cuerpo NO lleva. El sombrero de paja y la
+//              mochila de prensa son del tostadólogo y de nadie más.
+//   accesorios lo suyo, colgado de sus huesos
+//
+// El ministro sale de aquí también, aunque no sea jugable: se le ve de pie en
+// la portada del juego y en la cinemática, al lado del periodista, y era el
+// único que quedaba de cajas justo al lado de uno que no.
+const REDACCION = {
+  tostadologo: { archivo: 'tostadologo' },
+  avecilla: { archivo: 'avecilla' },
+
+  buencan: {
+    archivo: 'tostadologo',
+    quitar: new Set(['sombrero', 'copa', 'mochila', 'correa', 'gafas']),
+    accesorios: ponerBuencan,
+  },
+  monki: {
+    archivo: 'tostadologo',
+    quitar: new Set(['sombrero', 'copa', 'mochila', 'correa', 'gafas']),
+    accesorios: ponerMonki,
+  },
+  ministro: {
+    archivo: 'tostadologo',
+    quitar: new Set(['sombrero', 'copa', 'mochila', 'correa', 'gafas']),
+    accesorios: ponerMinistro,
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -191,8 +255,11 @@ function fichasDeIslas(geometria, huesos, mapaIslas) {
 function porHueso(hueso) {
   if (/Foot|ToeBase/.test(hueso)) return 'zapato';
   if (/UpLeg|Leg/.test(hueso)) return 'pantalon';
-  // Antebrazo y mano van descubiertos; del codo para arriba, manga.
-  if (/Hand|ForeArm/.test(hueso)) return 'piel';
+  if (/Hand/.test(hueso)) return 'piel';
+  // El antebrazo lo decide cada uno en su paleta: los periodistas van de manga
+  // corta y llevan el brazo descubierto, y los que van de traje, no. Sin este
+  // corte, el ministro salía con dos manazas de piel asomando de una chaqueta.
+  if (/ForeArm/.test(hueso)) return 'antebrazo';
   if (/Arm|Shoulder/.test(hueso)) return 'ropa';
   if (/Head|neck/.test(hueso)) return 'piel';
   return 'ropa';   // Hips y Spine: el tronco.
@@ -253,7 +320,7 @@ function clasificar(f) {
  * Pinta la geometría: desindexa y da a cada triángulo el color de su isla.
  * Devuelve la geometría nueva; la original se queda intacta.
  */
-function pintar(geometria, huesos, paleta) {
+function pintar(geometria, huesos, paleta, quitar = null) {
   const mapaIslas = islas(geometria);
   const fichas = fichasDeIslas(geometria, huesos, mapaIslas);
 
@@ -267,10 +334,15 @@ function pintar(geometria, huesos, paleta) {
 
   const idx = geometria.index;
   const pos = geometria.attributes.position;
+  const nor = geometria.attributes.normal;
   const ind = geometria.attributes.skinIndex;
   const pes = geometria.attributes.skinWeight;
-  const suelta = geometria.toNonIndexed();
-  const colores = new Float32Array(suelta.attributes.position.count * 3);
+
+  // Se construye a mano en vez de con toNonIndexed() porque hay triángulos que
+  // NO van: el sombrero y la mochila del tostadólogo no los lleva nadie más, y
+  // dejarlos invisibles con un material aparte costaría otra llamada de dibujo
+  // por personaje. Lo que no se quiere, no se copia.
+  const P = []; const N = []; const C = []; const SI = []; const SW = [];
   const c = new THREE.Color();
   const suma = new Map();
 
@@ -296,6 +368,8 @@ function pintar(geometria, huesos, paleta) {
       nombre = porHueso(mejor);
     }
 
+    if (quitar && quitar.has(nombre)) continue;
+
     // La copa del sombrero, un punto más tostada que el ala. Es la única
     // sub-pieza que se pinta dentro de una isla: copa y ala son la misma malla,
     // y sin el corte el sombrero es una mancha beige de un palmo. Se separa por
@@ -313,18 +387,239 @@ function pintar(geometria, huesos, paleta) {
     c.setHex(paleta[nombre] ?? paleta.ropa);
     // Three.js trabaja en espacio lineal; los tonos están escritos en sRGB.
     c.convertSRGBToLinear();
+
     for (let v = 0; v < 3; v++) {
-      const o = (t + v) * 3;
-      colores[o] = c.r; colores[o + 1] = c.g; colores[o + 2] = c.b;
+      const i = idx.getX(t + v);
+      P.push(pos.getX(i), pos.getY(i), pos.getZ(i));
+      N.push(nor.getX(i), nor.getY(i), nor.getZ(i));
+      C.push(c.r, c.g, c.b);
+      for (let k = 0; k < 4; k++) {
+        SI.push(ind.getComponent(i, k));
+        SW.push(pes.getComponent(i, k));
+      }
     }
   }
 
-  suelta.setAttribute('color', new THREE.BufferAttribute(colores, 3));
-  // Las UVs no llevan ninguna imagen detrás: fuera.
-  suelta.deleteAttribute('uv');
-  suelta.deleteAttribute('uv1');
-  suelta.computeVertexNormals();
+  const suelta = new THREE.BufferGeometry();
+  suelta.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+  suelta.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
+  suelta.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+  suelta.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(SI, 4));
+  suelta.setAttribute('skinWeight', new THREE.Float32BufferAttribute(SW, 4));
   return suelta;
+}
+
+// ---------------------------------------------------------------------------
+// ACCESORIOS
+// ---------------------------------------------------------------------------
+// Lo que distingue a un personaje de otro cuando el cuerpo es el mismo.
+//
+// SE ANCLAN A UN HUESO, y hay un detalle que hace falta para que salga: los
+// huesos de este esqueleto están en centímetros y con los ejes mirando a donde
+// el modelador quiso, así que colgar de uno un sombrero de tamaño normal lo
+// deja del tamaño de un edificio y apuntando al suelo. La solución es colocar
+// la pieza donde va EN COORDENADAS DEL PERSONAJE —que es como se piensa: «la
+// boina va a 1.58 de alto»— y convertirla después al espacio del hueso.
+
+const PIEZAS = new Map();
+
+/** Material plano compartido: un tono, un material, aunque lo usen varios. */
+function mat(color, emision = 0.06) {
+  const clave = `${color}|${emision}`;
+  let m = PIEZAS.get(clave);
+  if (!m) {
+    m = new THREE.MeshStandardMaterial({
+      color, emissive: color, emissiveIntensity: emision,
+      roughness: 0.7, metalness: 0.05, flatShading: true,
+    });
+    PIEZAS.set(clave, m);
+  }
+  return m;
+}
+
+const caja = (a, al, f, color, em) => new THREE.Mesh(new THREE.BoxGeometry(a, al, f), mat(color, em));
+const cilindro = (rs, ri, al, color, em) => new THREE.Mesh(
+  new THREE.CylinderGeometry(rs, ri, al, 8), mat(color, em),
+);
+const esfera = (r, color, em) => new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6), mat(color, em));
+
+/**
+ * Cuelga una pieza de un hueso conservando dónde estaba puesta.
+ *
+ * La pieza llega colocada en coordenadas del personaje; aquí se convierte al
+ * espacio local del hueso, que es lo que hace que acompañe al movimiento sin
+ * heredar ni su escala en centímetros ni su orientación arbitraria.
+ */
+function anclar(pieza, hueso, modelo) {
+  if (!hueso) return;
+  modelo.updateMatrixWorld(true);
+  pieza.updateMatrix();
+  const aLocal = new THREE.Matrix4().copy(hueso.matrixWorld).invert()
+    .multiply(modelo.matrixWorld);
+  pieza.applyMatrix4(aLocal);
+  hueso.add(pieza);
+}
+
+// Las cotas del cráneo de este modelo, medidas: va de 1.27 a 1.62 de alto y
+// mide unos 24 cm de ancho por 26 de fondo. Todo lo que se le pone encima sale
+// de aquí, así que si algún día llega otro modelo se cambia en un sitio.
+const CRANEO = { y: 1.44, alto: 0.35, ancho: 0.24, fondo: 0.26, coronilla: 1.62 };
+const PECHO = { y: 1.12, fondo: 0.11 };
+
+/**
+ * BUENCAN — boina, traje y grabadora.
+ *
+ * OJO CON LA BOINA. Es lo único que lo distingue en el 99% del tiempo de juego
+ * —que es de espaldas y a ocho metros—, así que va LADEADA y con rabillo. Una
+ * boina puesta recta, a esa distancia, es una tapa.
+ */
+function ponerBuencan(huesos, modelo) {
+  const cabeza = huesos.get('Head')?.nodo;
+
+  const boina = new THREE.Group();
+  boina.add(cilindro(0.175, 0.15, 0.06, 0x8f2f3a));
+  const rabillo = cilindro(0.018, 0.018, 0.045, 0x6f2029);
+  rabillo.position.set(0.02, 0.045, 0);
+  boina.add(rabillo);
+  boina.position.set(0.02, CRANEO.coronilla - 0.01, -0.01);
+  boina.rotation.z = -0.24;
+  anclar(boina, cabeza, modelo);
+
+  // El bigote, que es la otra pieza que lo identifica de perfil.
+  const bigote = caja(0.13, 0.035, 0.03, 0x2a1c14);
+  bigote.position.set(0, 1.38, CRANEO.fondo / 2 + 0.01);
+  anclar(bigote, cabeza, modelo);
+
+  // Camisa y corbata sobre el pecho.
+  const tronco = huesos.get('Spine01')?.nodo ?? huesos.get('Spine')?.nodo;
+  const camisa = caja(0.1, 0.2, 0.02, 0xf0ece2, 0.2);
+  camisa.position.set(0, PECHO.y + 0.02, PECHO.fondo);
+  anclar(camisa, tronco, modelo);
+
+  const corbata = caja(0.045, 0.2, 0.02, 0x9c1f2e, 0.16);
+  corbata.position.set(0, PECHO.y, PECHO.fondo + 0.015);
+  anclar(corbata, tronco, modelo);
+
+  // Grabadora en la mano: entra a preguntar, no a apuntar.
+  const mano = huesos.get('RightHand')?.nodo;
+  const grabadora = caja(0.06, 0.11, 0.035, 0x14161c);
+  grabadora.position.set(-0.62, 1.16, 0.06);
+  anclar(grabadora, mano, modelo);
+  const testigo = caja(0.025, 0.025, 0.015, 0xff3b3b, 0.9);
+  testigo.position.set(-0.62, 1.2, 0.075);
+  anclar(testigo, mano, modelo);
+}
+
+/**
+ * MONKI — casco de espartana y escudo.
+ *
+ * El casco lleva CRESTA, y la cresta es transversal —de oreja a oreja, no de
+ * frente a nuca— porque es como va la de verdad y porque de espaldas se ve
+ * como una línea horizontal, que no se parece a nada más del juego.
+ */
+function ponerMonki(huesos, modelo) {
+  const cabeza = huesos.get('Head')?.nodo;
+  const BRONCE = 0x8a6c28;
+  const PLACA = 0xb08d3a;
+
+  // El casco es una caja y no un cilindro: la cabeza es cúbica, y un casco
+  // redondo la tapa por el centro y le deja las esquinas del cráneo al aire.
+  const casco = caja(CRANEO.ancho + 0.04, 0.24, CRANEO.fondo + 0.04, BRONCE, 0.12);
+  casco.position.set(0, 1.5, -0.01);
+  anclar(casco, cabeza, modelo);
+
+  const cupula = esfera(CRANEO.ancho / 2 + 0.02, BRONCE, 0.12);
+  cupula.scale.set(1, 0.5, 0.95);
+  cupula.position.set(0, 1.61, -0.01);
+  anclar(cupula, cabeza, modelo);
+
+  // La cara del casco: frontal, nasal y dos carrilleras. Lo que dejan sin
+  // tapar son dos huecos a los lados del nasal, y esos huecos son los ojos.
+  const frontal = caja(CRANEO.ancho + 0.04, 0.06, 0.05, PLACA, 0.16);
+  frontal.position.set(0, 1.38, CRANEO.fondo / 2);
+  anclar(frontal, cabeza, modelo);
+
+  const nasal = caja(0.05, 0.13, 0.05, PLACA, 0.16);
+  nasal.position.set(0, 1.32, CRANEO.fondo / 2);
+  anclar(nasal, cabeza, modelo);
+
+  for (const s of [-1, 1]) {
+    const carrillera = caja(0.05, 0.15, 0.1, PLACA, 0.16);
+    carrillera.position.set(s * (CRANEO.ancho / 2 + 0.01), 1.31, CRANEO.fondo / 2 - 0.06);
+    anclar(carrillera, cabeza, modelo);
+  }
+
+  // La cresta, transversal, en cinco tacos que bajan hacia los lados: un solo
+  // bloque se lee como una caja encima de la cabeza.
+  for (let i = -2; i <= 2; i++) {
+    const alto = 0.15 - Math.abs(i) * 0.033;
+    const taco = caja(0.055, alto, 0.09, 0x8f1f2a, 0.1);
+    taco.position.set(i * 0.055, 1.7 - (0.15 - alto) / 2, -0.01);
+    anclar(taco, cabeza, modelo);
+  }
+
+  // El escudo a la espalda. Es la segunda silueta reconocible y va detrás
+  // porque detrás es donde se la ve.
+  const tronco = huesos.get('Spine01')?.nodo ?? huesos.get('Spine')?.nodo;
+  const escudo = cilindro(0.22, 0.22, 0.04, 0x9a6f2c, 0.1);
+  escudo.rotation.set(Math.PI / 2, 0, 0.3);
+  escudo.position.set(0.06, 1.06, -0.22);
+  anclar(escudo, tronco, modelo);
+  const umbo = esfera(0.055, 0xd8b45a, 0.25);
+  umbo.position.set(0.06, 1.06, -0.25);
+  anclar(umbo, tronco, modelo);
+}
+
+/**
+ * EL MINISTRO — traje, corbata, insignia y maletín.
+ *
+ * No es nadie. Es un cargo, y lleva el uniforme de cualquier ministro de
+ * cualquier gobierno: ni un rasgo que apunte a una persona concreta. No es
+ * timidez, es la regla editorial del proyecto —se satiriza el cargo y el
+ * trámite, nunca una cara (ver docs/GUION.md)—.
+ */
+function ponerMinistro(huesos, modelo) {
+  const cabeza = huesos.get('Head')?.nodo;
+
+  // Pelo peinado con raya, en dos bloques de distinta altura.
+  const pelo = caja(CRANEO.ancho + 0.02, 0.07, CRANEO.fondo + 0.01, 0x241a12);
+  pelo.position.set(0, CRANEO.coronilla - 0.02, -0.01);
+  anclar(pelo, cabeza, modelo);
+  const copete = caja(0.12, 0.05, 0.2, 0x241a12);
+  copete.position.set(-0.05, CRANEO.coronilla + 0.02, -0.01);
+  anclar(copete, cabeza, modelo);
+
+  const tronco = huesos.get('Spine01')?.nodo ?? huesos.get('Spine')?.nodo;
+
+  const camisa = caja(0.11, 0.22, 0.02, 0xf4f1e8, 0.2);
+  camisa.position.set(0, PECHO.y + 0.02, PECHO.fondo);
+  anclar(camisa, tronco, modelo);
+
+  const corbata = caja(0.05, 0.22, 0.02, 0x8a1c2a, 0.16);
+  corbata.position.set(0, PECHO.y, PECHO.fondo + 0.015);
+  anclar(corbata, tronco, modelo);
+
+  for (const s of [-1, 1]) {
+    const solapa = caja(0.075, 0.2, 0.02, 0x16203a);
+    solapa.position.set(s * 0.075, PECHO.y + 0.03, PECHO.fondo + 0.005);
+    solapa.rotation.z = s * 0.26;
+    anclar(solapa, tronco, modelo);
+  }
+
+  // La insignia: un cuadradito dorado que no dice de qué es, y ese es el
+  // chiste —siempre hay una y nunca se sabe de qué—.
+  const insignia = caja(0.035, 0.035, 0.015, 0xd8b45a, 0.5);
+  insignia.position.set(0.095, PECHO.y + 0.1, PECHO.fondo + 0.01);
+  anclar(insignia, tronco, modelo);
+
+  // Maletín en la mano izquierda.
+  const mano = huesos.get('LeftHand')?.nodo;
+  const maletin = caja(0.2, 0.16, 0.06, 0x3a2a1c);
+  maletin.position.set(0.62, 1.05, 0);
+  anclar(maletin, mano, modelo);
+  const asa = caja(0.07, 0.03, 0.02, 0x241a12);
+  asa.position.set(0.62, 1.14, 0);
+  anclar(asa, mano, modelo);
 }
 
 // ---------------------------------------------------------------------------
@@ -337,16 +632,43 @@ const cargados = new Map();
 const crudos = new Map();
 let promesaCarga = null;
 
+// Los BYTES de cada archivo, descargados una sola vez. Tres personajes salen
+// del mismo .glb y bajarlo tres veces sería tirar medio mega por la ventana.
+const archivos = new Map();
+
+async function bytesDe(nombre, base) {
+  let ya = archivos.get(nombre);
+  if (!ya) {
+    ya = fetch(`${base}modelos/personajes/${nombre}.glb`).then((r) => {
+      if (!r.ok) throw new Error(`No está ${nombre}.glb (${r.status})`);
+      return r.arrayBuffer();
+    });
+    archivos.set(nombre, ya);
+  }
+  return ya;
+}
+
 async function cargarUno(id, base) {
-  const gltf = await new GLTFLoader().loadAsync(`${base}modelos/personajes/${ARCHIVOS[id]}.glb`);
+  const ficha = REDACCION[id];
+
+  // SE VUELVE A INTERPRETAR el archivo para cada personaje, en vez de clonar
+  // uno ya interpretado. Los bytes se bajan una vez —eso es lo caro— pero el
+  // árbol tiene que salir nuevo, y el motivo es una trampa del clonador de
+  // esqueletos: clonar un clon deja la malla atada a los huesos del PRIMERO.
+  // El personaje se renderiza en la pose del original y no le hace caso a
+  // nadie, que fue exactamente lo que pasó —el ministro y el periodista se
+  // quedaban con un brazo en cruz haciendo el saludo, y ninguna pose escrita a
+  // mano les movía nada—.
+  const gltf = await new GLTFLoader().parseAsync(await bytesDe(ficha.archivo, base), '');
+  const escena = gltf.scene;
 
   let piel = null;
-  gltf.scene.traverse((o) => { if (o.isSkinnedMesh && !piel) piel = o; });
+  escena.traverse((o) => { if (o.isSkinnedMesh && !piel) piel = o; });
   if (!piel) throw new Error(`El modelo de ${id} no trae malla con esqueleto`);
 
   const paleta = PALETAS[id];
   crudos.set(id, { geometria: piel.geometry, huesos: piel.skeleton.bones });
-  piel.geometry = pintar(piel.geometry, piel.skeleton.bones, paleta);
+  piel.geometry = pintar(piel.geometry, piel.skeleton.bones, paleta, ficha.quitar);
   piel.material = new THREE.MeshStandardMaterial({
     vertexColors: true,
     roughness: 0.68,
@@ -357,7 +679,7 @@ async function cargarUno(id, base) {
   // de cámara que lo pille de lado enseña el interior de la malla.
   piel.frustumCulled = false;
 
-  cargados.set(id, { escena: gltf.scene, clips: gltf.animations, paleta });
+  cargados.set(id, { escena, clips: gltf.animations, paleta, accesorios: ficha.accesorios });
   return true;
 }
 
@@ -369,7 +691,7 @@ async function cargarUno(id, base) {
 export function cargarPersonajesGLB(base = '/') {
   if (promesaCarga) return promesaCarga;
   promesaCarga = Promise.all(
-    Object.keys(ARCHIVOS).map((id) => cargarUno(id, base).catch((e) => {
+    Object.keys(REDACCION).map((id) => cargarUno(id, base).catch((e) => {
       console.warn(`[Personajes] Sin modelo para ${id}, se usa el procedural.`, e);
       return false;
     })),
@@ -411,6 +733,20 @@ export function crearPersonajeGLB(id) {
   // la armadura entera va escalada a 0.01, y deja al personaje del tamaño de
   // un dedal.)
   const esqueleto = armarEsqueleto(cuerpo);
+
+  // LOS ACCESORIOS SE CUELGAN DE ESTA COPIA, no de la plantilla, y el orden
+  // importa: van después de fichar el esqueleto —para que se coloquen contra
+  // la pose de reposo— y antes de que el mezclador toque nada.
+  //
+  // Costó verlo: colgados de la plantilla parecían funcionar, pero el clonador
+  // de esqueletos no reparenta lo que no es hueso, así que el maletín del
+  // ministro y la grabadora de Buencan se quedaban enganchados al hueso de la
+  // PLANTILLA —que no se anima nunca— y salían flotando a la altura de la
+  // oreja, en el sitio exacto donde el modelo tiene la mano en cruz.
+  if (fuente.accesorios) {
+    cuerpo.updateMatrixWorld(true);
+    fuente.accesorios(esqueleto.huesos, cuerpo, fuente.paleta);
+  }
 
   const mezclador = new THREE.AnimationMixer(cuerpo);
   const correr = fuente.clips[0] ? mezclador.clipAction(fuente.clips[0]) : null;
@@ -474,8 +810,32 @@ function reposar(huesos) {
   }
 }
 
+// La orientación del personaje entero, para el bloque de pose que se esté
+// escribiendo. La fija `orientar()` y la usan todos los giros.
+const _qModelo = new THREE.Quaternion();
+
 /**
- * Gira un hueso sobre un eje DEL MUNDO, encima de lo que ya tuviera.
+ * Empieza un bloque de pose: apunta qué personaje se está posando.
+ *
+ * HACE FALTA, y cuesta un buen rato descubrir por qué. Los giros de abajo se
+ * piensan en ejes DEL PERSONAJE —«bajar el brazo», «echar el tronco atrás»—
+ * pero se aplican sobre huesos, cuyos ejes no apuntan a nada. La conversión
+ * pasa por el mundo... y ahí está la trampa: el personaje no siempre mira a
+ * donde mira el mundo. El ministro está girado un cuarto de vuelta para
+ * hablar con el periodista, y el periodista otro tanto durante la entrevista.
+ *
+ * Con ejes del mundo a secas, «bajar el brazo» de alguien girado noventa
+ * grados es echárselo hacia adelante: uno se le iba arriba y el otro abajo, y
+ * los dos quedaban saludando. Se veía en pantalla y no en las medidas, porque
+ * medidas y render coincidían —los dos estaban mal—.
+ */
+function orientar(modelo) {
+  modelo.updateWorldMatrix(true, false);
+  modelo.getWorldQuaternion(_qModelo);
+}
+
+/**
+ * Gira un hueso sobre un eje DEL PERSONAJE, encima de lo que ya tuviera.
  *
  * El eje se recalcula en cada llamada contra la posición actual del padre, y
  * eso es lo que permite encadenar giros: al bajar el brazo cambia hacia dónde
@@ -487,7 +847,8 @@ function girar(huesos, nombre, eje, angulo) {
   if (!h || !angulo) return;
   h.nodo.parent.updateWorldMatrix(true, false);
   h.nodo.parent.getWorldQuaternion(_qp);
-  _v.copy(eje).applyQuaternion(_qp.invert());
+  // Del personaje al mundo, y del mundo al padre del hueso.
+  _v.copy(eje).applyQuaternion(_qModelo).applyQuaternion(_qp.invert());
   _q.setFromAxisAngle(_v, angulo);
   h.nodo.quaternion.premultiply(_q);
 }
@@ -517,7 +878,14 @@ function doblar(huesos, nombre, angulo) {
  * @param {number} codo    flexión del antebrazo (negativo, hacia adelante)
  */
 function brazo(huesos, lado, bajada, avance, codo) {
-  girar(huesos, `${lado}Arm`, EJE_Z, lado === 'Left' ? -bajada : bajada);
+  // EL HOMBRO BAJA CON EL BRAZO, una parte del ángulo cada uno. Rotando solo
+  // el hueso del brazo, la mano y el antebrazo obedecían pero el trozo de
+  // malla que va del cuello al codo se quedaba donde estaba —pesa del hueso
+  // del hombro— y el personaje acababa con la mano en la cadera y el brazo
+  // extendido en cruz, saludando. Repartir el giro mueve el miembro entero.
+  const signo = lado === 'Left' ? -1 : 1;
+  girar(huesos, `${lado}Shoulder`, EJE_Z, signo * bajada * 0.45);
+  girar(huesos, `${lado}Arm`, EJE_Z, signo * bajada * 0.55);
   girar(huesos, `${lado}Arm`, EJE_X, avance);
   girar(huesos, `${lado}ForeArm`, EJE_X, codo);
 }
@@ -547,6 +915,7 @@ export function animarSaltoGLB(modelo, subida = 0) {
   const g = modelo.userData.glb;
   if (!g) return;
   const { huesos } = g;
+  orientar(modelo);
   reposar(huesos);
 
   const sube = Math.max(0, Math.min(1, subida));
@@ -603,6 +972,7 @@ export function aplicarPoseAgachadoGLB(modelo, factor) {
   const f = Math.min(1, Math.max(0, factor));
   if (f <= 0.001) return;
 
+  orientar(modelo);
   reposar(huesos);
 
   // La cadera baja y se adelanta: el peso se va sobre los pies y por eso el
@@ -636,6 +1006,7 @@ export function poseDerrotaGLB(modelo) {
   const g = modelo.userData.glb;
   if (!g) return;
   const { huesos, cuerpo } = g;
+  orientar(modelo);
   reposar(huesos);
   cuerpo.rotation.x = 0;
   cuerpo.position.set(0, 0, 0);
@@ -669,6 +1040,7 @@ export function poseEntrevistaGLB(modelo, tiempo, intensidad = 1) {
   const { huesos } = g;
   const k = Math.min(1, Math.max(0, intensidad));
 
+  orientar(modelo);
   reposar(huesos);
   g.cuerpo.rotation.x = 0;
   g.cuerpo.position.set(0, 0, 0);
@@ -688,6 +1060,40 @@ export function poseEntrevistaGLB(modelo, tiempo, intensidad = 1) {
   doblar(huesos, 'Spine', -0.05 * k);
 
   return huesos.get('RightHand')?.nodo ?? null;
+}
+
+/**
+ * EL MINISTRO, DE PIE, esperando a que la pregunta termine.
+ *
+ * No corre nunca: sale en la cinemática y en la portada, plantado. Su pose es
+ * la única que no viene del ciclo de carrera, así que se escribe entera —y con
+ * el asentimiento incluido, que es lo único que lo distingue de un maniquí.
+ */
+export function poseMinistroGLB(modelo, tiempo = 0, presencia = 1) {
+  const g = modelo.userData.glb;
+  if (!g) return;
+  const { huesos } = g;
+  const k = Math.min(1, Math.max(0, presencia));
+
+  orientar(modelo);
+  reposar(huesos);
+  g.cuerpo.rotation.set(0, 0, 0);
+  g.cuerpo.position.set(0, 0, 0);
+
+  // Brazos caídos y las manos por delante, que es como está de pie todo el que
+  // espera a que le acaben de preguntar.
+  brazo(huesos, 'Left', 1.42 * k, -0.25 * k, -0.85 * k);
+  brazo(huesos, 'Right', 1.42 * k, -0.2 * k, -0.8 * k);
+
+  // Peso repartido y una pierna un pelo adelantada.
+  doblar(huesos, 'LeftUpLeg', 0.1 * k);
+  doblar(huesos, 'RightUpLeg', -0.12 * k);
+  doblar(huesos, 'LeftLeg', 0.08 * k);
+  doblar(huesos, 'RightLeg', 0.1 * k);
+
+  // Asiente despacio mientras responde.
+  doblar(huesos, 'Spine', (-0.04 + Math.sin(tiempo * 0.9) * 0.03) * k);
+  doblar(huesos, 'Head', Math.sin(tiempo * 1.7) * 0.09 * k);
 }
 
 /** Deja el cuerpo listo para volver a correr. */

@@ -749,6 +749,12 @@ export function crearMonki() {
  * termine.
  */
 export function crearMinistro() {
+  // También sale del modelo, con su traje y su maletín colgados de los huesos
+  // (ver personajeGLB.js). Se le ve de pie al lado del periodista en la
+  // portada, y era el único que quedaba de cajas justo al lado de uno que no.
+  const conEsqueleto = crearPersonajeGLB('ministro');
+  if (conEsqueleto) return conEsqueleto;
+
   const g = crearHumanoide({
     colorPiel: 0xd8b08c,
     colorRopa: 0x1f2c4a,
