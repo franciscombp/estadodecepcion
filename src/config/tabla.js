@@ -60,7 +60,7 @@ const ARROBAS = ['@paquimal', '@la_chulla_vida', '@ojo_de_agua', '@ni_una_menos_
 export const CLASIFICACIONES = [
   {
     id: 'papeles',
-    pestana: 'Más buscados',
+    pestana: 'Buscados',
     titulo: 'Los más buscados',
     antetitulo: 'CIRCULAR DE BÚSQUEDA',
     epigrafe: 'Ordenados por lo que llevan documentado. Cuanto más arriba, más estorbas',
@@ -81,7 +81,7 @@ export const CLASIFICACIONES = [
   },
   {
     id: 'mejor',
-    pestana: 'Mejor corrida',
+    pestana: 'Corrida',
     titulo: 'Mejor corrida',
     antetitulo: 'CLASIFICACIÓN',
     epigrafe: 'Papeles recogidos en una sola partida',

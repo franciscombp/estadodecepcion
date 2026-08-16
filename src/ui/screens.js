@@ -403,17 +403,22 @@ export class Pantallas {
       bajada: 'Controles, edición y el botón de tirarlo todo a la basura',
     });
 
-    plana.appendChild(ladillo('CONTROLES'));
-    plana.appendChild(this._pintarControles());
+    // El cuerpo de la página es el bloque elástico: se queda con el hueco que
+    // le toque y se desplaza por dentro en pantallas cortas, en vez de estirar
+    // la hoja y sacar los botones fuera de cuadro.
+    const cuerpo = el('div', 'se-estira se-estira--desplazable');
+    cuerpo.appendChild(ladillo('CONTROLES'));
+    cuerpo.appendChild(this._pintarControles());
 
-    plana.appendChild(ladillo('EDICIÓN'));
-    plana.appendChild(this._pintarVersion(pantalla));
+    cuerpo.appendChild(ladillo('EDICIÓN'));
+    cuerpo.appendChild(this._pintarVersion(pantalla));
 
     // No es letra pequeña legal: es contexto, y en un periódico eso va en el
     // pie de la página de administración, no perdido debajo de los botones.
-    plana.appendChild(el('div', 'plana__nota-tabla',
+    cuerpo.appendChild(el('div', 'plana__nota-tabla',
       'Sátira política de El Mercio. Los personajes y textos son ficción y no '
       + 'reproducen declaraciones de personas reales.'));
+    plana.appendChild(cuerpo);
 
     const botones = el('div', 'diario__acciones');
     botones.appendChild(boton('Volver', 'boton--diario boton--diario-principal',

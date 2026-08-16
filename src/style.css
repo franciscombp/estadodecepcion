@@ -1401,9 +1401,6 @@ html, body {
   background: transparent;
   border-color: transparent;
   color: var(--tinta-tenue);
-  font-size: 0.9rem;
-  padding: 10px 18px;
-  min-height: 44px;
 }
 
 .boton--peligro {
@@ -1692,7 +1689,7 @@ html, body {
   display: block;
   margin-top: 10px;
   font-style: normal;
-  font-size: clamp(0.56rem, 2.2vw, 0.66rem);
+  font-size: var(--t-micro);
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -1744,7 +1741,7 @@ html, body {
 }
 
 .estadistica__etiqueta {
-  font-size: clamp(0.48rem, 2vw, 0.58rem);
+  font-size: var(--t-micro);
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1780,7 +1777,7 @@ html, body {
 }
 
 .cuaderno-cabecera__etiqueta {
-  font-size: clamp(0.5rem, 2.1vw, 0.6rem);
+  font-size: var(--t-pie);
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1944,7 +1941,9 @@ html, body {
 .instruccion strong {
   display: block;
   color: var(--texto);
-  font-weight: 900;
+  font-family: var(--sans);
+  font-size: var(--t-pie);
+  font-weight: 700;
   margin-bottom: 1px;
 }
 
@@ -1952,7 +1951,7 @@ html, body {
 
 .pie {
   margin-top: 18px;
-  font-size: clamp(0.56rem, 2.2vw, 0.66rem);
+  font-size: var(--t-micro);
   color: var(--texto-debil);
   line-height: 1.5;
 }
@@ -2093,6 +2092,40 @@ html, body {
   --verde-senal: #67b857;    /* los letreros de la bifurcación */
   --serif: 'PT Serif', Georgia, 'Times New Roman', serif;
   --sans: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* LOS CINCO CUERPOS. La maqueta no tiene más:
+
+       40  Display     PT Serif Bold    1.1   -0.5    la cifra del resumen
+       32  Titular     PT Serif Bold    1.15  -0.3    los titulares
+       18  Cuerpo      PT Serif         1.5    0      bajadas y texto
+       16  Cuerpo·2    PT Serif         1.5    0      texto secundario
+                       Montserrat Bold  1      0.2    los botones
+       14  Pie         Montserrat Med   1.4    0      pies y datos
+                       Montserrat Bold  1.4    1.2    etiquetas de sección
+
+     Todo lo que no sea uno de estos cinco es un tamaño inventado, y de eso
+     venían las tablas: puestos a 11.52, arrobas a 13.44, notas a 8.32 y
+     cifras a 9.28, cada una de su padre y de su madre. Se declaran aquí para
+     que no haya dónde inventar.
+
+     Van con clamp para que en un móvil estrecho encojan a la vez y sin
+     recolocar nada: la proporción entre ellos no cambia. */
+  --t-display: clamp(2rem, 10vw, 2.5rem);
+  --t-titular: clamp(1.6rem, 7.6vw, 2rem);
+  --t-cuerpo: clamp(1rem, 4.4vw, 1.125rem);
+  --t-cuerpo-2: 1rem;
+  --t-pie: 0.875rem;
+  /* Sexto escalón, para etiquetas dentro de piezas apretadas: la sección de
+     una ficha de personaje, el sello de una prueba, el rótulo de una carta del
+     sorteo. La maqueta no lo necesita porque no tiene componentes tan densos;
+     lo que no puede ser es que cada pieza se invente el suyo. */
+  --t-micro: 0.75rem;
+
+  /* Interlineados y prosas, atados a su cuerpo. */
+  --i-display: 1.1;
+  --i-titular: 1.15;
+  --i-cuerpo: 1.5;
+  --i-pie: 1.4;
 }
 
 /* Sobre el fondo oscuro, el papel se lee como un objeto físico encima. */
@@ -2157,23 +2190,14 @@ html, body {
 /* Botones IMPRESOS: tinta sobre papel, no pastillas de neón. Los del juego son
    dorados y brillantes porque van sobre negro; aquí encima del crema
    destrozarían la página. */
+/* EL BOTÓN DEL DIARIO ES EL BOTÓN, sin más. Tenía su propia familia, su
+   propio peso y su propio tamaño en clamp, y ese clamp era el que dejaba los
+   secundarios de la portada en 9,9 px y el «Volver» del Archivo en 13,7: tres
+   botones idénticos en la maqueta salían de tres tamaños distintos en
+   pantalla. Aquí solo queda lo que de verdad lo distingue: que se estira para
+   repartirse la fila. */
 .boton--diario {
   flex: 1 1 auto;
-  padding: 12px 24px;
-  min-height: 48px;
-  border-radius: 0;
-  border: 1.5px solid var(--tinta-media);
-  background: transparent;
-  color: var(--tinta);
-  font-family: var(--sans);
-  font-size: clamp(0.82rem, 3.4vw, 1rem);
-  font-weight: 700;
-  letter-spacing: 0.0125em;
-  text-transform: none;
-  line-height: 1;
-  cursor: pointer;
-  pointer-events: auto;
-  transition: background var(--t-rapido), color var(--t-rapido);
 }
 
 .boton--diario-principal {
@@ -2196,7 +2220,7 @@ html, body {
 .diario__nota {
   margin-top: 10px;
   font-family: var(--tipo);
-  font-size: 0.6rem;
+  font-size: var(--t-pie);
   line-height: 1.5;
   color: var(--tinta-media);
 }
@@ -2259,7 +2283,7 @@ html, body {
   justify-content: space-between;
   gap: 8px;
   font-family: var(--sans);
-  font-size: 0.68rem;
+  font-size: var(--t-micro);
   font-weight: 500;
   letter-spacing: 0;
   text-transform: none;
@@ -2354,7 +2378,7 @@ html, body {
   flex-wrap: wrap;
   margin-top: 9px;
   font-family: var(--tipo);
-  font-size: clamp(.54rem, 2.2vw, .64rem);
+  font-size: var(--t-pie);
   font-weight: 700;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -2414,7 +2438,7 @@ html, body {
   border: 2px solid var(--rojo-diario);
   color: var(--rojo-diario);
   font-family: var(--tipo);
-  font-size: clamp(.52rem, 2.1vw, .62rem);
+  font-size: var(--t-micro);
   font-weight: 900;
   letter-spacing: .16em;
   /* Sello estampado torcido, como los de archivo. */
@@ -2424,7 +2448,7 @@ html, body {
 
 .pagina-cerrada__titulo {
   font-family: var(--serif);
-  font-size: clamp(1.4rem, 6.5vw, 2rem);
+  font-size: var(--t-titular);
   font-weight: 900;
   margin-bottom: 12px;
 }
@@ -2447,7 +2471,7 @@ html, body {
 
 .pagina-cerrada__precio {
   font-family: var(--tipo);
-  font-size: clamp(1.1rem, 5vw, 1.4rem);
+  font-size: var(--t-cuerpo);
   font-weight: 900;
   color: var(--rojo-diario);
   margin-bottom: 12px;
@@ -2457,7 +2481,7 @@ html, body {
 .pagina-cerrada__ayuda {
   margin-top: 10px;
   font-family: var(--tipo);
-  font-size: clamp(.6rem, 2.4vw, .7rem);
+  font-size: var(--t-micro);
   color: var(--tinta-tenue);
 }
 
@@ -2940,7 +2964,7 @@ html, body {
 .arsenal__pista {
   margin-top: 7px;
   font-family: var(--sans);
-  font-size: 0.62rem;
+  font-size: var(--t-micro);
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--tinta-tenue);
@@ -3095,7 +3119,7 @@ html, body {
 
 .juez__rotulo {
   font-family: var(--sans);
-  font-size: 0.52rem;
+  font-size: var(--t-micro);
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--tinta-tenue);
@@ -3253,9 +3277,11 @@ html, body {
   margin-bottom: 6px;
 }
 
-.plana--circular .plana__titular--tabla {
-  text-align: center;
-  letter-spacing: 0.02em;
+.plana--circular /* El titular de la tabla es un titular: mismo cuerpo que los demás. Estaba
+   encogido a mano para que cupiera «MEJOR CORRIDA» en versalitas, y en caja
+   baja ya no hace falta. */
+.plana__titular--tabla {
+  margin-bottom: 4px;
 }
 
 .plana--circular .plana__epigrafe {
@@ -3280,10 +3306,7 @@ html, body {
 /* En deportes el titular cambia con la pestaña, así que va más contenido: si
    ocupara lo mismo que el de la portada, "MEJOR CORRIDA" partiría en dos
    líneas y la tabla se saldría de pantalla. */
-.plana__titular--tabla {
-  font-size: clamp(1.1rem, 5.4vw, 1.5rem);
-  margin-bottom: 2px;
-}
+
 
 .plana__bajada {
   font-family: var(--serif);
@@ -3305,7 +3328,7 @@ html, body {
 .plana__firma {
   margin-top: 6px;
   font-family: var(--sans);
-  font-size: 0.6rem;
+  font-size: var(--t-micro);
   font-weight: 700;
   letter-spacing: 0.18em;
   color: var(--tinta-tenue);
@@ -3395,7 +3418,7 @@ html, body {
 }
 
 .edicion__estado {
-  font-size: 0.66rem;
+  font-size: var(--t-pie);
   font-weight: 700;
   color: var(--texto-tenue);
   line-height: 1.3;
@@ -3404,14 +3427,14 @@ html, body {
 .edicion__sello {
   margin-top: 5px;
   font-family: var(--tipo-numeros);
-  font-size: 0.56rem;
+  font-size: var(--t-micro);
   letter-spacing: 0.04em;
   color: var(--texto-debil);
 }
 
 .edicion__nota {
   margin-top: 6px;
-  font-size: 0.56rem;
+  font-size: var(--t-micro);
   line-height: 1.35;
   color: var(--texto-debil);
 }
@@ -3490,8 +3513,8 @@ html, body {
 
 .plana__pie {
   padding: 6px 2px 0;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 0.6rem;
+  font-family: var(--serif);
+  font-size: var(--t-pie);
   font-style: italic;
   color: var(--tinta-tenue);
   border-bottom: 1px solid rgba(0, 0, 0, 0.14);
@@ -3526,7 +3549,7 @@ html, body {
 
 .plana__marcador-cifra {
   font-family: var(--serif);
-  font-size: clamp(2.4rem, 11vw, 2.9rem);
+  font-size: var(--t-display);
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.0125em;
@@ -3578,8 +3601,8 @@ html, body {
 }
 
 .plana__datos {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 0.68rem;
+  font-family: var(--serif);
+  font-size: var(--t-pie);
   color: var(--tinta-tenue);
   text-align: center;
   padding-bottom: 10px;
@@ -3591,7 +3614,7 @@ html, body {
 .plana__seccion {
   margin: 14px 0 8px;
   padding-bottom: 4px;
-  font-size: 0.6rem;
+  font-size: var(--t-micro);
   font-weight: 900;
   letter-spacing: 0.2em;
   color: var(--tinta);
@@ -3610,18 +3633,24 @@ html, body {
   border-bottom: 1px solid var(--papel-sombra);
 }
 
+/* Las pestañas de la tabla. Van al cuerpo de pie (14) en Montserrat, que es
+   el que la maqueta usa para etiquetas: estaban en 8,8 px y peso 900, más
+   pequeñas que cualquier otra cosa de la pantalla y en un peso que no existe
+   en el sistema. */
 .pestana {
   flex: 1 1 0;
-  min-height: 0;
-  padding: 7px 4px 8px;
-  border: 2px solid transparent;
+  min-height: 40px;
+  padding: 9px 6px;
+  border: 1px solid var(--papel-sombra);
   border-bottom: none;
-  border-radius: 4px 4px 0 0;
-  background: rgba(22, 19, 13, 0.07);
+  border-radius: 0;
+  background: var(--papel-blanco);
   color: var(--tinta-tenue);
-  font-size: clamp(0.5rem, 2.2vw, 0.62rem);
-  font-weight: 900;
-  letter-spacing: 0.08em;
+  font-family: var(--sans);
+  font-size: var(--t-pie);
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: var(--i-pie);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -3629,16 +3658,18 @@ html, body {
 
 @media (hover: hover) {
   .pestana:hover {
-    background: rgba(22, 19, 13, 0.13);
-    border-color: transparent;
+    background: var(--papel);
+    border-color: var(--papel-sombra);
+    color: var(--tinta);
     transform: none;
   }
 }
 
 .pestana--activa {
   background: var(--tinta);
-  color: #f4efe2;
-  transform: translateY(2px);
+  border-color: var(--tinta);
+  color: #ffffff;
+  transform: none;
 }
 
 /* Debajo del rótulo de sección: por qué se ordena la tabla. Sin esto, una
@@ -3664,13 +3695,16 @@ html, body {
   gap: 9px;
   padding: 5px 2px;
   border-bottom: 1px dotted rgba(0, 0, 0, 0.26);
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--serif);
 }
 
 .posiciones__puesto {
-  flex: 0 0 1.4em;
-  font-size: 0.72rem;
+  flex: 0 0 auto;
+  min-width: 22px;
+  font-family: var(--sans);
+  font-size: var(--t-pie);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   color: var(--tinta-tenue);
   text-align: right;
 }
@@ -3684,26 +3718,28 @@ html, body {
 }
 
 .posiciones__arroba {
-  font-size: 0.84rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-family: var(--serif);
+  font-size: var(--t-cuerpo-2);
+  line-height: var(--i-cuerpo);
+  color: var(--tinta);
 }
 
 .posiciones__nota {
-  flex: 0 0 auto;
-  font-size: 0.52rem;
-  font-weight: 900;
-  letter-spacing: 0.1em;
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.086em;
   text-transform: uppercase;
   color: var(--rojo-diario);
 }
 
 .posiciones__cifra {
-  flex: 0 0 auto;
-  font-size: 0.84rem;
+  margin-left: auto;
+  font-family: var(--serif);
+  font-size: var(--t-cuerpo-2);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: var(--tinta);
 }
 
 /* La fila del jugador va en negativo, como el destacado de una tabla impresa. */
@@ -3715,21 +3751,28 @@ html, body {
   border-bottom: none;
 }
 
-.posiciones__fila--tu .posiciones__puesto { color: rgba(255, 255, 255, 0.6); }
+/* La fila del jugador va en negativo, y sus tres piezas declaran color
+   propio: sin esto el nombre y la cifra quedaban en tinta sobre tinta, o sea
+   invisibles justo en la única fila que importa. */
+.posiciones__fila--tu .posiciones__puesto { color: rgba(255, 255, 255, 0.65); }
+.posiciones__fila--tu .posiciones__arroba,
+.posiciones__fila--tu .posiciones__cifra { color: #ffffff; }
+.posiciones__fila--tu .posiciones__nota { color: rgba(255, 255, 255, 0.8); }
 
 .posiciones__corte {
-  padding: 2px 2px 4px;
-  font-size: 0.8rem;
-  letter-spacing: 0.3em;
+  padding: 2px 0;
+  font-family: var(--sans);
+  font-size: var(--t-pie);
   color: var(--tinta-tenue);
+  text-align: center;
 }
 
 .plana__nota-tabla {
-  margin-top: 8px;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 0.58rem;
-  font-style: italic;
-  line-height: 1.4;
+  margin-top: 10px;
+  font-family: var(--sans);
+  font-size: var(--t-pie);
+  font-weight: 500;
+  line-height: var(--i-pie);
   color: var(--tinta-tenue);
 }
 
@@ -3809,7 +3852,7 @@ html, body {
 
 /* --- Relato del trámite --- */
 .plana .relato__parrafo {
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--serif);
   color: #1d1a14;
 }
 
@@ -3819,7 +3862,7 @@ html, body {
   background: none;
   border-left: 4px solid var(--rojo-diario);
   border-radius: 0;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--serif);
   color: #1d1a14;
   margin: 14px 0;
   padding: 4px 0 4px 14px;
@@ -3837,7 +3880,7 @@ html, body {
 }
 
 .plana .estadistica__valor {
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--serif);
   color: var(--tinta);
   text-shadow: none;
 }
@@ -3911,7 +3954,7 @@ html, body {
 }
 
 .plana .resultado__titulo {
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--serif);
   font-size: clamp(1rem, 4.4vw, 1.3rem);
 }
 
@@ -3919,7 +3962,7 @@ html, body {
 .plana .resultado--fracaso .resultado__titulo { color: var(--rojo-diario); }
 
 .plana .resultado__texto {
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--serif);
   color: var(--tinta-tenue);
 }
 
@@ -3999,6 +4042,7 @@ html, body {
   border: 1.5px solid var(--papel-sombra);
   color: var(--tinta-tenue);
   font-family: var(--sans);
+  font-size: var(--t-pie);
   font-weight: 700;
   letter-spacing: 0.0125em;
   cursor: pointer;
@@ -4006,8 +4050,9 @@ html, body {
 }
 
 .elector__nombre {
-  font-size: clamp(0.56rem, 2.5vw, 0.7rem);
-  line-height: 1.1;
+  font-size: var(--t-pie);
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 /* La sección de cada uno, debajo del nombre y en versalitas: es lo que
@@ -4017,7 +4062,7 @@ html, body {
 .elector__seccion {
   display: block;
   margin-top: 2px;
-  font-size: clamp(0.4rem, 1.8vw, 0.48rem);
+  font-size: var(--t-micro);
   font-weight: 700;
   letter-spacing: 0.086em;
   text-transform: uppercase;
@@ -4042,7 +4087,7 @@ html, body {
 }
 
 .elector__candado {
-  font-size: clamp(0.42rem, 1.9vw, 0.5rem);
+  font-size: var(--t-micro);
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--tinta-tenue);
@@ -4059,10 +4104,7 @@ html, body {
 
 .portada__abajo .arsenal__pista { margin-top: 5px; }
 
-.portada__secundarios .boton {
-  padding: 11px 8px;
-  font-size: 0.62rem;
-}
+.portada__secundarios .boton { padding: 12px 8px; }
 
 /* ==========================================================================
    TÓMBOLA DE JUECES (HORIZONTAL)
@@ -4324,7 +4366,7 @@ html, body {
 
 .plana__pruebas-rotulo {
   font-family: var(--tipo);
-  font-size: 0.6rem;
+  font-size: var(--t-micro);
   font-weight: 900;
   letter-spacing: 0.14em;
   color: var(--tinta);
@@ -4380,7 +4422,7 @@ html, body {
 
 .plana__meta-rotulo {
   font-family: var(--tipo);
-  font-size: 0.55rem;
+  font-size: var(--t-micro);
   font-weight: 900;
   letter-spacing: 0.16em;
   color: var(--tinta-media);
@@ -4457,7 +4499,7 @@ html, body {
 
 .botin__titular {
   font-family: var(--serif);
-  font-size: clamp(1.4rem, 6.4vw, 1.7rem);
+  font-size: var(--t-titular);
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.0083em;
@@ -4541,7 +4583,7 @@ html, body {
 
 .botin__nombre {
   font-family: var(--sans);
-  font-size: 0.72rem;
+  font-size: var(--t-pie);
   font-weight: 700;
   letter-spacing: 0.086em;
   text-align: center;
@@ -4669,7 +4711,7 @@ html, body {
 /* La cifra de evidencia, contando hacia arriba en su ficha. */
 .botin__nombre--cifra {
   font-family: var(--serif);
-  font-size: 1.3rem;
+  font-size: var(--t-cuerpo);
   font-weight: 700;
   letter-spacing: 0;
   text-transform: none;
@@ -4685,7 +4727,7 @@ html, body {
   border: 1.5px solid var(--verde-senal);
   border-radius: 0;
   font-family: var(--sans);
-  font-size: 0.52rem;
+  font-size: var(--t-micro);
   font-weight: 700;
   letter-spacing: 0.12em;
   color: #3f8e33;
@@ -4865,7 +4907,7 @@ html, body {
 }
 
 .plana__titular--menu {
-  font-size: clamp(1.5rem, 7.2vw, 2rem);
+  font-size: var(--t-titular);
   line-height: 1.15;
   letter-spacing: -0.01em;
   text-transform: none;
