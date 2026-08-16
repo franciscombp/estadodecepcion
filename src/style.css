@@ -115,7 +115,7 @@ html, body {
   overflow: hidden;
   background: var(--abismo);
   color: var(--texto);
-  font-family: var(--tipo);
+  font-family: var(--sans);
   overscroll-behavior: none;
   touch-action: none;
   user-select: none;
@@ -925,7 +925,11 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
-/* La rosa de deslizamiento, sin caja: es la chuleta de la primera corrida. */
+/* La rosa de deslizamiento, sin caja: es la chuleta de la primera corrida.
+   Va sobre la foto, así que se dibuja en blanco como el pie: los iconos traen
+   su tinta y aquí se invierte, que es más barato que duplicarlos. */
+.hint-swipe svg { filter: invert(1) brightness(2); }
+
 .hint-swipe {
   align-self: flex-start;
   margin-bottom: 10px;
@@ -1051,7 +1055,7 @@ html, body {
 
 .rosa-swipe__arriba { grid-area: 1 / 2; }
 .rosa-swipe__izq    { grid-area: 2 / 1; }
-.rosa-swipe__mano   { grid-area: 2 / 2; color: var(--verde); }
+.rosa-swipe__mano   { grid-area: 2 / 2; }
 .rosa-swipe__der    { grid-area: 2 / 3; }
 .rosa-swipe__abajo  { grid-area: 3 / 2; }
 
@@ -1156,6 +1160,40 @@ html, body {
   animation: pantalla-entra var(--t-medio) var(--rebote);
   /* Por encima del HUD, por debajo de la pantalla de carga. */
   z-index: 50;
+
+  /* ══ DENTRO DE UNA PÁGINA, TODO HABLA PAPEL ══
+     Aquí estaba la raíz de que siguieran apareciendo piezas de otro estilo.
+     El juego tenía DOS temas conviviendo: los componentes se declaraban con
+     los tokens de neón —--texto, --dorado, --verde— y luego cada pantalla
+     impresa los volvía a declarar uno por uno con `.plana .lo-que-sea`. Bastaba
+     con que a un componente se le olvidara su pareja para que saliera con los
+     colores del tema oscuro: el candado del arsenal en gris azulado, la flecha
+     de ruta en gris de neón, el remate en pardo, el pie en azul.
+
+     En vez de perseguir doscientas declaraciones, los tokens se REDEFINEN aquí:
+     todo lo que viva dentro de una pantalla los hereda ya traducidos. El HUD
+     está fuera de `.pantalla` —va sobre la calle, no sobre papel— y conserva
+     los suyos intactos.
+
+     Un componente nuevo entra al sistema por el mero hecho de estar dentro. */
+  --texto: var(--tinta);
+  --texto-tenue: var(--tinta-tenue);
+  --texto-debil: var(--tinta-tenue);
+  --borde: var(--papel-sombra);
+
+  --dorado: var(--rojo-diario);
+  --rojo: var(--rojo-diario);
+  --cian: var(--rojo-diario);
+  --naranja: var(--rojo-diario);
+  --verde: var(--verde-senal);
+  --acento: var(--rojo-diario);
+
+  --dorado-rgb: var(--rojo-rgb-diario);
+  --rojo-rgb: var(--rojo-rgb-diario);
+  --cian-rgb: var(--rojo-rgb-diario);
+  --naranja-rgb: var(--rojo-rgb-diario);
+  --verde-rgb: 103, 184, 87;
+  --acento-rgb: var(--rojo-rgb-diario);
 }
 
 /* EL FONDO DE LOS MENÚS ES LA PARTIDA, DESENFOCADA.
@@ -1207,7 +1245,8 @@ html, body {
    La regla es que cada pantalla quepa entera, y el Archivo es la que anda más
    justa: cabecera, artículos y navegador de páginas. Estos cuatro píxeles son
    los que faltaban en un móvil de 760 de alto. */
-.pantalla--periodico .pantalla__contenido { max-width: 520px; }
+/* El Archivo medía 520 de caja y las demás 460: la misma página con dos
+   anchos según la sección. Ahora es una sola medida para todo el ejemplar. */
 .pantalla--periodico .diario { padding: clamp(12px, 3.6vw, 20px); }
 .pantalla--periodico .diario__cuerpo { gap: 10px; }
 
@@ -1876,7 +1915,7 @@ html, body {
   gap: 6px;
   align-items: center;
   padding: 9px 11px;
-  border-radius: var(--r-chico);
+  border-radius: 0;
   background: rgba(255, 255, 255, 0.035);
   margin-bottom: 6px;
   font-size: clamp(0.62rem, 2.4vw, 0.72rem);
@@ -1919,7 +1958,7 @@ html, body {
   align-items: center;
   gap: 10px;
   padding: 11px 12px;
-  border-radius: var(--r-chico);
+  border-radius: 0;
   background: rgba(255, 255, 255, 0.035);
   border: 2px solid rgba(255, 255, 255, 0.06);
   font-size: clamp(0.64rem, 2.5vw, 0.74rem);
@@ -1933,7 +1972,7 @@ html, body {
   place-items: center;
   width: 30px;
   height: 30px;
-  border-radius: 8px;
+  border-radius: 0;
   background: rgba(var(--verde-rgb), 0.1);
   color: var(--verde);
 }
@@ -2087,6 +2126,7 @@ html, body {
   --tinta-media: #282828;    /* interactive/outline */
   --tinta-tenue: #646464;    /* text/tertiary */
   --rojo-diario: #c53b2b;    /* text/accent · interactive/primary */
+  --rojo-rgb-diario: 197, 59, 43;
   --lila-diario: #ddbeff;    /* accent/purple */
   --azul-diario: #a6c7f2;    /* accent/blue */
   --verde-senal: #67b857;    /* los letreros de la bifurcación */
@@ -2141,7 +2181,7 @@ html, body {
   border-radius: 0;
   text-align: left;
   border: 1px solid var(--papel-sombra);
-  box-shadow: 0 14px 36px rgba(20, 20, 20, 0.08);
+  box-shadow: none;
   animation: papel-entra var(--t-medio) var(--rebote);
 
   /* EL EJEMPLAR NO CAMBIA DE TAMAÑO AL PASAR DE PÁGINA.
@@ -2219,7 +2259,7 @@ html, body {
 
 .diario__nota {
   margin-top: 10px;
-  font-family: var(--tipo);
+  font-family: var(--sans);
   font-size: var(--t-pie);
   line-height: 1.5;
   color: var(--tinta-media);
@@ -2274,7 +2314,7 @@ html, body {
   letter-spacing: .22em;
   text-transform: uppercase;
   color: var(--tinta-media);
-  font-family: var(--tipo);
+  font-family: var(--sans);
   font-weight: 700;
 }
 
@@ -2333,7 +2373,7 @@ html, body {
 }
 
 .articulo__antetitulo {
-  font-family: var(--tipo);
+  font-family: var(--sans);
   font-size: clamp(.5rem, 2vw, .6rem);
   font-weight: 800;
   letter-spacing: .16em;
@@ -2377,7 +2417,7 @@ html, body {
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 9px;
-  font-family: var(--tipo);
+  font-family: var(--sans);
   font-size: var(--t-pie);
   font-weight: 700;
   letter-spacing: .1em;
@@ -2388,7 +2428,7 @@ html, body {
 .articulo__enlace {
   display: inline-block;
   margin-top: 11px;
-  font-family: var(--tipo);
+  font-family: var(--sans);
   font-size: clamp(.68rem, 2.7vw, .78rem);
   font-weight: 800;
   color: var(--rojo-diario);
@@ -2404,7 +2444,7 @@ html, body {
   padding: 5px 11px;
   margin-bottom: 8px;
   border: 1px dashed var(--tinta-tenue);
-  font-family: var(--tipo);
+  font-family: var(--sans);
   font-size: clamp(.54rem, 2.2vw, .64rem);
   font-weight: 900;
   letter-spacing: .14em;
@@ -2437,7 +2477,7 @@ html, body {
   padding: 5px 13px;
   border: 2px solid var(--rojo-diario);
   color: var(--rojo-diario);
-  font-family: var(--tipo);
+  font-family: var(--sans);
   font-size: var(--t-micro);
   font-weight: 900;
   letter-spacing: .16em;
@@ -2470,7 +2510,7 @@ html, body {
 .pagina-cerrada__temas li::before { content: '— '; color: var(--tinta-tenue); }
 
 .pagina-cerrada__precio {
-  font-family: var(--tipo);
+  font-family: var(--sans);
   font-size: var(--t-cuerpo);
   font-weight: 900;
   color: var(--rojo-diario);
@@ -2480,7 +2520,7 @@ html, body {
 
 .pagina-cerrada__ayuda {
   margin-top: 10px;
-  font-family: var(--tipo);
+  font-family: var(--sans);
   font-size: var(--t-micro);
   color: var(--tinta-tenue);
 }
@@ -2490,7 +2530,7 @@ html, body {
   background: var(--rojo-diario);
   border-color: var(--rojo-diario);
   color: var(--papel);
-  font-family: var(--tipo);
+  font-family: var(--sans);
   padding: 13px 22px;
   min-height: 46px;
 }
@@ -2628,7 +2668,7 @@ html, body {
   font-size: 0.56rem;
   font-weight: 700;
   letter-spacing: 0.1em;
-  color: #3f8e33;
+  color: var(--verde-senal);
 }
 
 .expediente--perdido {
@@ -3136,10 +3176,10 @@ html, body {
   background: #d7ecd2;
 }
 
-.juez--acierto .juez__rotulo { color: #2f7a23; }
+.juez--acierto .juez__rotulo { color: var(--verde-senal); }
 
 /* Al fallar se enseña cuál era. Antes no: el rótulo de los seis es el mismo. */
-.juez--revelado .juez__rotulo { color: #2f7a23; }
+.juez--revelado .juez__rotulo { color: var(--verde-senal); }
 
 .juez--fallo {
   border-color: var(--rojo-diario);
@@ -3395,7 +3435,7 @@ html, body {
   width: 100%;
   margin-top: 14px;
   padding: 11px 14px 12px;
-  border-radius: var(--r-chico);
+  border-radius: 0;
   background: rgba(13, 18, 32, 0.66);
   border: 1px solid var(--borde);
   text-align: left;
@@ -3810,7 +3850,7 @@ html, body {
 .plana .instruccion {
   background: rgba(22, 19, 13, 0.045);
   border: 1px solid rgba(22, 19, 13, 0.22);
-  border-radius: 3px;
+  border-radius: 0;
   color: var(--tinta-tenue);
 }
 
@@ -3819,14 +3859,14 @@ html, body {
 .plana .instruccion__icono {
   background: rgba(22, 19, 13, 0.08);
   color: var(--tinta);
-  border-radius: 3px;
+  border-radius: 0;
 }
 
 /* --- Panel de edición --- */
 .plana .edicion {
   background: rgba(22, 19, 13, 0.045);
   border: 1px solid rgba(22, 19, 13, 0.22);
-  border-radius: 3px;
+  border-radius: 0;
   margin-top: 8px;
 }
 
@@ -3835,7 +3875,7 @@ html, body {
 .plana .edicion__nota { color: var(--tinta-tenue); }
 .plana .edicion__punto { background: var(--tinta-tenue); }
 .plana .edicion--listo .edicion__punto { background: #2f6b3a; box-shadow: none; }
-.plana .edicion--listo .edicion__estado { color: #2f6b3a; }
+.plana .edicion--listo .edicion__estado { color: var(--verde-senal); }
 .plana .edicion--nueva { background: rgba(163, 35, 31, 0.07); border-color: var(--rojo-diario); }
 .plana .edicion--nueva .edicion__punto { background: var(--rojo-diario); box-shadow: none; }
 .plana .edicion--nueva .edicion__estado { color: var(--rojo-diario); }
@@ -3853,7 +3893,7 @@ html, body {
 /* --- Relato del trámite --- */
 .plana .relato__parrafo {
   font-family: var(--serif);
-  color: #1d1a14;
+  color: var(--tinta);
 }
 
 /* El remate de El Mercio, impreso: filete grueso a la izquierda como una cita
@@ -3863,7 +3903,7 @@ html, body {
   border-left: 4px solid var(--rojo-diario);
   border-radius: 0;
   font-family: var(--serif);
-  color: #1d1a14;
+  color: var(--tinta);
   margin: 14px 0;
   padding: 4px 0 4px 14px;
 }
@@ -3931,7 +3971,7 @@ html, body {
 }
 
 .plana .juez--acierto .juez__rotulo,
-.plana .juez--revelado .juez__rotulo { color: #2f7a23; }
+.plana .juez--revelado .juez__rotulo { color: var(--verde-senal); }
 
 .plana .juez--fallo {
   background: #f3d4cf;
@@ -3958,7 +3998,7 @@ html, body {
   font-size: clamp(1rem, 4.4vw, 1.3rem);
 }
 
-.plana .resultado--exito .resultado__titulo { color: #2f6b3a; }
+.plana .resultado--exito .resultado__titulo { color: var(--verde-senal); }
 .plana .resultado--fracaso .resultado__titulo { color: var(--rojo-diario); }
 
 .plana .resultado__texto {
@@ -4365,7 +4405,7 @@ html, body {
 }
 
 .plana__pruebas-rotulo {
-  font-family: var(--tipo);
+  font-family: var(--sans);
   font-size: var(--t-micro);
   font-weight: 900;
   letter-spacing: 0.14em;
@@ -4393,7 +4433,7 @@ html, body {
 }
 
 .plana__reportaje-sello {
-  font-family: var(--tipo);
+  font-family: var(--sans);
   font-size: 0.55rem;
   font-weight: 900;
   letter-spacing: 0.12em;
@@ -4421,7 +4461,7 @@ html, body {
 }
 
 .plana__meta-rotulo {
-  font-family: var(--tipo);
+  font-family: var(--sans);
   font-size: var(--t-micro);
   font-weight: 900;
   letter-spacing: 0.16em;
@@ -4446,7 +4486,7 @@ html, body {
 .plana__meta-casilla {
   width: 26px;
   height: 9px;
-  border-radius: 2px;
+  border-radius: 0;
   border: 1.5px solid var(--tinta-media);
 }
 
@@ -4546,7 +4586,7 @@ html, body {
   border-radius: 0;
   background: var(--papel-blanco);
   border: 1px solid var(--papel-sombra);
-  box-shadow: 0 10px 26px rgba(20, 20, 20, 0.1);
+  box-shadow: none;
   transform-style: preserve-3d;
   overflow: hidden;
   animation: botin-gira 5.5s ease-in-out infinite;
@@ -4730,7 +4770,8 @@ html, body {
   font-size: var(--t-micro);
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: #3f8e33;
+  color: var(--verde-senal);
+  white-space: nowrap;
   opacity: 0;
   /* La torcedura de reposo vive AQUÍ y no solo en el keyframe: sin animación
      (movimiento reducido) el sello tiene que verse igual de sellado. */
@@ -4898,7 +4939,7 @@ html, body {
 
 .plana__lema {
   margin-top: 3px;
-  font-family: var(--tipo);
+  font-family: var(--sans);
   font-size: clamp(0.48rem, 2.1vw, 0.58rem);
   font-weight: 700;
   letter-spacing: 0.18em;
@@ -4970,8 +5011,8 @@ html, body {
     radial-gradient(rgba(90, 76, 52, .04) 1px, transparent 1px);
   background-size: 7px 7px, 11px 11px;
   padding: clamp(10px, 3.4vw, 16px) clamp(12px, 4vw, 20px) clamp(12px, 4vw, 18px);
-  border-radius: 0 0 3px 3px;
-  box-shadow: 0 2px 0 var(--papel-sombra), 0 16px 38px rgba(0, 0, 0, .6);
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .plana__pie--foto {

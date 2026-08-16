@@ -610,8 +610,9 @@ export class Pantallas {
       clase: 'pantalla--relato',
     });
 
-    // El cuerpo: dos o tres frases, tamaño de lectura, sin prisa.
-    const relato = el('div', 'relato');
+    // El cuerpo: dos o tres frases, tamaño de lectura, sin prisa. Y es el
+    // bloque que da y quita, como la foto en las demás páginas.
+    const relato = el('div', 'relato se-estira se-estira--desplazable');
     for (const parrafo of String(datos.relato ?? '').split('\n').filter(Boolean)) {
       relato.appendChild(el('p', 'relato__parrafo', parrafo.trim()));
     }
@@ -904,19 +905,21 @@ export class Pantallas {
       `${datos.papelesEntregados} papeles, sin que falte uno. ` +
       'No sabemos cómo lo lograste, pero lo lograste.'));
 
-    plana.appendChild(estadisticas([
+    const cuerpoVictoria = el('div', 'se-estira se-estira--desplazable');
+    cuerpoVictoria.appendChild(estadisticas([
       [datos.papeles.toLocaleString('es-EC'), 'Evidencia'],
       [`${datos.distancia.toLocaleString('es-EC')} m`, 'Distancia'],
       [datos.puntaje.toLocaleString('es-EC'), 'Puntaje'],
       [String(datos.pruebas.length), 'Pruebas'],
     ]));
+    plana.appendChild(cuerpoVictoria);
 
     if (datos.ruta?.length > 1) {
-      plana.appendChild(ladillo('RUTA DE ESTA CORRIDA'));
-      plana.appendChild(this._pintarRuta(datos.ruta));
+      cuerpoVictoria.appendChild(ladillo('RUTA DE ESTA CORRIDA'));
+      cuerpoVictoria.appendChild(this._pintarRuta(datos.ruta));
     }
 
-    this._pintarDesbloqueos(datos, plana);
+    this._pintarDesbloqueos(datos, cuerpoVictoria);
 
     const botones = el('div', 'botones');
     botones.appendChild(boton('Volver a investigar', 'boton--principal',
@@ -1095,8 +1098,6 @@ export class Pantallas {
     // Sale del propio juego: es el fotograma del cerco, con el círculo ya
     // cerrado. Que la imagen sea LA TUYA y no una ilustración genérica es lo
     // que convierte el resumen en una noticia sobre ti.
-    if (datos.foto) plana.appendChild(this._fotoArresto(datos));
-
     if (sentencia) plana.appendChild(el('p', 'plana__bajada', sentencia.texto));
 
     // --- Los papeles -------------------------------------------------------
@@ -1125,6 +1126,11 @@ export class Pantallas {
       marcador.appendChild(sello);
     }
     plana.appendChild(marcador);
+
+    // Y DESPUÉS la foto, como en la maqueta: primero la cifra que resume la
+    // corrida y luego la imagen que la ilustra, con su pie. Es además el
+    // bloque elástico de esta página.
+    if (datos.foto) plana.appendChild(this._fotoArresto(datos));
 
     plana.appendChild(el('div', 'plana__datos',
       `${(datos.distancia ?? 0).toLocaleString('es-EC')} m corridos · `
@@ -1817,6 +1823,11 @@ export class Pantallas {
       titular: 'Respira',
       bajada: 'La rotativa espera. Nadie te está persiguiendo mientras esto esté abierto.',
     });
+
+    // La pausa no tiene contenido variable, pero su aire se declara igual que
+    // el de las demás: un bloque elástico vacío. Así la anatomía de la página
+    // es la misma en las doce pantallas y los botones caen donde caen siempre.
+    plana.appendChild(el('div', 'se-estira'));
 
     const botones = el('div', 'botones');
     botones.appendChild(boton('Seguir corriendo', 'boton--principal',
