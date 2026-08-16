@@ -1526,6 +1526,350 @@ const ROPA_BAHIA = [
  * persiana, la mercadería se apila hasta arriba y el toldo invade la vereda.
  * Un local ordenado, con su vitrina y su puerta, sería otro barrio.
  */
+// ===========================================================================
+// LOS LOCALES DE LA BAHÍA
+// ===========================================================================
+// Desmenuzado de bahia_locales.glb, que es una manzana entera del mercado
+// modelada a mano. Aquí no se carga ese archivo: se replica su ANATOMÍA con
+// cajas, que es lo que permite que cada local salga distinto sin pesar más.
+//
+// Lo que dice el modelo, y que la versión anterior no tenía:
+//
+//   · TODOS LOS LOCALES MIDEN LO MISMO. 2,60 de frente por 3,31 de alto, sin
+//     una sola excepción en los dieciocho del archivo. Antes cada puesto
+//     sorteaba su altura entre 3,4 y 5, y una hilera de alturas distintas no
+//     es un mercado: es una calle de casas. Lo que hace que esto se lea como
+//     mercado es justo que la cornisa sea UNA línea continua.
+//   · SON CAJAS DE OBRA, no fachadas. Piso levantado un escalón, pared de
+//     fondo, dos tabiques que lo separan de los vecinos, losa encima y un
+//     dintel del que cuelga el rótulo. Se ve el interior porque el frente
+//     está abierto de verdad.
+//   · TIENEN TRES ESTADOS y los tres estaban en el archivo: abierto con su
+//     mostrador y su tubo fluorescente, cerrado con persiana de lamas —con su
+//     rollo arriba y su candado abajo— y cerrado con reja de barrotes.
+//   · HAY GÉNERO POR TODAS PARTES: cajas apiladas, bultos, sacos y repisas,
+//     dentro y desbordando al pasillo.
+//
+// Las medidas son las del archivo, tomadas una a una. Ver el desglose en
+// docs/ESTILO.md.
+const LOCAL = {
+  ANCHO: 2.6,
+  ALTO: 3.31,
+  FONDO: 3.4,
+  PISO: 0.16,          // el escalón desde la calle
+  PARED: 3.15,         // alto de pared de fondo y tabiques
+  TABIQUE: 0.1,
+  LOSA: 0.16,          // la cornisa continua de arriba
+  DINTEL_ALTO: 0.55,
+  DINTEL_Y: 2.59,
+  ROTULO_ANCHO: 2.25,
+  ROTULO_ALTO: 0.42,
+  ROTULO_Y: 2.87,
+  LAMAS: 19,           // lamas de la persiana, contadas en el archivo
+  LAMA_DESDE: 0.08,
+  LAMA_HASTA: 2.54,
+  ROLLO_Y: 2.58,
+  BARROTES: 17,
+  MOSTRADOR: [2.1, 0.92, 0.5],
+  RIEL_Y: 2.35,
+  LAMPARA_Y: 2.4,
+};
+
+// La paleta del archivo, tal cual. Los seis tonos de mercancía son los que
+// hacen que dos locales seguidos no se parezcan sin tener que modelar nada
+// distinto: cambia el color de lo que hay dentro, no la caja.
+const BAHIA = {
+  concreto: 0xc7c6c2,
+  concretoOscuro: 0x9a9a97,
+  rotulo: 0xf6f4ee,
+  madera: 0x9c8163,
+  carton: 0xb79a76,
+  acero: 0x5980a6,
+  aceroClaro: 0x93a9be,
+  lona: 0xe8e6df,
+  plastico: 0xdfe4e6,
+  // Los tres tonos del archivo —azulado, gris y tostado— MÁS los pintados.
+  // En el archivo las persianas son de acero crudo porque es un modelo de
+  // estudio; en la Bahía de verdad cada dueño pinta la suya del color de su
+  // negocio, y esa hilera de persianas de colores es media identidad del
+  // sector. Sin ellas la manzana entera salía gris.
+  persiana: [
+    0x6d8fae, 0xb8bcbd, 0x8d7f6d,
+    0xc25b4a, 0x3f7f86, 0xc9a15a, 0x4a6f9c, 0xb8543f, 0x5f8f6a,
+  ],
+  mercancia: [0x3f5f86, 0xc25b4a, 0xe4e1d8, 0x37403f, 0xc9a15a, 0x6b8f7a],
+};
+
+// Mismo motivo que en las casas coloniales: los materiales se crean UNA vez y
+// los comparten los dieciocho locales de la calle. Creados dentro del
+// generador, fundir por material no fundiría nada.
+const MATS_BAHIA = new Map();
+function matBahia(color, emision = 0.03, rugosidad = 0.9) {
+  const clave = `${color}|${emision}|${rugosidad}`;
+  if (!MATS_BAHIA.has(clave)) MATS_BAHIA.set(clave, mat(color, emision, rugosidad));
+  return MATS_BAHIA.get(clave);
+}
+
+/** Caja rápida: la mitad de este archivo es poner cajas en su sitio. */
+function _caja(ancho, alto, fondo, material, x, y, z) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, fondo), material);
+  m.position.set(x, y, z);
+  return m;
+}
+
+/**
+ * LA PERSIANA DE LAMAS. Diecinueve lamas, su rollo arriba, las dos guías a los
+ * costados y el candado abajo.
+ *
+ * Las lamas van una a una y no en un plano con textura porque la persiana es
+ * lo que más se ve de un local cerrado —ocupa el frente entero— y una textura
+ * plana se delata en cuanto la luz le da de lado. Diecinueve cajas finas se
+ * funden luego en una sola malla, así que salen gratis en draw calls.
+ *
+ * @param {number} cerrada  1 = hasta el suelo, 0.45 = a medio bajar
+ */
+function _persianaBahia(g, rnd, cerrada = 1) {
+  const tono = BAHIA.persiana[Math.floor(rnd() * BAHIA.persiana.length)];
+  const matLama = matBahia(tono, 0.02, 0.6);
+  const matGuia = matBahia(BAHIA.aceroClaro, 0.02, 0.55);
+  const zf = LOCAL.FONDO / 2 - 0.05;
+
+  // Las guías laterales, de suelo a rollo.
+  for (const s of [-1, 1]) {
+    g.add(_caja(0.07, 2.6, 0.1, matGuia, s * (LOCAL.ANCHO / 2 - 0.06), 1.3, zf));
+  }
+
+  // El rollo: el cilindro donde se enrolla, que es lo que dice que ESO sube.
+  const rollo = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.14, 0.14, LOCAL.ANCHO - 0.24, 8), matGuia,
+  );
+  rollo.rotation.z = Math.PI / 2;
+  rollo.position.set(0, LOCAL.ROLLO_Y, zf);
+  g.add(rollo);
+
+  // Las lamas, del rollo hacia abajo hasta donde llegue.
+  const paso = (LOCAL.LAMA_HASTA - LOCAL.LAMA_DESDE) / (LOCAL.LAMAS - 1);
+  const cuantas = Math.max(2, Math.round(LOCAL.LAMAS * cerrada));
+  for (let i = 0; i < cuantas; i++) {
+    const y = LOCAL.LAMA_HASTA - i * paso;
+    g.add(_caja(LOCAL.ANCHO - 0.16, paso * 0.82, 0.05, matLama, 0, y, zf));
+  }
+
+  // El candado, solo si baja del todo: en una a medio subir no habría dónde.
+  if (cerrada > 0.9) {
+    g.add(_caja(0.16, 0.2, 0.07, matBahia(BAHIA.acero, 0.03, 0.5),
+      -LOCAL.ANCHO / 2 + 0.28, 0.35, zf + 0.05));
+  }
+}
+
+/**
+ * LA REJA DE BARROTES. Diecisiete verticales y dos travesaños.
+ *
+ * Es el otro modo de estar cerrado, y la diferencia importa: por una reja se
+ * VE el género de dentro, así que el local sigue contando algo. Por eso el
+ * archivo tiene las dos y por eso aquí también.
+ */
+function _rejaBahia(g, rnd) {
+  const matReja = matBahia(BAHIA.acero, 0.02, 0.55);
+  const zf = LOCAL.FONDO / 2 - 0.05;
+  const luz = LOCAL.ANCHO - 0.2;
+  const paso = luz / (LOCAL.BARROTES - 1);
+
+  for (let i = 0; i < LOCAL.BARROTES; i++) {
+    g.add(_caja(0.035, 2.42, 0.035, matReja, -luz / 2 + i * paso, 1.21, zf));
+  }
+  // Los dos travesaños, arriba y abajo, que es lo que la hace una reja y no
+  // una fila de palos.
+  for (const y of [0.2, 2.3]) {
+    g.add(_caja(LOCAL.ANCHO - 0.12, 0.04, 0.04, matReja, 0, y, zf));
+  }
+}
+
+/**
+ * EL INTERIOR DE UN LOCAL ABIERTO: mostrador, riel de perchas con su ropa,
+ * tubo fluorescente y repisas con género.
+ *
+ * El tubo va con material emisivo y sin niebla: es la única luz propia de la
+ * calle y lo que hace que un local abierto se distinga de uno cerrado desde
+ * lejos, que es justo lo que hay que poder distinguir.
+ */
+function _interiorBahia(g, rnd) {
+  const zf = LOCAL.FONDO / 2;
+
+  // TODO VA HACIA EL FRENTE, y esa es la corrección que hace que un local
+  // abierto se vea abierto. Colocado como en el archivo —mostrador a 0,85 del
+  // frente y el riel a 1,45— desde la calle no se veía nada: el dintel tapa
+  // por arriba y el hueco queda en sombra, así que el local se leía como un
+  // panel liso. En el archivo eso da igual porque se mira de pie desde el
+  // pasillo; aquí se pasa a veinte por hora y de refilón.
+  const [mAncho, mAlto, mFondo] = LOCAL.MOSTRADOR;
+  g.add(_caja(mAncho, mAlto, mFondo, matBahia(BAHIA.madera, 0.03, 0.9),
+    0, LOCAL.PISO + mAlto / 2, zf - 0.35));
+
+  // Y encima del mostrador, el género a la vista.
+  const encima = 2 + Math.floor(rnd() * 3);
+  for (let i = 0; i < encima; i++) {
+    const tono = BAHIA.mercancia[Math.floor(rnd() * BAHIA.mercancia.length)];
+    const a = 0.3 + rnd() * 0.2;
+    g.add(_caja(a, 0.22, 0.3, matBahia(tono, 0.05, 0.9),
+      (i / Math.max(1, encima - 1) - 0.5) * (mAncho - 0.5),
+      LOCAL.PISO + mAlto + 0.11, zf - 0.35));
+  }
+
+  // Tubo fluorescente bajo la losa, a lo ancho del local: es la única luz
+  // propia de la calle y lo que dice DE LEJOS que este local está abierto.
+  g.add(_caja(LOCAL.ANCHO - 0.5, 0.07, 0.12, LUZ_BAHIA, 0, LOCAL.LAMPARA_Y, zf - 0.6));
+
+  // Riel de perchas con prendas colgadas, justo detrás del mostrador. Cada
+  // prenda un tono de la paleta: es lo que hace que un local de ropa no se
+  // parezca al de al lado.
+  g.add(_caja(LOCAL.ANCHO - 0.4, 0.05, 0.05, matBahia(BAHIA.aceroClaro, 0.02, 0.55),
+    0, LOCAL.RIEL_Y, zf - 1.05));
+  const prendas = 6 + Math.floor(rnd() * 4);
+  for (let i = 0; i < prendas; i++) {
+    const x = (i / (prendas - 1) - 0.5) * (LOCAL.ANCHO - 0.55);
+    const alto = 0.6 + rnd() * 0.35;
+    const tono = BAHIA.mercancia[Math.floor(rnd() * BAHIA.mercancia.length)];
+    g.add(_caja(0.22, alto, 0.1, matBahia(tono, 0.05, 0.92),
+      x, LOCAL.RIEL_Y - alto / 2 - 0.06, zf - 1.05));
+  }
+
+  // La pared del fondo, forrada. En un local abierto se ve el fondo, y el gris
+  // de obra ahí detrás apagaba todo lo que tuviera delante.
+  const forro = BAHIA.mercancia[Math.floor(rnd() * BAHIA.mercancia.length)];
+  g.add(_caja(LOCAL.ANCHO - 0.3, LOCAL.PARED - 0.4, 0.06, matBahia(forro, 0.06, 0.92),
+    0, (LOCAL.PARED - 0.4) / 2, -LOCAL.FONDO / 2 + 0.16));
+
+  // Repisas contra la pared del fondo, con su género encima.
+  for (let n = 0; n < 2; n++) {
+    const y = 0.85 + n * 0.85;
+    g.add(_caja(LOCAL.ANCHO - 0.35, 0.06, 0.42, matBahia(BAHIA.madera, 0.03, 0.9),
+      0, y, -LOCAL.FONDO / 2 + 0.45));
+    const bultos = 3 + Math.floor(rnd() * 3);
+    for (let i = 0; i < bultos; i++) {
+      const tono = BAHIA.mercancia[Math.floor(rnd() * BAHIA.mercancia.length)];
+      const a = 0.28 + rnd() * 0.16;
+      g.add(_caja(a, 0.26, 0.3, matBahia(tono, 0.03, 0.92),
+        (i / Math.max(1, bultos - 1) - 0.5) * (LOCAL.ANCHO - 0.7), y + 0.16,
+        -LOCAL.FONDO / 2 + 0.45));
+    }
+  }
+}
+
+/**
+ * LOS CAJONES. Pilas de cartón y sacos, dentro del local y desbordando a la
+ * vereda. En el archivo hay más de cien y son la mitad del carácter del sitio:
+ * un mercado mayorista es mercancía que no cabe.
+ */
+function _cajonesBahia(g, rnd, cuantos) {
+  const matCarton = matBahia(BAHIA.carton, 0.03, 0.95);
+  for (let i = 0; i < cuantos; i++) {
+    const x = (rnd() - 0.5) * (LOCAL.ANCHO - 0.5);
+    const z = LOCAL.FONDO / 2 - 0.2 + rnd() * 0.7;
+    const pila = 1 + Math.floor(rnd() * 3);
+    const lado = 0.34 + rnd() * 0.16;
+    for (let n = 0; n < pila; n++) {
+      const caja = _caja(lado, lado * 0.72, lado * 0.9, matCarton,
+        x, LOCAL.PISO + lado * 0.36 + n * lado * 0.72, z);
+      caja.rotation.y = (rnd() - 0.5) * 0.5;
+      g.add(caja);
+    }
+    // Un saco encima de algunas pilas: la silueta redondeada rompe la
+    // cuadrícula de cajas, que si no se lee como almacén de cubos.
+    if (rnd() > 0.55) {
+      const tono = BAHIA.mercancia[Math.floor(rnd() * BAHIA.mercancia.length)];
+      const saco = new THREE.Mesh(
+        new THREE.SphereGeometry(lado * 0.42, 6, 5), matBahia(tono, 0.03, 0.95),
+      );
+      saco.scale.y = 0.8;
+      saco.position.set(x, LOCAL.PISO + lado * 0.72 * pila + lado * 0.3, z);
+      g.add(saco);
+    }
+  }
+}
+
+// El tubo fluorescente: un único material para los dieciocho locales, emisivo
+// y sin niebla, para que se vea el local encendido desde el fondo de la calle.
+const LUZ_BAHIA = new THREE.MeshStandardMaterial({
+  color: 0xfdfbf0,
+  emissive: 0xfdfbf0,
+  emissiveIntensity: 1.6,
+  roughness: 0.4,
+  toneMapped: false,
+});
+
+/**
+ * UN LOCAL. La caja de obra, su estado y lo que tenga dentro.
+ *
+ * @param {function} rnd Fuente de azar, inyectable para poder fijarla
+ */
+function crearLocalBahia(rnd, indiceRotulo = null) {
+  const g = new THREE.Group();
+  const matObra = matBahia(BAHIA.concreto, 0.03, 0.9);
+  const matObraOsc = matBahia(BAHIA.concretoOscuro, 0.03, 0.9);
+
+  // --- La caja de obra ------------------------------------------------------
+  // Piso levantado un escalón, pared de fondo, dos tabiques y la losa. Es la
+  // parte que NO cambia nunca: los dieciocho locales del archivo comparten
+  // estas cinco piezas al milímetro.
+  g.add(_caja(LOCAL.ANCHO, LOCAL.PISO, LOCAL.FONDO, matObraOsc, 0, LOCAL.PISO / 2, 0));
+  g.add(_caja(LOCAL.ANCHO, LOCAL.PARED, 0.12, matObra,
+    0, LOCAL.PARED / 2, -LOCAL.FONDO / 2 + 0.06));
+  for (const s of [-1, 1]) {
+    g.add(_caja(LOCAL.TABIQUE, LOCAL.PARED, LOCAL.FONDO, matObra,
+      s * (LOCAL.ANCHO / 2 - LOCAL.TABIQUE / 2), LOCAL.PARED / 2, 0));
+  }
+  // La losa: sobresale un poco y es la línea continua que hace la manzana.
+  g.add(_caja(LOCAL.ANCHO, LOCAL.LOSA, LOCAL.FONDO + 0.2, matObra,
+    0, LOCAL.PARED + LOCAL.LOSA / 2, 0.1));
+
+  // Dintel y rótulo, sobre el hueco.
+  const zf = LOCAL.FONDO / 2;
+  g.add(_caja(LOCAL.ANCHO - 0.06, LOCAL.DINTEL_ALTO, 0.16, matObra,
+    0, LOCAL.DINTEL_Y + LOCAL.DINTEL_ALTO / 2, zf - 0.08));
+
+  const texto = ROTULOS_BAHIA[
+    (indiceRotulo ?? Math.floor(rnd() * ROTULOS_BAHIA.length)) % ROTULOS_BAHIA.length
+  ];
+  const rotulo = new THREE.Mesh(
+    new THREE.PlaneGeometry(LOCAL.ROTULO_ANCHO, LOCAL.ROTULO_ALTO),
+    new THREE.MeshStandardMaterial({
+      map: texturaRotulo(texto, rnd() > 0.5 ? '#c25b4a' : '#3f5f86'),
+      roughness: 0.85,
+      emissive: 0xffffff,
+      emissiveIntensity: 0.14,
+    }),
+  );
+  rotulo.position.set(0, LOCAL.ROTULO_Y, zf + 0.02);
+  g.add(rotulo);
+
+  // --- El estado ------------------------------------------------------------
+  // Mitad abiertos, y del resto dos tercios con persiana y uno con reja. La
+  // proporción sale del archivo: de los dieciocho, ocho están abiertos, siete
+  // con persiana y tres con reja.
+  const dado = rnd();
+  if (dado < 0.46) {
+    _interiorBahia(g, rnd);
+    _cajonesBahia(g, rnd, 1 + Math.floor(rnd() * 3));
+    g.userData.abierto = true;
+  } else if (dado < 0.62) {
+    // A medio bajar: el local que está cerrando, con el género aún fuera.
+    _persianaBahia(g, rnd, 0.45);
+    _cajonesBahia(g, rnd, 2);
+  } else if (dado < 0.86) {
+    _persianaBahia(g, rnd, 1);
+  } else {
+    _rejaBahia(g, rnd);
+    // Por la reja se ve lo de dentro, así que hay que poner algo dentro.
+    _cajonesBahia(g, rnd, 2);
+  }
+
+  return g;
+}
+
+/** Solo para pruebas: un local suelto, sin fundir, para poder contar estados. */
+export function __probarLocal(rnd) { return crearLocalBahia(rnd); }
+
 function crearPuestoBahia(colores, aleatorio, ancho = 4.6) {
   const g = new THREE.Group();
   const alto = 3.4 + aleatorio() * 1.6;
@@ -1857,14 +2201,49 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
       // bajo una bóveda de policarbonato que recorre la cuadra entera. Ese
       // apelotonamiento es el sector; un local con su hueco a cada lado sería
       // cualquier avenida.
-      const PUESTOS = 3;
-      const ANCHO_PUESTO = 4.7;
-      const largo = PUESTOS * ANCHO_PUESTO;
+      // Seis locales de 2,60, que es el frente que miden en el archivo. Antes
+      // eran tres de 4,70 con la altura sorteada entre 3,4 y 5: una calle de
+      // casas anchas y desiguales. El mercado es lo contrario —muchos frentes
+      // estrechos y una sola cornisa continua—, y esa cadencia apretada es la
+      // mitad de lo que hace que se lea como la Bahía.
+      // LA ESCALA HAY QUE SUBIRLA, y no es traicionar el modelo sino leerlo.
+      // En el archivo el pasillo del mercado mide 2,30 de ancho y los locales
+      // 3,31 de alto: el local ES alto respecto a por dónde se pasa. Nuestra
+      // calle mide 8,80 —es una avenida, no un pasillo—, así que a tamaño
+      // literal los locales quedaban por debajo del horizonte y la manzana se
+      // leía como un bordillo. A 1,5 recuperan la proporción que tienen en el
+      // archivo respecto a lo que se camina, y las medidas de dentro siguen
+      // guardando entre sí exactamente la relación medida.
+      const ESCALA = 1.5;
+      const LOCALES = 4;
+      const largo = LOCALES * LOCAL.ANCHO;
 
-      for (let i = 0; i < PUESTOS; i++) {
-        const puesto = crearPuestoBahia(colores, aleatorio, ANCHO_PUESTO);
-        puesto.position.x = (i - (PUESTOS - 1) / 2) * ANCHO_PUESTO;
-        g.add(puesto);
+      // La hilera se arma aparte para poder FUNDIRLA entera antes de colgarla:
+      // fundirPorMaterial devuelve un grupo nuevo, no toca el que recibe.
+      const hilera = new THREE.Group();
+      // Los rótulos avanzan por la lista desde un punto al azar en vez de
+      // sortearse uno a uno: con seis textos y cuatro locales, sorteando salía
+      // «TODO A $1» tres veces en la misma cuadra.
+      const desdeRotulo = Math.floor(aleatorio() * ROTULOS_BAHIA.length);
+      for (let i = 0; i < LOCALES; i++) {
+        const local = crearLocalBahia(aleatorio, desdeRotulo + i);
+        local.position.x = (i - (LOCALES - 1) / 2) * LOCAL.ANCHO;
+        hilera.add(local);
+      }
+
+      // El género que desborda al pasillo. En el archivo hay bultos sueltos
+      // delante de los locales, y son los que quitan el filo de maqueta a la
+      // hilera: sin ellos la acera es una línea recta perfecta.
+      for (let i = 0; i < 3; i++) {
+        const bulto = new THREE.Mesh(
+          new THREE.BoxGeometry(0.5 + aleatorio() * 0.3, 0.42, 0.44),
+          matBahia(BAHIA.carton, 0.03, 0.95),
+        );
+        bulto.position.set(
+          (aleatorio() - 0.5) * largo, 0.21, LOCAL.FONDO / 2 + 0.4 + aleatorio() * 0.4,
+        );
+        bulto.rotation.y = (aleatorio() - 0.5) * 0.8;
+        hilera.add(bulto);
       }
 
       // AQUÍ NO HAY TECHO NI PALMERAS, y las dos ausencias son deliberadas:
@@ -1878,17 +2257,34 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
       //     palmera, y si asoma por encima del techo es que el techo no está.
       //
       // Lo que queda aquí es lo que sí es de la acera: los puestos.
-      const puntales = new THREE.Mesh(
-        new THREE.BoxGeometry(0.16, 5.4, 0.16),
-        mat(0x9aa0a8, 0.03, 0.55),
+      // La columna del techo. Va a la altura de las del archivo (3,90) y
+      // apoyada en el borde del andén, no flotando delante de los puestos.
+      const columna = new THREE.Mesh(
+        new THREE.BoxGeometry(0.19, 3.9, 0.19),
+        matBahia(BAHIA.aceroClaro, 0.02, 0.55),
       );
-      puntales.position.set(largo / 2 - 0.4, 2.7, 3.2);
-      g.add(puntales);
+      columna.position.set(largo / 2 - 0.4, 1.95, LOCAL.FONDO / 2 + 0.9);
+      hilera.add(columna);
+
+      // El andén: el bordillo corrido que separa la acera del pasillo. Es una
+      // línea continua a lo largo de la manzana y ayuda a leer la hilera como
+      // una sola pieza en vez de seis locales sueltos.
+      hilera.add(_caja(largo, 0.14, 0.5, matBahia(BAHIA.concretoOscuro, 0.03, 0.9),
+        0, 0.07, LOCAL.FONDO / 2 + 0.95));
 
       // La hilera va ALINEADA: ni desviación lateral ni escala al azar. Una
       // fila de puestos torcidos y de tamaños distintos no se lee como
-      // desorden, se lee como fallo de colocación.
+      // desorden, se lee como fallo de colocación. Y en el mercado importa el
+      // doble, porque lo que lo hace mercado es que la cornisa sea una sola
+      // línea de punta a punta.
       g.userData.alineado = true;
+
+      // Seis locales son unas doscientas cajas. Fundidas por material bajan a
+      // una docena de mallas y la hilera entera cuesta menos que los tres
+      // puestos de antes. Ver fundirPorMaterial().
+      const fundida = fundirPorMaterial(hilera);
+      fundida.scale.setScalar(ESCALA);
+      g.add(fundida);
       break;
     }
 
