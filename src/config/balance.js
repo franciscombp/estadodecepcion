@@ -599,42 +599,42 @@ export const SENTENCIAS = [
   {
     id: 'honesto',
     limpio: true,
-    titular: 'MEDIDAS SUSTITUTIVAS',
+    titular: 'Le dictan medidas sustitutivas al periodista',
     texto: 'El juez no llevaba la camiseta. Sales con medidas sustitutivas y '
       + 'la orden de no salir del país. Todo sigue exactamente como antes.',
   },
   {
     id: 'preventiva',
     limpio: false,
-    titular: 'PRISIÓN PREVENTIVA',
+    titular: 'Prisión preventiva para el periodista',
     texto: 'Seis meses mientras se investiga. La investigación es sobre ti, '
       + 'no sobre lo que documentaste.',
   },
   {
     id: 'domiciliaria',
     limpio: false,
-    titular: 'PRISIÓN DOMICILIARIA',
+    titular: 'Prisión domiciliaria y un grillete',
     texto: 'Puedes seguir escribiendo desde casa. Con un grillete y sin salir '
       + 'a preguntar, que es de donde salían las notas.',
   },
   {
     id: 'extradicion',
     limpio: false,
-    titular: 'PEDIDO DE EXTRADICIÓN',
+    titular: 'Aparece un pedido de extradición',
     texto: 'Alguien encontró una causa abierta en otro país. Qué oportuno, y '
       + 'qué rápido se tramitó.',
   },
   {
     id: 'incomunicacion',
     limpio: false,
-    titular: 'INCOMUNICACIÓN',
+    titular: 'Gobierno detiene a otro periodista',
     texto: 'Sin visitas, sin llamadas y sin abogado los primeros días. '
       + 'Después ya no hacía falta.',
   },
   {
     id: 'archivo',
     limpio: false,
-    titular: 'CAUSA RESERVADA',
+    titular: 'Declaran reservada la causa',
     texto: 'El expediente pasa a reservado por seguridad nacional. Ni tú '
       + 'puedes leer de qué te acusan.',
   },

@@ -175,30 +175,33 @@ export class HUD {
            carril, que es todo el mundo, todo el rato. -->
       <div class="avisos" data-campo="avisos"></div>
 
-      <!-- ══ FILA INFERIOR ══ -->
-      <div class="hud__inferior">
-        <div class="panel panel--prueba">
-          <div class="panel__titulo">PRUEBAS</div>
-          <div class="fichas-prueba" data-campo="pruebas">
-            <div class="ficha-prueba ficha-evidencia--vacia">—</div>
-          </div>
-        </div>
+      <!-- ══ PIE DE FOTO ══
+           LA PARTIDA ES LA FOTO DE LA PÁGINA, Y UNA FOTO LLEVA PIE.
+           Aquí abajo había tres paneles flotantes —PRUEBAS, DISTANCIA y la
+           rosa de deslizamiento— con su marco y su fondo cada uno. Eran
+           widgets de aplicación puestos encima de una página de revista, y se
+           notaba: la maqueta no tiene NADA ahí abajo.
+           Lo que sí hace un diario con una imagen a toda plana es ponerle un
+           pie: crédito, lugar y datos, en una línea de cuerpo pequeño. Así que
+           la distancia, los intentos y las pruebas se leen como el pie de la
+           foto, que es información sin ser un tablero. -->
+      <div class="hud__pie">
+        <span class="pie-juego__credito">Fotografía de EL MERCIO.</span>
+        <span class="pie-juego__separador">·</span>
+        <span class="pie-juego__dato" data-campo="distancia">0 m</span>
+        <span class="intentos" data-campo="intentos"></span>
+        <span class="fichas-prueba" data-campo="pruebas"></span>
+      </div>
 
-        <div class="panel panel--distancia">
-          <div class="panel__titulo">DISTANCIA</div>
-          <div class="panel__valor" data-campo="distancia">0 m</div>
-          <div class="intentos" data-campo="intentos"></div>
-        </div>
-
-        <div class="panel panel--hint" data-campo="hint">
-          <div class="panel__titulo">DESLIZA</div>
-          <div class="rosa-swipe">
-            <span class="rosa-swipe__arriba">${Icono.flecha('arriba', 20)}</span>
-            <span class="rosa-swipe__izq">${Icono.flecha('izquierda', 20)}</span>
-            <span class="rosa-swipe__mano">${Icono.mano(24)}</span>
-            <span class="rosa-swipe__der">${Icono.flecha('derecha', 20)}</span>
-            <span class="rosa-swipe__abajo">${Icono.flecha('abajo', 20)}</span>
-          </div>
+      <!-- La rosa de deslizamiento. Solo en la primera corrida: es la chuleta
+           de controles, no un panel permanente. -->
+      <div class="hint-swipe" data-campo="hint">
+        <div class="rosa-swipe">
+          <span class="rosa-swipe__arriba">${Icono.flecha('arriba', 20)}</span>
+          <span class="rosa-swipe__izq">${Icono.flecha('izquierda', 20)}</span>
+          <span class="rosa-swipe__mano">${Icono.mano(24)}</span>
+          <span class="rosa-swipe__der">${Icono.flecha('derecha', 20)}</span>
+          <span class="rosa-swipe__abajo">${Icono.flecha('abajo', 20)}</span>
         </div>
       </div>
 
@@ -304,7 +307,7 @@ export class HUD {
   /** Oculta el hint de deslizar (tras la primera partida). */
   ocultarHint() {
     this.mostrarHint = false;
-    if (this.ref?.hint) this.ref.hint.classList.add('panel--oculto');
+    if (this.ref?.hint) this.ref.hint.classList.add('hint-swipe--oculto');
   }
 
   // -------------------------------------------------------------------------
@@ -598,9 +601,11 @@ export class HUD {
   }
 
   _pintarEvidencias(lista) {
+    // Sin pruebas no se escribe nada: el pie de foto es una línea de texto, y
+    // una casilla vacía con una raya dentro era exactamente el widget que se
+    // quería quitar de ahí.
     if (lista.length === 0) {
-      this.ref.pruebas.innerHTML =
-        '<div class="ficha-prueba ficha-evidencia--vacia">—</div>';
+      this.ref.pruebas.innerHTML = '';
       return;
     }
 

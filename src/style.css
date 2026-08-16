@@ -206,11 +206,16 @@ html, body {
   display: none;
   flex-direction: column;
   justify-content: space-between;
+  /* EL MISMO MARGEN QUE LAS PÁGINAS IMPRESAS: 24 a los lados y el aire de
+     arriba de la maqueta. Es lo que hace que la partida se lea como una página
+     más del ejemplar —la foto a toda plana de la revista— y no como una capa
+     de juego con su propia retícula. Estaba en 10 px por los cuatro costados,
+     que es margen de aplicación, no de publicación. */
   padding:
-    calc(var(--seg-arriba) + 10px)
-    calc(var(--seg-der) + 10px)
-    calc(var(--seg-abajo) + 10px)
-    calc(var(--seg-izq) + 10px);
+    calc(var(--seg-arriba) + clamp(24px, 7vh, 64px))
+    calc(var(--seg-der) + 24px)
+    calc(var(--seg-abajo) + clamp(20px, 6vh, 64px))
+    calc(var(--seg-izq) + 24px);
   pointer-events: none;
   /* HUD elements (counter, buttons, panels) sit above messages */
   z-index: 20;
@@ -652,7 +657,13 @@ html, body {
      contra la caja de relleno, así que hay que sumar el margen seguro Y la
      altura de esa fila; si no, el cartel se monta sobre el botón de pausa y el
      contador de papeles. */
-  top: calc(var(--seg-arriba) + 58px);
+  /* JUSTO DEBAJO DE LA CABECERA, en el sitio del bloque del caso —que se
+     apaga mientras el cartel está puesto—. Los elementos absolutos se colocan
+     contra la caja de relleno del HUD, así que hay que sumar su margen
+     superior (el de la página) MÁS la altura de la fila de arriba: 48 del
+     botón, 10 de aire y el filete. Con los 58 de antes, calculados para un
+     margen de 10 px, los carteles caían encima del contador. */
+  top: calc(var(--seg-arriba) + clamp(24px, 7vh, 64px) + 68px);
   left: 50%;
   transform: translateX(-50%) translateY(0);
   display: flex;
@@ -889,12 +900,41 @@ html, body {
 
 /* --- Fila inferior -------------------------------------------------------- */
 
-.hud__inferior {
+/* EL PIE DE LA FOTO. Una línea, cuerpo pequeño, Montserrat blanca sobre la
+   calle: crédito, distancia, intentos y las pruebas que lleves. Ni marcos ni
+   fondos: es texto impreso sobre la imagen, como el pie de una foto a toda
+   plana. Ver el marcado en HUD.js. */
+.hud__pie {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #ffffff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
 }
+
+.pie-juego__credito { opacity: 0.85; }
+.pie-juego__separador { opacity: 0.5; }
+
+.pie-juego__dato {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* La rosa de deslizamiento, sin caja: es la chuleta de la primera corrida. */
+.hint-swipe {
+  align-self: flex-start;
+  margin-bottom: 10px;
+  color: #ffffff;
+  filter: drop-shadow(0 1px 6px rgba(0, 0, 0, 0.7));
+  transition: opacity var(--t-medio);
+}
+
+.hint-swipe--oculto { opacity: 0; pointer-events: none; }
 
 .panel {
   padding: 9px 12px;
@@ -931,21 +971,18 @@ html, body {
   line-height: 1;
 }
 
-.panel--distancia { border-color: rgba(var(--verde-rgb), 0.35); }
-.panel--prueba { border-color: rgba(var(--naranja-rgb), 0.3); }
-
 /* Fichas de evidencia */
 .fichas-prueba { display: flex; gap: 5px; }
 
 .ficha-prueba {
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: 26px;
+  height: 26px;
   display: grid;
   place-items: center;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(var(--naranja-rgb), 0.28);
+  border-radius: 0;
+  background: transparent;
+  border: 0;
   animation: ficha-entra var(--t-medio) var(--rebote);
 }
 
@@ -967,12 +1004,12 @@ html, body {
   display: grid;
   place-items: center;
   border-radius: 8px;
-  background: var(--naranja);
-  color: #1a0a03;
-  font-size: 0.58rem;
-  font-weight: 900;
+  background: var(--rojo-diario);
+  color: #ffffff;
+  font-family: var(--sans);
+  font-size: 0.52rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  box-shadow: 0 0 8px rgba(var(--naranja-rgb), 0.6);
 }
 
 @keyframes ficha-entra {
@@ -982,25 +1019,25 @@ html, body {
 
 /* Intentos restantes */
 .intentos {
-  display: flex;
-  justify-content: center;
+  display: inline-flex;
+  align-items: center;
   gap: 5px;
-  margin-top: 7px;
+  margin-top: 0;
 }
 
 .intento {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--verde);
-  box-shadow: 0 0 9px rgba(var(--verde-rgb), 0.85);
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
   transition: all var(--t-medio) var(--rebote);
 }
 
 .intento--gastado {
-  background: rgba(255, 255, 255, 0.14);
-  box-shadow: none;
-  transform: scale(0.72);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+  transform: scale(0.8);
 }
 
 /* Rosa de swipe */
@@ -1065,22 +1102,42 @@ html, body {
    PANTALLAS
    ========================================================================== */
 
+/* ==========================================================================
+   LA PÁGINA OCUPA LA PANTALLA. SIN SCROLL. NUNCA.
+   ==========================================================================
+   Del Figma: cada pantalla es una hoja de 402×874 con márgenes de 64 arriba y
+   abajo, 24 a los lados, y 24 de aire entre bloques. Y la anatomía es siempre
+   la misma:
+
+     cabecera (fija) · titular (fijo) · BLOQUE ELÁSTICO · botones (abajo)
+
+   El bloque elástico —la foto, la rejilla de pruebas, la tabla— es el que se
+   come todo el espacio que sobra. Por eso la maqueta no necesita scroll en
+   ninguna pantalla y por eso se adapta a cualquier alto sin recolocar nada:
+   el que da y el que quita es siempre el mismo, y el resto no se mueve.
+
+   Antes esto era una caja centrada con `overflow-y: auto`, o sea una tarjeta
+   flotando en medio con barra de scroll cuando no cabía. Es la diferencia
+   entre una página impresa y un cuadro de diálogo.
+
+   Si de verdad no cabe (un móvil muy corto, una lista larga), lo que se
+   desplaza es el bloque elástico POR DENTRO, no la página. La hoja no se
+   mueve nunca. */
 .pantalla {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  /* Ajustado para que las pantallas largas —el Archivo, la portada de
-     derrota— quepan enteras en un móvil. Cada punto de relleno vertical se
-     paga dos veces, y son los últimos diez píxeles los que deciden si hay
-     barra de scroll o no. */
+  justify-content: flex-start;
+  /* Los 64 de la maqueta, encogiendo en pantallas cortas: en un móvil de 640
+     de alto, 128 px de margen serían una quinta parte de la página. */
   padding:
-    calc(var(--seg-arriba) + 14px)
-    calc(var(--seg-der) + 16px)
-    calc(var(--seg-abajo) + 14px)
-    calc(var(--seg-izq) + 16px);
+    calc(var(--seg-arriba) + clamp(24px, 7vh, 64px))
+    calc(var(--seg-der) + 24px)
+    calc(var(--seg-abajo) + clamp(20px, 6vh, 64px))
+    calc(var(--seg-izq) + 24px);
+  overflow: hidden;
   /* El velo va TRANSLÚCIDO. Estaba al 96-98 %, y a esa opacidad el desenfoque
      de abajo no se ve: los menús salían sobre un rectángulo negro, sin ninguna
      pista de que detrás sigue corriendo la partida. Al 80 % la calle se
@@ -1095,7 +1152,6 @@ html, body {
   color: var(--tinta);
   font-family: var(--serif);
   pointer-events: auto;
-  overflow-y: auto;
   overscroll-behavior: contain;
   animation: pantalla-entra var(--t-medio) var(--rebote);
   /* Por encima del HUD, por debajo de la pantalla de carga. */
@@ -1116,10 +1172,36 @@ html, body {
 }
 
 .pantalla__contenido {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
   width: 100%;
-  max-width: 540px;
-  text-align: center;
+  /* El ancho de la maqueta (354 de caja útil) con algo de holgura para
+     tabletas. Alineado a la izquierda: es una página, no un cartel. */
+  max-width: 460px;
+  text-align: left;
 }
+
+/* EL BLOQUE ELÁSTICO. Uno por pantalla: el que se queda con lo que sobra.
+   Lo lleva la foto de la portada, la rejilla de pruebas, la tabla de
+   posiciones, la tómbola del sorteo… lo que en el Figma es «Card / Game» o
+   «Opinion / Item». */
+.se-estira {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* Y si su contenido no cabe, se desplaza ÉL, no la página. */
+.se-estira--desplazable {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Los botones se pegan abajo, como en la maqueta. */
+.pantalla__contenido > .botones,
+.plana > .botones { margin-top: auto; flex: 0 0 auto; }
 
 /* SIN SCROLL EN LOS MENÚS.
    La regla es que cada pantalla quepa entera, y el Archivo es la que anda más
@@ -1216,7 +1298,6 @@ html, body {
     0 0 24px rgba(var(--dorado-rgb), 0.45),
     0 0 60px rgba(var(--dorado-rgb), 0.18);
   margin-bottom: 6px;
-  text-transform: uppercase;
 }
 
 .titulo--rojo  { color: var(--rojo);  text-shadow: 0 0 24px rgba(var(--rojo-rgb), 0.45); }
@@ -1788,7 +1869,6 @@ html, body {
   font-size: clamp(0.56rem, 2.3vw, 0.68rem);
   font-weight: 800;
   letter-spacing: 0.16em;
-  text-transform: uppercase;
   color: var(--texto-tenue);
   margin-bottom: 9px;
 }
@@ -2349,7 +2429,6 @@ html, body {
   font-family: var(--serif);
   font-size: clamp(1.4rem, 6.5vw, 2rem);
   font-weight: 900;
-  text-transform: uppercase;
   margin-bottom: 12px;
 }
 
@@ -2690,14 +2769,9 @@ html, body {
   /* El centro se deja CASI limpio: ahí está el periodista entrevistando, y es
      lo que hay que ver. Las bandas de arriba y abajo se oscurecen para que el
      texto tenga contraste sin necesidad de una caja opaca detrás. */
-  background:
-    linear-gradient(180deg,
-      rgba(5, 7, 12, 0.94) 0%,
-      rgba(5, 7, 12, 0.82) 22%,
-      rgba(5, 7, 12, 0.12) 42%,
-      rgba(5, 7, 12, 0.12) 52%,
-      rgba(5, 7, 12, 0.86) 72%,
-      rgba(5, 7, 12, 0.97) 100%);
+  /* Sin velo: el papel lo ponen los bloques (ver más abajo) y en medio va la
+     foto, que es la partida. */
+  background: transparent;
 }
 
 /* La portada se reparte en tres: banda, hueco y banda. El hueco es la ventana
@@ -3077,9 +3151,13 @@ html, body {
    los que decían «esto es un papel encima del juego»; ahora la pantalla
    entera ES la página. */
 .plana {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  padding: 8px 0 14px;
-  margin-bottom: 14px;
+  padding: 0;
+  margin: 0;
   border-radius: 0;
   background: transparent;
   color: var(--tinta);
@@ -3112,9 +3190,9 @@ html, body {
   background: rgba(243, 243, 243, 0.97);
 }
 
-.pantalla--plana .pantalla__contenido {
-  padding-top: 18px;
-}
+/* El aire de arriba lo pone ya el relleno de .pantalla (los 64 de la
+   maqueta). Este empujón extra dejaba asomar la calle por encima de la
+   mancheta en la portada. */
 
 /* LA MARCA. «EL MERCIO» en Montserrat negra con el punto en rojo; en las
    secciones interiores el punto crece a «./judiciales», como un dominio.
@@ -3181,6 +3259,11 @@ html, body {
 }
 
 .plana__titular {
+  /* EN CAJA BAJA. Un titular de periódico se compone como se habla, y en la
+     maqueta ninguno va en versalitas: la única caja alta es la etiqueta de
+     sección. Todo en mayúsculas se leía como un cartel de aviso, que es
+     justo el registro contrario al de una portada. */
+  text-transform: none;
   font-family: var(--serif);
   font-size: clamp(1.6rem, 7.6vw, 2rem);
   font-weight: 700;
@@ -4451,7 +4534,6 @@ html, body {
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.086em;
-  text-transform: uppercase;
   text-align: center;
   color: var(--rojo-diario);
 }
@@ -4697,11 +4779,36 @@ html, body {
    ve por un hueco recortado en el papel y ES la foto de la portada. Una foto
    desenfocada no es una foto: es un fondo. El contraste del texto no lo
    necesita, porque el texto va sobre papel opaco. */
+/* LA PORTADA ES UNA HOJA CON UNA FOTO A SANGRE.
+   El fondo de la pantalla va transparente porque la «foto» es la partida
+   corriendo de verdad: lo que pinta el papel son los dos bloques, y por el
+   hueco de en medio se ve el juego. Para que eso lea como una portada y no
+   como una interfaz flotando, los bloques SANGRAN hasta los bordes de la
+   pantalla —arriba, abajo y a los lados— y guardan por dentro los márgenes de
+   la maqueta. Antes se quedaban en la caja de contenido y asomaba la calle por
+   encima de la mancheta y por debajo de los botones. */
 .pantalla--plana.pantalla--portada {
-  background: rgba(5, 7, 12, 0.55);
+  background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  padding-top: var(--seg-arriba);
+  padding-bottom: var(--seg-abajo);
+  padding-left: var(--seg-izq);
+  padding-right: var(--seg-der);
 }
+
+/* La sangría: el bloque ocupa el ancho de la ventana y recompone por dentro
+   el margen de 24 (y el aire de 64 arriba y abajo) contra la caja legible. */
+.pantalla--portada .plana__bloque,
+.pantalla--portada .portada__abajo {
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+  padding-inline: max(24px, calc(50vw - 230px));
+  background: var(--papel);
+}
+
+.pantalla--portada .plana__bloque { padding-top: clamp(24px, 7vh, 64px); }
+.pantalla--portada .portada__abajo { padding-bottom: clamp(20px, 6vh, 64px); }
 
 .plana--menu {
   /* DEL FIGMA: titulares a la izquierda, no centrados. El papel lo ponen los

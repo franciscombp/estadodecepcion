@@ -258,17 +258,23 @@ export class Pantallas {
     bloqueAlto.appendChild(cabeceraMarca(null, true));
 
     // ══ TITULAR ═════════════════════════════════════════════════════════
-    // El escenario va EN el titular y no en una ficha aparte: es la noticia de
-    // esta edición, no un dato de configuración.
+    // LA PORTADA TITULA LA PREMISA, no el escenario.
+    //
+    // Decía «ESTADO DE EXCEPCIÓN: LA BAHÍA», que es un rótulo de selector de
+    // nivel escrito en versalitas. Un periódico no titula dónde vas a jugar:
+    // titula lo que pasó. El barrio no se pierde —va en el pie de la foto, que
+    // es donde un diario dice dónde se tomó— y su lema titula la corrida en el
+    // propio juego (ver el bloque del caso en el HUD).
     bloqueAlto.appendChild(el('h2', 'plana__titular plana__titular--menu',
-      `ESTADO DE EXCEPCIÓN: ${esc.nombre}`));
-    bloqueAlto.appendChild(el('div', 'plana__epigrafe plana__epigrafe--menu', esc.subtitulo));
+      'Presidente Roy declara estado de excepción indefinido'));
+    bloqueAlto.appendChild(el('div', 'plana__epigrafe plana__epigrafe--menu',
+      '¿Qué está intentando ocultar el oficialismo?'));
     plana.appendChild(bloqueAlto);
 
     // ══ LA FOTO ═════════════════════════════════════════════════════════
     // El hueco por el que se ve la escena, ahora encuadrado como una foto de
     // prensa: filete, fondo transparente y pie debajo.
-    const figura = el('figure', 'portada__foto');
+    const figura = el('figure', 'portada__foto se-estira');
     figura.appendChild(el('div', 'portada__hueco'));
     plana.appendChild(figura);
 
@@ -393,7 +399,7 @@ export class Pantallas {
     const { pantalla, contenido, plana } = seccionDiario({
       seccion: 'ADMINISTRACIÓN',
       antetitulo: 'CÓMO SE USA ESTE EJEMPLAR',
-      titular: 'LA REDACCIÓN',
+      titular: 'La redacción',
       bajada: 'Controles, edición y el botón de tirarlo todo a la basura',
     });
 
@@ -666,7 +672,7 @@ export class Pantallas {
     const { pantalla, contenido, plana } = seccionDiario({
       seccion: 'JUDICIALES',
       antetitulo: 'TE RODEARON',
-      titular: 'SORTEO DE JUEZ QUE LLEVARÁ TU CAUSA',
+      titular: 'Se sortea el juez que llevará tu causa',
       bajada: 'Cinco llevan la camiseta. Para el selector en el que no la lleva.',
       clase: 'pantalla--cerco',
     });
@@ -680,7 +686,7 @@ export class Pantallas {
     const total = datos.jueces ?? 6;
     const honesto = Math.floor(Math.random() * total);
 
-    const contenedorTombola = el('div', 'tombola-contenedor');
+    const contenedorTombola = el('div', 'tombola-contenedor se-estira');
     const banda = el('div', 'tombola-banda');
 
     // Los jueces se repiten para que la banda no se acabe nunca. Cinco vueltas
@@ -878,7 +884,7 @@ export class Pantallas {
     const { pantalla, contenido, plana } = seccionDiario({
       seccion: 'PORTADA',
       antetitulo: 'SE PRESENTÓ LA DENUNCIA',
-      titular: 'PROSPERÓ',
+      titular: 'La denuncia prosperó',
       bajada: datos.institucion,
       clase: 'pantalla--victoria',
     });
@@ -984,7 +990,7 @@ export class Pantallas {
     const antetitulo = el('div', 'plana__antetitulo', '');
     const titular = el('h1', 'plana__titular plana__titular--tabla', '');
     const epigrafe = el('div', 'plana__epigrafe', '');
-    const cuerpoTabla = el('div', 'plana__tabla');
+    const cuerpoTabla = el('div', 'plana__tabla se-estira se-estira--desplazable');
     plana.appendChild(antetitulo);
 
     // --- Pestañas ----------------------------------------------------------
@@ -1069,16 +1075,16 @@ export class Pantallas {
     plana.appendChild(cabeceraMarca(null, true));
 
     const titulos = {
-      captura: 'TE ALCANZARON',
-      exhausto: 'SIN FUERZAS',
-      cerco: 'CRUZASTE EL CERCO',
+      captura: 'Te alcanzaron a media cuadra',
+      exhausto: 'El periodista ya no daba más',
+      cerco: 'Cruzó el cerco y no volvió a salir',
     };
     const sentencia = datos.sentencia;
 
     plana.appendChild(el('div', 'plana__antetitulo',
       sentencia ? 'PERIODISTA DETENIDO' : 'SE INTERRUMPE LA COBERTURA'));
     plana.appendChild(el('h1', 'plana__titular',
-      sentencia?.titular ?? titulos[datos.motivo] ?? 'SE ACABÓ'));
+      sentencia?.titular ?? titulos[datos.motivo] ?? 'Se acabó la cobertura'));
 
     // --- La foto del arresto -----------------------------------------------
     // Sale del propio juego: es el fotograma del cerco, con el círculo ya
@@ -1224,7 +1230,7 @@ export class Pantallas {
       buenas === 0 ? 'NADA QUE SOSTENGA'
         : buenas === 1 ? 'UNA PRUEBA' : `${buenas} PRUEBAS`));
 
-    const rejilla = el('div', 'botin__rejilla');
+    const rejilla = el('div', 'botin__rejilla se-estira se-estira--desplazable');
 
     // EL DESFILE VA DE UNO EN UNO. Antes las piezas entraban casi solapadas
     // (0,42 s) y se leían como una rejilla que se llena; ahora cada objeto
@@ -1325,7 +1331,7 @@ export class Pantallas {
    * acaba de perder es medio segundo de bloqueo justo donde más se nota.
    */
   _fotoArresto(datos) {
-    const figura = el('figure', 'plana__foto');
+    const figura = el('figure', 'plana__foto se-estira');
 
     const img = document.createElement('img');
     img.src = datos.foto;
@@ -1503,7 +1509,7 @@ export class Pantallas {
     // La separación en dos también hace falta para el alto fijo: `pintar()`
     // vacía y rehace el CUERPO en cada cambio de página, así que los botones
     // tienen que vivir fuera de ese vaciado o desaparecerían al pasar la hoja.
-    const diario = el('div', 'diario');
+    const diario = el('div', 'diario se-estira se-estira--desplazable');
     const hoja = el('div', 'diario__hoja');
     const pie = el('div', 'diario__pie');
     diario.appendChild(hoja);
@@ -1800,7 +1806,7 @@ export class Pantallas {
     const { pantalla, contenido, plana } = seccionDiario({
       seccion: 'CIERRE DE EDICIÓN',
       antetitulo: 'EN PAUSA',
-      titular: 'RESPIRA',
+      titular: 'Respira',
       bajada: 'La rotativa espera. Nadie te está persiguiendo mientras esto esté abierto.',
     });
 
