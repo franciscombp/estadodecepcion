@@ -120,6 +120,27 @@ const PALETAS = {
     pelo: 0x241a12,
     gafas: 0x0a0e17,
   },
+
+  // Los perseguidores van los dos de oscuro y a contraluz: lo que tienen que
+  // leerse desde ocho metros por delante es una silueta, no una cara.
+  perseguidorAbajo: {
+    piel: 0xc08a5e,
+    antebrazo: 0x1f2333,
+    ropa: 0x1f2333,       // Traje oscuro
+    pantalon: 0x232838,
+    zapato: 0x141414,
+    pelo: 0x1a1410,
+    gafas: 0x0a0e17,
+  },
+  perseguidorArriba: {
+    piel: 0xe0b088,
+    antebrazo: 0xf2f2f2,
+    ropa: 0xf2f2f2,       // Camisa blanca
+    pantalon: 0x2a3550,
+    zapato: 0x141414,
+    pelo: 0x241a12,
+    gafas: 0x0a0e17,
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -157,6 +178,21 @@ const REDACCION = {
     archivo: 'tostadologo',
     quitar: new Set(['sombrero', 'copa', 'mochila', 'correa', 'gafas']),
     accesorios: ponerMinistro,
+  },
+
+  // Los dos que vienen detrás. Salen del mismo cuerpo por lo mismo que los
+  // demás, y además porque se les ve TODA la partida por encima del hombro:
+  // eran los últimos de cajas, y con los cinco de delante ya modelados
+  // cantaban más que nadie.
+  perseguidorAbajo: {
+    archivo: 'tostadologo',
+    quitar: new Set(['sombrero', 'copa', 'mochila', 'correa', 'gafas']),
+    accesorios: ponerPerseguidorAbajo,
+  },
+  perseguidorArriba: {
+    archivo: 'tostadologo',
+    quitar: new Set(['sombrero', 'copa', 'mochila', 'correa']),
+    accesorios: ponerPerseguidorArriba,
   },
 };
 
@@ -568,6 +604,31 @@ function ponerMonki(huesos, modelo) {
   const umbo = esfera(0.055, 0xd8b45a, 0.25);
   umbo.position.set(0.06, 1.06, -0.25);
   anclar(umbo, tronco, modelo);
+}
+
+/** EL DE ABAJO: traje oscuro y corbata chillona. Es el que carga. */
+function ponerPerseguidorAbajo(huesos, modelo) {
+  const tronco = huesos.get('Spine01')?.nodo ?? huesos.get('Spine')?.nodo;
+  const corbata = caja(0.05, 0.22, 0.02, 0xff4f6d, 0.35);
+  corbata.position.set(0, PECHO.y, PECHO.fondo + 0.015);
+  anclar(corbata, tronco, modelo);
+
+  const camisa = caja(0.1, 0.2, 0.02, 0xd8d4cc, 0.12);
+  camisa.position.set(0, PECHO.y + 0.02, PECHO.fondo);
+  anclar(camisa, tronco, modelo);
+}
+
+/** EL DE ARRIBA: camisa blanca, gafas y el pelo peinado. Va encima. */
+function ponerPerseguidorArriba(huesos, modelo) {
+  const cabeza = huesos.get('Head')?.nodo;
+  const pelo = caja(CRANEO.ancho + 0.02, 0.07, CRANEO.fondo + 0.01, 0x241a12);
+  pelo.position.set(0, CRANEO.coronilla - 0.02, -0.01);
+  anclar(pelo, cabeza, modelo);
+
+  const tronco = huesos.get('Spine01')?.nodo ?? huesos.get('Spine')?.nodo;
+  const corbata = caja(0.045, 0.2, 0.02, 0x9c1f2e, 0.16);
+  corbata.position.set(0, PECHO.y, PECHO.fondo + 0.015);
+  anclar(corbata, tronco, modelo);
 }
 
 /**
@@ -1094,6 +1155,33 @@ export function poseMinistroGLB(modelo, tiempo = 0, presencia = 1) {
   // Asiente despacio mientras responde.
   doblar(huesos, 'Spine', (-0.04 + Math.sin(tiempo * 0.9) * 0.03) * k);
   doblar(huesos, 'Head', Math.sin(tiempo * 1.7) * 0.09 * k);
+}
+
+/**
+ * EL QUE VA A CABALLITO: piernas abiertas sobre los hombros del otro y un
+ * brazo señalando al frente, que es el gesto de «a ese».
+ */
+export function poseMontadoGLB(modelo, tiempo = 0) {
+  const g = modelo.userData.glb;
+  if (!g) return;
+  const { huesos } = g;
+
+  orientar(modelo);
+  reposar(huesos);
+  g.cuerpo.rotation.set(0, 0, 0);
+  g.cuerpo.position.set(0, 0, 0);
+
+  // Piernas abiertas y colgando por delante de la cabeza del de abajo.
+  for (const lado of ['Left', 'Right']) {
+    girar(huesos, `${lado}UpLeg`, EJE_Z, lado === 'Left' ? 0.62 : -0.62);
+    doblar(huesos, `${lado}UpLeg`, -0.5);
+    doblar(huesos, `${lado}Leg`, 0.85);
+  }
+
+  // Un brazo señalando —con su temblor de insistencia— y el otro sujetándose.
+  brazo(huesos, 'Right', 0.35, -1.35 + Math.sin(tiempo * 4) * 0.12, -0.2);
+  brazo(huesos, 'Left', 1.1, 0.5, -1.1);
+  doblar(huesos, 'Spine', -0.12);
 }
 
 /** Deja el cuerpo listo para volver a correr. */

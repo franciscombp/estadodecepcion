@@ -86,6 +86,9 @@ export class Player {
     this.alturaVuelo = 0;
 
     // ---- Animación --------------------------------------------------------
+    // ¿La pose actual está escrita a mano (salto, limbo) en vez de salir del
+    // ciclo de carrera? Sirve para deshacerla UNA vez al volver a correr.
+    this.poseManual = false;
     this.tiempoAnimacion = 0;
     this.vivo = true;
   }
@@ -296,11 +299,20 @@ export class Player {
       // La agachada manda sobre el salto: quien rueda no está saltando, y si
       // el mezclador siguiera corriendo machacaría los huesos del ovillo.
       if (this.factorAgachado > 0.001) {
+        this.poseManual = true;
         aplicarPoseAgachadoGLB(this.modelo, this.factorAgachado);
       } else if (this.estaEnElAire) {
+        this.poseManual = true;
         animarSaltoGLB(this.modelo, subida);
       } else {
-        reposarGLB(this.modelo);
+        // Se deshace la pose escrita a mano SOLO al volver de ella. Hacerlo
+        // cada fotograma dejaba el cuerpo en cruz durante el instante que va
+        // de una cosa a la otra, y ese instante se veía: es el fotograma que
+        // el jugador pillaba de vez en cuando con el personaje en T.
+        if (this.poseManual) {
+          reposarGLB(this.modelo);
+          this.poseManual = false;
+        }
         animarCarreraGLB(this.modelo, dt, velocidad);
       }
     } else if (this.estaEnElAire) {
@@ -545,7 +557,17 @@ export class Player {
    * cerco vuelve a la pista corriendo con los brazos en cruz.
    */
   _enderezarMiembros() {
-    if (esGLB(this.modelo)) { reposarGLB(this.modelo); return; }
+    if (esGLB(this.modelo)) {
+      // Enderezar deja el cuerpo en la pose de reposo del archivo, que es EN
+      // CRUZ. Si nadie lo anima antes de pintar —y al reiniciar o al zafarse
+      // del cerco pasa medio segundo— el personaje aparece haciendo la T. Un
+      // paso de cero segundos del mezclador lo devuelve a su zancada sin
+      // adelantar el reloj de la animación.
+      reposarGLB(this.modelo);
+      animarCarreraGLB(this.modelo, 0, 20);
+      this.poseManual = false;
+      return;
+    }
 
     // Una pieza suelta puesta en public/ no trae miembros nombrados (ver
     // crearPersonaje). No se la anima ni se la endereza: se la deja como está,

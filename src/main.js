@@ -139,6 +139,11 @@ async function arrancar() {
   carga.progreso(0.75, 'Levantando el escenario…');
   const juego = new Game(lienzo, cuaderno, audio, calidad);
 
+  // Los programas de shader, compilados AQUÍ y no en el primer fotograma. Son
+  // unos cientos de milisegundos que, sin esto, se pagaban jugando.
+  carga.progreso(0.85, 'Encendiendo las luces…');
+  juego.precalentar();
+
   carga.progreso(0.9, 'Últimos ajustes…');
   const hud = new HUD(contenedorUI);
 

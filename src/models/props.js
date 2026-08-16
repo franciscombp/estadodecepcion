@@ -914,7 +914,11 @@ export function crearEvidencia() {
     // menos separación hace falta para que se vea el hueco entre dos.
     // Subido un 25%: con la curvatura del mundo los papeles asoman por la
     // cresta ya pequeños, y a este tamaño la hilera se lee desde que nace.
-    _geoEvidencia = new THREE.BoxGeometry(0.58, 0.62, 0.035);
+    // MÁS GRANDE. Un papel de 0.58 a treinta metros es un píxel: se recogían
+    // sin llegar a verlos, y lo que hace que apetezca recogerlos es verlos
+    // venir. A 0.86 tiene el tamaño de una moneda del original —la mitad del
+    // ancho de un carril— y se aprecia lo que es.
+    _geoEvidencia = new THREE.BoxGeometry(0.86, 0.92, 0.05);
 
     const tex = textura('papel', (ctx, w, h) => {
       ctx.fillStyle = '#ffd94f';
@@ -939,9 +943,11 @@ export function crearEvidencia() {
     _matPapel = new THREE.MeshStandardMaterial({
       map: tex,
       emissive: COLOR3D.dorado,
-      // 0.85 de base (era 0.55): el reguero es EL elemento de pista y tiene
-      // que ganarle el ojo al decorado, no empatarle.
-      emissiveIntensity: 0.85,
+      // 0.55 de base. Estuvo en 0.85 para que el reguero le ganase el ojo al
+      // decorado, y le ganaba de más: los papeles salían resplandecientes,
+      // como si cada uno fuera un potenciador. Lo que los tiene que hacer
+      // visibles es su TAMAÑO y su separación, no que brillen.
+      emissiveIntensity: 0.55,
       roughness: 0.4,
       flatShading: true,
     });
@@ -1065,7 +1071,7 @@ function capsulaPotenciador(color) {
     new THREE.MeshStandardMaterial({
       color,
       emissive: color,
-      emissiveIntensity: 0.5,
+      emissiveIntensity: 0.35,
       transparent: true,
       opacity: 0.24,
       roughness: 0.15,
@@ -1147,7 +1153,8 @@ function insigniaPortada(color) {
       map: tex,
       emissive: 0xffffff,
       emissiveMap: tex,
-      emissiveIntensity: 0.95,
+      // 0.6 en vez de 0.95: una prueba es un papel importante, no una linterna.
+      emissiveIntensity: 0.6,
       roughness: 0.35,
       toneMapped: false,
     }),

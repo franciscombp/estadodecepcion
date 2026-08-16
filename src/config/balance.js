@@ -45,9 +45,18 @@ export const CARRILES = {
 // y una partida con tres tropiezos se quedaría lenta para siempre —que es
 // exactamente lo que pasaba antes de separarlas.
 export const VELOCIDAD = {
-  INICIAL: 18,      // Arranque cómodo, permite leer el primer obstáculo.
-  MAXIMA: 42,       // Tope: más allá, el tiempo de reacción humano no alcanza.
-  ACELERACION: 0.35, // Unidades/segundo² — sube de 18 a 42 en ~68 segundos.
+  // EL RITMO DE SUBWAY SURFERS NO ES CORRER RÁPIDO, es correr con holgura.
+  // Esto arrancaba a 18 y subía a 42 en poco más de un minuto, y a 42 no da
+  // tiempo a mirar nada: se juega leyendo el carril y el juego deja de ser
+  // agradable de ver, que es la mitad de por qué engancha el original.
+  //
+  // Ahora arranca a 15 y sube a 32 en tres minutos largos. Es un tercio menos
+  // de velocidad punta y cuatro veces más lenta la rampa, y a cambio hay
+  // tiempo de ver la calle, los papeles se recogen en tiradas limpias y
+  // subirse a una tarima es una decisión y no un reflejo.
+  INICIAL: 15,
+  MAXIMA: 32,
+  ACELERACION: 0.09, // Unidades/segundo² — sube de 15 a 32 en unos 190 s.
   // Penalización al chocar: no es game over inmediato, pierdes ritmo.
   FRENAZO_POR_GOLPE: 0.45, // Multiplicador aplicado sobre la velocidad base.
   // Recuperación tras el frenazo, en unidades/segundo².
@@ -180,7 +189,10 @@ export const EVIDENCIA = {
   // A 2.2 los papeles se solapaban y la hilera se leía como una CINTA continua
   // —se perdía el ritmo de recogida y la tira tapaba lo que hubiera detrás—.
   // A 4.0 quedan unos 0.22 de hueco proyectado: piezas sueltas, con su ritmo.
-  SEPARACION: 4.0,
+  // Y A 6.0 se separan del todo. A 4.0 seguían leyéndose como una tira: se
+  // recogían sin verlos, que es lo contrario de lo que hace el original —ahí
+  // cada moneda es una pieza que se ve venir, se apunta y se coge—.
+  SEPARACION: 6.0,
   // Ondulación vertical de la hilera. Sube y baja un poco de papel en papel,
   // que es el segundo golpe contra el efecto cinta: aunque dos se acerquen en
   // pantalla, no están a la misma altura y siguen leyéndose como dos.
@@ -662,8 +674,12 @@ export const ELEVADO = {
   // algo, se ve desde lejos que hay altura y la caída de vuelta pesa. Es un
   // cambio de sensación, no solo de decorado.
   ALTURA: 3.15,
-  LARGO_MINIMO: 16,
-  LARGO_MAXIMO: 30,
+  // MÁS LARGAS. Estaban en 16-30 metros, que a la velocidad de antes eran
+  // menos de un segundo arriba: se subía y se bajaba sin tiempo de estar. La
+  // gracia de la capa de arriba del original es que se vive ahí un rato —se
+  // recogen papeles, se salta de una a otra, se ve la calle desde lo alto—.
+  LARGO_MINIMO: 34,
+  LARGO_MAXIMO: 62,
   LARGO_RAMPA: 5.5,      // Tramo inclinado de subida.
   // Impulso vertical que da la rampa al pisarla. Sale de la altura, no se
   // elige: v0 = √(2·g·h) con h = ALTURA + 0.5 de margen. Al subir la
@@ -671,8 +687,10 @@ export const ELEVADO = {
   // corto y el jugador se estrella contra el costado del bus.
   //   √(2 · 27.5 · 3.65) = 14.2
   IMPULSO_RAMPA: 14.2,
-  // Cada cuántos metros se intenta colocar una tarima.
-  DISTANCIA_ENTRE: 190,
+  // Cada cuántos metros se intenta colocar una tarima. A 190 salía una cada
+  // diez segundos largos y la capa de arriba se sentía una rareza; a 95 es una
+  // parte del recorrido y no un premio.
+  DISTANCIA_ENTRE: 95,
   // Margen de tolerancia al aterrizar sobre la plataforma: si el jugador está
   // cayendo y su pie queda dentro de esta franja por encima, se le engancha.
   MARGEN_ATERRIZAJE: 0.55,

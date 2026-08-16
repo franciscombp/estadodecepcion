@@ -496,11 +496,22 @@ export class Intro {
     const partes = perseguidor.modelo?.userData?.partes;
     if (!partes) return;
 
-    const arriba = partes.grupoNoboa;
     const f = THREE.MathUtils.clamp(separacion, 0, 1);
 
+    // Los del modelo se bajan al suelo y se apartan; sus piernas las escribe
+    // su propia pose (ver poseMontadoGLB) y aquí no se tocan.
+    if (partes.delModelo) {
+      const montado = partes.alturaMontado ?? 1.5;
+      partes.arriba.position.y = THREE.MathUtils.lerp(montado, 0, f);
+      partes.arriba.position.x = THREE.MathUtils.lerp(0, 0.95, f);
+      partes.arriba.scale.setScalar(THREE.MathUtils.lerp(0.86, 1, f));
+      return;
+    }
+
+    const arriba = partes.grupoNoboa;
+
     // Baja al suelo y se aparta a un lado mientras corre en paralelo.
-    arriba.position.y = THREE.MathUtils.lerp(1.52, 0, f);
+    arriba.position.y = THREE.MathUtils.lerp(partes.alturaMontado ?? 1.52, 0, f);
     arriba.position.x = THREE.MathUtils.lerp(0, 0.95, f);
     arriba.scale.setScalar(THREE.MathUtils.lerp(0.92, 1, f));
 

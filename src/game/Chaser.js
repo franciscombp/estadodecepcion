@@ -66,7 +66,7 @@ export class Chaser {
     this.x += (jugador.x - this.x) * t;
 
     this._colocar(dt);
-    animarPerseguidores(this.modelo, this.tiempo);
+    animarPerseguidores(this.modelo, this.tiempo, dt);
   }
 
   /**
@@ -140,7 +140,7 @@ export class Chaser {
     this.cercando = fraccion;
     this.tiempo += dt;
     this._colocar(dt);
-    animarPerseguidores(this.modelo, this.tiempo);
+    animarPerseguidores(this.modelo, this.tiempo, dt);
   }
 
   /** Los acerca de golpe. Se llama cuando el jugador choca. */

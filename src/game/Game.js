@@ -708,7 +708,13 @@ export class Game {
     // Cuántas se encienden este fotograma. Se acumula el resto: a 60 fps una
     // cantidad fraccionaria redondeada da cero fotograma tras fotograma y no
     // sale nunca ni una.
-    this._restoPolvo = (this._restoPolvo ?? 0) + dt * 320 * fuerza;
+    //
+    // BAJÓ DE 320 A 70, y el motivo es que la cortina hacía demasiado bien su
+    // trabajo: tapaba el pico del giro, sí, pero también tapaba el giro. Lo
+    // que se veía era una pantalla de polvo y, al abrirse, otra calle —o sea,
+    // exactamente el corte que se quería evitar, con niebla—. Con setenta el
+    // polvo acompaña la esquina en vez de sustituirla.
+    this._restoPolvo = (this._restoPolvo ?? 0) + dt * 70 * fuerza;
     const cuantas = Math.floor(this._restoPolvo);
     this._restoPolvo -= cuantas;
     if (cuantas <= 0) return;
@@ -720,14 +726,16 @@ export class Game {
     for (let i = 0; i < cuantas; i++) {
       const d = 5 + Math.random() * 7;
       this.particulas.estallido(
-        this.camara.position.x + delante.x * d + (Math.random() - 0.5) * 7,
-        0.4 + Math.random() * 2.6,
+        this.camara.position.x + delante.x * d + (Math.random() - 0.5) * 9,
+        // Bajo, a la altura de las ruedas: el polvo de una esquina se levanta
+        // del suelo. A media pantalla era una cortina y no una polvareda.
+        0.2 + Math.random() * 1.2,
         this.camara.position.z + delante.z * d + (Math.random() - 0.5) * 5,
         {
           color: polvo,
           cantidad: 1,
           fuerza: 1.4,
-          tam: 2.2 + Math.random() * 1.8,
+          tam: 1.4 + Math.random() * 1.2,
           vida: 0.5 + Math.random() * 0.3,
           gravedad: 0.4,
           roce: 1.4,
@@ -825,6 +833,9 @@ export class Game {
     this.corredorLimpio = false;
 
     this._cambiarEscenario(destino, true);
+    // Lo recién levantado trae materiales nuevos: se compilan ahora, con el
+    // polvo del giro tapando, y no en el primer fotograma de la calle nueva.
+    this.precalentar();
   }
 
   // -------------------------------------------------------------------------
@@ -1355,6 +1366,27 @@ export class Game {
    * recto —el soportal entero un palmo más arriba durante un fotograma— y
    * encima pagaba compilar un shader sin parche que se tiraba al siguiente.
    */
+  /**
+   * COMPILAR LOS PROGRAMAS ANTES DE JUGAR.
+   *
+   * WebGL no compila un shader hasta que hace falta pintar algo con él, y
+   * compilar un programa con esqueleto, color por vértice y la curvatura del
+   * mundo encima cuesta cientos de milisegundos. Como cada personaje y cada
+   * escenario traen materiales nuevos, esos cientos de milisegundos caían a
+   * mitad de partida: el juego se paraba en seco un par de segundos la primera
+   * vez que aparecían los perseguidores o al cambiar de barrio.
+   *
+   * Aquí se compilan todos de golpe, con la pantalla de carga puesta o durante
+   * el cambio de escenario, que es donde parar no se nota.
+   */
+  precalentar() {
+    if (!this.renderizador || !this.escenaThree || !this.camara) return;
+    // La curvatura tiene que estar puesta ANTES de compilar, o se compila el
+    // programa sin ella y hay que volver a compilarlo al primer fotograma.
+    curvarEscena(this.escenaThree);
+    this.renderizador.compile(this.escenaThree, this.camara);
+  }
+
   _render() {
     curvarEscena(this.escenaThree);
     if (this.compositor) this.compositor.render();

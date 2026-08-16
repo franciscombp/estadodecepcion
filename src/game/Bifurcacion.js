@@ -64,7 +64,10 @@ export class Bifurcacion {
     // cinematicaGiro): el personaje rota hacia la esquina, la cámara lo sigue
     // y se endereza ya dentro del soportal.
     this.DURACION_VIRAJE = 0.75;
-    this.DURACION_VIRAJE_LATERAL = 1.05;
+    // Segundo y tres cuartos. El giro es lo que más se recuerda de un tramo y
+    // en un segundo escaso no daba tiempo ni a verlo: se entraba en el polvo y
+    // se salía en otra calle sin haber visto la esquina.
+    this.DURACION_VIRAJE_LATERAL = 1.75;
 
     // El soportal que se cruza al doblar la esquina.
     this.paso = null;

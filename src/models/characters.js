@@ -33,7 +33,7 @@
 
 import * as THREE from 'three';
 import { piezaEditada } from './hitos.js';
-import { crearPersonajeGLB } from './personajeGLB.js';
+import { crearPersonajeGLB, animarCarreraGLB, poseMontadoGLB } from './personajeGLB.js';
 
 // ---------------------------------------------------------------------------
 // PROPORCIONES — medidas sacadas del modelo original
@@ -855,6 +855,13 @@ export function crearPersonaje(id) {
  * Se ve al fondo de la pantalla; por eso la silueta importa más que el detalle.
  */
 export function crearPerseguidores() {
+  // También salen del modelo, con su traje y su camisa colgados de los huesos.
+  // Se les ve toda la partida por encima del hombro: eran los últimos de cajas
+  // y, con los cinco de delante ya modelados, cantaban más que nadie.
+  const abajoGLB = crearPersonajeGLB('perseguidorAbajo');
+  const arribaGLB = crearPersonajeGLB('perseguidorArriba');
+  if (abajoGLB && arribaGLB) return _perseguidoresDelModelo(abajoGLB, arribaGLB);
+
   const grupo = new THREE.Group();
 
   // --- EL DE ABAJO: robusto, traje oscuro. Es el que carga. ----------------
@@ -931,6 +938,32 @@ export function crearPerseguidores() {
   };
   grupo.userData.nombre = 'Perseguidores';
 
+  return grupo;
+}
+
+/**
+ * El dúo, montado con los cuerpos del modelo.
+ *
+ * La torre se apoya en dos cotas y las dos importan: la ingle del de arriba a
+ * la altura de la CORONILLA del de abajo —no de sus hombros, que es lo
+ * anatómico pero deja a los dos ocupando el mismo metro cúbico— y un palmo de
+ * retranqueo, para que entre las piernas de uno quepa la cabeza del otro.
+ */
+function _perseguidoresDelModelo(abajo, arriba) {
+  const grupo = new THREE.Group();
+  grupo.add(abajo);
+
+  const ESCALA = 0.86;
+  const CORONILLA = 1.62;   // Medida del cráneo de este modelo.
+  const INGLE = 0.8;
+  arriba.scale.setScalar(ESCALA);
+  arriba.position.set(0, CORONILLA - INGLE * ESCALA + 0.04, -0.06);
+  grupo.add(arriba);
+
+  grupo.userData.partes = {
+    abajo, arriba, alturaMontado: arriba.position.y, delModelo: true,
+  };
+  grupo.userData.nombre = 'Perseguidores';
   return grupo;
 }
 
@@ -1064,9 +1097,21 @@ export function animarSalto(personaje, subida = 0) {
  * Animación del dúo perseguidor. El de abajo trota pesado; el de arriba se
  * bambolea encima y señala.
  */
-export function animarPerseguidores(grupo, tiempo) {
+export function animarPerseguidores(grupo, tiempo, dt = 1 / 60) {
   const partes = grupo.userData?.partes;
   if (!partes) return;
+
+  // Los del modelo: el de abajo corre con su ciclo horneado y el de arriba se
+  // bambolea encima señalando. No hay rebote que escribir a mano —la zancada
+  // ya lo trae— así que el de arriba solo copia el vaivén de la cabeza.
+  if (partes.delModelo) {
+    animarCarreraGLB(partes.abajo, dt, 24);
+    poseMontadoGLB(partes.arriba, tiempo);
+    const vaiven = Math.sin(tiempo * 7);
+    partes.arriba.position.y = partes.alturaMontado + Math.abs(vaiven) * 0.06;
+    partes.arriba.rotation.z = Math.sin(tiempo * 3.5) * 0.07;
+    return;
+  }
 
   const P = PROPORCION;
   const { reimberg, noboa, grupoNoboa, alturaMontado } = partes;
