@@ -21,6 +21,19 @@ const LARGO_BALDOSA = 40;
 const NUMERO_BALDOSAS = 8;   // 320 unidades de pista: sobra para llegar a la niebla.
 const ANCHO_PISTA = CARRILES.ANCHO * 3 + 1.6;
 
+// Lo que mide el suelo de lado a lado, contando la calle. Noventa metros es
+// más de lo que se ve: la niebla cierra mucho antes, y lo que importa es que
+// no haya un borde a la vista por ningún lado.
+const ANCHO_EXPLANADA = 90;
+
+/** Un color más apagado, para separar la acera del asfalto. */
+function oscurecer(hex, factor) {
+  const r = Math.round(((hex >> 16) & 255) * factor);
+  const g = Math.round(((hex >> 8) & 255) * factor);
+  const b = Math.round((hex & 255) * factor);
+  return (r << 16) | (g << 8) | b;
+}
+
 // Resolución de la textura del asfalto. Solo tiene franjas rectas, así que no
 // necesita más.
 const TEX_ANCHO = 128;
@@ -79,9 +92,11 @@ export class Track {
 
     this.baldosas = [];
     this.bordillos = [];
+    this.explanadas = [];
 
     this.colorCalle = PALETA.CALLE;
     this.colorLinea = PALETA.LINEA_CARRIL;
+    this.colorSuelo = oscurecer(PALETA.CALLE, 0.72);
 
     this._construir();
   }
@@ -134,6 +149,34 @@ export class Track {
         this.bordillos.push(bordillo);
       }
     }
+
+    // LA EXPLANADA: el suelo que hay MÁS ALLÁ del bordillo.
+    //
+    // No estaba, y se veía. La pista mide catorce metros y medio y ahí se
+    // acababa el mundo: todo lo que el escenario planta a los lados —los
+    // locales de la Bahía, las casas de Guayaquil— estaba apoyado en el aire,
+    // y entre pieza y pieza se colaba el cielo por debajo. En la Bahía, que es
+    // el escenario con la fila de tiendas más separada, quedaban huecos
+    // abiertos a los lados de la calle.
+    //
+    // Es una sola pieza por baldosa, plana y sin textura: no se mira, solo
+    // tiene que estar. Va cuatro centímetros por debajo del asfalto para que
+    // no peleen por el mismo plano, y con los mismos diez segmentos a lo largo
+    // que todo lo demás, porque la curvatura del mundo dobla por vértice.
+    this.geoExplanada = new THREE.PlaneGeometry(ANCHO_EXPLANADA, LARGO_BALDOSA, 1, 10);
+    this.matExplanada = new THREE.MeshStandardMaterial({
+      color: this.colorSuelo,
+      roughness: 0.95,
+      metalness: 0,
+    });
+
+    for (let i = 0; i < NUMERO_BALDOSAS; i++) {
+      const explanada = new THREE.Mesh(this.geoExplanada, this.matExplanada);
+      explanada.rotation.x = -Math.PI / 2;
+      explanada.position.set(0, -0.04, -i * LARGO_BALDOSA);
+      this.grupo.add(explanada);
+      this.explanadas.push(explanada);
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -156,6 +199,11 @@ export class Track {
       bordillo.position.z += avance;
       if (bordillo.position.z > LARGO_BALDOSA) bordillo.position.z -= total;
     }
+
+    for (const explanada of this.explanadas) {
+      explanada.position.z += avance;
+      if (explanada.position.z > LARGO_BALDOSA) explanada.position.z -= total;
+    }
   }
 
   /**
@@ -174,6 +222,12 @@ export class Track {
 
     this.matBordillo.color.setHex(this.colorCalle);
     this.matBordillo.emissive.setHex(this.colorLinea);
+
+    // La explanada va un punto más apagada que la calle: si fuera del mismo
+    // tono, la acera y el asfalto serían la misma mancha y la calle perdería
+    // sus bordes.
+    this.colorSuelo = colores.suelo ?? oscurecer(colores.calle, 0.72);
+    this.matExplanada.color.setHex(this.colorSuelo);
   }
 
   /** Libera geometrías, materiales y texturas. */
@@ -181,11 +235,14 @@ export class Track {
     this.escena.remove(this.grupo);
     this.geoBaldosa.dispose();
     this.geoBordillo.dispose();
+    this.geoExplanada.dispose();
     this.matBaldosa.dispose();
     this.matBordillo.dispose();
+    this.matExplanada.dispose();
     this.texturaAsfalto.dispose();
     this.baldosas = [];
     this.bordillos = [];
+    this.explanadas = [];
   }
 }
 

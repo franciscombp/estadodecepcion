@@ -574,61 +574,61 @@ export function animarSaltoGLB(modelo, subida = 0) {
   g.cuerpo.position.set(0, 0, 0);
 }
 
-// El eje de la voltereta: la altura a la que queda el corazón de la bola.
-const OVILLO = 0.44;
-
 /**
- * Agacharse es una VOLTERETA hacia adelante: el cuerpo se hace un ovillo y
- * rueda sobre un eje que le pasa por la barriga. Rotar sobre un pivote P
- * equivale a rotar sobre el origen y trasladar P − R·P, y eso es lo que hacen
- * las dos líneas de `position`.
+ * AGACHARSE ES UN LIMBO, no una voltereta.
+ *
+ * La voltereta se probó y no da: es un modelo de cuatro mil triángulos con
+ * pesos de esqueleto sencillos, y para que ruede de verdad hay que cerrar el
+ * ovillo más de lo que la malla aguanta —pasados los 150 grados de flexión el
+ * muslo atraviesa el torso y el sombrero se sale de la cabeza—. Quedaba una
+ * bola de trozos dando vueltas.
+ *
+ * El limbo, en cambio, es lo que este cuerpo sabe hacer: las rodillas se
+ * doblan, el tronco se echa hacia atrás y el personaje pasa por debajo del
+ * pórtico mirando al techo. Ninguna articulación sale de su rango, se lee de
+ * un vistazo desde atrás —el sombrero se ladea y aparece la cara— y encima
+ * cuenta lo mismo que la voltereta contaba: que ahí no cabía de pie.
+ *
+ * @param {number} factor 0 = erguido, 1 = tumbado del todo hacia atrás
  */
-export function aplicarPoseAgachadoGLB(modelo, factor, giro = 0) {
+export function aplicarPoseAgachadoGLB(modelo, factor) {
   const g = modelo.userData.glb;
   if (!g) return;
   const { huesos, cuerpo } = g;
 
-  cuerpo.rotation.x = giro;
-  cuerpo.position.y = OVILLO * (1 - Math.cos(giro));
-  cuerpo.position.z = -OVILLO * Math.sin(giro);
+  cuerpo.rotation.x = 0;
+  cuerpo.position.set(0, 0, 0);
+  cuerpo.scale.setScalar(1);
 
   const f = Math.min(1, Math.max(0, factor));
   if (f <= 0.001) return;
 
   reposar(huesos);
 
-  // LA CADERA BAJA, y esto es lo que convierte un encogimiento en una bola.
-  // Doblando articulaciones solamente, el personaje sube las rodillas al pecho
-  // pero la pelvis se queda a su altura de siempre: queda un tipo en cuclillas
-  // flotando a medio metro del suelo, y al girarlo se ve rodar por el aire. El
-  // hueso de la cadera va en centímetros como todo este esqueleto, así que se
-  // baja en proporción a su propia altura de reposo y no a un número puesto a
-  // mano.
+  // La cadera baja y se adelanta: el peso se va sobre los pies y por eso el
+  // tronco puede irse atrás sin caerse. Sin bajarla, el personaje se dobla
+  // hacia atrás por la cintura y se queda igual de alto, que es justo lo que
+  // no vale bajo un pórtico.
   const cadera = huesos.get('Hips');
-  if (cadera) cadera.nodo.position.y = cadera.pos.y * (1 - 0.52 * f);
-
-  // Rodillas al pecho, talones al trasero, brazos abrazando y barbilla dentro.
-  // Los ángulos son grandes —la flexión de cadera pasa de los 120 grados— y
-  // tienen que serlo: con valores de andar por casa el personaje se encoge un
-  // poco y sigue midiendo lo que medía, así que al girarlo no rueda, da
-  // vueltas de campana. La referencia no es una postura bonita, es que la
-  // cabeza y los pies acaben más o menos a la altura de la cadera.
-  //
-  // Y hay un techo por arriba: pasados los 150 grados la malla se rompe. Es un
-  // modelo de cuatro mil triángulos con pesos de esqueleto sencillos, y a esas
-  // flexiones el muslo atraviesa el torso y el sombrero sale volando de la
-  // cabeza. Lo que hay aquí es lo más cerrado que aguanta.
-  doblar(huesos, 'Hips', 0.85 * f);
-  doblar(huesos, 'Spine', 0.5 * f);
-  doblar(huesos, 'Spine01', 0.35 * f);
-  doblar(huesos, 'Head', 0.9 * f);
-  for (const lado of ['Left', 'Right']) {
-    doblar(huesos, `${lado}UpLeg`, -2.2 * f);
-    doblar(huesos, `${lado}Leg`, 2.45 * f);
-    doblar(huesos, `${lado}Foot`, 0.3 * f);
-    brazo(huesos, lado, 1.45 * f, -0.2 * f, -2.8 * f);
+  if (cadera) {
+    cadera.nodo.position.y = cadera.pos.y * (1 - 0.42 * f);
+    cadera.nodo.position.z = cadera.pos.z + 22 * f;   // centímetros: ver la nota de escala
   }
 
+  // Tronco y cabeza atrás; la barbilla acaba mirando al pórtico que pasa.
+  doblar(huesos, 'Hips', -0.85 * f);
+  doblar(huesos, 'Spine', -0.3 * f);
+  doblar(huesos, 'Spine01', -0.25 * f);
+  doblar(huesos, 'Head', -0.55 * f);
+
+  for (const lado of ['Left', 'Right']) {
+    // Rodillas dobladas y pies por delante, que es lo que sostiene el arco.
+    doblar(huesos, `${lado}UpLeg`, -0.55 * f);
+    doblar(huesos, `${lado}Leg`, 1.25 * f);
+    doblar(huesos, `${lado}Foot`, -0.45 * f);
+    // Brazos abiertos hacia atrás, de contrapeso.
+    brazo(huesos, lado, 0.75 * f, 0.9 * f, -0.35 * f);
+  }
 }
 
 /** Despatarrado boca abajo: la pose de que lo tumbaron. */

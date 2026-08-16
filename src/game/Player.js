@@ -63,13 +63,6 @@ export class Player {
     this.temporizadorAgachado = 0;
     this.factorAgachado = 0; // 0..1, para suavizar la pose visual
 
-    // Ángulo de la voltereta, 0 → 2π. Agacharse no es encogerse en el sitio:
-    // es rodar hacia adelante, y lo que lleva la cuenta de esa vuelta es esto.
-    // Se pone a cero al empezar cada agachada y se detiene al completar el
-    // giro, así que si el jugador mantiene abajo se queda en cuclillas —ya de
-    // pie sobre los pies, no del revés— hasta que suelte.
-    this.anguloRodada = 0;
-
     // ---- Buffer de salto --------------------------------------------------
     // Si pulsas saltar poco antes de aterrizar, el salto se guarda y se ejecuta
     // en cuanto tocas el suelo. Sin esto, el juego se siente injusto.
@@ -162,10 +155,6 @@ export class Player {
       return false;
     }
 
-    // Empieza la voltereta desde cero. Si ya estaba agachado y vuelve a
-    // pulsar, NO se reinicia el giro: rodar dos veces seguidas por machacar la
-    // tecla se lee como un fallo, no como una acrobacia.
-    if (!this.estaAgachado) this.anguloRodada = 0;
     this.estaAgachado = true;
     this.temporizadorAgachado = AGACHARSE.DURACION;
     return true;
@@ -240,7 +229,6 @@ export class Player {
           this.estaAgachado = true;
           this.temporizadorAgachado = AGACHARSE.DURACION;
           this.agacharAlAterrizar = false;
-          this.anguloRodada = 0;
         }
       }
     }
@@ -276,25 +264,6 @@ export class Player {
       this.factorAgachado = objetivoAgachado;
     }
 
-    // La voltereta. Avanza mientras quede agachada Y ADEMÁS hasta completar la
-    // vuelta, aunque la agachada haya terminado antes: una voltereta a medias
-    // deja al personaje enderezándose de lado, y eso no se lee como nada.
-    // Pasa de verdad en cuanto el equipo va justo de fotogramas —la agachada
-    // dura 0.55 s y el giro 0.42, así que con dt gordos la agachada se acaba
-    // con el cuerpo todavía boca abajo—.
-    //
-    // Al completar el giro se para: 2π es la misma postura que 0, así que
-    // quien mantenga abajo se queda en cuclillas y de pie.
-    const vuelta = Math.PI * 2;
-    const rodando = this.anguloRodada > 0 && this.anguloRodada < vuelta;
-    if (this.estaAgachado || this.factorAgachado > 0.001 || rodando) {
-      this.anguloRodada = Math.min(
-        vuelta, this.anguloRodada + (vuelta / AGACHARSE.DURACION_RODADA) * dt,
-      );
-    } else if (this.anguloRodada >= vuelta) {
-      this.anguloRodada = 0;
-    }
-
     // ---- Invulnerabilidad -------------------------------------------------
     if (this.invulnerabilidad > 0) this.invulnerabilidad -= dt;
 
@@ -326,8 +295,8 @@ export class Player {
     if (esGLB(this.modelo)) {
       // La agachada manda sobre el salto: quien rueda no está saltando, y si
       // el mezclador siguiera corriendo machacaría los huesos del ovillo.
-      if (this.factorAgachado > 0.001 || this.anguloRodada > 0) {
-        aplicarPoseAgachadoGLB(this.modelo, this.factorAgachado, this.anguloRodada);
+      if (this.factorAgachado > 0.001) {
+        aplicarPoseAgachadoGLB(this.modelo, this.factorAgachado);
       } else if (this.estaEnElAire) {
         animarSaltoGLB(this.modelo, subida);
       } else {
@@ -338,14 +307,14 @@ export class Player {
       // En el aire la pose ya no está congelada: cambia con la fase del vuelo,
       // así que el despegue, la suspensión y la caída se ven distintos.
       animarSalto(this.modelo, subida);
-      aplicarPoseAgachado(this.modelo, this.factorAgachado, this.anguloRodada);
+      aplicarPoseAgachado(this.modelo, this.factorAgachado);
     } else {
       animarCarrera(this.modelo, this.tiempoAnimacion, 1, cadencia);
       // La agachada ya NO toca la escala: el personaje se hace una bola de
       // verdad, recogiendo cada pieza. Antes se aplastaba en Y, y de paso se
       // llevaba por delante el squash del choque —que escribe escala en el
       // mismo fotograma y se veía solo a lo ancho y a lo hondo.
-      aplicarPoseAgachado(this.modelo, this.factorAgachado, this.anguloRodada);
+      aplicarPoseAgachado(this.modelo, this.factorAgachado);
     }
 
     // Parpadeo durante la invulnerabilidad, PERO NO MIENTRAS DURA EL APLASTÓN.
@@ -518,7 +487,6 @@ export class Player {
     this.estaAgachado = false;
     this.temporizadorAgachado = 0;
     this.factorAgachado = 0;
-    this.anguloRodada = 0;
     this.bufferSalto = 0;
     this.agacharAlAterrizar = false;
     this.caidaRapida = false;
@@ -558,7 +526,6 @@ export class Player {
     this.estaAgachado = false;
     this.temporizadorAgachado = 0;
     this.factorAgachado = 0;
-    this.anguloRodada = 0;
     this.bufferSalto = 0;
     this.agacharAlAterrizar = false;
     this.caidaRapida = false;
@@ -619,7 +586,6 @@ export class Player {
     // aplicaría encima de esa vuelta.
     this._enderezarMiembros();
     this.factorAgachado = 0;
-    this.anguloRodada = 0;
 
     this.modelo.scale.set(1, 1, 1);
     this.modelo.rotation.set(-Math.PI / 2, Math.PI, 0);

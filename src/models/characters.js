@@ -66,23 +66,21 @@ export const PROPORCION = {
   PANTORRILLA: { largo: 0.38, grueso: 0.15 },
   PIE:         { ancho: 0.17, alto: 0.08, fondo: 0.26 },
 
-  // EL OVILLO. Al agacharse el personaje no se aplasta: se hace una bola y
-  // rueda. `centro` es el eje de la voltereta —la altura a la que queda el
-  // corazón de la bola— y el resto son las posiciones a las que se recogen
-  // las piezas del cuerpo para formarla.
-  //
-  // Sin este recogido la voltereta no funciona, y cuesta verlo: girar un
-  // cuerpo estirado alrededor de un punto a media altura mete la cabeza medio
-  // metro bajo el asfalto en cuanto pasa de los noventa grados. Lo que rueda
-  // tiene que caber dentro de la bola ANTES de empezar a girar.
-  OVILLO: {
-    centro: 0.43,
-    cabeza: { y: 0.60, z: 0.26 },
-    cuello: { y: 0.56, z: 0.18 },
-    torso:  { y: 0.52, z: 0.02 },
-    cadera: { y: 0.44, z: -0.16 },
-    hombro: { y: 0.62, z: 0.04 },
-    ingle:  { y: 0.46, z: -0.14 },
+  // EL LIMBO. Agacharse es doblar las rodillas y echar el tronco atrás, así
+  // que hay dos cosas que colocar: cuánto se inclina el cuerpo entero —sobre
+  // los TOBILLOS, que es el único punto que no se mueve— y a qué altura se
+  // queda cada pieza. Sin bajar las piezas, el personaje se dobla hacia atrás
+  // por la cintura y se queda igual de alto, que es justo lo que no vale bajo
+  // un pórtico.
+  LIMBO: {
+    inclinacion: 1.0,
+    tobillo: 0.08,
+    cabeza: { y: 1.02, z: -0.06 },
+    cuello: { y: 0.94, z: -0.04 },
+    torso:  { y: 0.80, z: 0.0 },
+    cadera: { y: 0.62, z: 0.06 },
+    hombro: { y: 0.90, z: -0.02 },
+    ingle:  { y: 0.62, z: 0.06 },
   },
 };
 
@@ -1089,41 +1087,29 @@ export function animarPerseguidores(grupo, tiempo) {
 }
 
 /**
- * AGACHARSE ES UNA VOLTERETA HACIA ADELANTE.
+ * AGACHARSE ES UN LIMBO: rodillas dobladas y tronco hacia atrás.
  *
- * Antes se encogía en el sitio: el personaje se aplastaba en Y y se inclinaba,
- * que a la velocidad a la que va esto se lee como un fallo de escala más que
- * como una acción. Una voltereta, en cambio, ocupa el mismo hueco bajo el
- * pórtico, dura lo mismo, y se entiende de un vistazo.
+ * Antes fue un encogimiento en el sitio (se leía como un fallo de escala) y
+ * después una voltereta hacia adelante. La voltereta funcionaba con estos
+ * personajes de cajas, pero no con los dos que vienen de un modelo con
+ * esqueleto —su malla no aguanta el ovillo—, y tener a la mitad de la
+ * redacción rodando y a la otra mitad no es peor que cualquiera de las dos.
+ * Pasan todos por debajo igual: doblando las rodillas y echándose atrás.
  *
- * CÓMO RUEDA. El giro va en `cuerpo`, el grupo intermedio, y no en el grupo de
- * fuera: el de fuera tiene el origen en los pies, y girarlo ahí sería un
- * compás. Rodar es girar alrededor de un punto en la barriga, así que además
- * del giro hay que compensar la posición —rotar sobre un pivote P equivale a
- * rotar sobre el origen y luego trasladar P − R·P—, y eso es lo que hacen las
- * dos líneas de `cuerpo.position`.
- *
- * @param {number} factor 0 = de pie, 1 = totalmente encogido
- * @param {number} giro   Ángulo de la voltereta en radianes (0 → 2π)
+ * @param {number} factor 0 = de pie, 1 = tumbado del todo hacia atrás
  */
-export function aplicarPoseAgachado(personaje, factor, giro = 0) {
+export function aplicarPoseAgachado(personaje, factor) {
   const p = personaje.userData?.partes;
   if (!p?.cuerpo) return;
 
-  const O = PROPORCION.OVILLO;
-  const h = O.centro;
-
-  // El giro va SIEMPRE, aunque el factor sea cero: así la vuelta termina
-  // mientras el cuerpo se está estirando, y no se corta a medio camino.
-  p.cuerpo.rotation.x = giro;
-  p.cuerpo.position.y = h * (1 - Math.cos(giro));
-  p.cuerpo.position.z = -h * Math.sin(giro);
-
-  const f = Math.min(1, factor);
+  const O = PROPORCION.LIMBO;
+  const f = Math.min(1, Math.max(0, factor));
 
   // Estirado del todo: se devuelve el fondo a su sitio y se sale. La altura no
   // se toca, que es de quien esté animando la carrera y lleva su rebote.
   if (f <= 0.001) {
+    p.cuerpo.rotation.set(0, 0, 0);
+    p.cuerpo.position.set(0, 0, 0);
     for (const parte of piezasMoviles(p)) {
       if (parte?.userData?.reposo) parte.position.z = parte.userData.reposo.z;
     }
@@ -1133,40 +1119,45 @@ export function aplicarPoseAgachado(personaje, factor, giro = 0) {
     return;
   }
 
-  // Recoger una pieza: SIEMPRE desde su sitio de reposo, nunca desde donde
+  // El tronco entero se echa atrás sobre los tobillos; los pies no se mueven.
+  p.cuerpo.rotation.x = -O.inclinacion * f;
+  p.cuerpo.position.y = O.tobillo * (1 - Math.cos(O.inclinacion * f));
+  p.cuerpo.position.z = O.tobillo * Math.sin(O.inclinacion * f);
+
+  // Colocar una pieza: SIEMPRE desde su sitio de reposo, nunca desde donde
   // esté ahora. Interpolar contra la posición actual acumula error, y basta
   // con que el jugador mantenga la agachada un segundo para que el cuerpo se
   // desarme pieza a pieza.
-  const recoger = (parte, destino) => {
+  const llevar = (parte, destino) => {
     const r = parte.userData.reposo;
     parte.position.y = r.y + (destino.y - r.y) * f;
     parte.position.z = r.z + (destino.z - r.z) * f;
   };
-  recoger(p.cabeza, O.cabeza);
-  recoger(p.cuello, O.cuello);
-  recoger(p.torso, O.torso);
-  recoger(p.cadera, O.cadera);
-  for (const b of [p.brazoIzq, p.brazoDer]) recoger(b, O.hombro);
-  for (const l of [p.piernaIzq, p.piernaDer]) recoger(l, O.ingle);
+  llevar(p.cabeza, O.cabeza);
+  llevar(p.cuello, O.cuello);
+  llevar(p.torso, O.torso);
+  llevar(p.cadera, O.cadera);
+  for (const b of [p.brazoIzq, p.brazoDer]) llevar(b, O.hombro);
+  for (const l of [p.piernaIzq, p.piernaDer]) llevar(l, O.ingle);
 
-  // Doblar una articulación hacia el ángulo del ovillo.
   const doblar = (parte, angulo) => {
     parte.rotation.x += (angulo - parte.rotation.x) * f;
   };
-  doblar(p.torso, 0.9);
-  doblar(p.cabeza, 0.85);
-
-  // Rodillas al pecho y talones al trasero.
-  doblar(p.piernaIzq, -1.75);
-  doblar(p.piernaDer, -1.55);
-  doblar(p.pantorrillaIzq, 2.3);
-  doblar(p.pantorrillaDer, 2.3);
-  doblar(p.pieIzq, 0.2);
-  doblar(p.pieDer, 0.2);
-
-  // Brazos abrazando las rodillas.
-  doblar(p.brazoIzq, -1.0);
-  doblar(p.brazoDer, -1.0);
-  doblar(p.antebrazoIzq, -2.0);
-  doblar(p.antebrazoDer, -2.0);
+  // La cabeza mira al pórtico que pasa por encima.
+  doblar(p.torso, -0.35);
+  doblar(p.cabeza, -0.5);
+  // Rodillas dobladas y pies por delante: es lo que sostiene el arco.
+  doblar(p.piernaIzq, -0.5);
+  doblar(p.piernaDer, -0.35);
+  doblar(p.pantorrillaIzq, 1.15);
+  doblar(p.pantorrillaDer, 1.15);
+  doblar(p.pieIzq, -0.4);
+  doblar(p.pieDer, -0.4);
+  // Brazos hacia ADELANTE, no hacia atrás. Echados atrás quedaban por debajo
+  // del asfalto —el cuerpo ya va inclinado y el brazo suma su propio giro—, y
+  // además delante es donde los pone cualquiera que se eche hacia atrás.
+  doblar(p.brazoIzq, -0.9);
+  doblar(p.brazoDer, -0.75);
+  doblar(p.antebrazoIzq, -0.55);
+  doblar(p.antebrazoDer, -0.55);
 }
