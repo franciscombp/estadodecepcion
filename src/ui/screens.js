@@ -1191,15 +1191,50 @@ export class Pantallas {
         : buenas === 1 ? 'UNA PRUEBA' : `${buenas} PRUEBAS`));
 
     const rejilla = el('div', 'botin__rejilla');
-    pruebas.forEach((nombre, i) => {
+
+    // EL DESFILE VA DE UNO EN UNO. Antes las piezas entraban casi solapadas
+    // (0,42 s) y se leían como una rejilla que se llena; ahora cada objeto
+    // tiene su turno entero —aparece, brilla, y su sello de RECUPERADA le cae
+    // encima— antes de que asome el siguiente. Es el ritmo de los juegos que
+    // celebran el botín pieza a pieza, y es lo que convierte la lista en una
+    // ceremonia.
+    const PASO = 0.62;       // Un turno por objeto.
+    let turno = 0.25;        // Cuándo entra el siguiente.
+
+    // La evidencia abre el desfile: el fajo de papeles con su contador
+    // subiendo. No es una prueba, pero es lo que costó toda la corrida y
+    // merece su puesto en la mesa.
+    if ((datos.papeles ?? 0) > 0) {
+      const pieza = el('div', 'botin__pieza');
+      pieza.style.setProperty('--retardo', `${turno}s`);
+      const caja = el('div', 'botin__caja');
+      const cara = el('div', 'botin__cara');
+      cara.innerHTML = Icono.papeles(78);
+      caja.appendChild(cara);
+      caja.appendChild(el('span', 'botin__destello'));
+      pieza.appendChild(caja);
+      const cifra = el('div', 'botin__nombre botin__nombre--cifra', '0');
+      pieza.appendChild(cifra);
+      const sello = el('div', 'botin__sello', 'EVIDENCIA');
+      sello.style.setProperty('--sello', `${turno + 0.42}s`);
+      pieza.appendChild(sello);
+      rejilla.appendChild(pieza);
+
+      const cuantos = datos.papeles;
+      setTimeout(() => {
+        contarHasta(cifra, cuantos, 750);
+        this.audio?.evidencia?.();
+      }, turno * 1000 + 180);
+      turno += PASO + 0.25; // El contador necesita su medio segundo extra.
+    }
+
+    pruebas.forEach((nombre) => {
       // SE REVELA AQUÍ, no al recogerla. El material plantado se detecta al
       // contrastarlo, nunca al encontrarlo, y esa es justamente la broma: lo
       // metiste en la mochila creyendo que servía.
       const falsa = Notebook.esFalsa(nombre);
       const pieza = el('div', `botin__pieza${falsa ? ' botin__pieza--falsa' : ''}`);
-      // Cada una entra un poco después que la anterior: de golpe se leen como
-      // un bloque, en cascada se cuentan una a una.
-      pieza.style.setProperty('--retardo', `${i * 0.42}s`);
+      pieza.style.setProperty('--retardo', `${turno}s`);
 
       const caja = el('div', 'botin__caja');
       const cara = el('div', 'botin__cara');
@@ -1208,11 +1243,20 @@ export class Pantallas {
       caja.appendChild(el('span', 'botin__destello'));
       pieza.appendChild(caja);
       pieza.appendChild(el('div', 'botin__nombre', nombre));
-      if (falsa) pieza.appendChild(el('div', 'botin__falsa', 'NO SE SOSTIENE'));
+
+      // El sello le cae encima medio tiempo después de aparecer: primero el
+      // objeto, luego el veredicto. En las buenas es la recompensa; en las
+      // plantadas, el chiste.
+      const sello = el('div',
+        `botin__sello${falsa ? ' botin__sello--falsa' : ''}`,
+        falsa ? 'NO SE SOSTIENE' : 'RECUPERADA');
+      sello.style.setProperty('--sello', `${turno + 0.42}s`);
+      pieza.appendChild(sello);
       rejilla.appendChild(pieza);
 
       // El golpe de sonido de cada pieza, en su turno.
-      setTimeout(() => this.audio?.evidencia?.(), 120 + i * 420);
+      setTimeout(() => this.audio?.evidencia?.(), 120 + turno * 1000);
+      turno += PASO;
     });
     contenido.appendChild(rejilla);
 

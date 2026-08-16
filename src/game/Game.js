@@ -52,6 +52,7 @@ import { CATALOGO_POTENCIADORES } from '../config/balance.js';
 import { PERSONAJES } from '../config/personajes.js';
 import { Controles } from '../utils/controls.js';
 import { curvarEscena } from '../utils/curvatura.js';
+import { pulsarPeligro } from '../models/props.js';
 import { remateCaptura, remateExhausto, citaVerificada } from '../config/textos.js';
 import {
   VELOCIDAD, TRAMO, CAMARA, JUGADOR, CARRILES, CERCO, EVIDENCIA,
@@ -1374,6 +1375,8 @@ export class Game {
     // Las chispas se mueven con el mundo, igual que los obstáculos: si no, el
     // polvo de las pisadas se queda flotando mientras la calle pasa por debajo.
     this.particulas.actualizar(dt, avance);
+    // El latido del rojo de peligro: una escritura para todas las franjas.
+    pulsarPeligro(dt);
 
     // La Bahía va techada, y su bóveda no puede atravesar la fachada de la
     // bifurcación: el escenario necesita saber dónde se acaba la calle.

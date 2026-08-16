@@ -72,6 +72,25 @@ function mat(color, emision = 0.25, rugosidad = 0.94) {
  * con los canales secundarios bajos, y la intensidad se queda en un rango que
  * no clipa por sí sola: el brillo lo pone el bloom, no la saturación.
  */
+// EL ROJO DE PELIGRO ES UNO SOLO Y LATE. Todas las franjas de «esto te
+// tumba» —el borde de la valla, el filo del pórtico, la X del cajón—
+// comparten este material, y Game lo hace pulsar (ver pulsarPeligro). Un
+// brillo fijo compite con el neón del decorado; un latido no compite con
+// nada, porque en la calle no late nada más. Es lo que separa «adorno» de
+// «esto es jugable» de un vistazo.
+let _matPeligro = null;
+function matPeligro() {
+  if (!_matPeligro) _matPeligro = neon(NEON.rojo, 2);
+  return _matPeligro;
+}
+
+let _relojPeligro = 0;
+export function pulsarPeligro(dt) {
+  if (!_matPeligro) return;
+  _relojPeligro += dt;
+  _matPeligro.emissiveIntensity = 2.0 + Math.sin(_relojPeligro * 4.2) * 0.75;
+}
+
 function neon(color, fuerza = 1.5) {
   return new THREE.MeshStandardMaterial({
     color,
@@ -322,9 +341,10 @@ export function crearObstaculoSaltar(colores) {
   g.add(panel);
 
   // Franja roja de peligro en el borde superior: la línea que no se cruza.
+  // Más gruesa que antes y con el rojo compartido que late (ver matPeligro).
   const franja = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho * 1.03, 0.13, 0.26),
-    neon(NEON.rojo, 1.9),
+    new THREE.BoxGeometry(ancho * 1.05, 0.18, 0.3),
+    matPeligro(),
   );
   franja.position.y = alto;
   g.add(franja);
@@ -381,10 +401,11 @@ export function crearObstaculoAgachar(colores) {
   barra.position.y = base + altoBarra / 2;
   g.add(barra);
 
-  // Franja roja en el BORDE INFERIOR: marca la altura límite.
+  // Franja roja en el BORDE INFERIOR: marca la altura límite. El rojo es el
+  // compartido que late: es el borde contra el que se choca.
   const franja = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho * 1.03, 0.12, 0.44),
-    neon(NEON.rojo, 1.9),
+    new THREE.BoxGeometry(ancho * 1.05, 0.16, 0.48),
+    matPeligro(),
   );
   franja.position.y = base;
   g.add(franja);
@@ -448,8 +469,8 @@ export function crearObstaculoEsquivar(colores) {
     g.add(listón);
   }
 
-  // La X de neón, en la cara frontal.
-  const matX = neon(NEON.rojo, 2);
+  // La X de neón, en la cara frontal. El rojo compartido que late.
+  const matX = matPeligro();
   for (const rot of [Math.PI / 4, -Math.PI / 4]) {
     const aspa = new THREE.Mesh(
       new THREE.BoxGeometry(ancho * 1.18, 0.13, 0.07),
@@ -886,7 +907,9 @@ export function crearEvidencia() {
   if (!_geoEvidencia) {
     // Algo más pequeño y casi cuadrado: cuanto menos alto es el papel,
     // menos separación hace falta para que se vea el hueco entre dos.
-    _geoEvidencia = new THREE.BoxGeometry(0.46, 0.5, 0.03);
+    // Subido un 25%: con la curvatura del mundo los papeles asoman por la
+    // cresta ya pequeños, y a este tamaño la hilera se lee desde que nace.
+    _geoEvidencia = new THREE.BoxGeometry(0.58, 0.62, 0.035);
 
     const tex = textura('papel', (ctx, w, h) => {
       ctx.fillStyle = '#ffd94f';
@@ -911,7 +934,9 @@ export function crearEvidencia() {
     _matPapel = new THREE.MeshStandardMaterial({
       map: tex,
       emissive: COLOR3D.dorado,
-      emissiveIntensity: 0.55,
+      // 0.85 de base (era 0.55): el reguero es EL elemento de pista y tiene
+      // que ganarle el ojo al decorado, no empatarle.
+      emissiveIntensity: 0.85,
       roughness: 0.4,
       flatShading: true,
     });
@@ -992,6 +1017,10 @@ export function crearPrueba() {
 
   g.userData.tipo = 'evidencia';
   g.userData.halo = halo;
+  // Un cuarto más grande: es el objeto que arma el reportaje y compite en
+  // pantalla con obstáculos de dos metros. El manager solo escala el halo,
+  // así que la escala del grupo se conserva.
+  g.scale.setScalar(1.25);
   return g;
 }
 

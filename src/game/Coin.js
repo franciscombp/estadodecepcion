@@ -403,7 +403,7 @@ export class CoinManager {
     // la linterna dejó de ser un consumible garantizado: sin luz sigues sin
     // ver la calle, pero ves por dónde va, porque la hilera dibuja la ruta.
     const aOscuras = !!escenario.evidenciaBrilla;
-    ajustarBrilloEvidencia(aOscuras ? 2.1 : 0.55, aOscuras);
+    ajustarBrilloEvidencia(aOscuras ? 2.1 : 0.85, aOscuras);
   }
 
   /** Reinicia el contador al empezar un tramo nuevo. */

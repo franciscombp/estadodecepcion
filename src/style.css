@@ -4348,8 +4348,9 @@ html, body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .botin__pieza, .botin__caja, .botin__destello { animation: none !important; }
+  .botin__pieza, .botin__caja, .botin__destello, .botin__sello { animation: none !important; }
   .botin__destello { opacity: 0; }
+  .botin__sello { opacity: 1; }
 }
 
 /* --- El ascenso en la tabla -----------------------------------------------
@@ -4398,16 +4399,37 @@ html, body {
 .botin__pieza--falsa .botin__destello { display: none; }
 .botin__pieza--falsa .botin__nombre { color: var(--texto-debil); }
 
-.botin__falsa {
+/* La cifra de evidencia, contando hacia arriba en su ficha. */
+.botin__nombre--cifra {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--dorado);
+}
+
+/* EL SELLO. Cae sobre la pieza medio tiempo después de que aparezca, grande y
+   torcido como un sello de goma de verdad: primero el objeto, luego el
+   veredicto. Verde para lo recuperado; rojo para lo que no se sostiene. */
+.botin__sello {
   margin-top: 2px;
-  padding: 2px 7px;
-  border: 1.5px solid var(--rojo);
+  padding: 2px 8px;
+  border: 1.5px solid var(--verde);
   border-radius: 3px;
   font-size: 0.52rem;
   font-weight: 900;
   letter-spacing: 0.12em;
+  color: var(--verde);
+  opacity: 0;
+  animation: sello-estampa 0.32s cubic-bezier(0.2, 1.35, 0.4, 1) var(--sello, 0.5s) both;
+}
+
+.botin__sello--falsa {
+  border-color: var(--rojo);
   color: var(--rojo);
-  transform: rotate(-4deg);
+}
+
+@keyframes sello-estampa {
+  from { opacity: 0; transform: scale(2.2) rotate(7deg); }
+  to   { opacity: 1; transform: scale(1) rotate(-4deg); }
 }
 
 /* --- La investigación, en la portada --------------------------------------
