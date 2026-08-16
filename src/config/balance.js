@@ -648,13 +648,27 @@ export const SENTENCIAS = [
 // las que se sube por una rampa. Correr arriba te salta los obstáculos de la
 // calle, pero hay que bajarse antes de que la tarima se acabe.
 export const ELEVADO = {
-  ALTURA: 1.55,          // Altura de la superficie transitable.
+  // ALTURA DE LA SUPERFICIE TRANSITABLE.
+  //
+  // Estaba en 1,55 y era la altura de un bordillo. Ahí abajo no cabe nada que
+  // justifique la plataforma: lo que la sostiene —buses parados en fila,
+  // contenedores apilados— salía aplastado a la mitad de su tamaño, y una
+  // «tarima» de metro y medio es un cajón sin sentido, que es justo lo que se
+  // quería quitar.
+  //
+  // A 3.15 es el techo de un bus urbano. Ahora subirse es subirse ENCIMA de
+  // algo, se ve desde lejos que hay altura y la caída de vuelta pesa. Es un
+  // cambio de sensación, no solo de decorado.
+  ALTURA: 3.15,
   LARGO_MINIMO: 16,
   LARGO_MAXIMO: 30,
   LARGO_RAMPA: 5.5,      // Tramo inclinado de subida.
-  // Impulso vertical que da la rampa al pisarla. Basta para superar la altura
-  // de la tarima con margen: v0 = √(2·g·h) con h = ALTURA + 0.5.
-  IMPULSO_RAMPA: 10.6,
+  // Impulso vertical que da la rampa al pisarla. Sale de la altura, no se
+  // elige: v0 = √(2·g·h) con h = ALTURA + 0.5 de margen. Al subir la
+  // plataforma de 1,55 a 3.15 hay que subirlo con ella, o la rampa lanza
+  // corto y el jugador se estrella contra el costado del bus.
+  //   √(2 · 27.5 · 3.65) = 14.2
+  IMPULSO_RAMPA: 14.2,
   // Cada cuántos metros se intenta colocar una tarima.
   DISTANCIA_ENTRE: 190,
   // Margen de tolerancia al aterrizar sobre la plataforma: si el jugador está
