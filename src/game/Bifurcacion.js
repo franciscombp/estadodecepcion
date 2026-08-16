@@ -252,18 +252,28 @@ export class Bifurcacion {
    * girar y el camino elegido aparecer delante de él) y luego, ya dentro del
    * soportal, los dos se enderezan mirando la calle nueva.
    *
-   * La curva es una campana asimétrica: pico pronto —el golpe de giro es al
-   * doblar— y cola larga —enderezarse lleva el resto del pasaje—. De frente
-   * no hay cinemática: al trámite se entra recto.
+   * La curva es una campana ESTRECHA: sube en dos décimas, y a las seis ya ha
+   * vuelto a cero. El último 40% del pasaje se hace mirando al frente.
+   *
+   * Esa estrechez no es un gusto, es una obligación. La cámara gira noventa
+   * grados de verdad (ver Game._actualizarCamara), y noventa grados en este
+   * mundo apuntan a la acera: el mundo no dobla la esquina —la pista sigue
+   * yendo a −Z— así que mirar de lado es mirar la fila de casas de canto. Con
+   * la cola larga de antes, medio pasaje se pasaba enseñando una pared. Ahora
+   * el pico lo tapa el polvo y, cuando el polvo se abre, la cámara ya está de
+   * nuevo mirando la calle nueva.
+   *
+   * De frente no hay cinemática: al trámite se entra recto.
    *
    * @returns {{dir: number, fuerza: number}|null}
    */
   cinematicaGiro() {
     if (!this.virando || this.direccionViraje === 0) return null;
     const t = Math.min(1, this.tiempoViraje / this.duracionActual);
-    const fuerza = t < 0.3
-      ? Math.sin((t / 0.3) * Math.PI / 2)
-      : Math.cos(((t - 0.3) / 0.7) * (Math.PI / 2));
+    if (t >= 0.62) return { dir: this.direccionViraje, fuerza: 0 };
+    const fuerza = t < 0.2
+      ? Math.sin((t / 0.2) * Math.PI / 2)
+      : Math.cos(((t - 0.2) / 0.42) * (Math.PI / 2));
     return { dir: this.direccionViraje, fuerza };
   }
 

@@ -65,6 +65,15 @@ import { VigilanteRendimiento } from '../utils/calidad.js';
 // varios segundos; sin este tope el jugador aparecería atravesando obstáculos.
 const DT_MAXIMO = 1 / 20;
 
+// A qué distancia del cruce se retira el cartel de la bifurcación. Va por
+// debajo de donde termina el despeje de la niebla (55 m): primero se ve el
+// edificio entero y un instante después se le quita el cartel de encima.
+const DISTANCIA_RETIRAR_SENAL = 50;
+
+// Cuánto gira la cámara al doblar por un costado. Noventa grados: la calle
+// nueva sale de verdad por donde el jugador la eligió.
+const GIRO_CAMARA_DESVIO = Math.PI / 2;
+
 export class Game {
   /**
    * @param {HTMLCanvasElement} lienzo
@@ -131,6 +140,9 @@ export class Game {
     this.alMostrarAviso = () => {};
     /** Baja el cartel de salida con los tres destinos. */
     this.alSeñalizar = () => {};
+    // ¿Ya se quitó el cartel de esta bifurcación? Se retira solo al acercarse
+    // (ver la actualización), no al cruzar.
+    this.senalRetirada = false;
     /** Lo vuelve a subir. */
     this.alQuitarSenal = () => {};
 
@@ -637,10 +649,11 @@ export class Game {
       distancia,
     );
 
-    // El cartel de salida baja del techo de la pantalla y se queda hasta que
-    // se cruce. Lo que dice sale de la propia bifurcación, no de un texto
-    // aparte: dos fuentes acabarían diciendo cosas distintas.
+    // El cartel de salida baja del techo de la pantalla. Lo que dice sale de la
+    // propia bifurcación, no de un texto aparte: dos fuentes acabarían
+    // diciendo cosas distintas.
     this.alSeñalizar(senal.destinos, senal.centroEsPeligro);
+    this.senalRetirada = false;
 
     const esc = obtenerEscenario(this.escenarioActual);
     this.alMostrarAviso({
@@ -677,12 +690,103 @@ export class Game {
    * El jugador acaba de entrar a un túnel. El carril decide.
    * @param {number} carril 0 izquierda, 1 centro, 2 derecha
    */
+  /**
+   * LA CORTINA DE POLVO del cuarto de vuelta.
+   *
+   * El giro de noventa grados deja a la cámara mirando de lado, y de lado lo
+   * que hay es la fila de casas de la acera: durante medio segundo se ve una
+   * pared a un palmo del objetivo. La cortina la tapa.
+   *
+   * Se emite CADA FOTOGRAMA mientras dura el pico del giro, y delante de la
+   * cámara —no bajo los pies del corredor—, porque lo que hay que cubrir es el
+   * cuadro entero. Un estallido suelto al empezar se disuelve antes de que la
+   * cámara llegue a donde estorba.
+   */
+  _cortinaDePolvo(dt, fuerza, direccion) {
+    if (!this.particulas || fuerza < 0.28) return;
+
+    // Cuántas se encienden este fotograma. Se acumula el resto: a 60 fps una
+    // cantidad fraccionaria redondeada da cero fotograma tras fotograma y no
+    // sale nunca ni una.
+    this._restoPolvo = (this._restoPolvo ?? 0) + dt * 320 * fuerza;
+    const cuantas = Math.floor(this._restoPolvo);
+    this._restoPolvo -= cuantas;
+    if (cuantas <= 0) return;
+
+    const polvo = this.escenario.obtenerColores().calle ?? 0x9a938a;
+    const delante = new THREE.Vector3();
+    this.camara.getWorldDirection(delante);
+
+    for (let i = 0; i < cuantas; i++) {
+      const d = 5 + Math.random() * 7;
+      this.particulas.estallido(
+        this.camara.position.x + delante.x * d + (Math.random() - 0.5) * 7,
+        0.4 + Math.random() * 2.6,
+        this.camara.position.z + delante.z * d + (Math.random() - 0.5) * 5,
+        {
+          color: polvo,
+          cantidad: 1,
+          fuerza: 1.4,
+          tam: 2.2 + Math.random() * 1.8,
+          vida: 0.5 + Math.random() * 0.3,
+          gravedad: 0.4,
+          roce: 1.4,
+          subida: 0.8 + direccion * 0.1,
+        },
+      );
+    }
+  }
+
+  /**
+   * EL POLVO DE LA ESQUINA.
+   *
+   * Doblar era un corte: el decorado se sustituía entero en un fotograma y lo
+   * tapaba un destello blanco. Funcionaba como truco de montaje y no como
+   * cosa que pasa. Una nube de polvo levantada al frenar sobre el asfalto es
+   * lo que hace cualquiera que dobla una esquina a la carrera, tapa el mismo
+   * corte, y encima explica por qué se tapa.
+   *
+   * Se levanta A LO ANCHO del corredor, no solo bajo los pies: una nubecilla
+   * junto al zapato no cubre nada, y lo que hay que cubrir es la pantalla
+   * entera durante el cuarto de vuelta.
+   */
+  _polvoDeEsquina(carril) {
+    if (!this.particulas) return;
+    const direccion = carril - 1;
+    if (direccion === 0) return;   // De frente no se dobla: no hay derrape.
+
+    const colores = this.escenario.obtenerColores();
+    const polvo = colores.calle ?? 0x9a938a;
+
+    for (let i = 0; i < 5; i++) {
+      const t = i / 4;
+      this.particulas.estallido(
+        this.jugador.x + direccion * (0.6 + t * 5.4),
+        0.25 + t * 0.5,
+        -1 - t * 4,
+        {
+          color: polvo,
+          cantidad: 12,
+          fuerza: 2.2 + t * 1.6,
+          tam: 0.9 + t * 0.7,
+          vida: 0.75 + t * 0.35,
+          // Poca gravedad y mucho roce: el polvo se queda flotando en vez de
+          // caer como chispas, que es lo que hace que tape algo.
+          gravedad: 0.9,
+          roce: 1.1,
+          subida: 1.6,
+        },
+      );
+    }
+  }
+
   _cruzarBifurcacion(carril) {
     this.enAproximacion = false;
     this.corredorLimpio = false;
     this.bifurcacion.iniciarViraje(carril, this.escenario.obtenerColores());
     this.audio.cambioEscenario();
     this.alQuitarSenal();
+    this._polvoDeEsquina(carril);
 
     const esc = obtenerEscenario(this.escenarioActual);
 
@@ -1414,6 +1518,16 @@ export class Game {
     this.escenario.despejeObjetivo =
       Math.min(1, Math.max(0, (150 - dCruce) / (150 - 55)));
 
+    // Y EL CARTEL SE RETIRA ANTES DE LLEGAR. Se quedaba puesto hasta el
+    // instante de cruzar, que es justo cuando ya no hace falta —la decisión
+    // está tomada y el carril, elegido— y justo cuando estorba: son los tres
+    // segundos en que la fachada del edificio llena la pantalla, y el cartel
+    // se le quedaba encima. Se va a los 50 m, con el despeje ya terminado.
+    if (this.bifurcacion.activa && !this.senalRetirada && dCruce < DISTANCIA_RETIRAR_SENAL) {
+      this.senalRetirada = true;
+      this.alQuitarSenal();
+    }
+
     // El Apagón necesita la velocidad para escalar la visibilidad.
     if (this.escenarioActual === 'apagon') {
       this.escenario.actualizar(dt, avance, this.jugador, velocidadEfectiva);
@@ -1654,7 +1768,7 @@ export class Game {
 
     // Sigue al jugador lateralmente con retraso: da peso sin marear.
     const xObjetivo = this.jugador.x * CAMARA.SEGUIMIENTO_LATERAL
-      + dirCine * 1.7 * fCine;
+      + dirCine * 2.4 * fCine;
     const t = 1 - Math.exp(-CAMARA.AMORTIGUACION * dt);
     this.camara.position.x += (xObjetivo - this.camara.position.x) * t;
 
@@ -1696,13 +1810,26 @@ export class Game {
     // fuera y la calle se vería de lado; si lo siguiera más, la cámara
     // orbitaría alrededor del personaje. Van juntas.
     this.camara.lookAt(
-      this.jugador.x * CAMARA.SEGUIMIENTO_LATERAL + dirCine * 7 * fCine,
+      this.jugador.x * CAMARA.SEGUIMIENTO_LATERAL,
       CAMARA.MIRA.y + this.jugador.y * 0.2 - CAMARA.ARRIBA_MIRA_BAJA * m,
       CAMARA.MIRA.z,
     );
 
-    // Banqueo al tomar un desvío. lookAt reescribe la orientación entera, así
-    // que el balanceo se aplica DESPUÉS: si no, se pierde.
+    // EL CUARTO DE VUELTA. Al doblar por un costado la cámara gira NOVENTA
+    // GRADOS hacia el carril elegido y vuelve. Antes solo se desviaba la mira
+    // unos metros, y el resultado era que se veía venir la fachada de frente y
+    // crecer hasta llenar la pantalla: parecía que el corredor se estrellaba
+    // contra el edificio en vez de doblar la esquina.
+    //
+    // Con el cuarto de vuelta, lo que se ve es lo que pasa: el mundo rota, la
+    // fachada sale por un lado del cuadro y la calle nueva entra por el otro
+    // ya montada. Va DESPUÉS del lookAt, que reescribe la orientación entera.
+    if (fCine > 0.001) {
+      this.camara.rotateY(-dirCine * GIRO_CAMARA_DESVIO * fCine);
+      this._cortinaDePolvo(dt, fCine, dirCine);
+    }
+
+    // Banqueo al tomar un desvío. Por el mismo motivo, después del lookAt.
     const banqueo = this.bifurcacion.banqueoCamara() + this._ladeoEspecial(dt);
     if (banqueo !== 0) this.camara.rotateZ(banqueo);
   }
