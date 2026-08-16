@@ -24,6 +24,8 @@ import * as Props from '../models/props.js';
 import { crearPersonaje } from '../models/characters.js';
 import { PERSONAJES } from '../config/personajes.js';
 import { ESCENARIOS, obtenerEscenario } from '../config/escenarios.js';
+import { CATALOGO_POTENCIADORES } from '../config/balance.js';
+import { HITO_POR_ESCENARIO, clonarHito } from '../models/hitos.js';
 
 const PALETA = obtenerEscenario('bahia').colores;
 
@@ -52,11 +54,41 @@ export const CATALOGO = [
     { id: 'prueba', nombre: 'Prueba (USB, video…)', hacer: () => Props.crearPrueba() },
   ] },
 
+  // Los edificios que vienen del .glb de la ciudad. Se listan aquí para poder
+  // bajarlos, mirarlos y devolverlos retocados como cualquier otra pieza: que
+  // vengan de archivo en vez de generarse no los hace menos editables.
+  { grupo: 'Edificios (del modelo de Quito)', piezas:
+    Object.entries(HITO_POR_ESCENARIO).map(([escenario, nombre]) => ({
+      id: `hito-${escenario}`,
+      nombre: nombre.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase()),
+      hacer: () => clonarHito(escenario) ?? new THREE.Group(),
+    })) },
+
+  { grupo: 'Obstáculos vestidos por escenario', piezas:
+    Object.keys(ESCENARIOS).flatMap((esc) =>
+      ['saltar', 'agachar', 'esquivar', 'doble'].map((tipo) => ({
+        id: `obstaculo-${esc}-${tipo}`,
+        nombre: `${obtenerEscenario(esc).nombre}: ${tipo}`,
+        hacer: () => Props.crearObstaculo(tipo, obtenerEscenario(esc).colores, esc),
+      }))) },
+
+  { grupo: 'Potenciadores', piezas: CATALOGO_POTENCIADORES.map((p) => ({
+    id: `potenciador-${p.id}`, nombre: p.nombre,
+    hacer: () => Props.crearPotenciador(p.id, p.color ?? 0xffcf3f),
+  })) },
+
   { grupo: 'Escena', piezas: [
     { id: 'policia', nombre: 'Perseguidor', hacer: () => Props.crearPolicia() },
     { id: 'dron', nombre: 'Dron de vigilancia', hacer: () => Props.crearDron() },
     { id: 'galeria-tramite', nombre: 'Pasillo del trámite', hacer: () => Props.crearGaleriaTramite(120, PALETA, 'FISCALÍA') },
     { id: 'tarima', nombre: 'Tarima elevada', hacer: () => Props.crearTarima(40, PALETA) },
+    { id: 'tuneles-bifurcacion', nombre: 'Bocas de la bifurcación',
+      hacer: () => Props.crearTunelesBifurcacion(
+        { izquierda: 'LA BAHÍA', centro: 'FISCALÍA', derecha: 'EL APAGÓN' }, PALETA) },
+    { id: 'fachada-institucion', nombre: 'Fachada de institución',
+      hacer: () => Props.crearFachadaInstitucion('FISCALÍA', PALETA, false) },
+    { id: 'flecha-asfalto', nombre: 'Flecha de asfalto',
+      hacer: () => Props.crearFlechaAsfalto('izquierda', 0x4fd1ff) },
   ] },
 ];
 
@@ -107,11 +139,66 @@ export function crearVisor(lienzo) {
 
   let actual = null;
   let giro = 0;
+  let inclinacion = 0.25;
+  let distancia = 1;
+  let radioPieza = 1;
+  let centroPieza = new THREE.Vector3();
+  let girandoSolo = true;
+
+  // --- Órbita con el ratón ---------------------------------------------------
+  // Sin esto solo se ve la cara que el giro automático quiera enseñar, y para
+  // decidir si una pieza está bien hay que poder mirarla por detrás y por
+  // debajo. Se implementa a mano y no con OrbitControls porque hacen falta
+  // cuatro líneas y el addon pesa más que todo este archivo.
+  let arrastrando = false;
+  let ultimoX = 0;
+  let ultimoY = 0;
+
+  lienzo.style.touchAction = 'none';
+  lienzo.style.cursor = 'grab';
+
+  lienzo.addEventListener('pointerdown', (ev) => {
+    arrastrando = true;
+    girandoSolo = false;   // en cuanto tocas, mandas tú
+    ultimoX = ev.clientX;
+    ultimoY = ev.clientY;
+    lienzo.setPointerCapture(ev.pointerId);
+    lienzo.style.cursor = 'grabbing';
+  });
+
+  lienzo.addEventListener('pointermove', (ev) => {
+    if (!arrastrando) return;
+    giro -= (ev.clientX - ultimoX) * 0.01;
+    // La inclinación se topa antes de los polos: pasado el cenit la escena se
+    // da la vuelta y se pierde de vista qué es arriba.
+    inclinacion = Math.max(-1.35, Math.min(1.35, inclinacion + (ev.clientY - ultimoY) * 0.008));
+    ultimoX = ev.clientX;
+    ultimoY = ev.clientY;
+  });
+
+  const soltar = (ev) => {
+    arrastrando = false;
+    lienzo.style.cursor = 'grab';
+    if (ev?.pointerId !== undefined && lienzo.hasPointerCapture?.(ev.pointerId)) {
+      lienzo.releasePointerCapture(ev.pointerId);
+    }
+  };
+  lienzo.addEventListener('pointerup', soltar);
+  lienzo.addEventListener('pointercancel', soltar);
+
+  // Rueda para acercar. Los topes son relativos al tamaño de la pieza: un USB y
+  // un pasillo de ciento veinte metros no admiten los mismos límites fijos.
+  lienzo.addEventListener('wheel', (ev) => {
+    ev.preventDefault();
+    distancia = Math.max(0.35, Math.min(4, distancia * (1 + Math.sign(ev.deltaY) * 0.12)));
+  }, { passive: false });
 
   function ajustar() {
-    const lado = lienzo.clientWidth || 320;
+    const ancho = lienzo.clientWidth || 480;
+    const alto = lienzo.clientHeight || ancho;
     renderizador.setPixelRatio(Math.min(devicePixelRatio, 2));
-    renderizador.setSize(lado, lado, false);
+    renderizador.setSize(ancho, alto, false);
+    camara.aspect = ancho / alto;
     camara.updateProjectionMatrix();
   }
 
@@ -128,21 +215,39 @@ export function crearVisor(lienzo) {
     const caja = new THREE.Box3().setFromObject(actual);
     const tam = caja.getSize(new THREE.Vector3());
     const centro = caja.getCenter(new THREE.Vector3());
-    const radio = Math.max(tam.x, tam.y, tam.z) * 0.5 || 1;
-    camara.position.set(radio * 2.2, radio * 1.4 + centro.y, radio * 2.2);
-    camara.lookAt(centro);
+    radioPieza = Math.max(tam.x, tam.y, tam.z) * 0.5 || 1;
+    // La pieza se recentra en el eje para que orbitar la mantenga en el medio:
+    // girando alrededor del origen, una pieza descentrada se sale de cuadro.
     actual.position.sub(new THREE.Vector3(centro.x, 0, centro.z));
+    centroPieza = new THREE.Vector3(0, centro.y, 0);
+    distancia = 1;
+    inclinacion = 0.25;
+    girandoSolo = true;
     return {
       ancho: +tam.x.toFixed(2), alto: +tam.y.toFixed(2), fondo: +tam.z.toFixed(2),
     };
   }
 
   function pintar(dt = 0.016) {
-    giro += dt * 0.45;
-    if (actual) actual.rotation.y = giro;
+    // El giro automático se para en cuanto el usuario arrastra: seguir girando
+    // bajo el ratón hace imposible mirar un detalle concreto.
+    if (girandoSolo) giro += dt * 0.45;
+
+    const r = radioPieza * 3.1 * distancia;
+    camara.position.set(
+      centroPieza.x + Math.sin(giro) * Math.cos(inclinacion) * r,
+      centroPieza.y + Math.sin(inclinacion) * r + radioPieza * 0.25,
+      centroPieza.z + Math.cos(giro) * Math.cos(inclinacion) * r,
+    );
+    camara.lookAt(centroPieza);
     renderizador.render(escena, camara);
   }
 
+  /** Vuelve al encuadre de partida y reanuda el giro solo. */
+  function reencuadrar() {
+    giro = 0; inclinacion = 0.25; distancia = 1; girandoSolo = true;
+  }
+
   ajustar();
-  return { poner, pintar, ajustar };
+  return { poner, pintar, ajustar, reencuadrar };
 }

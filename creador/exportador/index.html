@@ -15,9 +15,9 @@
     h1 { font-size:1.9rem; margin-bottom:4px; }
     .bajada { color:var(--tenue); margin-bottom:20px; }
     .columnas { display:grid; grid-template-columns:1fr; gap:20px; }
-    @media (min-width:860px) { .columnas { grid-template-columns:340px 1fr; } }
+    @media (min-width:860px) { .columnas { grid-template-columns:1fr 300px; } }
     .panel { background:var(--card); border:1px solid var(--borde); border-radius:12px; padding:16px; }
-    #visor { width:100%; aspect-ratio:1; display:block; border-radius:10px;
+    #visor { width:100%; height:min(66vh,620px); display:block; border-radius:10px;
              background:linear-gradient(160deg,#121a30,#0a0e27); }
     .medidas { margin-top:10px; font-size:.8rem; color:var(--tenue); font-family:'Courier New',monospace; }
     .grupo { margin-bottom:14px; }
@@ -52,9 +52,11 @@
       <div class="panel">
         <canvas id="visor"></canvas>
         <div class="medidas" id="medidas">—</div>
+        <p class="aviso">Arrastra para girar · rueda para acercar</p>
         <div class="acciones">
           <button class="accion bajar" id="bajar">Descargar .glb</button>
           <button class="accion todo" id="bajarTodo">Descargar todo</button>
+          <button class="accion todo" id="reencuadrar">Reencuadrar</button>
         </div>
         <ol class="pasos">
           <li>Descarga la pieza y ábrela en Blender (<em>File ▸ Import ▸ glTF 2.0</em>).</li>
@@ -68,7 +70,7 @@
         </p>
       </div>
 
-      <div class="panel" id="catalogo"></div>
+      <div class="panel" id="catalogo" style="max-height:min(74vh,700px);overflow-y:auto"></div>
     </div>
   </div>
 

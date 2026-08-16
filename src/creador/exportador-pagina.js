@@ -1,6 +1,13 @@
 // Interfaz del exportador. La lógica y el catálogo viven en exportador.js, que
 // es lo que importa el juego; aquí solo se pinta y se conectan los botones.
 import { CATALOGO, exportar, crearVisor } from './exportador.js';
+import { cargarHitos } from '../models/hitos.js';
+
+// Los edificios vienen de un archivo, así que hay que esperarlos ANTES de
+// montar el catálogo: sin esto salían en la lista pero se clonaban vacíos —el
+// visor decía «0 × 0 × 0 m»— porque nadie había descargado el modelo en esta
+// página. El juego lo hace en su pantalla de carga; aquí no había ninguna.
+
 
 const lienzo = document.getElementById('visor');
 const medidas = document.getElementById('medidas');
@@ -45,6 +52,8 @@ for (const grupo of CATALOGO) {
   catalogo.appendChild(caja);
 }
 
+document.getElementById('reencuadrar').addEventListener('click', () => visor.reencuadrar());
+
 document.getElementById('bajar').addEventListener('click', async () => {
   bajar(await exportar(elegida), `${elegida}.glb`);
 });
@@ -62,6 +71,15 @@ document.getElementById('bajarTodo').addEventListener('click', async (e) => {
   boton.textContent = 'Descargar todo';
   boton.disabled = false;
 });
+
+// Los edificios vienen de un archivo, así que hay que esperarlos: sin esto
+// salían en la lista pero se clonaban vacíos —el visor decía «0 × 0 × 0 m»—
+// porque nadie había descargado el modelo en esta página. El juego lo hace en
+// su pantalla de carga; aquí no había ninguna.
+//
+// Va en un then y no con await de nivel superior porque el build apunta a
+// es2020, que no lo admite.
+cargarHitos(import.meta.env.BASE_URL ?? '/').then(() => seleccionar(elegida));
 
 seleccionar(elegida);
 

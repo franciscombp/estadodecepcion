@@ -22,14 +22,26 @@ import { CALIDAD } from '../config/estilo.js';
 
 const SEPARACION_DECORADO = 15;
 
-// El hito pasa una vez por vuelta larga. Los números salen de la niebla: a 620
-// metros todavía no se ve, y para cuando entra en el cono ya viene de frente.
-const DISTANCIA_HITO = 620;
+// CADA CUÁNTO PASA EL HITO.
+//
+// Estaba en 620 metros y era un error de bulto: la niebla tapa el 94 % a los
+// cien metros, así que el edificio se pasaba veinte segundos invisible y
+// asomaba tres. En la práctica no se veía nunca, que es justo lo que se
+// reportó.
+//
+// A 300 aparece cada diez segundos a velocidad de crucero: lo justo para que
+// sea un acontecimiento y no un mueble, y sin que llegue a haber dos en cuadro.
+const DISTANCIA_HITO = 300;
 // Cuánto se le deja quedarse atrás antes de rebobinar. Un edificio grande se
 // sigue viendo por detrás mucho después de haberlo pasado.
 const DISTANCIA_HITO_SALIDA = 80;
-// A qué distancia del eje se planta, medido a su costado.
-const DISTANCIA_HITO_LATERAL = 16;
+// A qué distancia del eje se planta.
+//
+// Los decorados van a OFFSET_LATERAL (unos 7,4) y miden hasta ocho metros de
+// alto. A dieciséis, el hito quedaba justo detrás de esa fila y lo tapaba el
+// propio barrio. A once asoma POR ENCIMA de las casas, que es como se ve un
+// palacio desde la calle: por encima de los tejados, no al final de un solar.
+const DISTANCIA_HITO_LATERAL = 11;
 const OFFSET_LATERAL = ANCHO_PISTA / 2 + 3.4;
 
 import { clonarHito } from '../models/hitos.js';

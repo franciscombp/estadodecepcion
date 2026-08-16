@@ -754,10 +754,13 @@ cuelgan de la misma URL del juego.
 ### Editar una pieza en Blender
 
 1. Abre **`/creador/exportador/`**. Ahí están todas las piezas del juego
-   agrupadas: personajes, cuadras de decorado, obstáculos, recolectables y
-   elementos de escena. Cada una se previsualiza girando y con sus medidas
-   reales en metros.
+   agrupadas —46 en total—: personajes, cuadras de decorado, obstáculos (los
+   genéricos y los **vestidos por escenario**), recolectables, los **edificios
+   del modelo de Quito**, potenciadores y elementos de escena. Cada una se
+   previsualiza con sus medidas reales en metros.
 2. **Descargar `.glb`** (o *Descargar todo*, que baja el catálogo entero).
+   El visor se orbita arrastrando con el ratón y se acerca con la rueda; el
+   botón *Reencuadrar* vuelve a la vista de partida.
 3. En Blender: *File ▸ Import ▸ glTF 2.0*, retocas, y *File ▸ Export ▸ glTF 2.0
    (.glb)*.
 4. Deja el archivo en **`public/modelos/piezas/`** con el mismo nombre.
@@ -806,6 +809,25 @@ cargan una vez en la pantalla de carga y cada escena clona el suyo:
 Una casa colonial genérica se genera con cajas y queda bien; un edificio que hay
 que **reconocer**, no. Por eso el decorado sigue siendo procedural y solo los
 hitos vienen de archivo.
+
+Pasan cada 300 metros —unos diez segundos a velocidad de crucero— y a once
+metros del eje, por encima de los tejados. Los primeros números fueron 620 y 16:
+con la niebla tapando el 94 % a los cien metros, el edificio se pasaba veinte
+segundos invisible y asomaba tres, y encima quedaba detrás de la fila de casas.
+En la práctica no se veía nunca.
+
+### Los obstáculos ya cambian por escenario
+
+No hay que hacerlos: `vestirObstaculo()` (en `src/models/props.js`) le pone a
+cada silueta las piezas de su barrio. En la Bahía, cajas de mercadería y ropa
+tendida; en el centro histórico, reja y concertina; en la central, tubería
+reventada. La regla que no se rompe es que **la silueta base no se toca**: lo
+que se salta se sigue leyendo bajo y ancho y lo que se esquiva sigue siendo un
+bloque macizo, porque el jugador tiene medio segundo para leerlo y ese medio
+segundo lo compra la silueta, no el adorno.
+
+Se ven todos juntos en el exportador, en el grupo *Obstáculos vestidos por
+escenario*.
 
 Para binarios pesados está `src/utils/assetCache.js`: un envoltorio de IndexedDB
 que descarga una vez y sirve desde local. El Service Worker no es buen sitio
