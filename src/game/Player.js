@@ -37,6 +37,11 @@ export class Player {
     this.x = 0;          // Posición real (interpolada)
     this.xObjetivo = 0;  // Posición del carril destino
 
+    // Giro añadido por la cinemática del desvío (radianes, lo escribe Game
+    // cada fotograma desde Bifurcacion.cinematicaGiro). Se SUMA a la media
+    // vuelta del modelo: negativo mira a la derecha, positivo a la izquierda.
+    this.giroCinematico = 0;
+
     // ---- Estado vertical --------------------------------------------------
     this.y = 0;
     this.velocidadY = 0;
@@ -269,7 +274,7 @@ export class Player {
       // Va negada porque el modelo está girado media vuelta sobre Y: sin el
       // signo, el personaje se inclinaría en contra de su propio movimiento.
       const desvio = this.xObjetivo - this.x;
-      this.modelo.rotation.y = Math.PI;
+      this.modelo.rotation.y = Math.PI + this.giroCinematico;
       this.modelo.rotation.z = -THREE.MathUtils.clamp(desvio * 0.22, -0.3, 0.3);
     }
 
@@ -450,6 +455,7 @@ export class Player {
     this.carril = CARRILES.CENTRO;
     this.x = 0;
     this.xObjetivo = 0;
+    this.giroCinematico = 0;
     this.y = 0;
     this.velocidadY = 0;
     this.estaEnElAire = false;

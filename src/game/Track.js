@@ -93,7 +93,11 @@ export class Track {
   _construir() {
     // Geometría y material compartidos: las ocho baldosas son idénticas, así
     // que basta con una geometría y un material para todas.
-    this.geoBaldosa = new THREE.PlaneGeometry(ANCHO_PISTA, LARGO_BALDOSA);
+    // Diez segmentos a lo largo: la curvatura del mundo dobla POR VÉRTICE
+    // (ver utils/curvatura.js) y una baldosa de 40 metros con vértices solo en
+    // las esquinas no se curva, se tiende recta como una cuerda — y todo lo
+    // apoyado encima parecería flotar sobre ella.
+    this.geoBaldosa = new THREE.PlaneGeometry(ANCHO_PISTA, LARGO_BALDOSA, 1, 10);
     this.texturaAsfalto = crearTexturaAsfalto(this.colorCalle, this.colorLinea);
 
     this.matBaldosa = new THREE.MeshStandardMaterial({
@@ -113,7 +117,8 @@ export class Track {
 
     // Bordillos laterales: enmarcan la pista y refuerzan la sensación de
     // velocidad. También comparten geometría y material.
-    this.geoBordillo = new THREE.BoxGeometry(0.5, 0.4, LARGO_BALDOSA);
+    // Mismos segmentos que la baldosa y por el mismo motivo: la curvatura.
+    this.geoBordillo = new THREE.BoxGeometry(0.5, 0.4, LARGO_BALDOSA, 1, 1, 10);
     this.matBordillo = new THREE.MeshStandardMaterial({
       color: this.colorCalle,
       emissive: this.colorLinea,

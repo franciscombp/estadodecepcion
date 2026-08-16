@@ -2192,9 +2192,12 @@ export function crearPasoLateral(largo, colores) {
   const ancho = CARRILES.ANCHO * 3 + 2.4;
   const alto = 6.2;
 
-  // Techo del soportal.
+  // Techo del soportal. Segmentado a lo largo por la curvatura del mundo:
+  // treinta metros de viga recta sobre una calle que se dobla se leen como un
+  // error de encaje. Ver utils/curvatura.js.
+  const segmentos = Math.max(2, Math.round(largo / 4));
   const techo = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho + 1.2, 0.5, largo),
+    new THREE.BoxGeometry(ancho + 1.2, 0.5, largo, 1, 1, segmentos),
     mat(colores.props ?? 0x6b5f4d, 0.03, 0.95),
   );
   techo.position.set(0, alto, -largo / 2);
@@ -2204,7 +2207,7 @@ export function crearPasoLateral(largo, colores) {
   // fondo se lea como salida.
   for (const lado of [-1, 1]) {
     const muro = new THREE.Mesh(
-      new THREE.BoxGeometry(0.7, alto, largo),
+      new THREE.BoxGeometry(0.7, alto, largo, 1, 1, segmentos),
       mat(0x2c2b30, 0.02, 0.97),
     );
     muro.position.set(lado * (ancho / 2), alto / 2, -largo / 2);
@@ -2609,8 +2612,11 @@ export function crearTarima(largo, colores, idEscenario = 'bahia') {
 
   // --- Tablado -------------------------------------------------------------
   const zInicio = -ELEVADO.LARGO_RAMPA;
+  // Con segmentos a lo largo: el tablado mide 20-35 metros y la curvatura del
+  // mundo dobla por vértice — sin ellos quedaría tendido recto sobre una calle
+  // que se curva por debajo. Ver utils/curvatura.js.
   const tablero = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho, 0.26, largo),
+    new THREE.BoxGeometry(ancho, 0.26, largo, 1, 1, Math.max(2, Math.round(largo / 4))),
     new THREE.MeshStandardMaterial({
       map: texturaMadera(),
       roughness: 0.8,
@@ -2642,7 +2648,10 @@ export function crearTarima(largo, colores, idEscenario = 'bahia') {
   const matBorde = neon(acento, 1.7);
   for (const s of [-1, 1]) {
     const borde = new THREE.Mesh(
-      new THREE.BoxGeometry(0.1, 0.12, largo + ELEVADO.LARGO_RAMPA),
+      // Segmentado a lo largo, como el tablero: es la línea que marca el filo
+      // y la que más cantaría si quedara recta sobre la calle curvada.
+      new THREE.BoxGeometry(0.1, 0.12, largo + ELEVADO.LARGO_RAMPA,
+        1, 1, Math.max(2, Math.round(largo / 4))),
       matBorde,
     );
     borde.position.set(
@@ -2707,21 +2716,26 @@ export function crearGaleriaTramite(largo, colores, nombre) {
 
   const matMuro = mat(0x1a2030, 0.03, 0.93);
 
+  // Segmentos a lo largo: el pasillo es la geometría más larga del juego y la
+  // curvatura del mundo dobla por vértice. Ver utils/curvatura.js.
+  const segmentosLargo = Math.max(2, Math.round(largo / 4));
+
   for (const s of [-1, 1]) {
     const pared = new THREE.Mesh(
-      new THREE.BoxGeometry(0.4, alto, largo),
+      new THREE.BoxGeometry(0.4, alto, largo, 1, 1, segmentosLargo),
       matMuro,
     );
     pared.position.set(s * (ancho / 2), alto / 2, -largo / 2);
     g.add(pared);
   }
 
-  const techo = new THREE.Mesh(new THREE.BoxGeometry(ancho, 0.4, largo), matMuro);
+  const techo = new THREE.Mesh(
+    new THREE.BoxGeometry(ancho, 0.4, largo, 1, 1, segmentosLargo), matMuro);
   techo.position.set(0, alto, -largo / 2);
   g.add(techo);
 
   const suelo = new THREE.Mesh(
-    new THREE.PlaneGeometry(ancho, largo),
+    new THREE.PlaneGeometry(ancho, largo, 1, segmentosLargo),
     new THREE.MeshStandardMaterial({
       color: colores.calle ?? COLOR3D.asfalto,
       roughness: 0.9,
@@ -2758,7 +2772,7 @@ export function crearGaleriaTramite(largo, colores, nombre) {
   const matZocalo = neon(acento, 1.0);
   for (const s of [-1, 1]) {
     const zocalo = new THREE.Mesh(
-      new THREE.BoxGeometry(0.14, 0.12, largo),
+      new THREE.BoxGeometry(0.14, 0.12, largo, 1, 1, segmentosLargo),
       matZocalo,
     );
     zocalo.position.set(s * (CARRILES.ANCHO * 1.6), 0.06, -largo / 2);

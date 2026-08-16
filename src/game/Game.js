@@ -51,6 +51,7 @@ import { obtenerEscenario } from '../config/escenarios.js';
 import { CATALOGO_POTENCIADORES } from '../config/balance.js';
 import { PERSONAJES } from '../config/personajes.js';
 import { Controles } from '../utils/controls.js';
+import { curvarEscena } from '../utils/curvatura.js';
 import { remateCaptura, remateExhausto, citaVerificada } from '../config/textos.js';
 import {
   VELOCIDAD, TRAMO, CAMARA, JUGADOR, CARRILES, CERCO, EVIDENCIA,
@@ -1226,6 +1227,12 @@ export class Game {
     if (!this.animando) return;
     requestAnimationFrame(this._bucle);
 
+    // El doblez del mundo (ver utils/curvatura.js). Va ANTES de actualizar y
+    // de cualquiera de los render de abajo: lo que se monte en este fotograma
+    // —un cruce, una pieza del GLB— se parchea antes de compilar su shader y
+    // no llega a pintarse recto ni una vez.
+    curvarEscena(this.escenaThree);
+
     const ahora = performance.now();
     let dt = (ahora - this.relojAnterior) / 1000;
     this.relojAnterior = ahora;
@@ -1372,6 +1379,13 @@ export class Game {
     // bifurcación: el escenario necesita saber dónde se acaba la calle.
     // Cuando no hay fachada en pista, no hay tope.
     this.escenario.zTope = this.bifurcacion.activa ? this.bifurcacion.z : null;
+
+    // DESPEJE: a 150 m del edificio la niebla empieza a retirarse y a 55 ya
+    // se le ve la fachada entera —queda tiempo de sobra para colocarse en el
+    // carril—. Al cruzar, bifurcacion.activa cae y el ambiente regresa solo.
+    const dCruce = this.bifurcacion.activa ? -this.bifurcacion.z : Infinity;
+    this.escenario.despejeObjetivo =
+      Math.min(1, Math.max(0, (150 - dCruce) / (150 - 55)));
 
     // El Apagón necesita la velocidad para escalar la visibilidad.
     if (this.escenarioActual === 'apagon') {
@@ -1598,8 +1612,22 @@ export class Game {
       return;
     }
 
+    // LA CINEMÁTICA DEL DESVÍO. Al doblar por un costado el personaje rota
+    // hacia la esquina y la cámara lo sigue con la vista: se desplaza hacia el
+    // lado elegido y gira la mira hacia allá, con lo que se ve al corredor
+    // girar Y el camino que eligió abrirse delante de él. La curva de fuerza
+    // la da la bifurcación (pico al doblar, cola al enderezarse en el
+    // soportal); aquí solo se aplica.
+    const cine = this.bifurcacion.cinematicaGiro();
+    const fCine = cine ? cine.fuerza : 0;
+    const dirCine = cine ? cine.dir : 0;
+    // El personaje: hasta ~66° de giro sobre su media vuelta. El signo es
+    // negativo porque rotation.y = π mira a −Z y restarle gira hacia +X.
+    this.jugador.giroCinematico = -dirCine * 1.15 * fCine;
+
     // Sigue al jugador lateralmente con retraso: da peso sin marear.
-    const xObjetivo = this.jugador.x * CAMARA.SEGUIMIENTO_LATERAL;
+    const xObjetivo = this.jugador.x * CAMARA.SEGUIMIENTO_LATERAL
+      + dirCine * 1.7 * fCine;
     const t = 1 - Math.exp(-CAMARA.AMORTIGUACION * dt);
     this.camara.position.x += (xObjetivo - this.camara.position.x) * t;
 
@@ -1641,7 +1669,7 @@ export class Game {
     // fuera y la calle se vería de lado; si lo siguiera más, la cámara
     // orbitaría alrededor del personaje. Van juntas.
     this.camara.lookAt(
-      this.jugador.x * CAMARA.SEGUIMIENTO_LATERAL,
+      this.jugador.x * CAMARA.SEGUIMIENTO_LATERAL + dirCine * 7 * fCine,
       CAMARA.MIRA.y + this.jugador.y * 0.2 - CAMARA.ARRIBA_MIRA_BAJA * m,
       CAMARA.MIRA.z,
     );

@@ -59,7 +59,12 @@ export class Bifurcacion {
     this.virando = false;
     this.direccionViraje = 0;  // -1 izquierda, 0 centro, 1 derecha
     this.tiempoViraje = 0;
+    // De frente dura menos: no hay esquina que doblar. Por los costados el
+    // viraje se alarga para que quepa la cinemática del giro (ver
+    // cinematicaGiro): el personaje rota hacia la esquina, la cámara lo sigue
+    // y se endereza ya dentro del soportal.
     this.DURACION_VIRAJE = 0.75;
+    this.DURACION_VIRAJE_LATERAL = 1.05;
 
     // El soportal que se cruza al doblar la esquina.
     this.paso = null;
@@ -157,7 +162,7 @@ export class Bifurcacion {
   actualizar(dt, avance) {
     if (this.virando) {
       this.tiempoViraje += dt;
-      if (this.tiempoViraje >= this.DURACION_VIRAJE) {
+      if (this.tiempoViraje >= (this.duracionActual ?? this.DURACION_VIRAJE)) {
         this.virando = false;
         this.tiempoViraje = 0;
       }
@@ -203,6 +208,9 @@ export class Bifurcacion {
     this.direccionViraje = carril - 1; // -1, 0, 1
     this.virando = true;
     this.tiempoViraje = 0;
+    this.duracionActual = this.direccionViraje === 0
+      ? this.DURACION_VIRAJE
+      : this.DURACION_VIRAJE_LATERAL;
 
     // POR UN COSTADO SE CRUZA ALGO. El decorado cambiaba de golpe, tapado con
     // un destello: funcionaba, pero no se sentía como ir a ninguna parte —la
@@ -232,14 +240,37 @@ export class Bifurcacion {
    */
   banqueoCamara() {
     if (!this.virando || this.direccionViraje === 0) return 0;
-    const t = this.tiempoViraje / this.DURACION_VIRAJE;
+    const t = this.tiempoViraje / this.duracionActual;
     return -this.direccionViraje * Math.sin(t * Math.PI) * 0.26;
+  }
+
+  /**
+   * LA CINEMÁTICA DEL GIRO — doblar la esquina con el cuerpo.
+   *
+   * Al tomar un costado, el personaje ROTA hacia ese lado y la cámara lo
+   * sigue con la vista: primero se abre hacia la esquina (se ve al corredor
+   * girar y el camino elegido aparecer delante de él) y luego, ya dentro del
+   * soportal, los dos se enderezan mirando la calle nueva.
+   *
+   * La curva es una campana asimétrica: pico pronto —el golpe de giro es al
+   * doblar— y cola larga —enderezarse lleva el resto del pasaje—. De frente
+   * no hay cinemática: al trámite se entra recto.
+   *
+   * @returns {{dir: number, fuerza: number}|null}
+   */
+  cinematicaGiro() {
+    if (!this.virando || this.direccionViraje === 0) return null;
+    const t = Math.min(1, this.tiempoViraje / this.duracionActual);
+    const fuerza = t < 0.3
+      ? Math.sin((t / 0.3) * Math.PI / 2)
+      : Math.cos(((t - 0.3) / 0.7) * (Math.PI / 2));
+    return { dir: this.direccionViraje, fuerza };
   }
 
   /** Fracción 0..1 del destello de transición. */
   destello() {
     if (!this.virando) return 0;
-    const t = this.tiempoViraje / this.DURACION_VIRAJE;
+    const t = this.tiempoViraje / this.duracionActual;
     // Sube de golpe y baja despacio: así el corte de escenario queda tapado.
     return t < 0.25 ? t / 0.25 : Math.max(0, 1 - (t - 0.25) / 0.75);
   }

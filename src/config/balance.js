@@ -754,6 +754,15 @@ export const CAMARA = {
   // rápido se lee como un tirón al subir, más lento y la cámara sigue
   // acomodándose cuando ya te bajaste.
   ARRIBA_TRANSICION: 0.5,
+
+  // --- CURVATURA DEL MUNDO --------------------------------------------------
+  // Cuánto se dobla la calle hacia abajo con la distancia (y -= k·z², en
+  // espacio de cámara). Con 0.0008, a cien metros el asfalto ha bajado unos
+  // ocho metros: una loma franca, que es lo que hace que los obstáculos
+  // aparezcan SUBIENDO por la cresta en vez de materializarse en la niebla.
+  // Se probó 0.0004 —no se notaba— y 0.0013 —el fondo entero se hundía y la
+  // fachada de la bifurcación tardaba demasiado en asomar—.
+  CURVATURA: 0.0008,
   // Sacudida al chocar.
   SACUDIDA_GOLPE: 0.5,
 

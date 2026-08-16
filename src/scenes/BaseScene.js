@@ -49,10 +49,30 @@ export class BaseScene {
     this.decorados = [];
     this.tiempo = 0;
 
+    // --- DESPEJE ANTE EL CRUCE ---------------------------------------------
+    // Al acercarse al edificio de la bifurcación, la niebla se retira y la luz
+    // sube: la decisión de por dónde entrar hay que poder tomarla VIENDO el
+    // edificio, no adivinándolo en la bruma. Game escribe el objetivo (0 lejos
+    // del cruce, 1 delante de la fachada) según la distancia; aquí se suaviza
+    // y se aplica. Al cruzar, el objetivo vuelve a 0 y el ambiente regresa.
+    this.despeje = 0;
+    this.despejeObjetivo = 0;
+    // El Apagón gestiona su propia luz y niebla (la oscuridad ES su mecánica):
+    // pone esto a true y BaseScene no le toca las intensidades.
+    this.luzPropia = false;
+
     this._crearLuces();
     this._crearNiebla();
     this._crearDecorado();
     this._crearDron();
+
+    // Las intensidades de reposo, para poder subirlas con el despeje y
+    // devolverlas exactamente a su sitio.
+    this.intensidadBase = {
+      ambiente: this.luzAmbiente.intensity,
+      cielo: this.luzCielo.intensity,
+      direccional: this.luzDireccional.intensity,
+    };
   }
 
   // -------------------------------------------------------------------------
@@ -108,7 +128,8 @@ export class BaseScene {
 
   _crearNiebla() {
     // Exponencial: se ve más natural que la lineal a estas distancias.
-    this.escena.fog = new THREE.FogExp2(this.colores.nieblaLejos, 0.017);
+    this.densidadBase = 0.017;
+    this.escena.fog = new THREE.FogExp2(this.colores.nieblaLejos, this.densidadBase);
     this.escena.background = new THREE.Color(this.colores.nieblaLejos);
   }
 
@@ -170,6 +191,24 @@ export class BaseScene {
    */
   actualizar(dt, avance, jugador) {
     this.tiempo += dt;
+
+    // --- Despeje ante el cruce ---------------------------------------------
+    // El objetivo ya es continuo con la distancia; el lerp solo amortigua los
+    // saltos (cruzar, reiniciar), para que la niebla nunca dé un corte seco.
+    this.despeje += (this.despejeObjetivo - this.despeje) * (1 - Math.exp(-2.8 * dt));
+    const d = this.despeje;
+
+    if (!this.luzPropia) {
+      if (this.escena.fog) {
+        // Se retira hasta dejar una quinta parte: el edificio queda nítido y
+        // el fondo lejano sigue teniendo aire, no un corte a cielo raso.
+        this.escena.fog.density = this.densidadBase * (1 - 0.8 * d);
+      }
+      // La luz sube como si al edificio le dieran sus focos de fachada.
+      this.luzAmbiente.intensity = this.intensidadBase.ambiente * (1 + 0.35 * d);
+      this.luzCielo.intensity = this.intensidadBase.cielo * (1 + 0.3 * d);
+      this.luzDireccional.intensity = this.intensidadBase.direccional * (1 + 0.3 * d);
+    }
 
     // --- Decorado ----------------------------------------------------------
     for (const d of this.decorados) {

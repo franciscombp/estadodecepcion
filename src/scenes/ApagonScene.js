@@ -39,6 +39,11 @@ export class ApagonScene extends BaseScene {
     this.tiempoLinterna = 0;      // Segundos restantes de visión ampliada.
     this.densidadActual = densidadParaRadio(this.oscuridad.radioBase);
 
+    // La oscuridad es la mecánica del tramo: BaseScene no toca ni la niebla
+    // ni las luces de aquí. El despeje del cruce se aplica abajo, integrado
+    // con el cálculo del radio de visión.
+    this.luzPropia = true;
+
     this._crearLinternaJugador();
     this._crearParpadeos();
   }
@@ -149,9 +154,15 @@ export class ApagonScene extends BaseScene {
     const radioMinimoJusto = velocidad * 1.0;
     const radioBase = Math.max(this.oscuridad.radioBase, radioMinimoJusto);
 
-    const radioObjetivo = this.tiempoLinterna > 0
+    let radioObjetivo = this.tiempoLinterna > 0
       ? Math.max(this.oscuridad.radioConLinterna, radioMinimoJusto * 1.8)
       : radioBase;
+
+    // DESPEJE ANTE LA ASAMBLEA. Delante del edificio del cruce el barrio
+    // recupera la corriente: el radio de visión se abre hasta ver la fachada
+    // entera. Sin esto, la decisión de por qué lado entrar se tomaba a
+    // dieciocho metros de visibilidad, es decir, a ciegas.
+    radioObjetivo += (160 - radioObjetivo) * this.despeje;
 
     // Transición suave: un corte brusco de niebla marea.
     const densidadObjetivo = densidadParaRadio(radioObjetivo);
@@ -183,7 +194,19 @@ export class ApagonScene extends BaseScene {
     // absoluto se lee como un foco de teatro; lo que se busca es que el tramo
     // ENTERO respire mientras dura la batería.
     const ambienteBase = this.config.colores.intensidadAmbiente;
-    const ambienteObjetivo = this.tiempoLinterna > 0 ? ambienteBase * 2.6 : ambienteBase;
+    let ambienteObjetivo = this.tiempoLinterna > 0 ? ambienteBase * 2.6 : ambienteBase;
+
+    // Con el despeje del cruce la calle entera se enciende hacia una luz de
+    // día: es un max entre objetivos —linterna y despeje piden lo mismo, más
+    // luz— y el despeje ya viene suavizado de BaseScene, así que cielo y
+    // direccional pueden ir asignados directos sin dar cortes.
+    const dd = this.despeje;
+    ambienteObjetivo = Math.max(ambienteObjetivo, ambienteBase + (0.85 - ambienteBase) * dd);
+    this.luzCielo.intensity = this.intensidadBase.cielo
+      + (1.05 - this.intensidadBase.cielo) * dd;
+    this.luzDireccional.intensity = this.intensidadBase.direccional
+      + (0.95 - this.intensidadBase.direccional) * dd;
+
     this.luzAmbiente.intensity += (ambienteObjetivo - this.luzAmbiente.intensity) * t;
 
     // Titileo sutil: la batería no está en su mejor momento. El haz y la lente
