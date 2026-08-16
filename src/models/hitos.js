@@ -23,15 +23,33 @@
 // arranque por un archivo que no llegó.
 // ============================================================================
 
+import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-// Qué rama del modelo le toca a cada escenario. Las Elecciones no tienen: el
-// CNE no está modelado, y poner otro edificio en su sitio sería mentir sobre
-// dónde estás.
-export const HITO_POR_ESCENARIO = {
-  carondelet: 'palacio_de_carondelet',
+// EL EDIFICIO QUE HAY DE FRENTE EN CADA BIFURCACIÓN.
+//
+// No es decorado que pasa: es la fachada del cruce, lo que se tiene delante al
+// decidir. Cada escenario lleva EL SUYO, el de verdad: la Fiscalía en la
+// Bahía, la Asamblea en el Apagón, Carondelet en el centro histórico.
+//
+// Las Elecciones no tienen: el CNE no está modelado, y poner cualquier otro
+// edificio en su sitio sería mentir sobre a dónde estás entrando. Ahí se sigue
+// levantando la fachada procedural.
+export const EDIFICIO_DEL_CRUCE = {
   bahia: 'fiscalia_general_del_estado',
+  apagon: 'asamblea_nacional',
+  carondelet: 'palacio_de_carondelet',
 };
+
+// LOS HITOS QUE PASABAN DE LARGO YA NO ESTÁN.
+//
+// Eran los mismos edificios cruzándose cada trescientos metros, y con la
+// fachada del cruce puestos DOS VECES: el palacio se veía pasar por el costado
+// y volvía a aparecer de frente al bifurcar. Enseñar dos veces el mismo
+// edificio en la misma calle no dobla la presencia, la reparte.
+//
+// Además el sitio dramático del edificio es la bifurcación, no la cuneta: ahí
+// es donde significa algo, porque es donde hay que decidir si se entra.
 
 // EL APAGÓN NO TIENE HITO, y no es un olvido. La central térmica no es un
 // edificio que se ve pasar: es el sitio donde estás. Pasarla por delante cada
@@ -44,6 +62,111 @@ export const HITO_POR_ESCENARIO = {
 export const DECORADO_IMPORTADO = {
   apagon: 'central_termica',
 };
+
+// CADA EDIFICIO VIENE DONDE EL MODELADOR LO DEJÓ, y eso no sirve aquí.
+//
+// El .glb es una maqueta del centro de Quito: dentro del archivo cada edificio
+// está en su sitio DE LA CIUDAD, no en el origen. Clonar la rama y ponerla en
+// la bifurcación tal cual dejaba a la Fiscalía volando por encima del jugador
+// (su geometría se extendía treinta metros hacia la cámara) y a Carondelet a
+// setenta metros por detrás del cruce, hecho una mancha en la niebla. Se veía
+// «un edificio al fondo» en vez de tener el edificio delante.
+//
+// Así que la copia se ASIENTA: se mide su caja real y se mueve hasta que la
+// fachada quede centrada en la calle, apoyada en el asfalto y con su cara
+// frontal justo en el plano del cruce. Lo que hay detrás de esa cara —treinta,
+// cincuenta metros de edificio— se va hacia dentro, que es donde no estorba.
+//
+// Se mide recorriendo los vértices y no con Box3.setFromObject porque hace
+// falta la caja DESPUÉS de aplicar el giro, y girar la caja de un objeto no da
+// la caja del objeto girado.
+const ROTACION_FACHADA = {
+  // Hacia dónde mira cada edificio DENTRO DE LA MAQUETA, que es un plano de la
+  // ciudad y no una hoja de sprites: cada uno está orientado a la calle a la
+  // que da en Quito, no a la cámara. Aquí se le da el cuarto o la media vuelta
+  // que hace falta para ponerlo de cara.
+  //
+  //   · La Asamblea tiene el lado largo en profundidad: de frente se le vería
+  //     el costado.
+  //   · La Fiscalía mira a −Z —su muro cortina, la marquesina de acceso y los
+  //     bolardos están todos en z negativa—, así que sin darle la vuelta lo
+  //     que se tiene delante es su medianera trasera: un panel gris liso. Era
+  //     exactamente lo que se veía.
+  asamblea_nacional: Math.PI / 2,
+  fiscalia_general_del_estado: Math.PI,
+};
+
+// Por debajo de esta fracción de la altura del edificio, la geometría no cuenta
+// para decidir dónde está la fachada. Es lo que separa el EDIFICIO de lo que lo
+// rodea: la explanada de la Fiscalía se mete treinta metros hacia la calle y
+// los bolardos otros seis, y midiendo la caja entera el «frente» acababa siendo
+// el borde de la acera —con el edificio en sí a treinta metros por detrás,
+// diluido en la niebla—. Un tercio de la altura deja fuera plazas, aceras,
+// bolardos y marquesinas bajas, y deja dentro el cuerpo, el vestíbulo y el
+// pórtico de entrada, que es lo que forma la fachada.
+const FRACCION_CUERPO = 0.35;
+
+function asentarFachada(objeto, giro = 0) {
+  objeto.rotation.y = giro;
+  objeto.updateMatrixWorld(true);
+
+  // Una caja por malla. Hacen falta las dos cosas: la global para centrar y
+  // apoyar, y las de cada pieza para poder descartar las bajas al buscar el
+  // frente. Se recorren los vértices en vez de usar Box3.setFromObject porque
+  // hace falta la caja DESPUÉS del giro, y girar la caja de un objeto no da la
+  // caja del objeto girado.
+  const cajas = [];
+  const v = new THREE.Vector3();
+
+  objeto.traverse((o) => {
+    if (!o.isMesh || !o.geometry?.attributes?.position) return;
+    const pos = o.geometry.attributes.position;
+    const min = [Infinity, Infinity, Infinity];
+    const max = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+      const c = [v.x, v.y, v.z];
+      for (let k = 0; k < 3; k++) {
+        if (c[k] < min[k]) min[k] = c[k];
+        if (c[k] > max[k]) max[k] = c[k];
+      }
+    }
+    cajas.push({ min, max });
+  });
+
+  if (!cajas.length) return objeto;   // rama vacía: nada que asentar
+
+  const global = { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };
+  for (const c of cajas) {
+    for (let k = 0; k < 3; k++) {
+      if (c.min[k] < global.min[k]) global.min[k] = c.min[k];
+      if (c.max[k] > global.max[k]) global.max[k] = c.max[k];
+    }
+  }
+
+  const alturaCuerpo = global.min[1] + (global.max[1] - global.min[1]) * FRACCION_CUERPO;
+  let frente = -Infinity;
+  for (const c of cajas) if (c.max[1] >= alturaCuerpo && c.max[2] > frente) frente = c.max[2];
+  if (!Number.isFinite(frente)) frente = global.max[2];
+
+  objeto.position.set(
+    -(global.min[0] + global.max[0]) / 2,   // centrado en la calle
+    -global.min[1],                         // apoyado en el asfalto
+    -frente,                                // su fachada en el plano del cruce
+  );
+  objeto.updateMatrixWorld(true);
+  return objeto;
+}
+
+/**
+ * El edificio que toca de frente en la bifurcación de este escenario, ya
+ * asentado: centrado, a ras de calle y con la fachada en el plano del cruce.
+ */
+export function clonarEdificioDelCruce(idEscenario) {
+  const nombre = EDIFICIO_DEL_CRUCE[idEscenario];
+  const copia = clonarPorNombre(nombre);
+  return copia ? asentarFachada(copia, ROTACION_FACHADA[nombre] ?? 0) : null;
+}
 
 /** Copia de una rama cualquiera del modelo de la ciudad, por su nombre. */
 export function clonarPorNombre(nombre) {
@@ -143,25 +266,4 @@ export function cargarHitos(base = '/') {
     );
   });
   return cargando;
-}
-
-/**
- * Una copia del hito que le toca a un escenario, o null si no hay.
- *
- * La copia se recentra en su base y en su eje: dentro del archivo cada rama
- * está donde el modelador la dejó, y colocarla tal cual dejaría el edificio
- * hundido en el asfalto o desplazado media manzana.
- */
-export function clonarHito(idEscenario) {
-  const nombre = HITO_POR_ESCENARIO[idEscenario];
-  if (!raiz || !nombre) return null;
-
-  const original = raiz.getObjectByName(nombre);
-  if (!original) return null;
-
-  const copia = original.clone(true);
-  copia.position.set(0, 0, 0);
-  copia.rotation.set(0, 0, 0);
-  copia.updateMatrixWorld(true);
-  return copia;
 }

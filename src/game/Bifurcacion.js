@@ -1,21 +1,26 @@
 // ============================================================================
 // BIFURCACIÓN — El desvío se decide corriendo, no en un menú
 // ============================================================================
-// Al final de cada tramo la calle termina contra una fachada con TRES BOCAS DE
-// TÚNEL, una por carril. El carril en el que estés al entrar decide la
+// Al final de cada tramo la calle topa con UN EDIFICIO: la Fiscalía, la
+// Asamblea, Carondelet. El carril en el que estés al llegar decide la
 // temporada. No se para el juego, no aparece una pantalla; eliges con el
 // cuerpo, como en Temple Run.
 //
-//   túnel izquierdo → temporada vecina de la izquierda
-//   túnel central   → el trámite (la vía institucional)
-//   túnel derecho   → temporada vecina de la derecha
+//   por la izquierda → temporada vecina de la izquierda
+//   de frente        → el trámite (la vía institucional), por su portal
+//   por la derecha   → temporada vecina de la derecha
 //
-// POR QUÉ TÚNELES Y NO RAMALES
-// Dos calles que divergen en la niebla son una mancha: no tienen borde, y a
-// 200 metros no se distingue una de otra. Una boca de túnel sí tiene borde, y
-// entrar en ella es un gesto inequívoco —o pasas por el hueco o no—. Además
-// justifica el corte de escenario: dentro no se ve nada, y al salir estás en
-// otro sitio.
+// POR QUÉ UN EDIFICIO Y NO TRES BOCAS DE TÚNEL
+// Antes había un paredón con tres agujeros, uno por carril, y funcionaba como
+// mecánica pero no significaba nada: la calle acababa en una pieza de utilería
+// idéntica en los cuatro escenarios. Lo que corta una calle en una ciudad es
+// un edificio, y aquí además es EL edificio —el sitio al que se está entrando
+// a preguntar—, así que la decisión pasa a leerse sola: de frente se entra ahí
+// dentro, por los lados se dobla la esquina. Ver crearCruceDeEdificios().
+//
+// El corte de escenario ya no lo tapa un túnel sino el soportal lateral (ver
+// _montarPaso): un pasaje corto que se cruza mientras el barrio de detrás se
+// sustituye por el nuevo.
 //
 // SECUENCIA
 //   1. AVISO       A 260 m aparecen los carteles de señalización, uno tras
@@ -97,7 +102,7 @@ export class Bifurcacion {
     // BIFURCA LA CIUDAD, no un paredón con tres agujeros. De frente está el
     // edificio de la institución con su portal; a los lados la calle sigue,
     // enmarcada por las medianeras del barrio. Ver crearCruceDeEdificios().
-    this.tuneles = crearCruceDeEdificios(destinos.centro, colores, centroEsPeligro);
+    this.tuneles = crearCruceDeEdificios(destinos.centro, colores, centroEsPeligro, idEscenario);
     this.tuneles.position.z = this.z;
     this.grupo.add(this.tuneles);
 

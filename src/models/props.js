@@ -30,6 +30,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { CARRILES, OBSTACULOS, PALETA, TUNEL, ELEVADO } from '../config/balance.js';
 import { COLOR3D } from '../config/estilo.js';
+import { clonarEdificioDelCruce } from './hitos.js';
 
 // ---------------------------------------------------------------------------
 // MATERIALES
@@ -2099,17 +2100,33 @@ function crearCartelDestino(texto, colorAcento, esPeligro = false) {
  * @param {object} colores       Paleta del escenario
  * @param {boolean} centroEsPeligro El de frente es el cerco, no una entrada
  */
-export function crearCruceDeEdificios(nombre, colores, centroEsPeligro = false) {
+export function crearCruceDeEdificios(nombre, colores, centroEsPeligro = false,
+                                      idEscenario = null) {
   const g = new THREE.Group();
   const acento = colores.acento ?? COLOR3D.dorado;
   const hueco = CARRILES.ANCHO * 1.02;   // por donde se pasa, en cada carril
 
   // --- El edificio del centro ----------------------------------------------
-  // Es la institución, y va CENTRADO y macizo salvo por su portal. Ir de frente
-  // significa entrar por esa puerta.
-  const fachada = crearFachadaInstitucion(nombre, colores, centroEsPeligro);
-  fachada.position.z = -2;
-  g.add(fachada);
+  // EL EDIFICIO DE VERDAD, si lo hay. La Fiscalía en la Bahía, la Asamblea en
+  // el Apagón, Carondelet en el centro histórico: los modelados, no una caja
+  // con un rótulo. Es lo que se tiene delante al decidir, así que es donde más
+  // se nota la diferencia entre un edificio y un sustituto.
+  //
+  // Viene ya asentado por clonarEdificioDelCruce(): centrado en la calle, a ras
+  // de asfalto y con la fachada en z = 0. Aquí solo se retranquea el medio
+  // metro que hace falta para que el marco del portal quede POR DELANTE de la
+  // piedra y no empotrado en ella.
+  const real = clonarEdificioDelCruce(idEscenario);
+  if (real) {
+    real.position.z -= 0.6;
+    g.add(real);
+  } else {
+    // Las Elecciones no tienen edificio modelado: ahí sigue la fachada
+    // procedural, que al menos lleva el rótulo bien puesto.
+    const fachada = crearFachadaInstitucion(nombre, colores, centroEsPeligro);
+    fachada.position.z = -2;
+    g.add(fachada);
+  }
 
   // El portal, recortado sobre la fachada: un marco iluminado a la altura del
   // carril central. No es un agujero en la geometría —eso obligaría a CSG— sino

@@ -736,6 +736,24 @@ export const CAMARA = {
   // suficientemente descentrado como para que se note el cambio de carril.
   SEGUIMIENTO_LATERAL: 0.5,
   AMORTIGUACION: 6,
+
+  // --- CORRIENDO POR ARRIBA -------------------------------------------------
+  // Sobre la plataforma la cámara se queda corta: seguía al jugador solo con
+  // un 0,28 de su altura, así que a tres metros y pico se veía el techo de los
+  // buses desde muy cerca y la calle de abajo desaparecía del cuadro. Se corría
+  // a ciegas por un pasillo estrecho sin saber dónde acaba.
+  //
+  // Arriba la cámara se separa, sube y baja la mira. Se separa porque hay que
+  // ver el borde de la plataforma —que es de donde te caes—, sube porque si no
+  // el propio tablado tapa lo que viene, y la mira baja para que el final del
+  // elevado entre en cuadro con antelación.
+  ARRIBA_ALTURA_EXTRA: 1.9,
+  ARRIBA_DISTANCIA_EXTRA: 2.6,
+  ARRIBA_MIRA_BAJA: 0.9,
+  // Lo que tarda en llegar a ese encuadre y en volver. Medio segundo: más
+  // rápido se lee como un tirón al subir, más lento y la cámara sigue
+  // acomodándose cuando ya te bajaste.
+  ARRIBA_TRANSICION: 0.5,
   // Sacudida al chocar.
   SACUDIDA_GOLPE: 0.5,
 

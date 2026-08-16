@@ -1603,13 +1603,29 @@ export class Game {
     const t = 1 - Math.exp(-CAMARA.AMORTIGUACION * dt);
     this.camara.position.x += (xObjetivo - this.camara.position.x) * t;
 
+    // CORRIENDO POR ARRIBA la cámara se abre. Ver CAMARA.ARRIBA_*: sobre la
+    // plataforma hay que ver el borde —que es de donde te caes— y el final del
+    // tramo, y con el encuadre de calle no se ve ni una cosa ni la otra.
+    //
+    // La transición va con su propio reloj y no con el amortiguador de arriba,
+    // porque ese está afinado para el seguimiento lateral —que tiene que ser
+    // rápido— y aquí un cambio así de grande a esa velocidad se lee como un
+    // tirón. Medio segundo.
+    const arriba = this.jugador.vaPorArriba && !this.jugador.volando;
+    this.mezclaArriba = (this.mezclaArriba ?? 0)
+      + ((arriba ? 1 : 0) - (this.mezclaArriba ?? 0))
+      * (1 - Math.exp(-dt / (CAMARA.ARRIBA_TRANSICION / 3)));
+    const m = this.mezclaArriba;
+
     // Sube un poco cuando el jugador salta: no lo pierde de vista.
-    const yObjetivo = CAMARA.POSICION.y + this.jugador.y * 0.28;
+    const yObjetivo = CAMARA.POSICION.y + this.jugador.y * 0.28
+      + CAMARA.ARRIBA_ALTURA_EXTRA * m;
     this.camara.position.y += (yObjetivo - this.camara.position.y) * t;
 
     // Vuelta a la profundidad de siempre. Solo se mueve tras un cerco, pero
     // sin esta línea el encuadre se quedaría descolocado al reanudar.
-    this.camara.position.z += (CAMARA.POSICION.z - this.camara.position.z) * t;
+    const zObjetivo = CAMARA.POSICION.z + CAMARA.ARRIBA_DISTANCIA_EXTRA * m;
+    this.camara.position.z += (zObjetivo - this.camara.position.z) * t;
 
     // Sacudida por golpe, con decaimiento exponencial.
     if (this.sacudida > 0.001) {
@@ -1626,7 +1642,7 @@ export class Game {
     // orbitaría alrededor del personaje. Van juntas.
     this.camara.lookAt(
       this.jugador.x * CAMARA.SEGUIMIENTO_LATERAL,
-      CAMARA.MIRA.y + this.jugador.y * 0.2,
+      CAMARA.MIRA.y + this.jugador.y * 0.2 - CAMARA.ARRIBA_MIRA_BAJA * m,
       CAMARA.MIRA.z,
     );
 

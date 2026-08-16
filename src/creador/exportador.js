@@ -25,7 +25,7 @@ import { crearPersonaje } from '../models/characters.js';
 import { PERSONAJES } from '../config/personajes.js';
 import { ESCENARIOS, obtenerEscenario } from '../config/escenarios.js';
 import { CATALOGO_POTENCIADORES } from '../config/balance.js';
-import { HITO_POR_ESCENARIO, DECORADO_IMPORTADO, clonarHito, clonarPorNombre } from '../models/hitos.js';
+import { EDIFICIO_DEL_CRUCE, DECORADO_IMPORTADO, clonarPorNombre } from '../models/hitos.js';
 
 const PALETA = obtenerEscenario('bahia').colores;
 
@@ -58,10 +58,10 @@ export const CATALOGO = [
   // bajarlos, mirarlos y devolverlos retocados como cualquier otra pieza: que
   // vengan de archivo en vez de generarse no los hace menos editables.
   { grupo: 'Edificios (del modelo de Quito)', piezas: [
-    ...Object.entries(HITO_POR_ESCENARIO).map(([escenario, nombre]) => ({
-      id: `hito-${escenario}`,
+    ...Object.entries(EDIFICIO_DEL_CRUCE).map(([escenario, nombre]) => ({
+      id: `edificio-${escenario}`,
       nombre: nombre.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase()),
-      hacer: () => clonarHito(escenario) ?? new THREE.Group(),
+      hacer: () => clonarPorNombre(nombre) ?? new THREE.Group(),
     })),
     // La central no es hito —ver hitos.js—, pero se baja igual para editarla.
     ...Object.values(DECORADO_IMPORTADO).map((nombre) => ({
@@ -69,8 +69,6 @@ export const CATALOGO = [
       nombre: nombre.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase()),
       hacer: () => clonarPorNombre(nombre) ?? new THREE.Group(),
     })),
-    { id: 'asamblea-nacional', nombre: 'Asamblea Nacional',
-      hacer: () => clonarPorNombre('asamblea_nacional') ?? new THREE.Group() },
   ] },
 
   { grupo: 'Obstáculos vestidos por escenario', piezas:

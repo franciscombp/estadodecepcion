@@ -22,29 +22,14 @@ import { CALIDAD } from '../config/estilo.js';
 
 const SEPARACION_DECORADO = 15;
 
-// CADA CUÁNTO PASA EL HITO.
+// LOS EDIFICIOS YA NO PASAN POR LA CUNETA.
 //
-// Estaba en 620 metros y era un error de bulto: la niebla tapa el 94 % a los
-// cien metros, así que el edificio se pasaba veinte segundos invisible y
-// asomaba tres. En la práctica no se veía nunca, que es justo lo que se
-// reportó.
-//
-// A 300 aparece cada diez segundos a velocidad de crucero: lo justo para que
-// sea un acontecimiento y no un mueble, y sin que llegue a haber dos en cuadro.
-const DISTANCIA_HITO = 300;
-// Cuánto se le deja quedarse atrás antes de rebobinar. Un edificio grande se
-// sigue viendo por detrás mucho después de haberlo pasado.
-const DISTANCIA_HITO_SALIDA = 80;
-// A qué distancia del eje se planta.
-//
-// Los decorados van a OFFSET_LATERAL (unos 7,4) y miden hasta ocho metros de
-// alto. A dieciséis, el hito quedaba justo detrás de esa fila y lo tapaba el
-// propio barrio. A once asoma POR ENCIMA de las casas, que es como se ve un
-// palacio desde la calle: por encima de los tejados, no al final de un solar.
-const DISTANCIA_HITO_LATERAL = 11;
+// Había un «hito» que cruzaba cada trescientos metros: el mismo palacio que
+// ahora está de frente en la bifurcación. Puesto en los dos sitios se veía dos
+// veces en la misma calle, y eso no dobla la presencia, la reparte. El sitio
+// del edificio es el cruce, que es donde significa algo porque es donde hay que
+// decidir si se entra. Ver models/hitos.js.
 const OFFSET_LATERAL = ANCHO_PISTA / 2 + 3.4;
-
-import { clonarHito } from '../models/hitos.js';
 
 export class BaseScene {
   /**
@@ -67,7 +52,6 @@ export class BaseScene {
     this._crearLuces();
     this._crearNiebla();
     this._crearDecorado();
-    this._crearHito();
     this._crearDron();
   }
 
@@ -161,34 +145,6 @@ export class BaseScene {
   }
 
   /**
-   * EL EDIFICIO QUE SE RECONOCE.
-   *
-   * Va aparte del decorado y con sus propias reglas: es único, es grande y
-   * pasa UNA vez cada vuelta larga. Repetido cada cincuenta metros dejaría de
-   * ser un hito para ser una textura, y el centro histórico se leería como un
-   * bucle en vez de como una ciudad.
-   *
-   * Se coloca al costado, mirando a la pista, y a ras de suelo: el modelo trae
-   * su propia base y hundirlo o levantarlo se nota enseguida en un edificio
-   * con zócalo.
-   *
-   * Si el modelo no cargó, aquí no pasa nada. Los hitos son decorado, y el
-   * juego se juega igual sin ellos.
-   */
-  _crearHito() {
-    this.hito = null;
-    const pieza = clonarHito(this.config.id);
-    if (!pieza) return;
-
-    // A la izquierda y girado hacia la calle. Al fondo del ciclo, para que
-    // aparezca de lejos y dé tiempo a verlo llegar.
-    pieza.position.set(-DISTANCIA_HITO_LATERAL, 0, -DISTANCIA_HITO);
-    pieza.rotation.y = Math.PI / 2;
-    this.grupo.add(pieza);
-    this.hito = pieza;
-  }
-
-  /**
    * Dron de vigilancia. Sobrevuela la pista describiendo un vaivén lateral:
    * está siempre presente pero nunca tapa el carril del jugador.
    */
@@ -214,17 +170,6 @@ export class BaseScene {
    */
   actualizar(dt, avance, jugador) {
     this.tiempo += dt;
-
-    // --- El hito -----------------------------------------------------------
-    if (this.hito) {
-      this.hito.position.z += avance;
-      // Se rebobina el ciclo entero cuando ya quedó atrás, no cuando sale de
-      // cuadro: un edificio de cincuenta metros de fondo sigue viéndose por el
-      // retrovisor un buen rato después de pasarlo.
-      if (this.hito.position.z > DISTANCIA_HITO_SALIDA) {
-        this.hito.position.z -= DISTANCIA_HITO + DISTANCIA_HITO_SALIDA;
-      }
-    }
 
     // --- Decorado ----------------------------------------------------------
     for (const d of this.decorados) {
