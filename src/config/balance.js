@@ -80,6 +80,11 @@ export const SALTO = {
 // ---------------------------------------------------------------------------
 export const AGACHARSE = {
   DURACION: 0.55,     // Cuánto permanece agachado antes de volver a erguirse.
+
+  // Lo que tarda la voltereta en dar la vuelta entera. Va por debajo de la
+  // DURACION a propósito: la vuelta termina antes de que el personaje se
+  // levante, así que se le ve caer de pie y no incorporarse a medio giro.
+  DURACION_RODADA: 0.42,
   ALTURA_NORMAL: 1.8, // Altura de la caja de colisión de pie.
   ALTURA_AGACHADO: 0.9,
 

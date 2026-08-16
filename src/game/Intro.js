@@ -357,13 +357,19 @@ export class Intro {
     // El brazo del micrófono, extendido y con el pulso de quien lleva rato
     // aguantándolo. El otro sostiene la libreta contra el pecho.
     const pulso = Math.sin(tiempo * 2.4) * 0.07;
-    p.brazoDer.rotation.x = (-1.65 + pulso) * intensidad;
+    p.brazoDer.rotation.x = (-1.35 + pulso) * intensidad;
     p.brazoDer.rotation.z = -0.35 * intensidad;
+    // El codo, doblado: el micrófono se sostiene con el antebrazo levantado,
+    // no con el brazo entero estirado como una barrera.
+    p.antebrazoDer.rotation.x = -0.55 * intensidad;
     p.brazoIzq.rotation.x = -0.5 * intensidad;
+    p.antebrazoIzq.rotation.x = -0.85 * intensidad;
 
     // Piernas quietas: no está corriendo todavía.
     p.piernaIzq.rotation.x = 0.1 * intensidad;
     p.piernaDer.rotation.x = -0.14 * intensidad;
+    p.pantorrillaIzq.rotation.x = 0.06 * intensidad;
+    p.pantorrillaDer.rotation.x = 0.1 * intensidad;
     p.torso.rotation.x = -0.06 * intensidad;
 
     // El micrófono. Se crea una vez y se cuelga del brazo; al terminar la
@@ -383,8 +389,10 @@ export class Intro {
       );
       rejilla.position.y = 0.19;
       this._microfono.add(rejilla);
-      this._microfono.position.set(0, -0.42, 0);
-      p.brazoDer.add(this._microfono);
+      // Va EN LA MANO, no colgado del hombro: ahora el brazo tiene codo, y un
+      // micrófono anclado al hombro se queda flotando en cuanto el codo dobla.
+      this._microfono.position.set(0, -0.16, -0.04);
+      p.manoDer.add(this._microfono);
     }
     this._microfono.visible = intensidad > 0.05;
   }
