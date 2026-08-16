@@ -2258,15 +2258,12 @@ html, body {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 9px;
-  padding-top: 7px;
-  border-top: 1px solid var(--tinta);
-  font-family: var(--tipo);
-  font-size: clamp(.5rem, 2vw, .6rem);
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--tinta-media);
-  font-weight: 700;
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--tinta-tenue);
 }
 
 .diario__franja--interior { border-top: 0; padding-top: 0; }
@@ -2488,7 +2485,7 @@ html, body {
   gap: 7px;
   margin-top: 20px;
   padding-top: 14px;
-  border-top: 3px double var(--tinta);
+  border-top: 1px solid var(--papel-sombra);
 }
 
 .paginador__pag {
@@ -3226,6 +3223,14 @@ html, body {
   text-transform: lowercase;
 }
 
+/* La cabecera del Archivo lleva marca y franja, una debajo de otra. */
+.plana__cabecera--diario {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding-top: 0;
+}
+
 .plana__antetitulo {
   font-family: var(--sans);
   font-size: 0.875rem;
@@ -3242,8 +3247,8 @@ html, body {
    carteles de «se busca» de toda la vida. Es el único adorno que se permite la
    sección; el resto de pestañas siguen siendo tabla de resultados normal. */
 .plana--circular .plana__antetitulo {
-  border-top: 4px solid #16130d;
-  border-bottom: 1px solid #16130d;
+  border-top: 1px solid var(--papel-sombra);
+  border-bottom: 1px solid var(--tinta);
   padding: 5px 0 3px;
   margin-bottom: 6px;
 }
@@ -3254,7 +3259,7 @@ html, body {
 }
 
 .plana--circular .plana__epigrafe {
-  border-bottom: 4px solid #16130d;
+  border-bottom: 1px solid var(--papel-sombra);
   padding-bottom: 6px;
 }
 
@@ -3309,12 +3314,12 @@ html, body {
 
 .cita--plana {
   margin: 10px 0 0;
-  border-left-color: #a3231f;
+  border-left-color: var(--rojo-diario);
   background: rgba(0, 0, 0, 0.05);
 }
 
-.cita--plana .cita__texto { color: #2e281d; }
-.cita--plana .cita__fuente { color: #6b6152; }
+.cita--plana .cita__texto { color: var(--tinta); }
+.cita--plana .cita__fuente { color: var(--tinta-tenue); }
 
 
 /* --- Saltar la cinemática -------------------------------------------------
@@ -3488,7 +3493,7 @@ html, body {
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 0.6rem;
   font-style: italic;
-  color: #6b6152;
+  color: var(--tinta-tenue);
   border-bottom: 1px solid rgba(0, 0, 0, 0.14);
   padding-bottom: 7px;
 }
@@ -3537,8 +3542,8 @@ html, body {
   font-size: 0.54rem;
   font-weight: 900;
   letter-spacing: 0.14em;
-  color: #f3ecdc;
-  background: #a3231f;
+  color: #ffffff;
+  background: var(--rojo-diario);
   animation: sello-cae 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) backwards;
 }
 
@@ -3575,7 +3580,7 @@ html, body {
 .plana__datos {
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 0.68rem;
-  color: #6b6152;
+  color: var(--tinta-tenue);
   text-align: center;
   padding-bottom: 10px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.14);
@@ -3589,8 +3594,8 @@ html, body {
   font-size: 0.6rem;
   font-weight: 900;
   letter-spacing: 0.2em;
-  color: #16130d;
-  border-bottom: 2px solid #16130d;
+  color: var(--tinta);
+  border-bottom: 1px solid var(--papel-sombra);
 }
 
 /* --- Pestañas de la página de deportes -------------------------------------
@@ -3602,7 +3607,7 @@ html, body {
   display: flex;
   gap: 4px;
   margin: 8px 0 6px;
-  border-bottom: 2px solid #16130d;
+  border-bottom: 1px solid var(--papel-sombra);
 }
 
 .pestana {
@@ -3613,7 +3618,7 @@ html, body {
   border-bottom: none;
   border-radius: 4px 4px 0 0;
   background: rgba(22, 19, 13, 0.07);
-  color: #4a4034;
+  color: var(--tinta-tenue);
   font-size: clamp(0.5rem, 2.2vw, 0.62rem);
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -3631,7 +3636,7 @@ html, body {
 }
 
 .pestana--activa {
-  background: #16130d;
+  background: var(--tinta);
   color: #f4efe2;
   transform: translateY(2px);
 }
@@ -3666,7 +3671,7 @@ html, body {
   flex: 0 0 1.4em;
   font-size: 0.72rem;
   font-weight: 700;
-  color: #8a7f6a;
+  color: var(--tinta-tenue);
   text-align: right;
 }
 
@@ -3691,7 +3696,7 @@ html, body {
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #a3231f;
+  color: var(--rojo-diario);
 }
 
 .posiciones__cifra {
@@ -3703,20 +3708,20 @@ html, body {
 
 /* La fila del jugador va en negativo, como el destacado de una tabla impresa. */
 .posiciones__fila--tu {
-  background: #16130d;
-  color: #f3ecdc;
+  background: var(--tinta);
+  color: #ffffff;
   margin: 2px -6px;
   padding: 6px 8px;
   border-bottom: none;
 }
 
-.posiciones__fila--tu .posiciones__puesto { color: #c9bfa6; }
+.posiciones__fila--tu .posiciones__puesto { color: rgba(255, 255, 255, 0.6); }
 
 .posiciones__corte {
   padding: 2px 2px 4px;
   font-size: 0.8rem;
   letter-spacing: 0.3em;
-  color: #8a7f6a;
+  color: var(--tinta-tenue);
 }
 
 .plana__nota-tabla {
@@ -3725,7 +3730,7 @@ html, body {
   font-size: 0.58rem;
   font-style: italic;
   line-height: 1.4;
-  color: #6b6152;
+  color: var(--tinta-tenue);
 }
 
 /* Los desbloqueos, dentro del periódico, se visten de recuadro impreso. */
@@ -3736,9 +3741,9 @@ html, body {
   margin-top: 12px;
 }
 
-.plana .desbloqueo__etiqueta { color: #a3231f; }
-.plana .desbloqueo__nombre { color: #16130d; }
-.plana .desbloqueo__desc { color: #4a4234; }
+.plana .desbloqueo__etiqueta { color: var(--rojo-diario); }
+.plana .desbloqueo__nombre { color: var(--tinta); }
+.plana .desbloqueo__desc { color: var(--tinta-tenue); }
 .plana .desbloqueo__icono svg { filter: grayscale(1) contrast(1.2); }
 
 /* ===========================================================================
@@ -3763,14 +3768,14 @@ html, body {
   background: rgba(22, 19, 13, 0.045);
   border: 1px solid rgba(22, 19, 13, 0.22);
   border-radius: 3px;
-  color: #4a4034;
+  color: var(--tinta-tenue);
 }
 
-.plana .instruccion strong { color: #16130d; }
+.plana .instruccion strong { color: var(--tinta); }
 
 .plana .instruccion__icono {
   background: rgba(22, 19, 13, 0.08);
-  color: #16130d;
+  color: var(--tinta);
   border-radius: 3px;
 }
 
@@ -3782,22 +3787,22 @@ html, body {
   margin-top: 8px;
 }
 
-.plana .edicion__estado { color: #4a4034; }
+.plana .edicion__estado { color: var(--tinta-tenue); }
 .plana .edicion__sello,
-.plana .edicion__nota { color: #6b6152; }
-.plana .edicion__punto { background: #8a7f6a; }
+.plana .edicion__nota { color: var(--tinta-tenue); }
+.plana .edicion__punto { background: var(--tinta-tenue); }
 .plana .edicion--listo .edicion__punto { background: #2f6b3a; box-shadow: none; }
 .plana .edicion--listo .edicion__estado { color: #2f6b3a; }
-.plana .edicion--nueva { background: rgba(163, 35, 31, 0.07); border-color: #a3231f; }
-.plana .edicion--nueva .edicion__punto { background: #a3231f; box-shadow: none; }
-.plana .edicion--nueva .edicion__estado { color: #a3231f; }
+.plana .edicion--nueva { background: rgba(163, 35, 31, 0.07); border-color: var(--rojo-diario); }
+.plana .edicion--nueva .edicion__punto { background: var(--rojo-diario); box-shadow: none; }
+.plana .edicion--nueva .edicion__estado { color: var(--rojo-diario); }
 
 /* Los botones que viven DENTRO del papel —solo el de buscar edición— van de
    tinta sobre crema, no de neón: dentro de la hoja, un botón encendido se lee
    como un banner y el ojo lo salta. */
 .plana .boton--edicion {
-  background: #16130d;
-  border-color: #16130d;
+  background: var(--tinta);
+  border-color: var(--tinta);
   color: #f4efe2;
   border-radius: 3px;
 }
@@ -3812,7 +3817,7 @@ html, body {
    destacada de prensa, sin el fondo dorado que aquí sería un subrayado. */
 .plana .remate {
   background: none;
-  border-left: 4px solid #a3231f;
+  border-left: 4px solid var(--rojo-diario);
   border-radius: 0;
   font-family: Georgia, 'Times New Roman', serif;
   color: #1d1a14;
@@ -3820,24 +3825,24 @@ html, body {
   padding: 4px 0 4px 14px;
 }
 
-.plana .remate__firma { color: #a3231f; }
+.plana .remate__firma { color: var(--rojo-diario); }
 
 /* --- Rejilla de cifras --- */
 .plana .estadistica {
   background: none;
   border: none;
-  border-top: 2px solid #16130d;
+  border-top: 1px solid var(--papel-sombra);
   border-radius: 0;
   padding: 7px 2px 2px;
 }
 
 .plana .estadistica__valor {
   font-family: Georgia, 'Times New Roman', serif;
-  color: #16130d;
+  color: var(--tinta);
   text-shadow: none;
 }
 
-.plana .estadistica__etiqueta { color: #6b6152; }
+.plana .estadistica__etiqueta { color: var(--tinta-tenue); }
 
 /* --- El sorteo del juez ---
    Seis fichas sobre papel: recuadro con filete y nada más.
@@ -3897,8 +3902,8 @@ html, body {
 .plana .resultado {
   background: none;
   border: none;
-  border-top: 3px double #16130d;
-  border-bottom: 3px double #16130d;
+  border-top: 1px solid var(--papel-sombra);
+  border-bottom: 1px solid var(--papel-sombra);
   border-radius: 0;
   box-shadow: none;
   padding: 10px 0;
@@ -3911,11 +3916,11 @@ html, body {
 }
 
 .plana .resultado--exito .resultado__titulo { color: #2f6b3a; }
-.plana .resultado--fracaso .resultado__titulo { color: #a3231f; }
+.plana .resultado--fracaso .resultado__titulo { color: var(--rojo-diario); }
 
 .plana .resultado__texto {
   font-family: Georgia, 'Times New Roman', serif;
-  color: #4a4034;
+  color: var(--tinta-tenue);
 }
 
 /* --- Ruta de la corrida, en la victoria --- */
@@ -3926,14 +3931,14 @@ html, body {
   box-shadow: none;
 }
 
-.plana .ruta__nombre { color: #16130d; }
+.plana .ruta__nombre { color: var(--tinta); }
 .plana .ruta__direccion,
 .plana .ruta__desc,
-.plana .ruta__probabilidad { color: #6b6152; }
-.plana .ruta__flecha { color: #8a7f6a; }
+.plana .ruta__probabilidad { color: var(--tinta-tenue); }
+.plana .ruta__flecha { color: var(--tinta-tenue); }
 .plana .ruta--institucion { border-color: rgba(163, 35, 31, 0.5); }
 .plana .ruta--institucion .ruta__nombre,
-.plana .ruta--institucion .ruta__flecha { color: #a3231f; }
+.plana .ruta--institucion .ruta__flecha { color: var(--rojo-diario); }
 
 
 
@@ -4369,7 +4374,7 @@ html, body {
 .plana__meta {
   margin-top: 12px;
   padding: 10px 12px 11px;
-  border-top: 3px double var(--tinta);
+  border-top: 1px solid var(--papel-sombra);
   text-align: center;
 }
 
@@ -4463,8 +4468,13 @@ html, body {
 .botin__rejilla {
   display: flex;
   flex-wrap: wrap;
+  align-content: flex-start;
   justify-content: center;
-  gap: clamp(14px, 5vw, 26px);
+  gap: 14px;
+  /* Aire abajo: es el bloque elástico y se desplaza por dentro cuando no
+     caben las cuatro piezas; sin esto el sello de la última fila queda
+     cortado contra el borde. */
+  padding-bottom: 10px;
   /* La perspectiva vive en el PADRE: puesta en cada pieza, cada una tendría su
      propio punto de fuga y el conjunto se leería plano por mucho que giren. */
   perspective: 620px;
@@ -4475,7 +4485,7 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 9px;
-  width: clamp(112px, 34vw, 150px);
+  width: clamp(96px, 30vw, 132px);
   animation: botin-entra 0.62s cubic-bezier(0.2, 1.5, 0.4, 1) var(--retardo, 0s) both;
 }
 
@@ -4829,7 +4839,7 @@ html, body {
 .plana__mancheta {
   padding-bottom: 8px;
   margin-bottom: 10px;
-  border-bottom: 3px double var(--tinta);
+  border-bottom: 1px solid var(--papel-sombra);
 }
 
 /* La cabeza del diario: es lo más grande de la página, como en cualquier

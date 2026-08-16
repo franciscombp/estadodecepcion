@@ -46,8 +46,8 @@
 export const CABECERA = {
   nombre: 'EL MERCIO',
   lema: 'La verdad, aunque duela — y suele',
-  edicion: 'EDICIÓN ESPECIAL',
-  precio: 'GRATIS PARA QUIEN CORRE',
+  edicion: 'Edición especial',
+  precio: 'Gratis para quien corre',
   sitio: 'elmercio.com',
 };
 
@@ -55,7 +55,7 @@ export const PAGINAS = [
   // -------------------------------------------------------------------------
   {
     numero: 1,
-    nombre: 'PORTADA',
+    nombre: 'Portada',
     seccion: 'Primera plana',
     costo: 0, // Se abre sola al terminar la primera partida.
     articulos: [
@@ -84,7 +84,7 @@ export const PAGINAS = [
   // -------------------------------------------------------------------------
   {
     numero: 2,
-    nombre: 'ENERGÍA',
+    nombre: 'Energía',
     seccion: 'El apagón',
     // Se arma con PRUEBAS del caso, no comprándola con evidencia suelta.
     // El Apagón suelta cuatro tipos distintos; con dos ya hay reportaje.
@@ -111,7 +111,7 @@ export const PAGINAS = [
   // -------------------------------------------------------------------------
   {
     numero: 3,
-    nombre: 'POLÍTICA',
+    nombre: 'Política',
     seccion: 'Las elecciones',
     caso: 'elecciones',
     pruebas: 2,
@@ -136,7 +136,7 @@ export const PAGINAS = [
   // -------------------------------------------------------------------------
   {
     numero: 4,
-    nombre: 'DERECHOS',
+    nombre: 'Derechos',
     seccion: 'Carondelet',
     // Carondelet solo suelta dos tipos de prueba: hacen falta los dos.
     caso: 'carondelet',
@@ -162,7 +162,7 @@ export const PAGINAS = [
   // -------------------------------------------------------------------------
   {
     numero: 5,
-    nombre: 'SEGUIMIENTO',
+    nombre: 'Seguimiento',
     seccion: 'La última',
     // El seguimiento no es de un caso: cruza todos. Seis pruebas de
     // cualquiera de ellos, que es media investigación completa.

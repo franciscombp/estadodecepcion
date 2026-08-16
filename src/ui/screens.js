@@ -397,7 +397,7 @@ export class Pantallas {
 
   ajustes() {
     const { pantalla, contenido, plana } = seccionDiario({
-      seccion: 'ADMINISTRACIÓN',
+      seccion: 'REDACCIÓN',
       antetitulo: 'CÓMO SE USA ESTE EJEMPLAR',
       titular: 'La redacción',
       bajada: 'Controles, edición y el botón de tirarlo todo a la basura',
@@ -1047,7 +1047,7 @@ export class Pantallas {
     const botones = el('div', 'botones');
     if (datos) {
       const donde = obtenerEscenario(datos.escenario ?? this.juego.escenarioActual);
-      botones.appendChild(boton(`INTENTAR DE NUEVO · ${donde.nombre}`, 'boton--principal',
+      botones.appendChild(boton('Volver a investigar', 'boton--principal',
         () => this.juego.iniciarPartida()));
       botones.appendChild(boton('Ver todo el diario', '',
         () => this.mostrar(this.notebook())));
@@ -1227,8 +1227,8 @@ export class Pantallas {
     const pruebas = datos.pruebas ?? [];
     const buenas = pruebas.filter((n) => !Notebook.esFalsa(n)).length;
     contenido.appendChild(el('h1', 'botin__titular',
-      buenas === 0 ? 'NADA QUE SOSTENGA'
-        : buenas === 1 ? 'UNA PRUEBA' : `${buenas} PRUEBAS`));
+      buenas === 0 ? 'Nada que sostenga'
+        : buenas === 1 ? 'Sacaste una prueba' : `Sacaste ${buenas} pruebas`));
 
     const rejilla = el('div', 'botin__rejilla se-estira se-estira--desplazable');
 
@@ -1654,28 +1654,31 @@ export class Pantallas {
     return pantalla;
   }
 
-  /** Mancheta del diario. En portada va completa; dentro, reducida. */
+  /**
+   * Mancheta del Archivo — LA MISMA MARCA QUE EL RESTO.
+   *
+   * Tenía cabecera propia: antetítulo de edición, el nombre a cuerpo enorme,
+   * el lema debajo y una franja de tres datos. Era bonita y era otro diseño:
+   * la única pantalla del juego que no se presentaba como se presentan todas
+   * las demás. Ahora usa la marca del sistema —«EL MERCIO./archivo»,
+   * «EL MERCIO./portada»— y debajo, en una línea de cuerpo pequeño, lo que
+   * lleva la cabecera de un ejemplar de verdad: sitio, páginas y precio.
+   */
   _cabeceraDiario(pagina) {
-    const cab = el('header', 'diario__cabecera');
+    const esPortada = pagina.numero === 1;
+    const cab = cabeceraMarca(esPortada ? 'archivo' : pagina.seccion);
+    cab.classList.add('plana__cabecera--diario');
 
-    if (pagina.numero === 1) {
-      cab.appendChild(el('div', 'diario__lema', CABECERA.edicion));
-      cab.appendChild(el('h1', 'diario__nombre', CABECERA.nombre));
-      cab.appendChild(el('div', 'diario__lema', CABECERA.lema));
-
-      const franja = el('div', 'diario__franja');
+    const franja = el('div', 'diario__franja');
+    if (esPortada) {
       franja.appendChild(el('span', '', CABECERA.sitio));
       franja.appendChild(el('span', '', `${this.cuaderno.paginasAbiertas} pág. recuperadas`));
       franja.appendChild(el('span', '', CABECERA.precio));
-      cab.appendChild(franja);
     } else {
-      const franja = el('div', 'diario__franja diario__franja--interior');
-      franja.appendChild(el('span', '', CABECERA.nombre));
-      franja.appendChild(el('span', '', pagina.seccion));
+      franja.appendChild(el('span', '', pagina.nombre));
       franja.appendChild(el('span', '', `Pág. ${pagina.numero}`));
-      cab.appendChild(franja);
-      cab.appendChild(el('h2', 'diario__seccion', pagina.nombre));
     }
+    cab.appendChild(franja);
 
     return cab;
   }
@@ -1804,7 +1807,7 @@ export class Pantallas {
     // sale. Es la pantalla más tonta del juego y por eso mismo tenía que ir
     // impresa: si esta se salvara del papel, el sistema no sería un sistema.
     const { pantalla, contenido, plana } = seccionDiario({
-      seccion: 'CIERRE DE EDICIÓN',
+      seccion: 'PAUSA',
       antetitulo: 'EN PAUSA',
       titular: 'Respira',
       bajada: 'La rotativa espera. Nadie te está persiguiendo mientras esto esté abierto.',

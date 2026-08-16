@@ -61,8 +61,8 @@ export const CLASIFICACIONES = [
   {
     id: 'papeles',
     pestana: 'Más buscados',
-    titulo: 'LOS MÁS BUSCADOS',
-    antetitulo: 'CIRCULAR DE BÚSQUEDA · ARCHIVO ACUMULADO',
+    titulo: 'Los más buscados',
+    antetitulo: 'CIRCULAR DE BÚSQUEDA',
     epigrafe: 'Ordenados por lo que llevan documentado. Cuanto más arriba, más estorbas',
     notaLider: 'prioridad uno',
     unidad: '',
@@ -72,8 +72,8 @@ export const CLASIFICACIONES = [
   {
     id: 'distancia',
     pestana: 'Distancia',
-    titulo: 'TOTAL DE DISTANCIA',
-    antetitulo: 'QUIÉN CORRE MÁS',
+    titulo: 'Total de distancia',
+    antetitulo: 'CLASIFICACIÓN',
     epigrafe: 'Metros corridos desde la primera entrevista',
     unidad: ' m',
     valor: (c) => c.distanciaHistorica,
@@ -82,8 +82,8 @@ export const CLASIFICACIONES = [
   {
     id: 'mejor',
     pestana: 'Mejor corrida',
-    titulo: 'MEJOR CORRIDA',
-    antetitulo: 'QUIÉN DOCUMENTA MÁS DE UNA SENTADA',
+    titulo: 'Mejor corrida',
+    antetitulo: 'CLASIFICACIÓN',
     epigrafe: 'Papeles recogidos en una sola partida',
     unidad: '',
     valor: (c) => c.mejorEvidencia,
