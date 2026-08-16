@@ -1867,6 +1867,299 @@ function crearLocalBahia(rnd, indiceRotulo = null) {
   return g;
 }
 
+// ===========================================================================
+// LA CALLE DE GUAYAQUIL — el decorado de Las Elecciones
+// ===========================================================================
+// Tomado de fotos de calle de Guayaquil. La gramática de esa arquitectura es
+// muy concreta y es lo que hay que replicar:
+//
+//   · DOS PLANTAS, y la de arriba VUELA sobre la vereda apoyada en columnas.
+//     Ese soportal continuo —columnas cuadradas cada tres metros y sombra
+//     debajo— es lo primero que se reconoce, y es lo que la separa de la
+//     cuadra colonial de Carondelet, donde la fachada baja a ras de suelo.
+//   · LAS COLUMNAS VAN PINTADAS DE OTRO COLOR que el muro, casi siempre un
+//     naranja o un terracota contra crema o amarillo pálido. No es un detalle:
+//     esa alternancia es la mitad del color de la calle.
+//   · ABAJO, PERSIANAS. Locales cerrados a esa hora, con su reja y su puerta.
+//   · ARRIBA, UNA BANDA CORRIDA DE VENTANAS con marcos oscuros y montantes
+//     finos, de esquina a esquina.
+//   · REMATE PLANO con antepecho, sin alero ni teja.
+const GYE = {
+  muros: [0xefe4c9, 0xf2e2a8, 0xf0eee6, 0xdfe6d2, 0xe8dcc0],
+  columnas: [0xe8873c, 0xc9603a, 0xd9a441, 0xb8654a],
+  persiana: 0x7b8086,
+  ventana: 0x2b3038,
+  marco: 0xe8e4da,
+  zocalo: 0x9a958c,
+  // El morado del partido. Es el color de la campaña y se repite en banderas,
+  // camiones y carteles: en una avenida en campaña, TODO es de ese color.
+  partido: 0x7b4fd0,
+  partidoClaro: 0xa585e8,
+};
+
+const MATS_GYE = new Map();
+function matGye(color, emision = 0.05, rugosidad = 0.92) {
+  const clave = `${color}|${emision}|${rugosidad}`;
+  if (!MATS_GYE.has(clave)) MATS_GYE.set(clave, mat(color, emision, rugosidad));
+  return MATS_GYE.get(clave);
+}
+
+/**
+ * UNA CASA DE GUAYAQUIL. Soportal abajo, banda de ventanas arriba.
+ *
+ * La fachada mira a +Z, que es como la coloca BaseScene tras girarla.
+ *
+ * @param {number} ancho  Cuánta calle ocupa
+ * @param {function} rnd  Fuente de azar, inyectable para poder fijarla
+ */
+function crearCasaGuayaquil(ancho, rnd) {
+  const g = new THREE.Group();
+  const PLANTA_BAJA = 3.2;     // hasta el techo del soportal
+  const PLANTA_ALTA = 3.0;
+  const ANTEPECHO = 0.6;
+  const FONDO = 4.2;
+  const VUELO = 1.5;           // cuánto vuela la planta alta sobre la vereda
+
+  const muro = GYE.muros[Math.floor(rnd() * GYE.muros.length)];
+  const columna = GYE.columnas[Math.floor(rnd() * GYE.columnas.length)];
+  const matMuro = matGye(muro);
+  const matCol = matGye(columna);
+
+  const zFrente = FONDO / 2;
+
+  // --- Planta baja: el cuerpo retranqueado y su soportal -------------------
+  // El muro de los locales va METIDO hacia dentro: el hueco que queda delante
+  // es la vereda cubierta, y es lo que da la sombra que define estas calles.
+  g.add(_caja(ancho, PLANTA_BAJA, FONDO - VUELO, matMuro,
+    0, PLANTA_BAJA / 2, -VUELO / 2));
+
+  // Zócalo de baldosa, que en las fotos siempre está y siempre más oscuro.
+  g.add(_caja(ancho, 0.5, FONDO - VUELO + 0.04, matGye(GYE.zocalo, 0.04, 0.9),
+    0, 0.25, -VUELO / 2));
+
+  // Las persianas de los locales, bajo el soportal.
+  const locales = Math.max(1, Math.round(ancho / 2.6));
+  const anchoLocal = ancho / locales;
+  for (let i = 0; i < locales; i++) {
+    const x = (i - (locales - 1) / 2) * anchoLocal;
+    g.add(_caja(anchoLocal - 0.35, 2.2, 0.1, matGye(GYE.persiana, 0.03, 0.7),
+      x, 1.2, zFrente - VUELO - 0.02));
+    // El dintel pintado sobre cada local: otra franja de color.
+    g.add(_caja(anchoLocal - 0.25, 0.42, 0.12, matCol,
+      x, 2.55, zFrente - VUELO - 0.02));
+  }
+
+  // Las columnas del soportal, al filo de la vereda. Cuadradas y pintadas.
+  const cuantas = Math.max(2, Math.round(ancho / 3) + 1);
+  for (let i = 0; i < cuantas; i++) {
+    const x = (i / (cuantas - 1) - 0.5) * (ancho - 0.5);
+    g.add(_caja(0.42, PLANTA_BAJA, 0.42, matCol, x, PLANTA_BAJA / 2, zFrente - 0.25));
+    // Basa más clara, como en las fotos.
+    g.add(_caja(0.5, 0.35, 0.5, matGye(GYE.marco, 0.04, 0.9), x, 0.17, zFrente - 0.25));
+  }
+
+  // --- El forjado que vuela --------------------------------------------------
+  g.add(_caja(ancho, 0.3, FONDO, matMuro, 0, PLANTA_BAJA + 0.15, 0));
+
+  // --- Planta alta: muro y banda corrida de ventanas -----------------------
+  const yAlta = PLANTA_BAJA + 0.3;
+  g.add(_caja(ancho, PLANTA_ALTA, FONDO, matMuro, 0, yAlta + PLANTA_ALTA / 2, 0));
+
+  // La banda de ventanas, de esquina a esquina.
+  const yVent = yAlta + PLANTA_ALTA * 0.55;
+  g.add(_caja(ancho - 0.5, 1.5, 0.1, matGye(GYE.ventana, 0.06, 0.5),
+    0, yVent, zFrente + 0.02));
+  // Montantes finos, que es lo que la hace una banda de ventanas y no un
+  // rectángulo negro.
+  const montantes = Math.max(3, Math.round(ancho / 0.9));
+  for (let i = 0; i < montantes; i++) {
+    const x = (i / (montantes - 1) - 0.5) * (ancho - 0.6);
+    g.add(_caja(0.08, 1.5, 0.14, matGye(GYE.marco, 0.05, 0.9), x, yVent, zFrente + 0.04));
+  }
+  // Y su antepecho, la franja de color bajo la ventana.
+  g.add(_caja(ancho, 0.5, 0.12, matCol, 0, yVent - 1.05, zFrente + 0.03));
+
+  // --- Remate plano ---------------------------------------------------------
+  const yRemate = yAlta + PLANTA_ALTA;
+  g.add(_caja(ancho, ANTEPECHO, FONDO + 0.15, matMuro, 0, yRemate + ANTEPECHO / 2, 0));
+  g.add(_caja(ancho + 0.1, 0.12, FONDO + 0.25, matGye(GYE.marco, 0.05, 0.9),
+    0, yRemate + ANTEPECHO, 0));
+
+  // --- La campaña, encima de todo -------------------------------------------
+  // Una avenida en campaña está forrada: banderas del partido colgando de las
+  // columnas y del antepecho. Es lo que convierte una calle cualquiera en LAS
+  // ELECCIONES sin tener que escribirlo en ningún sitio.
+  if (rnd() > 0.25) {
+    const cuantasBanderas = 1 + Math.floor(rnd() * 3);
+    for (let i = 0; i < cuantasBanderas; i++) {
+      const bandera = crearBanderaCampana(rnd);
+      // Colgadas de la fachada alta y VOLANDO sobre la vereda, que es donde se
+      // cuelgan de verdad: pegadas al muro no se ven desde la calle.
+      bandera.position.set(
+        (i - (cuantasBanderas - 1) / 2) * (ancho / cuantasBanderas) + (rnd() - 0.5) * 0.6,
+        yAlta + 1.15, zFrente + 0.08,
+      );
+      g.add(bandera);
+    }
+  }
+
+  return g;
+}
+
+/**
+ * BANDERA DEL PARTIDO. Un asta corta y el paño morado, ligeramente ondeado.
+ *
+ * El paño va inclinado y no colgando recto porque una bandera quieta se lee
+ * como un cartel: lo que dice «bandera» es que esté torcida.
+ */
+function crearBanderaCampana(rnd) {
+  const g = new THREE.Group();
+  // CUÁNTO PUEDE VOLAR. Entre la fachada y el borde del carril hay 1,30 de
+  // vereda, así que un paño de dos metros se metía en la calle y pasaba
+  // rozando la cámara: una mancha morada que tapaba media pantalla. Colgada
+  // alta y corta vuela sobre la vereda sin invadir por donde se corre.
+  const largo = 0.95 + rnd() * 0.35;
+
+  // El asta sale HACIA LA CALLE, en diagonal, como los mástiles de un balcón.
+  const asta = new THREE.Mesh(
+    new THREE.BoxGeometry(0.06, 1.1, 0.06), matGye(0xd8d4cc, 0.04, 0.7),
+  );
+  asta.position.set(0, 0.45, 0.32);
+  asta.rotation.x = 0.85;
+  g.add(asta);
+
+  const claro = rnd() > 0.5;
+  const pano = new THREE.Mesh(
+    new THREE.BoxGeometry(0.04, 0.82, largo),
+    matGye(claro ? GYE.partidoClaro : GYE.partido, 0.16, 0.9),
+  );
+  // Cuelga del asta hacia fuera, con una torcedura: una bandera recta se lee
+  // como un cartel.
+  pano.position.set(0, 0.5, 0.35 + largo / 2);
+  pano.rotation.z = -0.1 + rnd() * 0.2;
+  pano.rotation.x = 0.1;
+  g.add(pano);
+
+  // La franja clara del partido, cruzando el paño.
+  g.add(_caja(0.05, 0.2, largo * 0.9,
+    matGye(claro ? GYE.partido : GYE.partidoClaro, 0.16, 0.9),
+    0, 0.4, 0.35 + largo / 2));
+
+  return g;
+}
+
+/**
+ * EL CAMIÓN DE CAMPAÑA. Plataforma, cabina rotulada y los cartones del
+ * candidato de pie en la caja.
+ *
+ * En las caravanas de verdad el camión es el centro: va forrado con la cara
+ * del candidato, lleva la gente arriba y detrás va la moto. Aquí lo que
+ * importa es la silueta —una caja abierta con figuras planas asomando— porque
+ * es lo que se reconoce de refilón y a velocidad.
+ *
+ * LOS CARTONES SON CARTONES, planos y recortados, y esa es la broma: el
+ * candidato está en todas partes y en ninguna. El juego ya la tenía escrita
+ * («Cartón del candidato» es uno de sus obstáculos); esto la pone en la calle.
+ */
+function crearCamionCampana(rnd) {
+  const g = new THREE.Group();
+  const matChasis = matGye(0xf0eee6, 0.05, 0.7);
+  const matCaja = matGye(GYE.partido, 0.1, 0.85);
+  const matRueda = matGye(0x1a1c22, 0.02, 0.95);
+
+  // Cabina, adelante.
+  g.add(_caja(2.1, 1.5, 1.7, matChasis, 0, 1.35, 1.6));
+  g.add(_caja(1.85, 0.65, 0.1, matGye(GYE.ventana, 0.05, 0.5), 0, 1.75, 2.42));
+  // La franja rotulada del morro: la cara del candidato va aquí.
+  g.add(_caja(2.0, 0.5, 0.08, matCaja, 0, 1.0, 2.46));
+
+  // Plataforma y barandas de la caja.
+  g.add(_caja(2.2, 0.5, 3.6, matChasis, 0, 0.85, -0.7));
+  for (const s of [-1, 1]) {
+    g.add(_caja(0.1, 0.85, 3.6, matCaja, s * 1.05, 1.5, -0.7));
+  }
+  g.add(_caja(2.2, 0.85, 0.1, matCaja, 0, 1.5, -2.5));
+
+  // Ruedas.
+  const geoRueda = new THREE.CylinderGeometry(0.42, 0.42, 0.28, 8);
+  for (const sx of [-1, 1]) {
+    for (const sz of [1.55, -0.2, -1.9]) {
+      const r = new THREE.Mesh(geoRueda, matRueda);
+      r.rotation.z = Math.PI / 2;
+      r.position.set(sx * 1.05, 0.42, sz);
+      g.add(r);
+    }
+  }
+
+  // LOS CARTONES. Figuras planas de pie en la caja, cada una con su peana.
+  const cuantos = 2 + Math.floor(rnd() * 3);
+  for (let i = 0; i < cuantos; i++) {
+    const carton = crearCartonCandidato(rnd);
+    carton.position.set(
+      (rnd() - 0.5) * 1.2, 1.1, -0.4 - i * 0.8 + (rnd() - 0.5) * 0.3,
+    );
+    // MIRANDO A LOS COSTADOS, no al frente del camión. El camión corre
+    // paralelo a la calle, así que un cartón mirando hacia adelante se ve de
+    // canto desde la vereda: una lámina de nada. Girados un cuarto miran a
+    // quien pasa, que es justo lo que hace un cartón de campaña. Alternan lado
+    // porque en la caja de verdad la gente va mirando a los dos.
+    carton.rotation.y = (i % 2 ? -1 : 1) * Math.PI / 2 + (rnd() - 0.5) * 0.6;
+    g.add(carton);
+  }
+
+  // Y las banderas asomando por la caja.
+  for (let i = 0; i < 2; i++) {
+    const b = crearBanderaCampana(rnd);
+    // A lo largo de la caja, no hacia los costados: apuntando de lado, el paño
+    // sobresalía del camión y volvía a meterse en el carril.
+    b.position.set((i ? 1 : -1) * 0.7, 1.9, -2.3);
+    b.rotation.y = Math.PI;
+    g.add(b);
+  }
+
+  return g;
+}
+
+/**
+ * UN CARTÓN DEL CANDIDATO: la silueta recortada, plana, con su peana.
+ *
+ * Sin cara. Es una silueta de traje y nada más, y a propósito: lo que se
+ * reconoce en la calle es la FORMA —un señor de pie, tamaño real, apoyado en
+ * una peana— y ponerle rasgos lo convertiría en el retrato de alguien. Este
+ * juego es sátira de un sistema, no de una cara; el propio ejemplar lo dice en
+ * su página de administración.
+ */
+function crearCartonCandidato(rnd) {
+  const g = new THREE.Group();
+  const matCarton = matGye(0xe8e2d4, 0.06, 0.95);
+  const matTraje = matGye(rnd() > 0.5 ? GYE.partido : 0x2b3350, 0.06, 0.9);
+  const matPiel = matGye(0xd9a882, 0.05, 0.9);
+
+  // TAMAÑO REAL, que es de lo que va la broma: el cartón es de cuerpo entero.
+  // A 1,60 el traje quedaba por debajo de la baranda del camión y desde la
+  // calle solo asomaba la plancha de atrás, o sea una tabla.
+  // La plancha de cartón por detrás: es lo que dice que es un recorte.
+  g.add(_caja(0.72, 2.05, 0.04, matCarton, 0, 1.02, -0.02));
+  // El traje y la cabeza, recortados encima.
+  g.add(_caja(0.62, 1.15, 0.05, matTraje, 0, 0.88, 0.01));
+  g.add(_caja(0.28, 0.34, 0.05, matPiel, 0, 1.66, 0.01));
+  // El pelo, que es lo que separa una cabeza de un rectángulo.
+  g.add(_caja(0.3, 0.12, 0.06, matGye(0x2a2119, 0.03, 0.9), 0, 1.8, 0.01));
+  // La banda del partido cruzada, que es como salen en los carteles.
+  const banda = _caja(0.66, 0.16, 0.06, matGye(GYE.partidoClaro, 0.16, 0.9), 0, 1.05, 0.02);
+  banda.rotation.z = 0.42;
+  g.add(banda);
+  // Peana trasera.
+  const peana = _caja(0.5, 0.6, 0.04, matCarton, 0, 0.3, -0.2);
+  peana.rotation.x = 0.35;
+  g.add(peana);
+
+  return g;
+}
+
+/** Solo para pruebas: el camión de campaña suelto. */
+export function __probarCamion(rnd) { return crearCamionCampana(rnd); }
+
 /** Solo para pruebas: un local suelto, sin fundir, para poder contar estados. */
 export function __probarLocal(rnd) { return crearLocalBahia(rnd); }
 
@@ -2328,18 +2621,53 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
     }
 
     case 'elecciones': {
-      // Vallas de campaña, muchas y muy encendidas.
-      if (aleatorio() > 0.35) {
-        g.add(crearValla(colores.acento, aleatorio));
-      } else {
-        g.add(crearFarola(0xffb0d8));
-        const alto = 3.5 + aleatorio() * 2;
-        const edificio = new THREE.Mesh(
-          new THREE.BoxGeometry(3, alto, 3),
-          mat(colores.props, 0.05, 0.9),
-        );
-        edificio.position.set(1.8, alto / 2, 1.5);
-        g.add(edificio);
+      // UNA CUADRA DE GUAYAQUIL, no un cubo con una valla al lado.
+      //
+      // Aquí había un prisma de tres metros con el color del escenario y, de
+      // vez en cuando, una valla de neón. O sea: nada. Las Elecciones son la
+      // escena de calle abierta y la calle tenía que ser una calle de verdad,
+      // y la de esa costa tiene una gramática muy reconocible —soportal de
+      // columnas pintadas, persianas abajo, banda de ventanas arriba y remate
+      // plano—. Ver crearCasaGuayaquil().
+      //
+      // Van dos casas de anchos desiguales, como los solares: partir la cuadra
+      // por la mitad exacta canta a rejilla.
+      const ANCHO_CUADRA = 13.5;
+      const primera = ANCHO_CUADRA / 2 + (aleatorio() - 0.5) * 2.4;
+      const cuadraGye = new THREE.Group();
+      for (const [ancho, x] of [
+        [primera, -ANCHO_CUADRA / 2 + primera / 2],
+        [ANCHO_CUADRA - primera, ANCHO_CUADRA / 2 - (ANCHO_CUADRA - primera) / 2],
+      ]) {
+        const casa = crearCasaGuayaquil(ancho, aleatorio);
+        casa.position.x = x;
+        cuadraGye.add(casa);
+      }
+
+      // Fundida por material: dos casas son unas noventa cajas y en pantalla
+      // hay una veintena de cuadras a la vez.
+      g.add(fundirPorMaterial(cuadraGye));
+
+      // EL CAMIÓN DE LA CARAVANA. No en todas las cuadras: una caravana es un
+      // acontecimiento, y si hay un camión en cada esquina deja de serlo.
+      if (aleatorio() > 0.62) {
+        // EL CAMIÓN NO CABE A TAMAÑO REAL, y hay que decirlo: entre la fachada
+        // y el borde del carril hay 1,30 de vereda, y un camión mide 2,20 de
+        // ancho. A tamaño literal se metía casi hasta el eje de la calle y el
+        // jugador lo atravesaba por el carril de fuera. A 0,72 queda un
+        // camioncito de tres metros y medio aparcado contra el cordón, que es
+        // lo que se ve de refilón a la velocidad a la que se pasa.
+        const camion = crearCamionCampana(aleatorio);
+        camion.scale.setScalar(0.72);
+        camion.position.set((aleatorio() - 0.5) * 5, 0, 2.25);
+        camion.rotation.y = Math.PI / 2 + (aleatorio() - 0.5) * 0.24;
+        g.add(camion);
+      } else if (aleatorio() > 0.5) {
+        // Y donde no hay camión, la valla de siempre: el cartel de campaña
+        // sigue siendo del sitio.
+        const valla = crearValla(colores.acento, aleatorio);
+        valla.position.z = 2.7;
+        g.add(valla);
       }
 
       // LAS PALMERAS VIVEN AQUÍ. Estaban en la Bahía, que es un pasaje
@@ -2349,9 +2677,14 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
       // donde toca el arbolado.
       if (aleatorio() > 0.55) {
         const palmera = crearPalmera(5.5 + aleatorio() * 3);
-        palmera.position.set((aleatorio() - 0.5) * 4, 0, 2.8);
+        palmera.position.set((aleatorio() - 0.5) * 9, 0, 2.6);
         g.add(palmera);
       }
+
+      // La cuadra va ALINEADA, por lo mismo que la del centro histórico y la
+      // hilera de la Bahía: una fila de fachadas torcidas y de tamaños
+      // distintos se lee como error de colocación, no como desorden.
+      g.userData.alineado = true;
       break;
     }
 
