@@ -30,9 +30,32 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 // dónde estás.
 export const HITO_POR_ESCENARIO = {
   carondelet: 'palacio_de_carondelet',
-  apagon: 'central_termica',
   bahia: 'fiscalia_general_del_estado',
 };
+
+// EL APAGÓN NO TIENE HITO, y no es un olvido. La central térmica no es un
+// edificio que se ve pasar: es el sitio donde estás. Pasarla por delante cada
+// trescientos metros la convertía en un monumento al que se saluda, cuando lo
+// que tiene que ser es la nave dentro de la que corres —el decorado del tramo,
+// no un punto de interés—.
+//
+// Se sigue pudiendo bajar del exportador para editarla en Blender; lo que
+// cambia es que ya no entra en la calle como pieza suelta.
+export const DECORADO_IMPORTADO = {
+  apagon: 'central_termica',
+};
+
+/** Copia de una rama cualquiera del modelo de la ciudad, por su nombre. */
+export function clonarPorNombre(nombre) {
+  if (!raiz || !nombre) return null;
+  const original = raiz.getObjectByName(nombre);
+  if (!original) return null;
+  const copia = original.clone(true);
+  copia.position.set(0, 0, 0);
+  copia.rotation.set(0, 0, 0);
+  copia.updateMatrixWorld(true);
+  return copia;
+}
 
 let raiz = null;
 let cargando = null;

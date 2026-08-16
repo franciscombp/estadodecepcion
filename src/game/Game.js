@@ -426,7 +426,7 @@ export class Game {
     this.pista.aplicarTema(colores);
     this.obstaculos.aplicarTema(colores, id);
     this.evidencia.aplicarTema(config);
-    this.elevado.aplicarTema(colores);
+    this.elevado.aplicarTema(colores, id);
 
     this.rutaPartida.push(id);
     this.distanciaTramo = 0;

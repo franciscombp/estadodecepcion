@@ -87,7 +87,7 @@ export class ElevadoManager {
     const z = -260;
     const largoTotal = largo + ELEVADO.LARGO_RAMPA;
 
-    const malla = crearTarima(largo, this.colores);
+    const malla = crearTarima(largo, this.colores, this.idEscenario);
     malla.position.set(CARRILES.POSICIONES[carril], 0, z);
     this.grupo.add(malla);
 
@@ -169,8 +169,14 @@ export class ElevadoManager {
   // CICLO DE VIDA
   // -------------------------------------------------------------------------
 
-  aplicarTema(colores) {
+  /**
+   * @param {object} colores
+   * @param {string} idEscenario Decide QUÉ sostiene el tablado: contenedores de
+   *   puerto en la Bahía, buses parados en fila en el resto. Ver crearTarima().
+   */
+  aplicarTema(colores, idEscenario = 'bahia') {
     this.colores = colores;
+    this.idEscenario = idEscenario;
     this.limpiar();
   }
 

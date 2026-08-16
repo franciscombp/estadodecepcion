@@ -2314,7 +2314,106 @@ export function crearAvisoBifurcacion(destinos, colores, centroEsPeligro = false
  *
  * @param {number} largo Longitud del tablado (sin contar la rampa)
  */
-export function crearTarima(largo, colores) {
+
+// ---------------------------------------------------------------------------
+// VESTIR LA TARIMA
+// ---------------------------------------------------------------------------
+// Una tarima de obra en mitad del centro histórico no significa nada: es un
+// cajón elevado y punto. Lo que sí significa algo es SUBIRSE POR ENCIMA DE algo
+// que está ahí por una razón —buses parados en fila, contenedores apilados en
+// el muelle—, y de paso el juego deja de tener una pieza abstracta.
+//
+// La regla es la misma que con los obstáculos: la SUPERFICIE no se toca. El
+// alto transitable, el ancho y la rampa siguen donde estaban, porque son lo que
+// el jugador tiene que leer para saber que se sube. Lo que cambia es qué hay
+// debajo sosteniéndola.
+
+/** Buses en fila, uno tras otro. Se corre por encima del techo. */
+function _busesBajoTarima(g, largo, ancho, alto) {
+  // Cada bus mide unos ocho metros, así que un tramo de veinte lleva dos y
+  // pico. Se recortan al largo exacto: medio bus asomando por el final se lee
+  // como que la plataforma se acaba antes de tiempo.
+  const LARGO_BUS = 8.4;
+  const cuantos = Math.max(1, Math.round(largo / LARGO_BUS));
+  const paso = largo / cuantos;
+
+  for (let i = 0; i < cuantos; i++) {
+    const z = -i * paso - paso / 2;
+    const carroceria = new THREE.Mesh(
+      new THREE.BoxGeometry(ancho * 0.94, alto * 0.86, paso * 0.94),
+      mat(i % 2 ? 0xd9d2c4 : 0xe8e2d6, 0.03, 0.9),
+    );
+    carroceria.position.set(0, alto * 0.43, z);
+    g.add(carroceria);
+
+    // Franja de color a media altura: es lo que hace que un cajón blanco se
+    // lea como un bus urbano y no como un contenedor.
+    const franja = new THREE.Mesh(
+      new THREE.BoxGeometry(ancho * 0.96, 0.26, paso * 0.9),
+      mat(0x2f6fb0, 0.14, 0.8),
+    );
+    franja.position.set(0, alto * 0.52, z);
+    g.add(franja);
+
+    // Ventanillas corridas por los dos costados.
+    for (const lado of [-1, 1]) {
+      const cristal = new THREE.Mesh(
+        new THREE.BoxGeometry(0.06, 0.44, paso * 0.78),
+        mat(0x1d2735, 0.05, 0.35),
+      );
+      cristal.position.set(lado * ancho * 0.47, alto * 0.7, z);
+      g.add(cristal);
+    }
+
+    // Ruedas. Sin ellas la fila se lee como cajas apiladas.
+    for (const lado of [-1, 1]) {
+      for (const dz of [paso * 0.3, -paso * 0.3]) {
+        const rueda = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.34, 0.34, 0.2, 8),
+          mat(0x14161c, 0.02, 0.85),
+        );
+        rueda.rotation.z = Math.PI / 2;
+        rueda.position.set(lado * ancho * 0.45, 0.34, z + dz);
+        g.add(rueda);
+      }
+    }
+  }
+}
+
+/** Contenedores de puerto, apilados. La Bahía es mercadería en tránsito. */
+function _contenedoresBajoTarima(g, largo, ancho, alto) {
+  const LARGO_CAJA = 6.2;
+  const COLORES = [0xc63a41, 0x326da6, 0x2f7d52, 0xd08a2a];
+  const cuantos = Math.max(1, Math.round(largo / LARGO_CAJA));
+  const paso = largo / cuantos;
+
+  for (let i = 0; i < cuantos; i++) {
+    const z = -i * paso - paso / 2;
+    const caja = new THREE.Mesh(
+      new THREE.BoxGeometry(ancho * 0.96, alto * 0.94, paso * 0.96),
+      mat(COLORES[i % COLORES.length], 0.05, 0.92),
+    );
+    caja.position.set(0, alto * 0.47, z);
+    g.add(caja);
+
+    // Corrugado: cuatro nervios verticales por costado. Es la firma de un
+    // contenedor y sale casi gratis.
+    for (const lado of [-1, 1]) {
+      for (let k = 0; k < 4; k++) {
+        const nervio = new THREE.Mesh(
+          new THREE.BoxGeometry(0.06, alto * 0.8, 0.12),
+          mat(COLORES[i % COLORES.length], 0.02, 0.95),
+        );
+        nervio.position.set(
+          lado * ancho * 0.49, alto * 0.47, z - paso * 0.35 + (paso * 0.7 / 3) * k,
+        );
+        g.add(nervio);
+      }
+    }
+  }
+}
+
+export function crearTarima(largo, colores, idEscenario = 'bahia') {
   const g = new THREE.Group();
   const acento = colores.acento ?? COLOR3D.dorado;
   const ancho = CARRILES.ANCHO * 0.92;
@@ -2364,6 +2463,21 @@ export function crearTarima(largo, colores) {
   );
   tablero.position.set(0, h - 0.13, zInicio - largo / 2);
   g.add(tablero);
+
+  // --- QUÉ SOSTIENE EL TABLADO ---------------------------------------------
+  // Una tarima de obra en mitad del centro histórico no significa nada: es un
+  // cajón elevado y punto. Lo que sí significa algo es subirse POR ENCIMA de
+  // algo que está ahí por una razón. Debajo van buses parados en fila o
+  // contenedores del muelle, según el barrio.
+  //
+  // La superficie no se toca: el alto, el ancho y la rampa siguen donde
+  // estaban, porque son lo que el jugador lee para saber que se sube. Lo que
+  // cambia es lo que hay debajo.
+  const bajo = new THREE.Group();
+  bajo.position.z = zInicio;
+  if (idEscenario === 'bahia') _contenedoresBajoTarima(bajo, largo, ancho, h);
+  else _busesBajoTarima(bajo, largo, ancho, h);
+  g.add(bajo);
 
   // Borde de neón a ambos lados, a la altura de la superficie. Es lo que
   // comunica DÓNDE está el suelo nuevo: sin esta línea, desde arriba no se
