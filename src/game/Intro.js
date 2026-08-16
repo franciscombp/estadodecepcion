@@ -52,7 +52,9 @@ const ABREVIADA = {
 // Dónde está el ministro. El periodista mira hacia -X (ver _poseEntrevista),
 // así que su interlocutor va ahí; y como la cámara está en +X, los dos salen
 // en cuadro uno detrás de otro en vez de tapándose.
-const SITIO_MINISTRO = { x: -2.15, y: 0, z: 0.5 };
+// Se acercó al meter la cámara dentro del pasillo: con el encuadre más
+// frontal, los -2.15 de antes lo dejaban medio cuerpo fuera por la izquierda.
+const SITIO_MINISTRO = { x: -1.7, y: 0, z: 0.8 };
 
 // Dónde se plantan los perseguidores DURANTE la cinemática.
 //
@@ -62,14 +64,18 @@ const SITIO_MINISTRO = { x: -2.15, y: 0, z: 0.5 };
 // la espalda del objetivo— o encima del periodista, según la distancia.
 //
 // Este punto está calculado a mano contra CAMARA_ENTREVISTA: queda a unos
-// trece metros del objetivo y ligeramente a la derecha del centro, o sea
+// trece metros del objetivo y a cinco grados del eje de la cámara, o sea
 // calle arriba y al fondo. Se les ve LLEGAR, que es lo único que tienen que
 // contar en esta escena. Si se toca la cámara de la entrevista, hay que
 // recalcular esto: no es una posición cualquiera, es la que cae en cuadro.
-const SITIO_RESCATE = { x: -4.0, z: -4.0 };
+//
+// Y va DENTRO DEL PASILLO por lo mismo que la cámara: a -4 de eje quedaban
+// detrás de la fila de locales de La Bahía. Llegaban puntualmente y no los
+// veía nadie, que en una escena de tres segundos es no llegar.
+const SITIO_RESCATE = { x: -2.6, z: -6.0 };
 
 // De dónde vienen: calle arriba y al fondo, diminutos.
-const SITIO_APARICION = { x: -9.0, z: -12.0 };
+const SITIO_APARICION = { x: -3.2, z: -14.0 };
 
 // Por dónde se van. NO es marcha atrás por donde vinieron: la salida se hace
 // casi toda en X, y el motivo es de encuadre, no de guion. Desde esta cámara,
@@ -84,7 +90,16 @@ const SALIDA_RESCATE = { x: 4.5, z: 2.0 };
 // leerse es que está PREGUNTANDO —el perfil, el brazo levantado, el micrófono.
 // A unos siete metros: con el objetivo largo del juego (FOV 38), menos
 // distancia deja al personaje comiéndose el cuadro entero.
-const CAMARA_ENTREVISTA = { x: 6.2, y: 2.3, z: 4.0 };
+//
+// SE MANTIENE DENTRO DEL PASILLO DE CARRERA, y eso no es una preferencia de
+// encuadre: es lo único que garantiza que no haya nada delante. El juego
+// asegura que los tres carriles están despejados —el decorado más cercano
+// queda a más de tres metros del eje—, pero a los lados hay escenario, y en
+// La Bahía eso son locales de tres metros de alto pegados a la acera. Con la
+// cámara a 6.2 de eje, la portada del juego era una pared gris: el periodista
+// estaba ahí detrás, tapado por una tienda. Se conserva la distancia al
+// objetivo (unos siete metros) abriendo en Z lo que se cierra en X.
+const CAMARA_ENTREVISTA = { x: 3.0, y: 2.3, z: 6.4 };
 
 // La del MENÚ es otra. En la cinemática el plano es cerrado porque dura
 // segundo y medio y hay que leer el gesto; en la portada el personaje convive
@@ -94,8 +109,15 @@ const CAMARA_ENTREVISTA = { x: 6.2, y: 2.3, z: 4.0 };
 // Se acercó al ensanchar el objetivo de juego (FOV 38 → 58): con el gran
 // angular, la misma distancia dejaba al personaje diminuto en medio de la
 // franja libre. Menos distancia, mismo tamaño en pantalla.
-const CAMARA_MENU = { x: 5.4, y: 2.5, z: 4.1 };
+// Y por el mismo motivo que la de la entrevista, tampoco se sale del pasillo.
+const CAMARA_MENU = { x: 2.7, y: 2.5, z: 6.3 };
 const MIRA_MENU = 1.35;
+
+// A dónde apunta la cámara mientras dura la entrevista: NO al periodista, sino
+// al punto medio entre él y el ministro. Encuadrar a uno de los dos deja al
+// otro pegado al borde o directamente fuera, y lo que hay que contar aquí es
+// que hay una pregunta y alguien contestándola —o sea, los dos.
+const MIRA_ENTREVISTA_X = -0.75;
 
 export class Intro {
   /** @param {THREE.Scene} escena Para poder plantar al ministro. */
@@ -184,7 +206,7 @@ export class Intro {
     };
 
     camara.position.set(pos.x, pos.y, pos.z);
-    camara.lookAt(0, MIRA_MENU, -0.1);
+    camara.lookAt(MIRA_ENTREVISTA_X, MIRA_MENU, -0.1);
     this._poseEntrevista(jugador, this.tiempo);
     // En la portada el ministro TAMBIÉN está. La escena del menú es la
     // entrevista, y una entrevista sin nadie enfrente no es una entrevista: es
@@ -332,7 +354,8 @@ export class Intro {
     // pasando a mirar la pista, que es lo que enseña a dónde se corre.
     const miraZ = THREE.MathUtils.lerp(CAMARA.MIRA.z, -0.1, cercania);
     const miraY = THREE.MathUtils.lerp(CAMARA.MIRA.y, 1.15, cercania);
-    camara.lookAt(jugador.x * (1 - cercania) * 0.35, miraY, miraZ);
+    const miraX = jugador.x * (1 - cercania) * 0.35 + MIRA_ENTREVISTA_X * cercania;
+    camara.lookAt(miraX, miraY, miraZ);
   }
 
   /** Deja el modelo listo para correr, deshaciendo la pose de entrevista. */
