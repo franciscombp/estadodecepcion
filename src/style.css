@@ -515,11 +515,11 @@ html, body {
   align-items: baseline;
   gap: 6px;
   padding: 3px 9px 4px;
-  border-radius: var(--r-chico);
-  background: rgba(13, 18, 32, 0.92);
-  border: 2px solid var(--tono, var(--dorado));
-  box-shadow: 0 0 16px color-mix(in srgb, var(--tono, #ffcf3f) 45%, transparent);
-  color: var(--tono, var(--dorado));
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1.5px solid var(--tono, var(--rojo-diario));
+  color: var(--tinta);
+  font-family: var(--sans);
   white-space: nowrap;
   transform-origin: 100% 0;
   transition: opacity var(--t-corto) ease, transform var(--t-corto) var(--rebote);
@@ -899,6 +899,7 @@ html, body {
 .panel {
   padding: 9px 12px;
   border-radius: 0;
+  color: var(--tinta);
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -1485,7 +1486,7 @@ html, body {
   inset: 0;
   background: repeating-linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.05) 0 2px,
+    rgba(20, 20, 20, 0.06) 0 2px,
     transparent 2px 22px
   );
 }
@@ -1494,12 +1495,9 @@ html, body {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: linear-gradient(180deg,
-    rgba(var(--verde-rgb), 0.42),
-    rgba(var(--verde-rgb), 0.18));
-  border-left: 2px solid var(--verde);
-  border-right: 2px solid var(--verde);
-  box-shadow: 0 0 22px rgba(var(--verde-rgb), 0.45);
+  background: rgba(103, 184, 87, 0.3);
+  border-left: 2px solid var(--verde-senal);
+  border-right: 2px solid var(--verde-senal);
 }
 
 .medidor-escape__cursor {
@@ -1808,12 +1806,17 @@ html, body {
   color: var(--texto-tenue);
 }
 
+/* Dentro de una plana los nodos de ruta van como fichas del diario. */
+.plana .nodo,
 .nodo {
   padding: 3px 9px;
-  border-radius: 6px;
-  background: rgba(var(--dorado-rgb), 0.15);
-  color: var(--dorado);
-  font-weight: 800;
+  border-radius: 0;
+  background: var(--papel-blanco);
+  border: 1px solid var(--papel-sombra);
+  color: var(--tinta);
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 0.7rem;
   letter-spacing: 0.02em;
 }
 
@@ -2477,6 +2480,11 @@ html, body {
   transition: opacity var(--t-medio), border-color var(--t-medio);
 }
 
+.expediente .medidor__relleno {
+  background: var(--rojo-diario);
+  box-shadow: none;
+}
+
 .expediente--oculto {
   opacity: 0;
   visibility: hidden;
@@ -2493,16 +2501,15 @@ html, body {
 }
 
 .expediente__cuenta {
-  font-family: var(--tipo-numeros);
+  font-family: var(--serif);
   font-size: clamp(1.4rem, 6vw, 1.9rem);
-  font-weight: 900;
-  color: var(--dorado);
-  line-height: 1.1;
-  text-shadow: 0 0 16px rgba(var(--dorado-rgb), 0.5);
+  font-weight: 700;
+  color: var(--tinta);
+  line-height: 1.15;
 }
 
 .expediente__barra {
-  color: var(--texto-debil);
+  color: var(--tinta-tenue);
   margin: 0 2px;
 }
 
@@ -2517,18 +2524,18 @@ html, body {
 
 .expediente__aviso {
   margin-top: 6px;
+  font-family: var(--sans);
   font-size: 0.56rem;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.1em;
-  color: var(--verde);
+  color: #3f8e33;
 }
 
 .expediente--perdido {
-  border-color: rgba(var(--rojo-rgb), 0.5);
-  box-shadow: 0 0 24px rgba(var(--rojo-rgb), 0.2);
+  border-color: var(--rojo-diario);
 }
 
-.expediente--perdido .expediente__aviso { color: var(--rojo); }
+.expediente--perdido .expediente__aviso { color: var(--rojo-diario); }
 
 /* Animación cuando el expediente progresa */
 .expediente--progresa {
