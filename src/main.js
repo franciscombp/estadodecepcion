@@ -33,17 +33,10 @@ function mostrarCarga() {
   const carga = document.createElement('div');
   carga.className = 'cargando';
   carga.innerHTML = `
-    <div class="marca">
-      <span class="marca__sello">${Icono.sello(40)}</span>
-      EL MERCIO PRESENTA
-    </div>
-    <div class="titulo" style="font-size:clamp(1.5rem,7vw,2.4rem);margin:0">
-      ESTADO DE EXCEPCIÓN
-    </div>
+    <div class="cargando__marca">EL MERCIO<span class="cargando__punto">.</span></div>
+    <div class="cargando__titulo">Estado de excepción</div>
     <div class="cargando__barra"><div class="cargando__relleno"></div></div>
-    <div class="subtitulo" data-campo="estado" style="margin:0">
-      Preparando la corrida…
-    </div>
+    <div class="cargando__estado" data-campo="estado">Preparando la corrida…</div>
   `;
   document.body.appendChild(carga);
 

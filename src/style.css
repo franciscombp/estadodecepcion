@@ -1,4 +1,36 @@
 /* ==========================================================================
+   TIPOGRAFÍAS — PT Serif (titulares y cifras) + Montserrat (interfaz)
+   ==========================================================================
+   Autoalojadas: el juego es un PWA offline y una fuente de CDN es una fuente
+   que a veces no está. Montserrat es la variable de Google (un archivo cubre
+   del 400 al 800); PT Serif va en dos pesos estáticos. Subconjunto latino.
+   ========================================================================== */
+
+@font-face {
+  font-family: 'PT Serif';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./assets/fonts/ptserif-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'PT Serif';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./assets/fonts/ptserif-700.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('./assets/fonts/montserrat.woff2') format('woff2');
+}
+
+/* ==========================================================================
    ESTADO DE EXCEPCIÓN — Estilos
    ==========================================================================
    Sistema visual documentado en docs/ESTILO.md. Los tokens viven también en
@@ -237,38 +269,43 @@ html, body {
 
 /* --- Fila superior -------------------------------------------------------- */
 
+/* DEL FIGMA: la fila alta es una cabecera de página — rótulo a la izquierda,
+   cifra al centro-derecha y la pausa como cuadrado rojo— cerrada por un
+   filete fino. Sin cápsulas ni vidrios: texto sobre la calle. */
 .hud__superior {
   display: flex;
   align-items: center;
   gap: 8px;
-  /* Pausa a la izquierda y contador a la derecha, con o sin la píldora de
-     aguante en medio. Sin esto, al ocultarse la píldora el contador se queda
-     pegado al botón de pausa y media fila vacía. */
   justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(230, 230, 230, 0.75);
+}
+
+.hud__rotulo-evidencia {
+  font-family: var(--sans);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--rojo-diario);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.85);
 }
 
 /* Botón de icono (pausa). 48×48 mínimo: un botón de pausa que falla en un
    endless runner cuesta una partida. */
 .boton-icono {
   flex: 0 0 auto;
-  width: 48px;
+  width: 53px;
   height: 48px;
   display: grid;
   place-items: center;
-  border-radius: var(--r-chico);
-  background: rgba(13, 18, 32, 0.92);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  border-radius: 0;
+  background: var(--rojo-diario);
   cursor: pointer;
   pointer-events: auto;
   transition: transform var(--t-rapido) var(--rebote),
               background-color var(--t-rapido);
-  border: 2px solid rgba(var(--rojo-rgb), 0.45);
-  color: var(--rojo);
-  box-shadow:
-    0 0 8px rgba(var(--rojo-rgb), 0.28),
-    0 0 22px rgba(var(--rojo-rgb), 0.14),
-    inset 0 0 12px rgba(var(--rojo-rgb), 0.06);
+  border: 0;
+  color: #ffffff;
 }
 
 .boton-icono:active { transform: scale(0.9); }
@@ -276,6 +313,37 @@ html, body {
 @media (hover: hover) {
   .boton-icono:hover { background: rgba(var(--rojo-rgb), 0.16); }
 }
+
+/* EL CASO — la cabecera editorial de la corrida, como titula el Figma la
+   pantalla de juego: el lema del barrio en redonda y el nombre en negra,
+   PT Serif blanca con sombra suave para leerse sobre cualquier calle. Se
+   retira cuando otra pieza manda (señal de salida, expediente del trámite). */
+.caso-corrida {
+  padding: 8px 0 10px;
+  text-align: left;
+  transition: opacity var(--t-medio) ease;
+}
+
+.caso-corrida__lema {
+  font-family: var(--serif);
+  font-size: clamp(0.85rem, 3.8vw, 1rem);
+  line-height: 1.5;
+  color: #ffffff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+}
+
+.caso-corrida__nombre {
+  font-family: var(--serif);
+  font-size: clamp(1.5rem, 7vw, 2rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.0094em;
+  color: #ffffff;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6);
+}
+
+.hud--rotulo .caso-corrida,
+.hud--tramite .caso-corrida { opacity: 0; }
 
 /* Píldora de estamina: icono + nombre + medidor + porcentaje */
 .pildora {
@@ -405,36 +473,28 @@ html, body {
 
 .contador {
   position: relative;
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   height: 48px;
-  padding: 0 12px;
-  border-radius: var(--r-chico);
-  background: rgba(13, 18, 32, 0.92);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 2px solid rgba(var(--dorado-rgb), 0.42);
-  box-shadow:
-    0 0 8px rgba(var(--dorado-rgb), 0.24),
-    0 0 22px rgba(var(--dorado-rgb), 0.1),
-    inset 0 0 12px rgba(var(--dorado-rgb), 0.05);
+  padding: 0 6px;
+  background: transparent;
+  border: 0;
 }
 
 .contador__valor {
-  font-size: clamp(1.1rem, 4.6vw, 1.5rem);
-  font-weight: 900;
+  font-family: var(--serif);
+  font-size: clamp(1.5rem, 6.4vw, 2rem);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  color: var(--dorado);
-  text-shadow: 0 0 12px rgba(var(--dorado-rgb), 0.55);
-}
-
-.contador__icono {
-  display: grid;
-  place-items: center;
-  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5));
+  letter-spacing: -0.0125em;
+  line-height: 1.15;
+  color: var(--rojo-diario);
+  /* El halo blanco del Figma: es lo que despega la cifra de la calle sin
+     meterla en una cápsula. */
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.95), 0 0 6px rgba(255, 255, 255, 0.8);
 }
 
 /* --- La racha --------------------------------------------------------------
@@ -527,21 +587,11 @@ html, body {
   gap: 4px;
 }
 
-.riel__etiqueta {
-  font-size: clamp(0.46rem, 1.9vw, 0.56rem);
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  color: var(--texto-tenue);
-}
+/* Con el caso titulando en serif justo arriba, el riel ya no repite nombre:
+   solo quedan los nodos de la ruta. */
+.riel__etiqueta { display: none; }
 
-.riel__nombre {
-  font-size: clamp(0.85rem, 3.6vw, 1.1rem);
-  font-weight: 900;
-  letter-spacing: 0.02em;
-  color: var(--acento);
-  text-shadow: 0 0 14px rgba(var(--acento-rgb), 0.6);
-  margin-bottom: 6px;
-}
+.riel__nombre { display: none; }
 
 .riel__nodos {
   display: flex;
@@ -630,15 +680,14 @@ html, body {
   position: relative;
   z-index: 2;
   padding: 3px 14px 4px;
-  border-radius: 4px 4px 0 0;
-  background: linear-gradient(180deg, #1d6b3c, #124827);
-  border: 2px solid #f2f4f0;
-  border-bottom: none;
-  color: #f2f4f0;
+  border-radius: 0;
+  background: var(--verde-senal);
+  border: 0;
+  color: #ffffff;
+  font-family: var(--sans);
   font-size: clamp(0.44rem, 1.8vw, 0.56rem);
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.18em;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 .rotulo__vias {
@@ -651,32 +700,34 @@ html, body {
   filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.6));
 }
 
+/* DEL FIGMA: la señal es un letrero PLANO verde #67b857 con su filete blanco
+   por dentro —nombre arriba en Montserrat, flechón debajo—, como los carteles
+   de carretera del mock de la bifurcación. Nada de chapa ni degradados. */
 .via {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  min-width: clamp(74px, 24vw, 118px);
-  padding: 8px 8px 9px;
-  /* Degradado suave de arriba abajo: las señales reales devuelven la luz por
-     la parte alta, y ese matiz es lo que las hace parecer chapa reflectante en
-     vez de un rectángulo verde. */
-  background: linear-gradient(180deg, #1d6b3c 0%, #16572f 55%, #103f22 100%);
-  border: 2px solid #f2f4f0;
-  border-radius: 4px;
-  color: #f2f4f0;
+  justify-content: center;
+  gap: 4px;
+  min-width: clamp(84px, 26vw, 118px);
+  min-height: clamp(64px, 18vw, 81px);
+  padding: 8px;
+  background: var(--verde-senal);
+  border: 4px solid var(--verde-senal);
+  border-radius: 0;
+  color: #ffffff;
   text-align: center;
-  /* El filete interior blanco que llevan todas las señales de dirección. */
-  box-shadow:
-    inset 0 0 0 1px rgba(242, 244, 240, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  font-family: var(--sans);
+  /* El filete interior blanco de las señales de dirección. */
+  box-shadow: inset 0 0 0 1px #ffffff;
 }
 
 /* El del centro cuando es el cerco. Rojo y no verde: en señalización el color
    ya dice lo que pasa antes de leer la palabra. */
 .via--peligro {
-  background: linear-gradient(180deg, #a01a2a 0%, #7f1420 55%, #5d0d17 100%);
+  background: var(--rojo-diario);
+  border-color: var(--rojo-diario);
   border-color: #ffd9d9;
   color: #fff0f0;
   box-shadow:
@@ -684,19 +735,21 @@ html, body {
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
+/* Nombre arriba, flechón GRANDE debajo, como en el mock. El markup emite la
+   flecha primero; el orden visual lo pone flex. */
 .via__flecha {
-  font-size: clamp(0.95rem, 3.8vw, 1.2rem);
+  order: 1;
+  font-size: clamp(1.6rem, 7.4vw, 2.4rem);
   line-height: 1;
   font-weight: 700;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .via__nombre {
-  font-size: clamp(0.52rem, 2.2vw, 0.66rem);
-  font-weight: 800;
-  letter-spacing: 0.05em;
+  order: 0;
+  font-size: clamp(0.62rem, 2.6vw, 0.82rem);
+  font-weight: 700;
+  letter-spacing: 0.0125em;
   line-height: 1.15;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 /* --- Avisos flotantes ------------------------------------------------------
@@ -749,11 +802,13 @@ html, body {
   align-items: center;
   gap: 7px;
   padding: 7px 11px;
-  border-radius: var(--r-chico);
-  background: rgba(13, 18, 32, 0.88);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--papel-sombra);
+  color: var(--tinta);
+  font-family: var(--sans);
   max-width: 100%;
   font-size: 0.85rem;
   animation:
@@ -843,22 +898,23 @@ html, body {
 
 .panel {
   padding: 9px 12px;
-  border-radius: var(--r);
-  background: rgba(13, 18, 32, 0.92);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 2px solid var(--borde);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--papel-sombra);
   transition: opacity var(--t-medio);
 }
 
 .panel--oculto { opacity: 0; pointer-events: none; }
 
 .panel__titulo {
+  font-family: var(--sans);
   font-size: clamp(0.46rem, 1.9vw, 0.56rem);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--texto-tenue);
+  color: var(--rojo-diario);
   margin-bottom: 6px;
   text-align: center;
 }
@@ -868,7 +924,7 @@ html, body {
   font-weight: 900;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
-  color: var(--verde);
+  color: var(--tinta);
   text-shadow: 0 0 14px rgba(var(--verde-rgb), 0.5);
   text-align: center;
   line-height: 1;
@@ -1029,11 +1085,14 @@ html, body {
      pista de que detrás sigue corriendo la partida. Al 80 % la calle se
      adivina —desenfocada, que para eso está el blur— y el texto sigue leyéndose
      encima, porque quien da el contraste es el desenfoque, no la opacidad. */
-  background:
-    radial-gradient(ellipse at 50% 0%, rgba(var(--dorado-rgb), 0.1), transparent 55%),
-    linear-gradient(165deg, rgba(10, 14, 23, 0.78), rgba(5, 7, 12, 0.86));
-  backdrop-filter: blur(22px) saturate(1.25);
-  -webkit-backdrop-filter: blur(22px) saturate(1.25);
+  /* DEL FIGMA: los menús son PÁGINA, no velo. Superficie gris editorial casi
+     opaca; el desenfoque de detrás apenas se intuye, como el fantasma de la
+     tinta de la página anterior. */
+  background: rgba(243, 243, 243, 0.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: var(--tinta);
+  font-family: var(--serif);
   pointer-events: auto;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1181,36 +1240,43 @@ html, body {
   margin: 14px 0 0;
 }
 
+/* DEL FIGMA: los botones son RECTOS, de 48 px, en Montserrat Bold 16 con
+   tracking de 0.2. Dos variantes y solo dos: el primario en rojo pleno con
+   texto blanco, y el secundario en contorno de 1.5 px sobre transparente.
+   Nada de degradados ni esquinas: es un periódico, no una consola. */
 .boton {
   position: relative;
-  font-family: inherit;
-  font-size: clamp(0.84rem, 3.4vw, 0.98rem);
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 15px 22px;
-  min-height: 52px;
-  border: 2px solid var(--borde);
-  border-radius: var(--r);
-  background: rgba(255, 255, 255, 0.045);
-  color: var(--texto);
+  font-family: var(--sans);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.0125em;
+  text-transform: none;
+  line-height: 1;
+  padding: 12px 24px;
+  min-height: 48px;
+  border: 1.5px solid var(--tinta-media);
+  border-radius: 0;
+  background: transparent;
+  color: var(--tinta);
   cursor: pointer;
   overflow: hidden;
   transition: transform var(--t-rapido) var(--rebote),
               background-color var(--t-rapido),
-              border-color var(--t-rapido);
+              border-color var(--t-rapido),
+              color var(--t-rapido);
 }
 
 /* El botón se hunde al pulsar y REBOTA al soltar. El rebote está en la
    transición, no en el :active: al soltar, el navegador vuelve al estado de
    reposo con la curva elástica y eso se siente como un muelle. Cuesta una
    línea y es la diferencia entre pulsar un botón y tocar un cristal. */
-.boton:active { transform: scale(0.94); }
+.boton:active { transform: scale(0.97); }
 
 @media (hover: hover) {
   .boton:hover {
-    background: rgba(255, 255, 255, 0.09);
-    border-color: rgba(255, 255, 255, 0.24);
+    background: var(--tinta);
+    border-color: var(--tinta);
+    color: var(--papel-blanco);
     transform: translateY(-1px);
   }
 }
@@ -1224,7 +1290,7 @@ html, body {
   position: absolute;
   inset: 0;
   background: linear-gradient(115deg,
-    transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%);
+    transparent 35%, rgba(255, 255, 255, 0.28) 50%, transparent 65%);
   transform: translateX(-120%);
   animation: brillo-boton 3.4s ease-in-out 1.2s infinite;
   pointer-events: none;
@@ -1236,34 +1302,32 @@ html, body {
 }
 
 .boton--principal {
-  background: linear-gradient(135deg, #ffd94f, var(--dorado));
-  color: #1a1204;
-  border-color: var(--dorado);
-  box-shadow:
-    0 0 20px rgba(var(--dorado-rgb), 0.35),
-    0 6px 20px rgba(0, 0, 0, 0.45);
+  background: var(--rojo-diario);
+  color: #ffffff;
+  border-color: var(--rojo-diario);
 }
 
 @media (hover: hover) {
   .boton--principal:hover {
-    background: linear-gradient(135deg, #ffe480, #ffd94f);
-    border-color: #ffe480;
+    background: #a93123;
+    border-color: #a93123;
+    color: #ffffff;
   }
 }
 
 .boton--tenue {
   background: transparent;
-  border-color: rgba(255, 255, 255, 0.1);
-  color: var(--texto-tenue);
-  font-size: clamp(0.7rem, 2.8vw, 0.82rem);
-  padding: 12px 18px;
-  min-height: 46px;
+  border-color: transparent;
+  color: var(--tinta-tenue);
+  font-size: 0.9rem;
+  padding: 10px 18px;
+  min-height: 44px;
 }
 
 .boton--peligro {
-  background: rgba(var(--rojo-rgb), 0.1);
-  border-color: rgba(var(--rojo-rgb), 0.36);
-  color: var(--rojo);
+  background: transparent;
+  border-color: var(--rojo-diario);
+  color: var(--rojo-diario);
 }
 
 .boton:disabled { opacity: 0.32; cursor: not-allowed; }
@@ -1407,11 +1471,11 @@ html, body {
   width: min(420px, 88vw);
   height: 54px;
   margin: 26px auto 18px;
-  border-radius: var(--r-chico);
-  background: rgba(0, 0, 0, 0.55);
-  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0;
+  background: var(--papel-blanco);
+  border: 1px solid var(--papel-sombra);
   overflow: hidden;
-  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 2px 8px rgba(20, 20, 20, 0.08);
 }
 
 /* Rayado de fondo: da referencia de recorrido sin competir con el cursor. */
@@ -1835,9 +1899,8 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background:
-    radial-gradient(ellipse at 50% 40%, rgba(var(--dorado-rgb), 0.07), transparent 60%),
-    var(--abismo);
+  background: #f3f3f3;
+  color: #141414;
   z-index: 100;
   gap: 14px;
   transition: opacity var(--t-medio);
@@ -1845,19 +1908,42 @@ html, body {
 
 .cargando--fuera { opacity: 0; pointer-events: none; }
 
+.cargando__marca {
+  font-family: var(--sans);
+  font-size: clamp(2.1rem, 10vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: 0;
+  color: #141414;
+}
+
+.cargando__punto { color: #c53b2b; }
+
+.cargando__titulo {
+  font-family: var(--serif);
+  font-size: clamp(1.1rem, 5vw, 1.4rem);
+  font-weight: 700;
+  color: #141414;
+}
+
+.cargando__estado {
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #646464;
+}
+
 .cargando__barra {
   width: min(220px, 60vw);
   height: 4px;
-  background: rgba(255, 255, 255, 0.09);
-  border-radius: 2px;
+  background: #e6e6e6;
+  border-radius: 0;
   overflow: hidden;
 }
 
 .cargando__relleno {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, #ffd94f, var(--dorado));
-  box-shadow: 0 0 12px rgba(var(--dorado-rgb), 0.7);
+  background: #c53b2b;
   transition: width var(--t-medio);
 }
 
@@ -1909,39 +1995,37 @@ html, body {
    ========================================================================== */
 
 :root {
-  --papel: #f2ece0;
-  --papel-sombra: #e2d9c8;
-  --tinta: #14110c;
-  --tinta-media: #4a4338;
-  --tinta-tenue: #857b6c;
-  --rojo-diario: #b3121f;
-  --serif: Georgia, 'Times New Roman', 'Iowan Old Style', serif;
+  /* DEL FIGMA (EM · Design System). El papel deja el crema sepia y pasa al
+     gris editorial: superficie #f3f3f3, blanco para tarjetas, tinta #141414 y
+     UN rojo (#c53b2b) que es a la vez acento de texto y color interactivo. */
+  --papel: #f3f3f3;          /* bg/surface */
+  --papel-blanco: #ffffff;   /* bg/primary */
+  --papel-sombra: #e6e6e6;   /* border/default y subtle */
+  --tinta: #141414;          /* text/primary */
+  --tinta-media: #282828;    /* interactive/outline */
+  --tinta-tenue: #646464;    /* text/tertiary */
+  --rojo-diario: #c53b2b;    /* text/accent · interactive/primary */
+  --lila-diario: #ddbeff;    /* accent/purple */
+  --azul-diario: #a6c7f2;    /* accent/blue */
+  --verde-senal: #67b857;    /* los letreros de la bifurcación */
+  --serif: 'PT Serif', Georgia, 'Times New Roman', serif;
+  --sans: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* Sobre el fondo oscuro, el papel se lee como un objeto físico encima. */
 .pantalla--periodico {
-  background:
-    radial-gradient(ellipse at 50% 0%, rgba(0, 0, 0, .5), transparent 60%),
-    linear-gradient(165deg, #12100c, #070604);
+  background: rgba(243, 243, 243, 0.97);
 }
 
 .diario {
-  background: var(--papel);
+  background: var(--papel-blanco);
   color: var(--tinta);
   font-family: var(--serif);
   padding: clamp(14px, 4.4vw, 24px);
-  border-radius: 3px;
+  border-radius: 0;
   text-align: left;
-  /* Sombra dura y baja: papel apoyado, no tarjeta flotante. */
-  box-shadow:
-    0 2px 0 var(--papel-sombra),
-    0 18px 44px rgba(0, 0, 0, .65);
-  /* Grano sutil: sin esto el papel se ve como un rectángulo de color. */
-  background-image:
-    radial-gradient(rgba(90, 76, 52, .05) 1px, transparent 1px),
-    radial-gradient(rgba(90, 76, 52, .04) 1px, transparent 1px);
-  background-size: 7px 7px, 11px 11px;
-  background-position: 0 0, 3px 4px;
+  border: 1px solid var(--papel-sombra);
+  box-shadow: 0 14px 36px rgba(20, 20, 20, 0.08);
   animation: papel-entra var(--t-medio) var(--rebote);
 
   /* EL EJEMPLAR NO CAMBIA DE TAMAÑO AL PASAR DE PÁGINA.
@@ -1978,7 +2062,7 @@ html, body {
 .diario__pie {
   margin-top: 14px;
   padding-top: 12px;
-  border-top: 3px double var(--tinta);
+  border-top: 1px solid var(--papel-sombra);
 }
 
 .diario__acciones {
@@ -1992,24 +2076,27 @@ html, body {
    destrozarían la página. */
 .boton--diario {
   flex: 1 1 auto;
-  padding: 11px 14px;
-  border-radius: 3px;
-  border: 2px solid var(--tinta);
+  padding: 12px 24px;
+  min-height: 48px;
+  border-radius: 0;
+  border: 1.5px solid var(--tinta-media);
   background: transparent;
   color: var(--tinta);
-  font-family: var(--tipo);
-  font-size: clamp(0.62rem, 2.6vw, 0.76rem);
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-family: var(--sans);
+  font-size: clamp(0.82rem, 3.4vw, 1rem);
+  font-weight: 700;
+  letter-spacing: 0.0125em;
+  text-transform: none;
+  line-height: 1;
   cursor: pointer;
   pointer-events: auto;
   transition: background var(--t-rapido), color var(--t-rapido);
 }
 
 .boton--diario-principal {
-  background: var(--tinta);
-  color: var(--papel);
+  background: var(--rojo-diario);
+  border-color: var(--rojo-diario);
+  color: #ffffff;
 }
 
 .boton--diario-peligro {
@@ -2019,8 +2106,8 @@ html, body {
 }
 
 @media (hover: hover) {
-  .boton--diario:hover { background: var(--tinta); color: var(--papel); }
-  .boton--diario-principal:hover { background: var(--tinta-media); }
+  .boton--diario:hover { background: var(--tinta); border-color: var(--tinta); color: #ffffff; }
+  .boton--diario-principal:hover { background: #a93123; border-color: #a93123; }
 }
 
 .diario__nota {
@@ -2056,22 +2143,24 @@ html, body {
 /* --- Mancheta ------------------------------------------------------------- */
 
 .diario__cabecera {
-  border-bottom: 3px double var(--tinta);
+  border-bottom: 1px solid var(--tinta-tenue);
   padding-bottom: 10px;
   margin-bottom: 16px;
   text-align: center;
 }
 
 .diario__nombre {
-  font-family: var(--serif);
-  font-size: clamp(2.1rem, 11vw, 3.6rem);
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  line-height: 1;
+  font-family: var(--sans);
+  font-size: clamp(1.9rem, 9.4vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.1;
   margin: 4px 0;
-  /* Las mayúsculas con mucho peso son la firma de una cabecera de diario. */
   text-transform: uppercase;
 }
+
+/* El punto rojo de la marca, también en el Archivo. */
+.diario__nombre::after { content: '.'; color: var(--rojo-diario); }
 
 .diario__lema {
   font-size: clamp(.56rem, 2.3vw, .68rem);
@@ -2379,10 +2468,10 @@ html, body {
   transform: translateX(-50%);
   width: min(300px, 76vw);
   padding: 10px 14px 12px;
-  border-radius: var(--r-chico);
-  background: rgba(13, 18, 32, 0.82);
-  border: 2px solid rgba(var(--dorado-rgb), 0.45);
-  box-shadow: 0 0 24px rgba(var(--dorado-rgb), 0.2);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--papel-sombra);
+  box-shadow: 0 10px 28px rgba(20, 20, 20, 0.14);
   text-align: center;
   pointer-events: none;
   transition: opacity var(--t-medio), border-color var(--t-medio);
@@ -2394,10 +2483,11 @@ html, body {
 }
 
 .expediente__institucion {
+  font-family: var(--sans);
   font-size: 0.62rem;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.12em;
-  color: var(--texto-tenue);
+  color: var(--rojo-diario);
   text-transform: uppercase;
   margin-bottom: 2px;
 }
@@ -2739,24 +2829,23 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--r-chico);
-  background: rgba(13, 18, 32, 0.85);
-  border: 2px solid rgba(var(--cian-rgb), 0.4);
-  box-shadow: 0 0 14px rgba(var(--cian-rgb), 0.16);
+  border-radius: 0;
+  background: var(--papel-blanco);
+  border: 1.5px solid var(--papel-sombra);
 }
 
 /* Las casillas cerradas se ven, pero apagadas. Un desbloqueo que no sabías
    que existía no tira de nadie; una silueta gris con un signo de interrogación
    sí. */
 .arsenal__casilla--cerrada {
-  border-color: var(--borde);
+  border-color: var(--papel-sombra);
   box-shadow: none;
-  background: rgba(13, 18, 32, 0.55);
+  background: var(--papel);
 }
 
 .arsenal__casilla--cerrada svg {
-  filter: grayscale(1) brightness(0.45);
-  opacity: 0.5;
+  filter: grayscale(1) brightness(0.8);
+  opacity: 0.45;
 }
 
 .arsenal__candado {
@@ -2772,10 +2861,11 @@ html, body {
 
 .arsenal__pista {
   margin-top: 7px;
+  font-family: var(--sans);
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--cian);
+  color: var(--tinta-tenue);
   text-align: center;
 }
 
@@ -2907,57 +2997,58 @@ html, body {
   margin: 20px auto 16px;
 }
 
+/* DEL FIGMA: las cartas del sorteo van en los acentos del diario —lila y
+   azul, alternadas por nth-child— y el marco del elegido es rojo pleno. */
 .juez {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
   padding: 10px 4px 8px;
-  border-radius: var(--r-chico);
-  background: rgba(13, 18, 32, 0.8);
-  border: 2px solid var(--borde);
+  border-radius: 0;
+  background: var(--lila-diario);
+  border: 2px solid transparent;
   transition: transform var(--t-instantaneo), border-color var(--t-instantaneo);
 }
+
+.tombola-banda .juez:nth-child(3n) { background: var(--azul-diario); }
 
 .juez__toga { display: flex; }
 
 .juez__rotulo {
-  font-size: 0.48rem;
-  font-weight: 900;
+  font-family: var(--sans);
+  font-size: 0.52rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--texto-debil);
+  color: var(--tinta-tenue);
   text-align: center;
 }
 
 .juez--senalado {
-  border-color: var(--dorado);
-  background: rgba(var(--dorado-rgb), 0.14);
-  box-shadow: 0 0 20px rgba(var(--dorado-rgb), 0.4);
-  transform: scale(1.06);
+  border-color: var(--rojo-diario);
+  transform: scale(1.04);
 }
 
 .juez--acierto {
-  border-color: var(--verde);
-  background: rgba(var(--verde-rgb), 0.18);
-  box-shadow: 0 0 26px rgba(var(--verde-rgb), 0.5);
+  border-color: var(--verde-senal);
+  background: #d7ecd2;
 }
 
-.juez--acierto .juez__rotulo { color: var(--verde); }
+.juez--acierto .juez__rotulo { color: #2f7a23; }
 
 /* Al fallar se enseña cuál era. Antes no: el rótulo de los seis es el mismo. */
-.juez--revelado .juez__rotulo { color: var(--verde); }
+.juez--revelado .juez__rotulo { color: #2f7a23; }
 
 .juez--fallo {
-  border-color: var(--rojo);
-  background: rgba(var(--rojo-rgb), 0.18);
-  box-shadow: 0 0 26px rgba(var(--rojo-rgb), 0.5);
+  border-color: var(--rojo-diario);
+  background: #f3d4cf;
 }
 
-.juez--fallo .juez__rotulo { color: var(--rojo); }
+.juez--fallo .juez__rotulo { color: var(--rojo-diario); }
 
 /* El que era: se enseña al fallar, para que la derrota se entienda. */
 .juez--revelado {
-  border-color: rgba(var(--verde-rgb), 0.6);
+  border-color: var(--verde-senal);
   animation: late-juez 620ms var(--rebote) 3;
 }
 
@@ -2973,28 +3064,24 @@ html, body {
    remates. El periodista deja de firmar la noticia y pasa a ser la noticia, y
    el cambio de piel lo dice sin explicarlo. */
 
+/* DEL FIGMA: la hoja ya no es una tarjeta flotando sobre negro. El contenido
+   se apoya DIRECTAMENTE en la superficie gris de la pantalla, con filetes
+   finos #e6e6e6 como única arquitectura. La sombra, el grano y el marco eran
+   los que decían «esto es un papel encima del juego»; ahora la pantalla
+   entera ES la página. */
 .plana {
   width: 100%;
-  padding: 16px 18px 14px;
+  padding: 8px 0 14px;
   margin-bottom: 14px;
-  border-radius: 3px;
-  background: #f3ecdc;
-  color: #16130d;
-  box-shadow:
-    0 12px 34px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(0, 0, 0, 0.25);
+  border-radius: 0;
+  background: transparent;
+  color: var(--tinta);
+  box-shadow: none;
   text-align: left;
-  /* Textura de papel: dos tramas muy tenues cruzadas. Sin esto el crema se ve
-     como un rectángulo de color y no como una hoja. */
-  background-image:
-    repeating-linear-gradient(0deg, rgba(0,0,0,0.016) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(90deg, rgba(0,0,0,0.012) 0 1px, transparent 1px 4px);
 }
 
-/* La pantalla de derrota no lleva el velo del resto: el periódico ocupa todo
-   y el fondo solo tiene que dejar de competir. */
 .pantalla--plana {
-  background: rgba(5, 7, 12, 0.78);
+  background: rgba(243, 243, 243, 0.97);
 }
 
 /* Las tres pantallas con tinte propio también van impresas ahora, y
@@ -3004,55 +3091,63 @@ html, body {
    El papel no cambia; cambia la luz de la habitación. */
 .pantalla--plana.pantalla--cerco {
   background:
-    radial-gradient(ellipse at 50% 40%, rgba(var(--rojo-rgb), 0.16), transparent 62%),
-    rgba(5, 7, 12, 0.84);
+    radial-gradient(ellipse at 50% 30%, rgba(197, 59, 43, 0.07), transparent 62%),
+    rgba(243, 243, 243, 0.97);
 }
 
 .pantalla--plana.pantalla--victoria {
   background:
-    radial-gradient(ellipse at 50% 35%, rgba(var(--verde-rgb), 0.18), transparent 62%),
-    rgba(5, 7, 12, 0.84);
+    radial-gradient(ellipse at 50% 30%, rgba(103, 184, 87, 0.09), transparent 62%),
+    rgba(243, 243, 243, 0.97);
 }
 
 .pantalla--plana.pantalla--relato {
-  background:
-    radial-gradient(ellipse at 50% 30%, rgba(var(--dorado-rgb), 0.12), transparent 60%),
-    rgba(5, 7, 12, 0.84);
+  background: rgba(243, 243, 243, 0.97);
 }
 
 .pantalla--plana .pantalla__contenido {
   padding-top: 18px;
 }
 
+/* LA MARCA. «EL MERCIO» en Montserrat negra con el punto en rojo; en las
+   secciones interiores el punto crece a «./judiciales», como un dominio.
+   Centrada y sobre un filete gris #646464: es la cabecera de todas las
+   páginas y el único sitio donde la marca habla. */
 .plana__cabecera {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: baseline;
-  padding-bottom: 6px;
-  margin-bottom: 10px;
-  border-bottom: 3px double #16130d;
+  padding: 10px 0 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--tinta-tenue);
+  text-align: center;
 }
 
-.plana__nombre {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+.plana__marca {
+  font-family: var(--sans);
+  font-size: clamp(1.35rem, 6vw, 1.5rem);
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.1;
+  color: var(--tinta);
   text-transform: uppercase;
 }
 
-.plana__fecha {
-  font-size: 0.52rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  color: #6b6152;
+/* La portada lleva la marca a toda plana. */
+.plana__marca--portada { font-size: clamp(2.1rem, 10vw, 2.5rem); }
+
+.plana__marca-seccion {
+  color: var(--rojo-diario);
+  text-transform: lowercase;
 }
 
 .plana__antetitulo {
-  font-size: 0.56rem;
-  font-weight: 900;
-  letter-spacing: 0.16em;
-  color: #a3231f;
+  font-family: var(--sans);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.086em;
+  text-transform: uppercase;
+  color: var(--rojo-diario);
   margin-bottom: 4px;
 }
 
@@ -3079,10 +3174,10 @@ html, body {
 }
 
 .plana__titular {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(1.35rem, 7vw, 2rem);
+  font-family: var(--serif);
+  font-size: clamp(1.6rem, 7.6vw, 2rem);
   font-weight: 700;
-  line-height: 1.02;
+  line-height: 1.15;
   letter-spacing: -0.01em;
   margin-bottom: 6px;
 }
@@ -3096,29 +3191,29 @@ html, body {
 }
 
 .plana__bajada {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 0.82rem;
-  line-height: 1.42;
-  color: #2e281d;
+  font-family: var(--serif);
+  font-size: clamp(0.95rem, 4vw, 1.125rem);
+  line-height: 1.5;
+  color: var(--tinta);
   margin-bottom: 8px;
 }
 
 .plana__cuerpo {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 0.76rem;
-  font-style: italic;
-  line-height: 1.45;
-  color: #4a4234;
+  font-family: var(--serif);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--tinta-tenue);
   padding-top: 8px;
-  border-top: 1px solid rgba(0, 0, 0, 0.16);
+  border-top: 1px solid var(--papel-sombra);
 }
 
 .plana__firma {
   margin-top: 6px;
-  font-size: 0.52rem;
-  font-weight: 900;
+  font-family: var(--sans);
+  font-size: 0.6rem;
+  font-weight: 700;
   letter-spacing: 0.18em;
-  color: #8a7f6a;
+  color: var(--tinta-tenue);
   text-transform: uppercase;
 }
 
@@ -3312,31 +3407,35 @@ html, body {
    La única cifra grande de la portada. Antes había cuatro recuadros iguales y
    ninguno destacaba, así que no se sabía qué se estaba puntuando. */
 
+/* DEL FIGMA: rótulo en Montserrat rojo con tracking, cifra en PT Serif a
+   cuerpo Display. Filetes finos, no dobles. */
 .plana__marcador {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 4px;
   margin: 10px 0 4px;
-  padding: 8px 12px 10px;
-  border-top: 3px double #16130d;
-  border-bottom: 3px double #16130d;
+  padding: 12px 12px 16px;
+  border-top: 1px solid var(--papel-sombra);
+  border-bottom: 1px solid var(--papel-sombra);
 }
 
 .plana__marcador-rotulo {
-  font-size: 0.56rem;
-  font-weight: 900;
-  letter-spacing: 0.26em;
-  color: #6b6152;
+  font-family: var(--sans);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.086em;
+  text-transform: uppercase;
+  color: var(--rojo-diario);
 }
 
 .plana__marcador-cifra {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(2.6rem, 15vw, 4rem);
+  font-family: var(--serif);
+  font-size: clamp(2.4rem, 11vw, 2.9rem);
   font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: #16130d;
+  line-height: 1.1;
+  letter-spacing: -0.0125em;
+  color: var(--tinta);
 }
 
 /* El sello de récord CAE sobre el papel, como un tampón. Entra girado y de
@@ -3450,11 +3549,12 @@ html, body {
 /* Debajo del rótulo de sección: por qué se ordena la tabla. Sin esto, una
    columna de cifras junto a unos arrobas no dice qué se está midiendo. */
 .plana__epigrafe {
-  margin: -4px 0 8px;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 0.68rem;
-  font-style: italic;
-  color: #4a4034;
+  margin: -2px 0 10px;
+  font-family: var(--serif);
+  font-size: clamp(0.9rem, 3.8vw, 1.05rem);
+  font-style: normal;
+  line-height: 1.5;
+  color: var(--tinta);
 }
 
 .posiciones {
@@ -3664,39 +3764,44 @@ html, body {
   margin: 12px auto;
 }
 
+/* DEL FIGMA: las cartas del sorteo van en lila y azul, con el marco del
+   señalado en rojo pleno. Los estados de acierto/fallo conservan su verde y
+   rojo, en la paleta del diario. */
 .plana .juez {
-  background: rgba(22, 19, 13, 0.04);
-  border: 1px solid rgba(22, 19, 13, 0.3);
-  border-radius: 3px;
+  background: var(--lila-diario);
+  border: 2px solid transparent;
+  border-radius: 0;
 }
 
-.plana .juez__rotulo { color: #6b6152; }
+.plana .tombola-banda .juez:nth-child(3n) { background: var(--azul-diario); }
+
+.plana .juez__rotulo { color: rgba(20, 20, 20, 0.62); }
 
 .plana .juez--senalado {
-  background: rgba(22, 19, 13, 0.12);
-  border: 3px solid #16130d;
+  background: var(--lila-diario);
+  border: 2px solid transparent;
   box-shadow: none;
 }
 
-.plana .juez--senalado .juez__rotulo { color: #16130d; }
+.plana .juez--senalado .juez__rotulo { color: var(--tinta); }
 
 .plana .juez--acierto,
 .plana .juez--revelado {
-  background: rgba(47, 107, 58, 0.14);
-  border-color: #2f6b3a;
+  background: #d7ecd2;
+  border-color: var(--verde-senal);
   box-shadow: none;
 }
 
 .plana .juez--acierto .juez__rotulo,
-.plana .juez--revelado .juez__rotulo { color: #2f6b3a; }
+.plana .juez--revelado .juez__rotulo { color: #2f7a23; }
 
 .plana .juez--fallo {
-  background: rgba(163, 35, 31, 0.14);
-  border-color: #a3231f;
+  background: #f3d4cf;
+  border-color: var(--rojo-diario);
   box-shadow: none;
 }
 
-.plana .juez--fallo .juez__rotulo { color: #a3231f; }
+.plana .juez--fallo .juez__rotulo { color: var(--rojo-diario); }
 
 /* --- Veredicto --- */
 .plana .resultado {
@@ -3794,13 +3899,13 @@ html, body {
   align-items: center;
   gap: 2px;
   padding: 9px 4px;
-  border-radius: var(--r-chico);
-  background: rgba(13, 18, 32, 0.82);
-  border: 2px solid var(--borde);
-  color: var(--texto-tenue);
-  font-family: inherit;
-  font-weight: 900;
-  letter-spacing: 0.04em;
+  border-radius: 0;
+  background: var(--papel-blanco);
+  border: 1.5px solid var(--papel-sombra);
+  color: var(--tinta-tenue);
+  font-family: var(--sans);
+  font-weight: 700;
+  letter-spacing: 0.0125em;
   cursor: pointer;
   transition: all var(--t-rapido);
 }
@@ -3818,19 +3923,19 @@ html, body {
   display: block;
   margin-top: 2px;
   font-size: clamp(0.4rem, 1.8vw, 0.48rem);
-  font-weight: 800;
-  letter-spacing: 0.1em;
+  font-weight: 700;
+  letter-spacing: 0.086em;
   text-transform: uppercase;
-  color: var(--texto-debil);
+  color: var(--rojo-diario);
 }
 
 .elector__ficha--elegida .elector__seccion { color: inherit; opacity: 0.75; }
 
 .elector__ficha--elegida {
-  border-color: var(--verde);
-  color: var(--verde);
-  background: rgba(var(--verde-rgb), 0.12);
-  box-shadow: 0 0 18px rgba(var(--verde-rgb), 0.24);
+  border-color: var(--rojo-diario);
+  color: var(--tinta);
+  background: var(--papel-blanco);
+  box-shadow: inset 0 0 0 1px var(--rojo-diario);
 }
 
 /* El que todavía no se fichó. Se enseña igual —un personaje que no sabías que
@@ -3843,9 +3948,9 @@ html, body {
 
 .elector__candado {
   font-size: clamp(0.42rem, 1.9vw, 0.5rem);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--texto-tenue);
+  color: var(--tinta-tenue);
   white-space: nowrap;
 }
 
@@ -3881,9 +3986,9 @@ html, body {
   height: clamp(140px, 35vw, 200px);
   margin: 20px auto;
   overflow: hidden;
-  border-radius: var(--r);
-  background: rgba(13, 18, 32, 0.6);
-  border: 2px solid var(--borde);
+  border-radius: 0;
+  background: var(--papel-blanco);
+  border: 1px solid var(--papel-sombra);
 
   /* Los costados se difuminan para que las fichas no aparezcan y desaparezcan
      de golpe contra el borde: así el bombo se lee como algo que sigue girando
@@ -3919,12 +4024,10 @@ html, body {
   transform: translate(-50%, -50%);
   width: calc(var(--juez-ancho) + 10px);
   height: 84%;
-  border: 2px solid var(--dorado);
-  border-radius: var(--r-chico);
-  background: rgba(var(--dorado-rgb), 0.06);
-  box-shadow:
-    0 0 14px rgba(var(--dorado-rgb), 0.45),
-    inset 0 0 18px rgba(var(--dorado-rgb), 0.12);
+  /* DEL FIGMA: el marco del sorteo es rojo pleno de 5 px, sin brillos. */
+  border: 5px solid var(--rojo-diario);
+  border-radius: 0;
+  background: transparent;
   pointer-events: none;
   z-index: 10;
 }
@@ -3944,12 +4047,12 @@ html, body {
 
 .tombola-selector::before {
   top: -1px;
-  border-top: 9px solid var(--dorado);
+  border-top: 9px solid var(--rojo-diario);
 }
 
 .tombola-selector::after {
   bottom: -1px;
-  border-bottom: 9px solid var(--dorado);
+  border-bottom: 9px solid var(--rojo-diario);
 }
 
 /* Ficha individual de juez en la tómbola. */
@@ -3962,12 +4065,13 @@ html, body {
   justify-content: center;
   gap: 6px;
   padding: 12px 8px;
-  border-radius: var(--r-chico);
-  background: rgba(13, 18, 32, 0.7);
-  border: 2px solid rgba(255, 255, 255, 0.08);
-  color: var(--texto-tenue);
+  border-radius: 0;
+  background: var(--lila-diario);
+  border: 2px solid transparent;
+  color: rgba(20, 20, 20, 0.62);
+  font-family: var(--sans);
   font-size: clamp(0.56rem, 2vw, 0.68rem);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.06em;
   /* Solo color: nada de `all`. Con la banda girando, transicionar geometría
      deja las fichas persiguiendo su propio tamaño y la fila tiembla. */
@@ -4045,10 +4149,13 @@ html, body {
    dentro del marco, y una que crece al pasar se sale por los lados y empuja
    ópticamente a las vecinas cada vez que la banda avanza un puesto. */
 .tombola-contenedor .juez--senalado {
-  background: rgba(var(--dorado-rgb), 0.16);
-  border-color: rgba(var(--dorado-rgb), 0.55);
-  color: var(--dorado);
+  background: var(--lila-diario);
+  border-color: transparent;
+  color: var(--tinta);
 }
+
+/* Cada tercera carta va en azul, como en el mock del sorteo. */
+.tombola-contenedor .tombola-banda .juez:nth-child(3n) { background: var(--azul-diario); }
 
 /* Juez comprado (no honesto). */
 .juez--comprado .juez__toga { filter: hue-rotate(250deg) saturate(0.8); }
@@ -4241,22 +4348,26 @@ html, body {
    HUD. Un segundo lienzo 3D para enseñar cuatro fichas costaría memoria y un
    tirón de arranque justo donde se busca fluidez. */
 
-.pantalla--botin { background: rgba(5, 7, 12, 0.9); }
+.pantalla--botin { background: rgba(243, 243, 243, 0.97); }
 
 .botin__antetitulo {
-  font-size: clamp(0.55rem, 2.3vw, 0.68rem);
-  font-weight: 900;
-  letter-spacing: 0.3em;
-  color: var(--texto-tenue);
+  font-family: var(--sans);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.086em;
+  text-transform: uppercase;
+  color: var(--rojo-diario);
+  margin-bottom: 6px;
 }
 
 .botin__titular {
-  margin: 4px 0 22px;
-  font-size: clamp(1.7rem, 8vw, 2.6rem);
-  font-weight: 900;
-  letter-spacing: -0.01em;
-  color: var(--naranja);
-  text-shadow: 0 0 26px rgba(var(--naranja-rgb), 0.5);
+  font-family: var(--serif);
+  font-size: clamp(1.4rem, 6.4vw, 1.7rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.0083em;
+  color: var(--tinta);
+  margin-bottom: 14px;
 }
 
 .botin__rejilla {
@@ -4290,13 +4401,10 @@ html, body {
   place-items: center;
   width: 100%;
   aspect-ratio: 1;
-  border-radius: var(--r);
-  background: linear-gradient(155deg, #26314a, #131a2b 62%, #0b0f1a);
-  border: 2px solid rgba(var(--naranja-rgb), 0.55);
-  box-shadow:
-    0 0 30px rgba(var(--naranja-rgb), 0.3),
-    inset 0 2px 0 rgba(255, 255, 255, 0.14),
-    inset 0 -10px 22px rgba(0, 0, 0, 0.5);
+  border-radius: 0;
+  background: var(--papel-blanco);
+  border: 1px solid var(--papel-sombra);
+  box-shadow: 0 10px 26px rgba(20, 20, 20, 0.1);
   transform-style: preserve-3d;
   overflow: hidden;
   animation: botin-gira 5.5s ease-in-out infinite;
@@ -4332,19 +4440,23 @@ html, body {
 }
 
 .botin__nombre {
-  font-size: clamp(0.6rem, 2.5vw, 0.72rem);
-  font-weight: 800;
-  line-height: 1.3;
-  color: var(--texto);
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.086em;
+  text-transform: uppercase;
   text-align: center;
+  color: var(--rojo-diario);
 }
 
 .botin__pie {
-  margin-top: 22px;
-  font-size: clamp(0.58rem, 2.4vw, 0.7rem);
-  color: var(--texto-tenue);
-  max-width: 34ch;
-  margin-inline: auto;
+  max-width: 420px;
+  margin: 14px auto 10px;
+  font-family: var(--serif);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--tinta-tenue);
+  text-align: center;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4355,6 +4467,57 @@ html, body {
      sello (incluido NO SE SOSTIENE, el único texto que delata una prueba
      plantada) quedaba invisible para quien pide menos movimiento. */
   .botin__sello { opacity: 1 !important; }
+}
+
+/* --- La columna de OPINIÓN -------------------------------------------------
+   Del Figma: filete arriba, etiqueta roja en Montserrat con tracking, la cita
+   en PT Serif negra y el busto del columnista en un círculo azul. */
+.opinion {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  width: 100%;
+  max-width: 460px;
+  margin: 18px auto 0;
+  padding: 16px 0 20px;
+  border-top: 1px solid var(--papel-sombra);
+  border-bottom: 1px solid var(--papel-sombra);
+  text-align: left;
+}
+
+.opinion__texto {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.opinion__etiqueta {
+  font-family: var(--sans);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.086em;
+  text-transform: uppercase;
+  color: var(--rojo-diario);
+}
+
+.opinion__cita {
+  font-family: var(--serif);
+  font-size: clamp(1rem, 4.4vw, 1.125rem);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--tinta);
+}
+
+.opinion__busto {
+  flex: 0 0 auto;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--azul-diario);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
 }
 
 /* --- El ascenso en la tabla -----------------------------------------------
@@ -4393,21 +4556,25 @@ html, body {
    nunca al encontrarla. Va apagada, sin el halo naranja de las buenas y con el
    icono desaturado, para que la diferencia se vea antes de leer el rótulo. */
 .botin__pieza--falsa .botin__caja {
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: inset 0 -10px 22px rgba(0, 0, 0, 0.55);
+  background: var(--papel);
+  border-color: var(--papel-sombra);
+  box-shadow: none;
   animation: none;
   transform: rotateY(-8deg);
 }
 
-.botin__pieza--falsa .botin__cara { filter: grayscale(1) brightness(0.55); }
+.botin__pieza--falsa .botin__cara { filter: grayscale(1) brightness(0.85); opacity: 0.75; }
 .botin__pieza--falsa .botin__destello { display: none; }
 .botin__pieza--falsa .botin__nombre { color: var(--texto-debil); }
 
 /* La cifra de evidencia, contando hacia arriba en su ficha. */
 .botin__nombre--cifra {
-  font-size: 1.15rem;
-  font-weight: 900;
-  color: var(--dorado);
+  font-family: var(--serif);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--tinta);
 }
 
 /* EL SELLO. Cae sobre la pieza medio tiempo después de que aparezca, grande y
@@ -4416,12 +4583,13 @@ html, body {
 .botin__sello {
   margin-top: 2px;
   padding: 2px 8px;
-  border: 1.5px solid var(--verde);
-  border-radius: 3px;
+  border: 1.5px solid var(--verde-senal);
+  border-radius: 0;
+  font-family: var(--sans);
   font-size: 0.52rem;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.12em;
-  color: var(--verde);
+  color: #3f8e33;
   opacity: 0;
   /* La torcedura de reposo vive AQUÍ y no solo en el keyframe: sin animación
      (movimiento reducido) el sello tiene que verse igual de sellado. */
@@ -4430,8 +4598,8 @@ html, body {
 }
 
 .botin__sello--falsa {
-  border-color: var(--rojo);
-  color: var(--rojo);
+  border-color: var(--rojo-diario);
+  color: var(--rojo-diario);
 }
 
 @keyframes sello-estampa {
@@ -4529,23 +4697,19 @@ html, body {
 }
 
 .plana--menu {
-  text-align: center;
-  /* El papel lo ponen los DOS bloques, no la hoja: entre ellos queda el hueco
-     por el que se ve la partida. Ver el comentario en menu(). */
+  /* DEL FIGMA: titulares a la izquierda, no centrados. El papel lo ponen los
+     dos bloques; entre ellos queda el hueco por el que se ve la partida. */
+  text-align: left;
   background: transparent;
   box-shadow: none;
   padding: 0;
 }
 
 .plana__bloque {
-  background: var(--papel);
-  background-image:
-    radial-gradient(rgba(90, 76, 52, .05) 1px, transparent 1px),
-    radial-gradient(rgba(90, 76, 52, .04) 1px, transparent 1px);
-  background-size: 7px 7px, 11px 11px;
-  padding: clamp(12px, 4vw, 20px);
-  border-radius: 3px 3px 0 0;
-  box-shadow: 0 -2px 0 var(--papel-sombra), 0 -14px 34px rgba(0, 0, 0, .55);
+  background: rgba(243, 243, 243, 0.97);
+  padding: clamp(12px, 4vw, 20px) clamp(14px, 4.5vw, 24px);
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .plana__mancheta {
@@ -4577,13 +4741,19 @@ html, body {
 }
 
 .plana__titular--menu {
-  font-size: clamp(1.25rem, 6.2vw, 1.85rem);
-  line-height: 1.05;
-  margin-bottom: 2px;
+  font-size: clamp(1.5rem, 7.2vw, 2rem);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  margin-bottom: 6px;
 }
 
 .plana__epigrafe--menu {
-  font-style: italic;
+  font-style: normal;
+  font-family: var(--serif);
+  font-size: clamp(0.95rem, 4.2vw, 1.125rem);
+  line-height: 1.5;
+  color: var(--tinta);
   margin-bottom: 10px;
 }
 
@@ -4606,12 +4776,26 @@ html, body {
   height: clamp(150px, 34vh, 260px);
   background: transparent;
   border: 0;
-  /* El velo del papel no llega aquí: se recorta para que la escena se vea
-     nítida dentro del marco. */
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  box-shadow: inset 0 0 0 1px rgba(90, 76, 52, 0.25);
+  box-shadow: inset 0 0 0 1px rgba(20, 20, 20, 0.14);
 }
+
+/* El pie de la foto de portada, como en el Figma: Montserrat gris con la
+   marca y el barrio en negrita. Va sobre papel (el bloque de abajo). */
+.portada__pie {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--tinta-tenue);
+  padding: 6px 0 2px;
+}
+
+.portada__pie b { font-weight: 700; }
 
 .pantalla--portada .portada__abajo {
   background: var(--papel);
@@ -4634,8 +4818,8 @@ html, body {
 .boton--jugar-plana {
   width: 100%;
   margin-top: 10px;
-  font-size: clamp(0.9rem, 4.4vw, 1.15rem);
-  letter-spacing: 0.2em;
+  font-size: clamp(0.9rem, 4vw, 1rem);
+  letter-spacing: 0.0125em;
 }
 
 .pantalla--portada .portada__secundarios {

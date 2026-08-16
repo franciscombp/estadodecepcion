@@ -90,16 +90,15 @@ export class HUD {
     this.raiz = document.createElement('div');
     this.raiz.className = 'hud';
     this.raiz.innerHTML = `
-      <!-- ══ FILA SUPERIOR ══ -->
+      <!-- ══ FILA SUPERIOR ══
+           DEL FIGMA: rótulo en Montserrat roja, cifra en PT Serif roja con un
+           halo blanco que la despega de la calle, y la pausa como un cuadrado
+           rojo pleno. Debajo, un filete fino cierra la cabecera. -->
       <div class="hud__superior">
-        <button class="boton-icono boton-icono--rojo" data-campo="pausa"
-                type="button" aria-label="Pausar">
-          ${Icono.pausa(22)}
-        </button>
+        <span class="hud__rotulo-evidencia">Evidencia recolectada</span>
 
         <div class="contador contador--dorado">
           <span class="contador__valor" data-campo="papeles">0</span>
-          <span class="contador__icono">${Icono.papeles(26)}</span>
 
           <!-- La racha. Cuelga del contador de papeles porque es lo que la
                produce, y hacia abajo, fuera de la calle. No multiplica nada:
@@ -109,6 +108,20 @@ export class HUD {
             <span class="racha__nombre" data-campo="racha-nombre"></span>
           </span>
         </div>
+
+        <button class="boton-icono boton-icono--rojo" data-campo="pausa"
+                type="button" aria-label="Pausar">
+          ${Icono.pausa(22)}
+        </button>
+      </div>
+
+      <!-- EL CASO. La cabecera editorial de la corrida: el lema del barrio en
+           redonda y el nombre en negra, ambos en PT Serif blanca, como titula
+           el Figma la pantalla de juego. Se retira cuando otra pieza manda
+           (señal de salida, expediente del trámite). -->
+      <div class="caso-corrida" data-campo="caso">
+        <div class="caso-corrida__lema" data-campo="caso-lema"></div>
+        <div class="caso-corrida__nombre" data-campo="caso-nombre"></div>
       </div>
 
       <!-- Marcador del expediente. Solo aparece dentro del túnel del centro,
@@ -210,6 +223,8 @@ export class HUD {
       distancia: q('distancia'),
       intentos: q('intentos'),
       nombreEscenario: q('nombre-escenario'),
+      casoLema: q('caso-lema'),
+      casoNombre: q('caso-nombre'),
       rielNodos: q('riel-nodos'),
       rotulo: q('rotulo'),
       rotuloSalida: q('rotulo-salida'),
@@ -354,6 +369,10 @@ export class HUD {
     if (datos.escenario !== c.escenario) {
       const esc = obtenerEscenario(datos.escenario);
       this.ref.nombreEscenario.textContent = esc.nombre;
+
+      // La cabecera editorial de la corrida: lema del barrio + nombre.
+      this.ref.casoLema.textContent = esc.subtitulo ?? '';
+      this.ref.casoNombre.textContent = esc.nombre;
 
       for (const [id, nodo] of this.nodosRiel) {
         nodo.classList.toggle('riel__nodo--activo', id === datos.escenario);
@@ -704,9 +723,9 @@ export class HUD {
     if (!this.ref?.rotulo) return;
 
     const vias = [
-      { clave: 'izquierda', flecha: '←', nombre: destinos.izquierda },
+      { clave: 'izquierda', flecha: '↖', nombre: destinos.izquierda },
       { clave: 'centro', flecha: '↑', nombre: destinos.centro, peligro: centroEsPeligro },
-      { clave: 'derecha', flecha: '→', nombre: destinos.derecha },
+      { clave: 'derecha', flecha: '↗', nombre: destinos.derecha },
     ];
 
     this.ref.rotuloVias.innerHTML = '';

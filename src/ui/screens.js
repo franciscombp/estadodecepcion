@@ -37,6 +37,27 @@ function boton(texto, clase, alPulsar) {
   return b;
 }
 
+/**
+ * LA MARCA DEL DIARIO, como la dibuja el Figma: «EL MERCIO» en Montserrat
+ * negra con el punto en rojo. En portada el punto es solo el punto; en las
+ * secciones interiores crece a «./judiciales», como un dominio. Una sola
+ * función para que ninguna página invente su propia cabecera.
+ *
+ * @param {string} [seccion] Nombre de sección, o nada para la portada
+ * @param {boolean} [portada] Marca a toda plana
+ */
+function cabeceraMarca(seccion = null, portada = false) {
+  const cab = el('header', 'plana__cabecera');
+  const marca = el('span', `plana__marca${portada ? ' plana__marca--portada' : ''}`);
+  marca.appendChild(document.createTextNode('EL MERCIO'));
+  const sufijo = seccion && seccion !== 'PORTADA'
+    ? `./${seccion.toLowerCase()}`
+    : '.';
+  marca.appendChild(el('span', 'plana__marca-seccion', sufijo));
+  cab.appendChild(marca);
+  return cab;
+}
+
 /** Cabecera con el sello de El Mercio. */
 function marca(texto = 'EL MERCIO') {
   const m = el('div', 'marca');
@@ -81,10 +102,7 @@ function seccionDiario({ seccion, antetitulo, titular, bajada, clase }) {
 
   const plana = el('div', 'plana');
 
-  const cab = el('header', 'plana__cabecera');
-  cab.appendChild(el('span', 'plana__nombre', CABECERA.nombre));
-  cab.appendChild(el('span', 'plana__fecha', seccion));
-  plana.appendChild(cab);
+  plana.appendChild(cabeceraMarca(seccion));
 
   if (antetitulo) plana.appendChild(el('div', 'plana__antetitulo', antetitulo));
   if (titular) plana.appendChild(el('h1', 'plana__titular plana__titular--tabla', titular));
@@ -237,10 +255,7 @@ export class Pantallas {
     const bloqueAlto = el('div', 'plana__bloque');
 
     // ══ MANCHETA ════════════════════════════════════════════════════════
-    const mancheta = el('header', 'plana__mancheta');
-    mancheta.appendChild(el('h1', 'plana__cabeza', CABECERA.nombre));
-    mancheta.appendChild(el('div', 'plana__lema', CABECERA.lema));
-    bloqueAlto.appendChild(mancheta);
+    bloqueAlto.appendChild(cabeceraMarca(null, true));
 
     // ══ TITULAR ═════════════════════════════════════════════════════════
     // El escenario va EN el titular y no en una ficha aparte: es la noticia de
@@ -257,12 +272,21 @@ export class Pantallas {
     figura.appendChild(el('div', 'portada__hueco'));
     plana.appendChild(figura);
 
+    // El pie de la foto, como lo maqueta el Figma: la escena en vivo es la
+    // fotografía de prensa y lleva su crédito.
+    const pie = el('div', 'portada__pie');
+    pie.appendChild(document.createTextNode(`Periodista de EL MERCIO./investiga el ${esc.caso.toLowerCase()} en `));
+    const lugar = el('b', '', esc.nombre);
+    pie.appendChild(lugar);
+    pie.appendChild(document.createTextNode('.'));
+
     const arriba = el('div', 'portada__arriba');
     plana.appendChild(arriba);
     contenido.appendChild(plana);
 
     // ══ BANDA INFERIOR ══════════════════════════════════════════════════
     const abajo = el('div', 'portada__abajo');
+    abajo.appendChild(pie);
 
     // --- Personaje ---------------------------------------------------------
     // Fichas pequeñas: al que eliges se le ve en la escena, así que el texto no
@@ -313,7 +337,7 @@ export class Pantallas {
     abajo.appendChild(this._pintarArsenal());
 
     // --- Jugar -------------------------------------------------------------
-    abajo.appendChild(boton('JUGAR', 'boton--diario boton--diario-principal boton--jugar-plana', () => {
+    abajo.appendChild(boton('Toca para investigar', 'boton--diario boton--diario-principal boton--jugar-plana', () => {
       this.audio.iniciar();
       this.audio.reanudar();
       this.juego.iniciarPartida(elegido);
@@ -333,8 +357,7 @@ export class Pantallas {
     abajo.appendChild(secundarios);
     escalonar(abajo);
 
-    abajo.insertBefore(el('div', 'plana__pie plana__pie--foto',
-      `${esc.caso} · Fotografía de archivo`), abajo.firstChild);
+
 
     // DENTRO del papel, no debajo. Fuera de la hoja se leían como una barra de
     // aplicación pegada a un dibujo de periódico, que es exactamente lo que el
@@ -802,12 +825,26 @@ export class Pantallas {
       setTimeout(() => this.juego.escapar(acerto), acerto ? 900 : 1300);
     };
 
-    const botonParar = boton('PARAR', 'boton--principal', parar);
+    const botonParar = boton('Toca para parar', 'boton--principal', parar);
     botones.appendChild(botonParar);
 
     // Espacio y toque también valen: en móvil el pulgar ya está en la
     // pantalla, y obligar a apuntar al botón añade una dificultad que no tiene
     // nada que ver con lo que se está midiendo.
+    // LA COLUMNA DE OPINIÓN, como maqueta el Figma la página del sorteo: el
+    // filete, la etiqueta roja, la cita en negra y el busto del columnista.
+    // La cita es la misma sátira que ya cuenta la bajada, dicha por alguien.
+    const opinion = el('div', 'opinion');
+    const opTexto = el('div', 'opinion__texto');
+    opTexto.appendChild(el('div', 'opinion__etiqueta', 'OPINIÓN'));
+    opTexto.appendChild(el('div', 'opinion__cita',
+      'Cinco de los seis llevan la camiseta del gobierno. No te sientas mal si no tienes suerte.'));
+    opinion.appendChild(opTexto);
+    const opBusto = el('div', 'opinion__busto');
+    opBusto.innerHTML = Icono.juez(44, true);
+    opinion.appendChild(opBusto);
+    contenido.appendChild(opinion);
+
     const porTecla = (e) => {
       if (e.code === 'Space' || e.code === 'Enter') {
         e.preventDefault();
@@ -871,11 +908,11 @@ export class Pantallas {
     this._pintarDesbloqueos(datos, plana);
 
     const botones = el('div', 'botones');
-    botones.appendChild(boton('Volver a correr', 'boton--principal',
+    botones.appendChild(boton('Volver a investigar', 'boton--principal',
       () => this.juego.iniciarPartida()));
     botones.appendChild(boton('Archivo de El Mercio', '',
       () => this.mostrar(this.notebook())));
-    botones.appendChild(boton('Menú principal', 'boton--tenue',
+    botones.appendChild(boton('Ir al menú principal', 'boton--tenue',
       () => this.juego.volverAlMenu()));
     contenido.appendChild(botones);
 
@@ -904,7 +941,7 @@ export class Pantallas {
     // de hoja. Las tres opciones de antes —volver, archivo, menú— cabían mal y
     // encima obligaban a decidir antes de haber terminado de leer.
     const botones = el('div', 'botones');
-    botones.appendChild(boton('CONTINUAR', 'boton--principal',
+    botones.appendChild(boton('Toca para continuar', 'boton--principal',
       () => this.mostrar((datos.pruebas?.length)
         ? this.botin(datos)
         : this.deportes(datos))));
@@ -938,9 +975,7 @@ export class Pantallas {
 
     const plana = el('div', 'plana');
 
-    const cab = el('header', 'plana__cabecera');
-    cab.appendChild(el('span', 'plana__nombre', CABECERA.nombre));
-    cab.appendChild(el('span', 'plana__fecha', 'DEPORTES'));
+    const cab = cabeceraMarca('juegos');
     plana.appendChild(cab);
 
     // El antetítulo, el título y el epígrafe cambian con la pestaña, así que
@@ -1010,7 +1045,7 @@ export class Pantallas {
         () => this.juego.iniciarPartida()));
       botones.appendChild(boton('Ver todo el diario', '',
         () => this.mostrar(this.notebook())));
-      botones.appendChild(boton('Menú principal', 'boton--tenue',
+      botones.appendChild(boton('Ir al menú principal', 'boton--tenue',
         () => this.juego.volverAlMenu()));
     } else {
       botones.appendChild(boton('Volver', 'boton--principal',
@@ -1031,10 +1066,7 @@ export class Pantallas {
     const plana = el('div', 'plana');
 
     // --- Mancheta ----------------------------------------------------------
-    const cab = el('header', 'plana__cabecera');
-    cab.appendChild(el('span', 'plana__nombre', CABECERA.nombre));
-    cab.appendChild(el('span', 'plana__fecha', 'EDICIÓN DE MAÑANA'));
-    plana.appendChild(cab);
+    plana.appendChild(cabeceraMarca(null, true));
 
     const titulos = {
       captura: 'TE ALCANZARON',
@@ -1067,7 +1099,7 @@ export class Pantallas {
     // letra de pie de foto.
     const papeles = datos.papeles ?? 0;
     const marcador = el('div', 'plana__marcador');
-    marcador.appendChild(el('span', 'plana__marcador-rotulo', 'PRUEBAS RECOGIDA'));
+    marcador.appendChild(el('span', 'plana__marcador-rotulo', 'EVIDENCIA RECOLECTADA'));
 
     const cifra = el('span', 'plana__marcador-cifra', '0');
     marcador.appendChild(cifra);
@@ -1182,6 +1214,8 @@ export class Pantallas {
     const { pantalla, contenido } = pantallaBase();
     pantalla.classList.add('pantalla--botin');
 
+    // La sección de la redacción, como titula el Figma la página de pruebas.
+    contenido.appendChild(cabeceraMarca('redacción'));
     contenido.appendChild(el('div', 'botin__antetitulo', 'SALISTE CON ESTO'));
 
     const pruebas = datos.pruebas ?? [];
@@ -1275,7 +1309,7 @@ export class Pantallas {
         : 'Se quedan en el archivo aunque te capturen. Son las que arman el reportaje.'));
 
     const botones = el('div', 'botones');
-    botones.appendChild(boton('CONTINUAR', 'boton--principal',
+    botones.appendChild(boton('Toca para continuar', 'boton--principal',
       () => this.mostrar(this.deportes(datos))));
     contenido.appendChild(botones);
 
