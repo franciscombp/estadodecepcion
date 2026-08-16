@@ -557,7 +557,12 @@ export class Player {
    * cerco vuelve a la pista corriendo con los brazos en cruz.
    */
   _enderezarMiembros() {
+    // Una pieza importada de Blender no trae miembros nombrados (ver
+    // crearPersonaje). No se la anima ni se la endereza: se la deja como está,
+    // que es mejor que reventar la partida entera al morir.
     const p = this.modelo.userData.partes;
+    if (!p) return;
+
     for (const parte of pivotesDe(p)) parte.rotation.set(0, 0, 0);
 
     p.torso.rotation.set(0, 0, 0);
@@ -599,6 +604,8 @@ export class Player {
     this.modelo.position.y = this.y;
 
     const p = this.modelo.userData.partes;
+    if (!p) return;
+
     // Brazos y piernas ABIERTOS, no colgando: es lo que dice «cayó», y sin
     // ello un cuerpo tumbado se lee como un cuerpo de pie visto raro.
     p.brazoIzq.rotation.set(0, 0, 1.15);

@@ -782,9 +782,14 @@ generador pregunte por `piezaEditada(id)` antes de construir.
 ### Dos avisos que ahorran un rato
 
 **Los personajes importados no se animan.** `animarCarrera()` mueve los miembros
-buscándolos por nombre (`piernaIzq`, `brazoDer`, `torso`, `cabeza`…). Si el
-`.glb` no los trae con esos nombres, el personaje corre quieto. O mantienes los
-nombres en Blender, o adaptas `animarCarrera()` a las animaciones del archivo.
+buscándolos por nombre, y desde que los miembros son articulados la lista es más
+larga: `brazoDer` → `antebrazoDer` → `manoDer`, `piernaDer` → `pantorrillaDer` →
+`pieDer`, y sus dos gemelos del otro lado, más `torso`, `cadera`, `cuello`,
+`cabeza` y el grupo `cuerpo` que los contiene a todos. Si el `.glb` no los trae
+con esos nombres, el personaje corre quieto —y sin `cuerpo` tampoco da la
+voltereta al agacharse—. O mantienes los nombres en Blender, o adaptas
+`animarCarrera()` a las animaciones del archivo. El árbol entero está en
+`docs/ASSET-EXPORT-GUIDE.md`.
 
 **Cuidado con el número de piezas.** El coste en móvil no son los triángulos,
 son las llamadas de dibujo. Una cuadra colonial son cuarenta y cinco piezas y en

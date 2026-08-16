@@ -62,24 +62,39 @@ Se generaron **13 modelos GLB** desde procedurales Three.js, listos para editar 
 Cada modelo tiene **nombres específicos** que el código del juego espera. **Mantenlos al editar:**
 
 ### Personajes humanoides
+
+Los miembros son **articulados**: cada brazo lleva codo y cada pierna lleva
+rodilla y tobillo, encadenados. Y todo el cuerpo cuelga de un grupo intermedio
+llamado `cuerpo`, que es el que gira en la voltereta de agacharse.
+
 ```
-[Personaje]
-├── BrazoDer (grupo - pivote del hombro)
-│   ├── BrazoDer_Brazo (geometría)
-│   ├── BrazoDer_Mano (esfera)
-│   └── [accesorio si lo hay]
-├── BrazoIzq
-├── PiernaDer (grupo)
-│   ├── PiernaDer_Pierna
-│   └── PiernaDer_Pie
-├── PiernaIzq
-├── Torso (geometría principal - con accesorios anclados)
-├── Cadera (geometría)
-├── Cabeza (geometría - con sombrero/casco anclado)
-└── Cuello
+[Personaje]                        ← posición y giro en la pista
+└── cuerpo                         ← lo que rueda en la voltereta
+    ├── cabeza (con sombrero/casco anclado)
+    ├── cuello
+    ├── torso (con mochila y accesorios anclados)
+    ├── cadera (con la cámara de fotos)
+    ├── brazoDer (pivote del HOMBRO)
+    │   └── antebrazoDer (pivote del CODO)
+    │       └── manoDer (pivote de la MUÑECA — aquí van libreta, micrófono…)
+    ├── brazoIzq → antebrazoIzq → manoIzq
+    ├── piernaDer (pivote de la INGLE)
+    │   └── pantorrillaDer (pivote de la RODILLA)
+    │       └── pieDer (pivote del TOBILLO)
+    └── piernaIzq → pantorrillaIzq → pieIzq
 ```
 
-**Importante:** Los nombres son usados por `animarCarrera()` en `src/models/characters.js`. Si los cambias, actualiza también ese código.
+Las medidas de cada tramo están en `PROPORCION`, en
+`src/models/characters.js`: 1.70 de alto, cabeza de 0.34 que empieza en 1.26,
+tronco de 0.80 a 1.24, hombro a 1.17 e ingle a 0.80.
+
+**Importante:** Estos nombres los usan `animarCarrera()`, `animarSalto()` y
+`aplicarPoseAgachado()` en `src/models/characters.js`. Si los cambias,
+actualiza también ese código.
+
+**Y las posiciones de reposo:** al construirse, cada pieza que la voltereta
+recoge guarda su sitio en `userData.reposo`. Un `.glb` importado no lo trae, así
+que ni se anima ni se recoge (ver más abajo).
 
 ### Obstáculos
 Los obstáculos son más flexibles. Mantén al menos:
@@ -162,8 +177,10 @@ Cada material tiene un color aproximado. Estos son para reference:
    const modelo = gltf.scene
    ```
 
-3. **Para animaciones:** Los brazos y piernas esperan el pivote de hombro/cadera.
-   - Si cambias la estructura, adapta `animarCarrera()` al nuevo rig.
+3. **Para animaciones:** cada miembro espera su cadena de pivotes completa
+   (hombro → codo → muñeca, ingle → rodilla → tobillo) colgando de `cuerpo`.
+   - Si cambias la estructura, adapta `animarCarrera()`, `animarSalto()` y
+     `aplicarPoseAgachado()` al nuevo rig.
 
 ### Opción 2: Versiones paralelas
 
@@ -283,8 +300,11 @@ El juego usa `MeshStandardMaterial` (Three.js) que es compatible con glTF 2.0 PB
 - En Three.js, carga con: `new GLTFLoader().load(...)`
 
 **Animación quebrada (brazos/piernas no se mueven):**
-- Revisa que los nombres de pivotes siguen siendo `BrazoDer`, `PiernaDer`, etc.
-- O adapta `animarCarrera()` a los nuevos nombres
+- Revisa que los nombres de pivotes siguen siendo `brazoDer`, `antebrazoDer`,
+  `piernaDer`, `pantorrillaDer`, `pieDer`, etc.
+- Revisa que todo cuelga del grupo `cuerpo`: sin él no hay voltereta
+- O adapta `animarCarrera()` / `animarSalto()` / `aplicarPoseAgachado()` a los
+  nuevos nombres
 
 **Texturas pixeladas / baja resolución:**
 - Genera UVs con "Angle-Based" o "Smart UV Project"
