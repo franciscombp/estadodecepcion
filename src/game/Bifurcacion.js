@@ -286,6 +286,11 @@ export class Bifurcacion {
     if (!objeto) return;
     this.grupo.remove(objeto);
     objeto.traverse((o) => {
+      // Los edificios del GLB comparten geometría y materiales con la
+      // plantilla cargada (ver hitos.clonarPorNombre): aquí no hay nada que
+      // liberar, y destruirlos evictaba los buffers del modelo entero en cada
+      // cruce.
+      if (o.userData.compartido) return;
       if (o.geometry) o.geometry.dispose();
       if (o.material) o.material.dispose();
     });
@@ -314,12 +319,24 @@ export class Bifurcacion {
     this.activa = false;
   }
 
+  /**
+   * Corta el viraje en seco, sin tocar lo montado en pista.
+   *
+   * Lo llama el fin de partida: el viraje solo avanza mientras se juega, así
+   * que una captura en mitad del tránsito lo dejaba CONGELADO —virando=true,
+   * destello a medias— y al zafarte del cerco la pantalla soltaba un
+   * destellazo blanco salido de ninguna parte.
+   */
+  abortarViraje() {
+    this.virando = false;
+    this.tiempoViraje = 0;
+    this.direccionViraje = 0;
+  }
+
   reiniciar() {
     this._destruir(this.paso);
     this.paso = null;
     this.limpiar();
-    this.virando = false;
-    this.tiempoViraje = 0;
-    this.direccionViraje = 0;
+    this.abortarViraje();
   }
 }

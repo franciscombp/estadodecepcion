@@ -4350,7 +4350,11 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .botin__pieza, .botin__caja, .botin__destello, .botin__sello { animation: none !important; }
   .botin__destello { opacity: 0; }
-  .botin__sello { opacity: 1; }
+  /* Con !important porque este bloque queda ANTES que la regla base en el
+     archivo y a igual especificidad ganaría el opacity: 0 de la base — el
+     sello (incluido NO SE SOSTIENE, el único texto que delata una prueba
+     plantada) quedaba invisible para quien pide menos movimiento. */
+  .botin__sello { opacity: 1 !important; }
 }
 
 /* --- El ascenso en la tabla -----------------------------------------------
@@ -4419,6 +4423,9 @@ html, body {
   letter-spacing: 0.12em;
   color: var(--verde);
   opacity: 0;
+  /* La torcedura de reposo vive AQUÍ y no solo en el keyframe: sin animación
+     (movimiento reducido) el sello tiene que verse igual de sellado. */
+  transform: rotate(-4deg);
   animation: sello-estampa 0.32s cubic-bezier(0.2, 1.35, 0.4, 1) var(--sello, 0.5s) both;
 }
 

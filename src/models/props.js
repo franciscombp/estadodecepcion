@@ -80,7 +80,12 @@ function mat(color, emision = 0.25, rugosidad = 0.94) {
 // «esto es jugable» de un vistazo.
 let _matPeligro = null;
 function matPeligro() {
-  if (!_matPeligro) _matPeligro = neon(NEON.rojo, 2);
+  if (!_matPeligro) {
+    _matPeligro = neon(NEON.rojo, 2);
+    // La marca que respetan todos los destructores: este material no es de
+    // nadie en particular y no se destruye con ningún obstáculo.
+    _matPeligro.userData.compartido = true;
+  }
   return _matPeligro;
 }
 

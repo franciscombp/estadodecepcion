@@ -1201,6 +1201,13 @@ export class Pantallas {
     const PASO = 0.62;       // Un turno por objeto.
     let turno = 0.25;        // Cuándo entra el siguiente.
 
+    // Los turnos pendientes se cancelan si la pantalla se va antes de que el
+    // desfile termine: sin esto, pulsar CONTINUAR a mitad dejaba los golpes de
+    // sonido sonando encima de la página de deportes, uno cada medio segundo.
+    const temporizadores = [];
+    pantalla.addEventListener('pantalla:desmontada',
+      () => temporizadores.forEach(clearTimeout), { once: true });
+
     // La evidencia abre el desfile: el fajo de papeles con su contador
     // subiendo. No es una prueba, pero es lo que costó toda la corrida y
     // merece su puesto en la mesa.
@@ -1221,10 +1228,10 @@ export class Pantallas {
       rejilla.appendChild(pieza);
 
       const cuantos = datos.papeles;
-      setTimeout(() => {
+      temporizadores.push(setTimeout(() => {
         contarHasta(cifra, cuantos, 750);
         this.audio?.evidencia?.();
-      }, turno * 1000 + 180);
+      }, turno * 1000 + 180));
       turno += PASO + 0.25; // El contador necesita su medio segundo extra.
     }
 
@@ -1255,7 +1262,7 @@ export class Pantallas {
       rejilla.appendChild(pieza);
 
       // El golpe de sonido de cada pieza, en su turno.
-      setTimeout(() => this.audio?.evidencia?.(), 120 + turno * 1000);
+      temporizadores.push(setTimeout(() => this.audio?.evidencia?.(), 120 + turno * 1000));
       turno += PASO;
     });
     contenido.appendChild(rejilla);

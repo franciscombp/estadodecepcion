@@ -177,6 +177,11 @@ export function clonarPorNombre(nombre) {
   copia.position.set(0, 0, 0);
   copia.rotation.set(0, 0, 0);
   copia.updateMatrixWorld(true);
+  // clone(true) NO copia geometrías ni materiales: los comparte con la
+  // plantilla cargada. La marca avisa a los destructores (el del cruce, en
+  // Bifurcacion) de que aquí no hay nada que liberar: destruirlos evicta los
+  // buffers del modelo entero y el siguiente cruce paga la resubida a GPU.
+  copia.traverse((o) => { o.userData.compartido = true; });
   return copia;
 }
 

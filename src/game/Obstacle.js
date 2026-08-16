@@ -19,6 +19,19 @@ import { crearObstaculo } from '../models/props.js';
 import { crearCaja, hayColision } from '../utils/collision.js';
 
 // Tipos que se pueden superar sin abandonar el carril.
+// Destruye una malla de obstáculo liberando su memoria — MENOS los materiales
+// compartidos. El rojo de peligro es UN material para todas las franjas de la
+// pista (ver props.matPeligro) y sigue en uso por los obstáculos vivos y por
+// los que están por crearse: destruirlo aquí obligaba al renderer a
+// reinicializarlo al fotograma siguiente, un tirón que caía justo en cada
+// aproximación a la bifurcación y en cada cambio de temporada.
+function desechar(malla) {
+  malla.traverse((n) => {
+    if (n.geometry) n.geometry.dispose();
+    if (n.material && !n.material.userData.compartido) n.material.dispose();
+  });
+}
+
 const TIPOS_SUPERABLES = ['saltar', 'agachar'];
 // Tipos que obligan a cambiar de carril.
 const TIPOS_SOLIDOS = ['esquivar'];
@@ -96,10 +109,7 @@ export class ObstacleManager {
     // Si el pool ya está lleno, destruimos en vez de acumular memoria.
     if (libres.length >= OBSTACULOS.TAMANO_POOL) {
       this.grupo.remove(obstaculo.malla);
-      obstaculo.malla.traverse((o) => {
-        if (o.geometry) o.geometry.dispose();
-        if (o.material) o.material.dispose();
-      });
+      desechar(obstaculo.malla);
     } else {
       libres.push(obstaculo.malla);
       this.pool.set(obstaculo.tipo, libres);
@@ -373,10 +383,7 @@ export class ObstacleManager {
     for (const [, mallas] of this.pool) {
       for (const malla of mallas) {
         this.grupo.remove(malla);
-        malla.traverse((o) => {
-          if (o.geometry) o.geometry.dispose();
-          if (o.material) o.material.dispose();
-        });
+        desechar(malla);
       }
     }
     this.pool.clear();
@@ -402,10 +409,7 @@ export class ObstacleManager {
       if (o.z >= zLimite) continue;
 
       this.grupo.remove(o.malla);
-      o.malla.traverse((n) => {
-        if (n.geometry) n.geometry.dispose();
-        if (n.material) n.material.dispose();
-      });
+      desechar(o.malla);
       this.activos.splice(i, 1);
     }
   }
@@ -414,10 +418,7 @@ export class ObstacleManager {
   limpiar() {
     for (const o of this.activos) {
       this.grupo.remove(o.malla);
-      o.malla.traverse((n) => {
-        if (n.geometry) n.geometry.dispose();
-        if (n.material) n.material.dispose();
-      });
+      desechar(o.malla);
     }
     this.activos = [];
     this.reservas = [];

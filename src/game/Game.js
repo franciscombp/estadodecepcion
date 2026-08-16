@@ -556,6 +556,12 @@ export class Game {
   terminarPartida(motivo, textoPersonalizado = null) {
     if (this.estado === 'gameover' || this.estado === 'cerco' || this.estado === 'escape') return;
 
+    // Si la captura pilla un viraje a medias, se corta aquí: el viraje solo
+    // avanza jugando, así que quedaba congelado y su destello reaparecía de la
+    // nada al reanudar tras el escape. El giro del personaje, igual.
+    this.bifurcacion.abortarViraje();
+    this.jugador.giroCinematico = 0;
+
     this.jugador.caer();
     this._limpiarEfectos();
     this.fotoArresto = null;
@@ -1181,6 +1187,18 @@ export class Game {
     this.elevado.limpiar();
     this.potenciadores.limpiar();
 
+    // Si el cerco te cayó EN LA FACHADA MISMA —ir de frente en Carondelet—,
+    // el tramo estaba consumido: sin esto, al zafarte la aproximación volvía a
+    // dispararse en el mismo metro, cruzabas al instante por el carril del
+    // centro y el cerco te caía otra vez. Un bucle de capturas del que solo se
+    // salía cambiando de carril en un fotograma. La calle vuelve a empezar.
+    if (this.distanciaTramo >= TRAMO.LONGITUD - 1) {
+      this.distanciaTramo = 0;
+      this.enAproximacion = false;
+      this.corredorLimpio = false;
+      this.bifurcacion.limpiar();
+    }
+
     // …salvo si te atraparon en pleno corredor de bifurcación. Ahí la pista
     // está vacía a propósito y volver a llenarla pondría obstáculos justo
     // donde el jugador tiene que estar eligiendo túnel.
@@ -1224,15 +1242,24 @@ export class Game {
     this._bucle();
   }
 
+  /**
+   * Curva el mundo y dibuja. En este orden y JUSTO aquí: el parche de
+   * curvatura (ver utils/curvatura.js) tiene que pasar DESPUÉS de que la
+   * actualización haya montado lo que tuviera que montar —el soportal, la
+   * galería del trámite, el cruce— y antes del render. Cuando iba al principio
+   * del bucle, todo lo montado durante la actualización se dibujaba UNA vez
+   * recto —el soportal entero un palmo más arriba durante un fotograma— y
+   * encima pagaba compilar un shader sin parche que se tiraba al siguiente.
+   */
+  _render() {
+    curvarEscena(this.escenaThree);
+    if (this.compositor) this.compositor.render();
+    else this.renderizador.render(this.escenaThree, this.camara);
+  }
+
   _bucle = () => {
     if (!this.animando) return;
     requestAnimationFrame(this._bucle);
-
-    // El doblez del mundo (ver utils/curvatura.js). Va ANTES de actualizar y
-    // de cualquiera de los render de abajo: lo que se monte en este fotograma
-    // —un cruce, una pieza del GLB— se parchea antes de compilar su shader y
-    // no llega a pintarse recto ni una vez.
-    curvarEscena(this.escenaThree);
 
     const ahora = performance.now();
     let dt = (ahora - this.relojAnterior) / 1000;
@@ -1253,8 +1280,7 @@ export class Game {
       }
       this.escenario?.actualizar(dt, 0, this.jugador, this.velocidad);
       // La cámara la lleva la propia intro: nos saltamos el seguimiento normal.
-      if (this.compositor) this.compositor.render();
-      else this.renderizador.render(this.escenaThree, this.camara);
+      this._render();
       return;
     } else if (this.estado === 'cerco') {
       this._actualizarCerco(dt);
@@ -1266,8 +1292,7 @@ export class Game {
       this.escenario?.actualizar(dt, 0, this.jugador, this.velocidad);
       this.intro.encuadrarMenu(dt, this.camara, this.jugador, this.perseguidor);
 
-      if (this.compositor) this.compositor.render();
-      else this.renderizador.render(this.escenaThree, this.camara);
+      this._render();
       return;
     } else {
       // En pausa seguimos animando al jugador y al perseguidor para que la
@@ -1280,8 +1305,7 @@ export class Game {
     this._actualizarCamara(dt);
 
     // Con bloom vamos por el compositor; sin él, directo a pantalla.
-    if (this.compositor) this.compositor.render();
-    else this.renderizador.render(this.escenaThree, this.camara);
+    this._render();
 
     // La foto se saca AQUÍ, en el mismo fotograma en que se acaba de dibujar.
     //
@@ -1771,6 +1795,10 @@ export class Game {
     this.enAproximacion = false;
     this.corredorLimpio = false;
     this.finPendiente = null;
+    // El despeje del cruce no se queda puesto en el menú: la fachada que lo
+    // justificaba ya no está, y el telón de fondo volvía sin niebla y con las
+    // luces subidas para siempre. Solo el objetivo: el regreso es en fundido.
+    if (this.escenario) this.escenario.despejeObjetivo = 0;
     this._establecerEstado('menu');
   }
 }
