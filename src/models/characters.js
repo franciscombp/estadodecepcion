@@ -33,6 +33,7 @@
 
 import * as THREE from 'three';
 import { piezaEditada } from './hitos.js';
+import { crearPersonajeGLB } from './personajeGLB.js';
 
 // ---------------------------------------------------------------------------
 // PROPORCIONES — medidas sacadas del modelo original
@@ -819,11 +820,18 @@ export function crearPersonaje(id) {
   // archivo se busca al arrancar y, si no está, se sigue con el procedural de
   // siempre. Así se puede cambiar un personaje sin tocar una línea de código.
   //
-  // OJO: una pieza importada NO se anima. animarCarrera() busca los miembros
-  // por nombre (`piernaIzq`, `brazoDer`…), y si el archivo no los trae, el
-  // personaje corre quieto. Está documentado en el README.
+  // OJO: una pieza puesta por ahí NO se anima. animarCarrera() busca los
+  // miembros por nombre (`piernaIzq`, `brazoDer`…), y si el archivo no los
+  // trae, el personaje corre quieto. Está documentado en el README.
   const editada = piezaEditada(`personaje-${id}`);
   if (editada) return editada;
+
+  // ¿Y el modelo con esqueleto? Los dos protagonistas vienen de un archivo con
+  // su ciclo de carrera horneado, y ese sí se anima —el jugador lo reconoce y
+  // usa su mezclador (ver personajeGLB.js)—. Los demás siguen siendo de cajas
+  // porque no hay modelo suyo.
+  const conEsqueleto = crearPersonajeGLB(id);
+  if (conEsqueleto) return conEsqueleto;
 
   switch (id) {
     case 'avecilla': return crearAvecilla();

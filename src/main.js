@@ -19,6 +19,7 @@ import { HUD } from './ui/HUD.js';
 import { Pantallas } from './ui/screens.js';
 import { AssetCache } from './utils/assetCache.js';
 import { cargarHitos } from './models/hitos.js';
+import { cargarPersonajesGLB } from './models/personajeGLB.js';
 import { detectarCalidad } from './utils/calidad.js';
 import { Actualizador } from './utils/actualizacion.js';
 import { PAGINAS } from './config/publicaciones.js';
@@ -127,6 +128,13 @@ async function arrancar() {
   // tarde, la primera partida saldría sin ellos. Si falla, se sigue sin hitos.
   carga.progreso(0.68, 'Levantando la ciudad…');
   await cargarHitos(import.meta.env.BASE_URL ?? '/');
+
+  // Los dos protagonistas vienen de un archivo, con su esqueleto y su ciclo de
+  // carrera. También se esperan aquí: el menú ya enseña al periodista haciendo
+  // la entrevista, así que llegar tarde significa que la portada sale con el
+  // muñeco de repuesto y se cambia solo a los dos segundos.
+  carga.progreso(0.72, 'Llamando a la redacción…');
+  await cargarPersonajesGLB(import.meta.env.BASE_URL ?? '/');
 
   carga.progreso(0.75, 'Levantando el escenario…');
   const juego = new Game(lienzo, cuaderno, audio, calidad);

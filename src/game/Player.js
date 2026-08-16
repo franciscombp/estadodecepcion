@@ -15,6 +15,10 @@ import { CARRILES, SALTO, AGACHARSE, JUGADOR } from '../config/balance.js';
 import {
   crearPersonaje, animarCarrera, animarSalto, aplicarPoseAgachado, pivotesDe, reposar,
 } from '../models/characters.js';
+import {
+  esGLB, animarCarreraGLB, animarSaltoGLB, aplicarPoseAgachadoGLB,
+  poseDerrotaGLB, reposarGLB,
+} from '../models/personajeGLB.js';
 import { crearCaja } from '../utils/collision.js';
 
 export class Player {
@@ -312,20 +316,37 @@ export class Player {
     }
 
     // Animación de carrera: la cadencia sube con la velocidad.
+    const subida = this.velocidadY / SALTO.VELOCIDAD_INICIAL;
     const cadencia = 6 + (velocidad / 42) * 8;
-    if (this.estaEnElAire) {
+
+    // Dos clases de personaje conviven: los del archivo, que traen esqueleto y
+    // un ciclo de carrera grabado, y los de cajas. Corren por vías distintas
+    // —uno por su mezclador de animación y el otro moviendo pivotes— pero el
+    // resto del jugador no se entera: los estados y los tiempos son los mismos.
+    if (esGLB(this.modelo)) {
+      // La agachada manda sobre el salto: quien rueda no está saltando, y si
+      // el mezclador siguiera corriendo machacaría los huesos del ovillo.
+      if (this.factorAgachado > 0.001 || this.anguloRodada > 0) {
+        aplicarPoseAgachadoGLB(this.modelo, this.factorAgachado, this.anguloRodada);
+      } else if (this.estaEnElAire) {
+        animarSaltoGLB(this.modelo, subida);
+      } else {
+        reposarGLB(this.modelo);
+        animarCarreraGLB(this.modelo, dt, velocidad);
+      }
+    } else if (this.estaEnElAire) {
       // En el aire la pose ya no está congelada: cambia con la fase del vuelo,
       // así que el despegue, la suspensión y la caída se ven distintos.
-      animarSalto(this.modelo, this.velocidadY / SALTO.VELOCIDAD_INICIAL);
+      animarSalto(this.modelo, subida);
+      aplicarPoseAgachado(this.modelo, this.factorAgachado, this.anguloRodada);
     } else {
       animarCarrera(this.modelo, this.tiempoAnimacion, 1, cadencia);
+      // La agachada ya NO toca la escala: el personaje se hace una bola de
+      // verdad, recogiendo cada pieza. Antes se aplastaba en Y, y de paso se
+      // llevaba por delante el squash del choque —que escribe escala en el
+      // mismo fotograma y se veía solo a lo ancho y a lo hondo.
+      aplicarPoseAgachado(this.modelo, this.factorAgachado, this.anguloRodada);
     }
-
-    // La agachada ya NO toca la escala: el personaje se hace una bola de
-    // verdad, recogiendo cada pieza. Antes se aplastaba en Y, y de paso se
-    // llevaba por delante el squash del choque —que escribe escala en el mismo
-    // fotograma y se veía solo a lo ancho y a lo hondo.
-    aplicarPoseAgachado(this.modelo, this.factorAgachado, this.anguloRodada);
 
     // Parpadeo durante la invulnerabilidad, PERO NO MIENTRAS DURA EL APLASTÓN.
     // El golpe y la invulnerabilidad empiezan en el mismo fotograma, así que
@@ -557,7 +578,9 @@ export class Player {
    * cerco vuelve a la pista corriendo con los brazos en cruz.
    */
   _enderezarMiembros() {
-    // Una pieza importada de Blender no trae miembros nombrados (ver
+    if (esGLB(this.modelo)) { reposarGLB(this.modelo); return; }
+
+    // Una pieza suelta puesta en public/ no trae miembros nombrados (ver
     // crearPersonaje). No se la anima ni se la endereza: se la deja como está,
     // que es mejor que reventar la partida entera al morir.
     const p = this.modelo.userData.partes;
@@ -602,6 +625,8 @@ export class Player {
     this.modelo.rotation.set(-Math.PI / 2, Math.PI, 0);
     this.y = 0.26;
     this.modelo.position.y = this.y;
+
+    if (esGLB(this.modelo)) { poseDerrotaGLB(this.modelo); return; }
 
     const p = this.modelo.userData.partes;
     if (!p) return;

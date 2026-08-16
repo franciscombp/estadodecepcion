@@ -29,6 +29,7 @@
 import * as THREE from 'three';
 import { CAMARA, PERSEGUIDOR } from '../config/balance.js';
 import { crearMinistro } from '../models/characters.js';
+import { esGLB, poseEntrevistaGLB } from '../models/personajeGLB.js';
 
 // Guiones de la secuencia, en segundos.
 const COMPLETA = {
@@ -118,6 +119,9 @@ const MIRA_MENU = 1.35;
 // otro pegado al borde o directamente fuera, y lo que hay que contar aquí es
 // que hay una pregunta y alguien contestándola —o sea, los dos.
 const MIRA_ENTREVISTA_X = -0.75;
+
+// Reutilizable, para no crear un vector por fotograma.
+const _puntoMano = new THREE.Vector3();
 
 export class Intro {
   /** @param {THREE.Scene} escena Para poder plantar al ministro. */
@@ -370,12 +374,22 @@ export class Intro {
    * @param {number} intensidad 1 = entrevistando, 0 = ya corriendo
    */
   _poseEntrevista(jugador, tiempo, intensidad = 1) {
-    const p = jugador.modelo?.userData?.partes;
-    if (!p) return;
-
     // Se gira hacia quien responde, que está fuera de cuadro a su derecha.
     // Media vuelta más el giro deja el perfil hacia la cámara.
     jugador.modelo.rotation.y = Math.PI + 1.5 * intensidad;
+
+    // Los dos protagonistas vienen de un archivo con esqueleto: su pose se
+    // escribe sobre huesos, no sobre pivotes, y la mano que sostiene el
+    // micrófono la devuelve el propio modelo —aquí no se sabe cómo se llaman
+    // sus huesos, ni hace falta—.
+    if (esGLB(jugador.modelo)) {
+      const mano = poseEntrevistaGLB(jugador.modelo, tiempo, intensidad);
+      this._colgarMicrofono(mano, intensidad, jugador.modelo);
+      return;
+    }
+
+    const p = jugador.modelo?.userData?.partes;
+    if (!p) return;
 
     // El brazo del micrófono, extendido y con el pulso de quien lleva rato
     // aguantándolo. El otro sostiene la libreta contra el pecho.
@@ -395,8 +409,23 @@ export class Intro {
     p.pantorrillaDer.rotation.x = 0.1 * intensidad;
     p.torso.rotation.x = -0.06 * intensidad;
 
-    // El micrófono. Se crea una vez y se cuelga del brazo; al terminar la
-    // intro se esconde, porque durante la corrida no lo lleva en la mano.
+    this._colgarMicrofono(p.manoDer, intensidad, jugador.modelo);
+  }
+
+  /**
+   * El micrófono. Se crea una vez y SIGUE a la mano; al terminar la intro se
+   * esconde, porque durante la corrida no lo lleva.
+   *
+   * No se cuelga como hijo de la mano, que sería lo obvio, y el motivo es que
+   * la mano puede ser dos cosas muy distintas: un grupo del personaje de cajas
+   * o un HUESO del modelo importado. Los huesos de ese archivo vienen en
+   * centímetros y con los ejes mirando a donde el modelador quiso, así que un
+   * micrófono colgado de uno sale del tamaño de un edificio y apuntando al
+   * suelo. Siguiendo solo la POSICIÓN de la mano, da igual de quién sea.
+   */
+  _colgarMicrofono(mano, intensidad, modelo) {
+    if (!mano || !modelo) return;
+
     if (!this._microfono) {
       this._microfono = new THREE.Group();
       const mango = new THREE.Mesh(
@@ -412,11 +441,15 @@ export class Intro {
       );
       rejilla.position.y = 0.19;
       this._microfono.add(rejilla);
-      // Va EN LA MANO, no colgado del hombro: ahora el brazo tiene codo, y un
-      // micrófono anclado al hombro se queda flotando en cuanto el codo dobla.
-      this._microfono.position.set(0, -0.16, -0.04);
-      p.manoDer.add(this._microfono);
     }
+
+    if (this._microfono.parent !== modelo) modelo.add(this._microfono);
+
+    // La mano, en coordenadas del personaje, y el micrófono un palmo por
+    // debajo y por delante: agarrado, no clavado en el puño.
+    mano.getWorldPosition(_puntoMano);
+    modelo.worldToLocal(_puntoMano);
+    this._microfono.position.set(_puntoMano.x, _puntoMano.y - 0.09, _puntoMano.z + 0.06);
     this._microfono.visible = intensidad > 0.05;
   }
 

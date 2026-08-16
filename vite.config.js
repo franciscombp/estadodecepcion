@@ -129,10 +129,9 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Cacheamos todo el bundle en la primera carga. El juego es
-        // autocontenido (los modelos 3D son procedurales, así que "los
-        // archivos 3D" son en realidad el chunk de Three.js), y a partir de la
-        // segunda visita arranca 100% offline y sin tocar la red.
+        // Cacheamos todo el bundle en la primera carga —código, tipografías y
+        // los modelos 3D— y a partir de la segunda visita el juego arranca
+        // 100% offline y sin tocar la red.
         //
         // POR QUÉ THREE VA EN SU PROPIO CHUNK (ver build.rollupOptions):
         // el precache de Workbox va por URL con hash de contenido. Si Three
@@ -141,7 +140,15 @@ export default defineConfig({
         // volvería a bajar los 485 KB de la librería. Separado, su hash solo
         // cambia cuando cambia Three de verdad: las actualizaciones del juego
         // descargan unos pocos KB.
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // LOS .GLB VAN DENTRO, y hasta hace poco no estaban. El comentario de
+        // arriba decía que los modelos 3D son procedurales, y dejó de ser
+        // verdad: los dos protagonistas vienen de un archivo con su esqueleto
+        // y su ciclo de carrera (ver models/personajeGLB.js), y la ciudad de
+        // otro. Sin ellos en el precache el juego arrancaba offline y se veía
+        // igual de bien —hay versión de repuesto para todo— pero con los
+        // personajes de cajas y sin los edificios reconocibles, y nadie se
+        // enteraba de por qué. Son 800 KB para los tres.
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2,glb}'],
         // Three.js sin comprimir ronda los 500 KB; subimos el límite para que
         // entre en el precache.
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
