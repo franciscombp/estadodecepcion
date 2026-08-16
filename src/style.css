@@ -96,11 +96,9 @@
   --tipo: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-/* Cada escenario tiñe su acento. El HUD entero cambia de temperatura. */
-.hud[data-escenario='bahia']      { --acento: var(--dorado); --acento-rgb: var(--dorado-rgb); }
-.hud[data-escenario='apagon']     { --acento: #4fd1ff;       --acento-rgb: 79, 209, 255; }
-.hud[data-escenario='elecciones'] { --acento: #ff5fa2;       --acento-rgb: 255, 95, 162; }
-.hud[data-escenario='carondelet'] { --acento: var(--rojo);   --acento-rgb: var(--rojo-rgb); }
+/* EL ACENTO YA NO CAMBIA POR ESCENARIO. Ver la nota en `.hud`: el barrio lo
+   distingue el mundo, no la cabecera. El atributo se sigue poniendo porque el
+   resto del código lo consulta. */
 
 * {
   margin: 0;
@@ -219,6 +217,43 @@ html, body {
   pointer-events: none;
   /* HUD elements (counter, buttons, panels) sit above messages */
   z-index: 20;
+
+  /* ══ SOBRE LA FOTO, LA TINTA ES BLANCA ══
+     El mismo remapeo que hace `.pantalla` con las páginas, aquí con el otro
+     par de valores: lo impreso sobre una imagen va en blanco, y el acento es
+     el rojo del diario —el mismo de «Evidencia recolectada» y del botón de
+     pausa—. Antes esto era el tema de neón entero, con el texto en azul claro,
+     los nodos de ruta en dorado y la rosa de deslizamiento en gris azulado.
+
+     UN SOLO ACENTO PARA LOS CUATRO ESCENARIOS. Cada tramo teñía el HUD de su
+     color, y era bonito, pero significa cuatro identidades para una sola
+     publicación. Quien distingue un barrio de otro es el mundo —que tiene
+     paleta propia y muy marcada—; la cabecera del diario es la misma en los
+     cuatro, igual que la de un periódico no cambia de color por sección. */
+  --texto: #ffffff;
+  --texto-tenue: rgba(255, 255, 255, 0.82);
+  --texto-debil: rgba(255, 255, 255, 0.62);
+  --borde: rgba(255, 255, 255, 0.35);
+
+  --dorado: var(--rojo-diario);
+  --rojo: var(--rojo-diario);
+  --naranja: var(--rojo-diario);
+  --cian: #ffffff;
+  --verde: var(--verde-senal);
+  --acento: var(--rojo-diario);
+
+  --dorado-rgb: var(--rojo-rgb-diario);
+  --rojo-rgb: var(--rojo-rgb-diario);
+  --naranja-rgb: var(--rojo-rgb-diario);
+  --cian-rgb: 255, 255, 255;
+  --verde-rgb: 103, 184, 87;
+  --acento-rgb: var(--rojo-rgb-diario);
+
+  /* Y se DECLARA, no solo se redefine: quien no pide color propio lo hereda
+     del body, que lo resolvió con los tokens de fuera. Sin esta línea el
+     remapeo de arriba no llega a la mitad del HUD. */
+  color: var(--texto);
+  font-family: var(--sans);
 }
 
 .hud--visible {
@@ -339,7 +374,7 @@ html, body {
 
 .caso-corrida__nombre {
   font-family: var(--serif);
-  font-size: clamp(1.5rem, 7vw, 2rem);
+  font-size: var(--t-titular);
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: -0.0094em;
@@ -491,7 +526,7 @@ html, body {
 
 .contador__valor {
   font-family: var(--serif);
-  font-size: clamp(1.5rem, 6.4vw, 2rem);
+  font-size: var(--t-titular);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.0125em;
@@ -544,7 +579,7 @@ html, body {
 }
 
 .racha__nombre {
-  font-size: clamp(0.42rem, 1.8vw, 0.52rem);
+  font-size: var(--t-micro);
   font-weight: 900;
   letter-spacing: 0.14em;
 }
@@ -696,7 +731,7 @@ html, body {
   border: 0;
   color: #ffffff;
   font-family: var(--sans);
-  font-size: clamp(0.44rem, 1.8vw, 0.56rem);
+  font-size: var(--t-micro);
   font-weight: 700;
   letter-spacing: 0.18em;
 }
@@ -928,13 +963,13 @@ html, body {
 /* La rosa de deslizamiento, sin caja: es la chuleta de la primera corrida.
    Va sobre la foto, así que se dibuja en blanco como el pie: los iconos traen
    su tinta y aquí se invierte, que es más barato que duplicarlos. */
-.hint-swipe svg { filter: invert(1) brightness(2); }
-
 .hint-swipe {
   align-self: flex-start;
   margin-bottom: 10px;
   color: #ffffff;
-  filter: drop-shadow(0 1px 6px rgba(0, 0, 0, 0.7));
+  /* Sin invertir: la rosa se dibuja con currentColor y el HUD ya la pinta en
+     blanco. El invert que hubo aquí volvía a oscurecerla. */
+  filter: drop-shadow(0 1px 5px rgba(0, 0, 0, 0.75));
   transition: opacity var(--t-medio);
 }
 

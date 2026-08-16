@@ -5,38 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Exportador de Modelos — Estado de Excepción</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='80'>📥</text></svg>">
+  <link rel="stylesheet" href="/creador/creador.css">
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    :root { --bg:#0a0e27; --card:#1a1f3a; --borde:#2a3f5f; --texto:#e4e6eb;
-            --tenue:#8892b0; --rosa:#ff006e; --cian:#00d9ff; }
-    body { background:var(--bg); color:var(--texto); line-height:1.6;
-           font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
-    .envoltorio { max-width:1100px; margin:0 auto; padding:24px 16px 60px; }
-    h1 { font-size:1.9rem; margin-bottom:4px; }
-    .bajada { color:var(--tenue); margin-bottom:20px; }
+    /* El exportador vive en el build (importa los generadores del juego), así
+       que enlaza la hoja de las herramientas desde public/ y solo declara lo
+       suyo: la retícula de dos columnas y el visor 3D. Tenía aquí su propio
+       sistema —azul marino, rosa de neón y Courier—, el octavo del proyecto. */
+    .envoltorio { max-width:1100px; margin:0 auto; padding:0 0 40px; }
+    .bajada { color:var(--tinta-tenue); margin-bottom:20px; }
     .columnas { display:grid; grid-template-columns:1fr; gap:20px; }
     @media (min-width:860px) { .columnas { grid-template-columns:1fr 300px; } }
-    .panel { background:var(--card); border:1px solid var(--borde); border-radius:12px; padding:16px; }
-    #visor { width:100%; height:min(66vh,620px); display:block; border-radius:10px;
-             background:linear-gradient(160deg,#121a30,#0a0e27); }
-    .medidas { margin-top:10px; font-size:.8rem; color:var(--tenue); font-family:'Courier New',monospace; }
+    .panel { background:var(--papel-blanco); border:1px solid var(--papel-sombra);
+             border-radius:0; padding:16px; }
+    #visor { width:100%; height:min(66vh,620px); display:block; border-radius:0;
+             background:var(--papel-sombra); }
+    .medidas { margin-top:10px; font-family:var(--sans); font-size:var(--t-micro);
+               color:var(--tinta-tenue); }
     .grupo { margin-bottom:14px; }
-    .grupo h3 { font-size:.7rem; letter-spacing:.14em; text-transform:uppercase;
-                color:var(--tenue); margin-bottom:6px; }
-    .pieza { display:flex; width:100%; align-items:center; gap:8px; padding:8px 10px;
-             margin-bottom:4px; border-radius:8px; border:1px solid transparent;
-             background:transparent; color:var(--texto); font:inherit; font-size:.86rem;
+    .grupo h3 { font-family:var(--sans); font-size:var(--t-micro); letter-spacing:.086em;
+                text-transform:uppercase; color:var(--rojo-diario); margin-bottom:6px; }
+    /* La lista de piezas: filas de tabla, no pastillas. */
+    .pieza { display:flex; width:100%; align-items:center; gap:8px; padding:9px 10px;
+             margin-bottom:0; min-height:0; border-radius:0; border:0;
+             border-bottom:1px solid var(--papel-sombra);
+             background:transparent; color:var(--tinta); font-family:var(--serif);
+             font-weight:400; letter-spacing:0; font-size:var(--t-cuerpo-2);
              text-align:left; cursor:pointer; }
-    .pieza:hover { background:#22284a; }
-    .pieza[aria-current="true"] { background:rgba(255,0,110,.14); border-color:rgba(255,0,110,.5); color:#ff4d94; }
+    .pieza:hover { background:var(--papel); color:var(--tinta); }
+    .pieza[aria-current="true"] { background:var(--tinta); color:#ffffff; }
     .acciones { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
-    button.accion { padding:11px 18px; border-radius:9px; border:0; cursor:pointer;
-                    font-weight:800; font-size:.85rem; }
-    .bajar { background:linear-gradient(135deg,var(--rosa),var(--cian)); color:#06080f; }
-    .todo { background:#22284a; color:var(--texto); border:1px solid var(--borde); }
-    .aviso { margin-top:12px; font-size:.78rem; color:var(--tenue); }
-    code { background:#0d1220; padding:2px 6px; border-radius:4px; font-size:.85em; }
-    .pasos { margin:14px 0 0 18px; font-size:.84rem; color:var(--tenue); }
+    button.accion { flex:1 1 auto; }
+    .bajar { background:var(--rojo-diario); border-color:var(--rojo-diario); color:#ffffff; }
+    .bajar:hover { background:#a93123; border-color:#a93123; color:#ffffff; }
+    .aviso { margin-top:12px; font-family:var(--sans); font-size:var(--t-micro);
+             color:var(--tinta-tenue); }
+    code { background:var(--papel-sombra); padding:2px 6px; border-radius:0;
+           font-size:.9em; }
+    .pasos { margin:14px 0 0 18px; font-size:var(--t-pie); color:var(--tinta-tenue); }
     .pasos li { margin-bottom:5px; }
   </style>
 </head>

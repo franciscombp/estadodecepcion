@@ -454,10 +454,12 @@ export const RACHA = {
   // son DOS DÉCIMAS de vida útil. Con veinte por segundo salían cuatro puntos
   // sueltos; para que se lea como una cola hacen falta estos.
   TRAMOS: [
-    { desde: 0, nombre: '', color: 0xffcf3f, chispas: 10, estela: 0 },
-    { desde: 6, nombre: 'EN RACHA', color: 0xffa033, chispas: 18, estela: 70 },
-    { desde: 14, nombre: 'IMPARABLE', color: 0xff5fa8, chispas: 26, estela: 130 },
-    { desde: 26, nombre: 'PRIMERA PLANA', color: 0x4fd8ff, chispas: 36, estela: 210 },
+    // Los tonos son del diario, no cuatro neones distintos: el rojo sube de
+    // intensidad con la racha en vez de cambiar de familia en cada escalón.
+    { desde: 0, nombre: '', color: 0xd9705f, chispas: 10, estela: 0 },
+    { desde: 6, nombre: 'EN RACHA', color: 0xc53b2b, chispas: 18, estela: 70 },
+    { desde: 14, nombre: 'IMPARABLE', color: 0xa93123, chispas: 26, estela: 130 },
+    { desde: 26, nombre: 'PRIMERA PLANA', color: 0x141414, chispas: 36, estela: 210 },
   ],
 };
 

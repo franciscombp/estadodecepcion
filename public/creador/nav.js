@@ -48,61 +48,19 @@
   // herramienta hay que subir un escalón primero.
   const raiz = actual === '' ? './' : '../';
 
-  const estilos = document.createElement('style');
-  estilos.textContent = `
-    .nav-creador {
-      position: sticky; top: 0; z-index: 9999;
-      display: flex; align-items: center; gap: 4px;
-      padding: 8px 12px; overflow-x: auto; scrollbar-width: none;
-      background: rgba(10, 14, 39, 0.94);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid #2a3f5f;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
-    .nav-creador::-webkit-scrollbar { display: none; }
-    .nav-creador__marca {
-      flex: 0 0 auto; display: flex; align-items: center; gap: 7px;
-      padding-right: 12px; margin-right: 6px;
-      border-right: 1px solid #2a3f5f;
-      font-size: 0.74rem; font-weight: 800; letter-spacing: 0.06em;
-      color: #8892b0; text-transform: uppercase; text-decoration: none;
-      white-space: nowrap;
-    }
-    .nav-creador__marca:hover { color: #e4e6eb; }
-    .nav-creador__enlace {
-      flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
-      padding: 7px 12px; border-radius: 8px;
-      border: 1px solid transparent;
-      color: #8892b0; text-decoration: none;
-      font-size: 0.8rem; font-weight: 600; white-space: nowrap;
-      transition: background 140ms, color 140ms, border-color 140ms;
-    }
-    .nav-creador__enlace:hover { background: #1a1f3a; color: #e4e6eb; }
-    /* La actual se marca de verdad, no solo con un tono distinto: si no, en una
-       barra que se desplaza no se sabe dónde estás sin leerlas todas. */
-    .nav-creador__enlace[aria-current='page'] {
-      background: rgba(255, 0, 110, 0.14);
-      border-color: rgba(255, 0, 110, 0.5);
-      color: #ff4d94;
-    }
-    .nav-creador__juego {
-      flex: 0 0 auto; margin-left: auto; padding: 7px 14px;
-      border-radius: 8px; background: linear-gradient(135deg, #ff006e, #00d9ff);
-      color: #06080f; text-decoration: none;
-      font-size: 0.78rem; font-weight: 800; white-space: nowrap;
-    }
-    /* En pantallas estrechas se cae el nombre largo y queda el icono con el
-       nombre corto: siete pestañas con su título entero no caben en un móvil y
-       la barra acababa desplazándose hasta para ver la segunda. */
-    @media (max-width: 780px) {
-      .nav-creador__enlace .nav-creador__largo { display: none; }
-      .nav-creador__juego { margin-left: 6px; }
-    }
-    @media (min-width: 781px) {
-      .nav-creador__enlace .nav-creador__corto { display: none; }
-    }
-  `;
-  document.head.appendChild(estilos);
+  // La barra se estila desde creador.css, con los tokens del diario. Tenía
+  // aquí dentro su propia hoja —azul marino, rosa de neón y un degradado a
+  // cian en el botón de jugar—, que era el octavo sistema visual del proyecto.
+  // Lo único que sigue siendo cosa suya es CARGAR la hoja: las herramientas
+  // son siete archivos sueltos y así ninguna se olvida de enlazarla.
+  const raizHoja = actual === '' ? './creador.css' : '../creador.css';
+  if (!document.querySelector('link[data-creador]')) {
+    const hoja = document.createElement('link');
+    hoja.rel = 'stylesheet';
+    hoja.href = raizHoja;
+    hoja.dataset.creador = '1';
+    document.head.appendChild(hoja);
+  }
 
   const barra = document.createElement('nav');
   barra.className = 'nav-creador';
