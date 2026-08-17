@@ -1185,9 +1185,18 @@ export class Pantallas {
     // bloque elástico de esta página.
     if (datos.foto) plana.appendChild(this._fotoArresto(datos));
 
-    plana.appendChild(el('div', 'plana__datos',
-      `${(datos.distancia ?? 0).toLocaleString('es-EC')} m corridos · `
-      + `${(datos.puntaje ?? 0).toLocaleString('es-EC')} de puntaje`));
+    // La línea de datos, como la escribe el Figma en «Game over» (89:1025):
+    // «984m recorridos・1.345 evidencia total». El puntaje se cae de aquí
+    // porque el marco no lo lleva y porque lo que el juego cuenta es
+    // evidencia: dos cifras distintas para lo mismo confunden más que informan.
+    plana.appendChild(el('div', 'plana__datos', T('captura.resumen', {
+      distancia: (datos.distancia ?? 0).toLocaleString('es-EC'),
+      // El máximo y no el histórico a secas: la partida se registra antes de
+      // pintar esta pantalla, pero si alguna vez dejara de hacerlo, un total
+      // de cero debajo de una cifra de mil trescientos sería absurdo.
+      evidencia: Math.max(this.cuaderno.estado?.evidenciaHistorica ?? 0, datos.papeles ?? 0)
+        .toLocaleString('es-EC'),
+    })));
 
     // --- LO QUE SÍ SACASTE -------------------------------------------------
     //
@@ -1262,126 +1271,168 @@ export class Pantallas {
   }
 
   // -------------------------------------------------------------------------
-  // BOTÍN — Lo que sacaste, en la mano
+  // PRUEBAS — El expediente se arma con lo que sacaste
   // -------------------------------------------------------------------------
 
   /**
-   * LAS PRUEBAS, GRANDES Y GIRANDO.
+   * RÉPLICA DE LOS MARCOS «Pruebas» DEL FIGMA (89:1063 y 105:310).
    *
-   * En la portada salían como una lista de viñetas, y una lista es un dato:
-   * dice qué tienes y no que sea importante. Lo que hace que un hallazgo se
-   * sienta hallazgo es verlo ocupar la pantalla, con volumen y con brillo,
-   * antes de que se vaya al inventario. Es la pausa que todos los juegos hacen
-   * al soltar un objeto raro, y es donde está la recompensa de una corrida que
-   * por lo demás terminó en captura.
+   * Los dos marcos son la MISMA pantalla en dos estados, y verlo así es lo que
+   * resuelve la papeleta entera:
    *
-   * El volumen se hace con perspectiva y giro en CSS sobre el mismo icono que
-   * ya usa el HUD, no con un segundo lienzo 3D: montar un renderizador nuevo
-   * para enseñar cuatro fichas costaría más memoria y un tirón de arranque
-   * justo en el momento en que se busca fluidez.
+   *   105:310  la rejilla: nueve casillas, las recogidas con su prueba y el
+   *            resto con un interrogante gris.
+   *   89:1063  el detalle: una sola pieza a 184 px con su pie en rojo.
+   *
+   * Así que el «armar el caso animado e interactivo» no necesita una pantalla
+   * inventada: el armado es la rejilla llenándose de una en una, y lo
+   * interactivo es tocar una casilla para verla en grande. Los dos estados
+   * están dibujados; lo único que no estaba dibujado es el camino entre ellos.
+   *
+   * NUEVE CASILLAS porque son las que dibuja la maqueta. Si una corrida trae
+   * más pruebas que eso, el tablero crece en múltiplos de tres para no dejar
+   * una fila coja.
+   *
+   * LO ÚNICO QUE NO SE COPIA LITERAL son los emoji. El Figma pone 🌁 💿 💾, que
+   * son marcadores de posición —el juego no tiene un puente de San Francisco
+   * entre las pruebas—; en su sitio va el mismo juego de iconos que usa el HUD
+   * al recogerlas, que es lo que esos emoji representan. Todo lo demás
+   * —medidas, colores, tipografías, el interrogante, los dos botones— es lo
+   * que dice el marco.
    */
   botin(datos) {
     const { pantalla, contenido } = pantallaBase();
-    pantalla.classList.add('pantalla--botin');
+    pantalla.classList.add('pantalla--plana', 'pantalla--pruebas');
 
-    // La sección de la redacción, como titula el Figma la página de pruebas.
-    contenido.appendChild(cabeceraMarca('redacción'));
-    contenido.appendChild(el('div', 'botin__antetitulo', T('botin.titular')));
-
+    const hoja = el('div', 'pruebas');
     const pruebas = datos.pruebas ?? [];
     const buenas = pruebas.filter((n) => !Notebook.esFalsa(n)).length;
-    contenido.appendChild(el('h1', 'botin__titular',
-      buenas === 0 ? T('botin.nada')
-        : buenas === 1 ? T('botin.una') : T('botin.varias', { n: buenas })));
+    const esc = obtenerEscenario(datos.escenario ?? this.juego.escenarioActual);
 
-    const rejilla = el('div', 'botin__rejilla se-estira se-estira--desplazable');
+    // ══ MANCHETA ════════════════════════════════════════════════════════
+    const mancheta = el('div', 'pruebas__mancheta');
+    mancheta.appendChild(document.createTextNode(T('marca.nombre')));
+    mancheta.appendChild(el('span', 'pruebas__seccion', T('botin.seccion')));
+    hoja.appendChild(mancheta);
 
-    // EL DESFILE VA DE UNO EN UNO. Antes las piezas entraban casi solapadas
-    // (0,42 s) y se leían como una rejilla que se llena; ahora cada objeto
-    // tiene su turno entero —aparece, brilla, y su sello de RECUPERADA le cae
-    // encima— antes de que asome el siguiente. Es el ritmo de los juegos que
-    // celebran el botín pieza a pieza, y es lo que convierte la lista en una
-    // ceremonia.
-    const PASO = 0.62;       // Un turno por objeto.
-    let turno = 0.25;        // Cuándo entra el siguiente.
+    // ══ CASO Y ESTADO ═══════════════════════════════════════════════════
+    const encabezado = el('div', 'pruebas__encabezado');
+    // El «CASO» lo pone el guion, así que el dato entra sin él: los escenarios
+    // guardan «CASO PORSCHE» porque el HUD lo pinta entero, y aquí salía
+    // «CASO CASO PORSCHE».
+    encabezado.appendChild(el('div', 'pruebas__caso',
+      T('botin.caso', { caso: esc.caso.replace(/^caso\s+/i, '') })));
+    encabezado.appendChild(el('h1', 'pruebas__estado',
+      buenas > 0 ? T('botin.estadoAbierto') : T('botin.estadoVacio')));
+    hoja.appendChild(encabezado);
+    hoja.appendChild(el('div', 'pruebas__filete'));
+
+    // ══ LA MESA ═════════════════════════════════════════════════════════
+    const mesa = el('div', 'pruebas__mesa');
+    // El tablero va DENTRO de la mesa y no es la mesa: en el Figma la mesa
+    // («Opinion / Item») mide 497 y centra dentro un bloque de 354×402 que es
+    // la rejilla. Sin esa distinción las tres filas quedaban apretadas en el
+    // medio, con todo el aire repartido arriba y abajo en vez de entre ellas.
+    const tablero = el('div', 'pruebas__tablero');
+    mesa.appendChild(tablero);
+    hoja.appendChild(mesa);
+
+    // Las casillas: primero lo recogido, luego los huecos hasta completar la
+    // fila. La evidencia suelta abre el expediente —no es una prueba, pero es
+    // lo que costó la corrida— y por eso ocupa la primera casilla.
+    const casillas = [];
+    if ((datos.papeles ?? 0) > 0) {
+      casillas.push({
+        icono: (t) => Icono.papeles(t),
+        nombre: T('botin.rotuloEvidencia'),
+        falsa: false,
+      });
+    }
+    for (const nombre of pruebas) {
+      casillas.push({
+        // SE REVELA AQUÍ, no al recogerla. El material plantado se detecta al
+        // contrastarlo, nunca al encontrarlo, y esa es justamente la broma:
+        // lo metiste en la mochila creyendo que servía.
+        icono: (t) => Icono.iconoPrueba(nombre, t),
+        nombre,
+        falsa: Notebook.esFalsa(nombre),
+      });
+    }
+
+    const MINIMO = 9;
+    const total = Math.max(MINIMO, Math.ceil(casillas.length / 3) * 3);
+
+    // Cada pieza cae en su turno. El ritmo es el de la versión anterior —un
+    // objeto cada 0,3 s—, que es lo que convierte la lista en ceremonia sin
+    // que quien acaba de perder tenga que esperar a que termine el desfile.
+    const PASO = 0.3;
 
     // Los turnos pendientes se cancelan si la pantalla se va antes de que el
-    // desfile termine: sin esto, pulsar CONTINUAR a mitad dejaba los golpes de
-    // sonido sonando encima de la página de deportes, uno cada medio segundo.
+    // armado acabe: sin esto, pulsar SIGUIENTE a mitad dejaba los golpes de
+    // sonido sonando encima de la página de deportes.
     const temporizadores = [];
     pantalla.addEventListener('pantalla:desmontada',
       () => temporizadores.forEach(clearTimeout), { once: true });
 
-    // La evidencia abre el desfile: el fajo de papeles con su contador
-    // subiendo. No es una prueba, pero es lo que costó toda la corrida y
-    // merece su puesto en la mesa.
-    if ((datos.papeles ?? 0) > 0) {
-      const pieza = el('div', 'botin__pieza');
-      pieza.style.setProperty('--retardo', `${turno}s`);
-      const caja = el('div', 'botin__caja');
-      const cara = el('div', 'botin__cara');
-      cara.innerHTML = Icono.papeles(78);
-      caja.appendChild(cara);
-      caja.appendChild(el('span', 'botin__destello'));
-      pieza.appendChild(caja);
-      const cifra = el('div', 'botin__nombre botin__nombre--cifra', '0');
-      pieza.appendChild(cifra);
-      const sello = el('div', 'botin__sello', T('botin.rotuloEvidencia'));
-      sello.style.setProperty('--sello', `${turno + 0.42}s`);
-      pieza.appendChild(sello);
-      rejilla.appendChild(pieza);
+    // El detalle es el otro marco: la misma mesa con una sola pieza dentro.
+    // Se vuelve tocándola otra vez.
+    const verDetalle = (casilla) => {
+      tablero.replaceChildren();
+      mesa.classList.add('pruebas__mesa--detalle');
+      tablero.appendChild(pieza(casilla, 184, () => pintarRejilla()));
+    };
 
-      const cuantos = datos.papeles;
-      temporizadores.push(setTimeout(() => {
-        contarHasta(cifra, cuantos, 750);
-        this.audio?.evidencia?.();
-      }, turno * 1000 + 180));
-      turno += PASO + 0.25; // El contador necesita su medio segundo extra.
-    }
+    const pieza = (casilla, tamano, alPulsar) => {
+      const nodo = el('button',
+        `pruebas__pieza${casilla?.falsa ? ' pruebas__pieza--falsa' : ''}`);
+      nodo.type = 'button';
+      nodo.style.setProperty('--cara', `${tamano}px`);
 
-    pruebas.forEach((nombre) => {
-      // SE REVELA AQUÍ, no al recogerla. El material plantado se detecta al
-      // contrastarlo, nunca al encontrarlo, y esa es justamente la broma: lo
-      // metiste en la mochila creyendo que servía.
-      const falsa = Notebook.esFalsa(nombre);
-      const pieza = el('div', `botin__pieza${falsa ? ' botin__pieza--falsa' : ''}`);
-      pieza.style.setProperty('--retardo', `${turno}s`);
+      const cara = el('div', `pruebas__cara${casilla ? '' : ' pruebas__cara--vacia'}`);
+      if (casilla) cara.innerHTML = casilla.icono(Math.round(tamano * 0.76));
+      else cara.textContent = '?';
+      nodo.appendChild(cara);
 
-      const caja = el('div', 'botin__caja');
-      const cara = el('div', 'botin__cara');
-      cara.innerHTML = Icono.iconoPrueba(nombre, 78);
-      caja.appendChild(cara);
-      caja.appendChild(el('span', 'botin__destello'));
-      pieza.appendChild(caja);
-      pieza.appendChild(el('div', 'botin__nombre', nombre));
+      if (casilla && tamano > 100) {
+        nodo.appendChild(el('div', 'pruebas__nombre', casilla.nombre));
+      }
 
-      // El sello le cae encima medio tiempo después de aparecer: primero el
-      // objeto, luego el veredicto. En las buenas es la recompensa; en las
-      // plantadas, el chiste.
-      const sello = el('div',
-        `botin__sello${falsa ? ' botin__sello--falsa' : ''}`,
-        falsa ? T('botin.noSostiene') : T('botin.recuperada'));
-      sello.style.setProperty('--sello', `${turno + 0.42}s`);
-      pieza.appendChild(sello);
-      rejilla.appendChild(pieza);
+      if (casilla && alPulsar) nodo.addEventListener('click', alPulsar);
+      else nodo.disabled = true;
 
-      // El golpe de sonido de cada pieza, en su turno.
-      temporizadores.push(setTimeout(() => this.audio?.evidencia?.(), 120 + turno * 1000));
-      turno += PASO;
-    });
-    contenido.appendChild(rejilla);
+      return nodo;
+    };
 
-    const plantadas = pruebas.length - buenas;
-    contenido.appendChild(el('div', 'botin__pie',
-      plantadas > 0
-        ? T('botin.explicaVacio', { n: plantadas === 1 ? 'Una' : plantadas })
-        : T('botin.explicaLleno')));
+    const pintarRejilla = (animar = false) => {
+      temporizadores.forEach(clearTimeout);
+      temporizadores.length = 0;
+      tablero.replaceChildren();
+      mesa.classList.remove('pruebas__mesa--detalle');
 
-    const botones = el('div', 'botones');
-    botones.appendChild(boton(T('comunes.continuar'), 'boton--principal',
+      for (let i = 0; i < total; i++) {
+        const casilla = casillas[i] ?? null;
+        const nodo = pieza(casilla, 72, casilla ? () => verDetalle(casilla) : null);
+        if (animar && casilla) {
+          nodo.classList.add('pruebas__pieza--entra');
+          nodo.style.setProperty('--retardo', `${0.2 + i * PASO}s`);
+          temporizadores.push(setTimeout(
+            () => this.audio?.evidencia?.(), (0.2 + i * PASO) * 1000));
+        }
+        tablero.appendChild(nodo);
+      }
+    };
+
+    pintarRejilla(true);
+
+    // ══ BOTONES ═════════════════════════════════════════════════════════
+    const botones = el('div', 'pruebas__botones');
+    botones.appendChild(boton(T('botin.siguiente'), 'boton--diario boton--diario-principal',
       () => this.mostrar(this.deportes(datos))));
-    contenido.appendChild(botones);
+    botones.appendChild(boton(T('comunes.reintentar'), 'boton--diario',
+      () => this.juego.iniciarPartida()));
+    hoja.appendChild(botones);
 
+    contenido.appendChild(hoja);
     return pantalla;
   }
 

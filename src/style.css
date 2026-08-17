@@ -4591,278 +4591,224 @@ html, body {
 }
 
 /* ==========================================================================
-   BOTÍN — Las pruebas, grandes y con volumen
+   PRUEBAS — El expediente que se arma con lo recogido
    ==========================================================================
-   En la portada salían como una lista de viñetas, y una lista es un dato: dice
-   qué tienes, no que sea importante. Aquí ocupan la pantalla, giran y brillan,
-   que es la pausa que hace cualquier juego al soltar un objeto raro.
+   Réplica de los marcos «Pruebas» del Figma (89:1063 y 105:310). Son el mismo
+   marco en dos estados y esa es toda la pantalla:
 
-   El volumen es perspectiva y giro en CSS sobre el mismo icono que ya usa el
-   HUD. Un segundo lienzo 3D para enseñar cuatro fichas costaría memoria y un
-   tirón de arranque justo donde se busca fluidez. */
+     · REJILLA   nueve casillas; las recogidas enseñan su prueba y el resto un
+                 interrogante gris. Es 105:310.
+     · DETALLE   una sola pieza a 184 px con su pie en rojo. Es 89:1063.
 
-.pantalla--botin { background: rgba(243, 243, 243, 0.97); }
+   Se pasa de uno a otro tocando una casilla, y el armado —las piezas cayendo
+   de una en una— ocurre DENTRO de la rejilla, sin inventar una pantalla
+   intermedia.
 
-.botin__antetitulo {
+   Medidas del Figma, sin redondear: marco de 402 con márgenes de 24, columna
+   de 354, separación de 24 entre bloques, mancheta con 16 arriba y abajo y
+   filete de #646464, filetes interiores de #e6e6e6, mesa que se estira con 24
+   de aire abajo, y los dos botones de 48 con 16 entre ellos.
+   ========================================================================== */
+
+.pantalla--pruebas { background: var(--papel); }
+
+.pruebas {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  height: 100%;
+  /* La página no se desplaza: la mesa es lo único elástico y lo que no cabe
+     se resuelve encogiendo la pieza, no metiendo una barra de scroll en una
+     maqueta que no la tiene. */
+  overflow: hidden;
+}
+
+/* ── La mancheta ────────────────────────────────────────────────────────── */
+.pruebas__mancheta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--tinta-tenue);
   font-family: var(--sans);
-  font-size: 0.875rem;
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 1.1;
+  color: var(--tinta);
+  text-align: center;
+}
+
+/* La sección va en rojo pegada al punto, como un dominio: «EL MERCIO./resumen». */
+.pruebas__seccion { color: var(--rojo-diario); }
+
+/* ── Caso y estado ──────────────────────────────────────────────────────── */
+.pruebas__encabezado {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pruebas__caso {
+  font-family: var(--sans);
   font-weight: 700;
-  letter-spacing: 0.086em;
+  font-size: 14px;
+  line-height: 1.4;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
   color: var(--rojo-diario);
-  margin-bottom: 6px;
 }
 
-.botin__titular {
+.pruebas__estado {
   font-family: var(--serif);
-  font-size: var(--t-titular);
   font-weight: 700;
+  font-size: 24px;
   line-height: 1.2;
-  letter-spacing: -0.0083em;
+  letter-spacing: -0.2px;
   color: var(--tinta);
-  margin-bottom: 14px;
 }
 
-.botin__rejilla {
+.pruebas__filete {
+  height: 1px;
+  border-bottom: 1px solid var(--papel-sombra);
+}
+
+/* ── La mesa ────────────────────────────────────────────────────────────── */
+/* Envoltorio elástico y con filete abajo, como en la maqueta: es lo que separa
+   el expediente de los botones sin meter otro bloque. */
+.pruebas__mesa {
+  flex: 1 0 0;
+  min-height: 0;
   display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
+  align-items: center;
   justify-content: center;
-  gap: 14px;
-  /* Aire abajo: es el bloque elástico y se desplaza por dentro cuando no
-     caben las cuatro piezas; sin esto el sello de la última fila queda
-     cortado contra el borde. */
-  padding-bottom: 10px;
-  /* La perspectiva vive en el PADRE: puesta en cada pieza, cada una tendría su
-     propio punto de fuga y el conjunto se leería plano por mucho que giren. */
-  perspective: 620px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--papel-sombra);
 }
 
-.botin__pieza {
+/* El tablero: 354×402 en la maqueta, o sea tres columnas y tres filas de 134.
+   Va en rejilla y no en flex-wrap porque las filas tienen que REPARTIRSE el
+   alto —así el aire cae entre ellas y no todo arriba y abajo— y porque en una
+   pantalla más corta que la maqueta encoge sola en vez de desbordar. */
+.pruebas__tablero {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 1fr;
+  column-gap: 8px;
+  width: 100%;
+  height: min(402px, 100%);
+}
+
+/* En el detalle no hay rejilla: una sola pieza a toda la caja. */
+.pruebas__mesa--detalle .pruebas__tablero {
+  display: block;
+  height: auto;
+}
+
+.pruebas__pieza {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 9px;
-  width: clamp(96px, 30vw, 132px);
-  animation: botin-entra 0.62s cubic-bezier(0.2, 1.5, 0.4, 1) var(--retardo, 0s) both;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
-@keyframes botin-entra {
-  from { opacity: 0; transform: translateY(26px) scale(0.62); }
+.pruebas__pieza:disabled { cursor: default; }
+
+/* La cara de la pieza. El tamaño va en una variable porque es lo único que
+   cambia entre los dos estados del marco: 184 en el detalle, 72 en la rejilla. */
+.pruebas__cara {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: var(--cara, 96px);
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: var(--cara, 96px);
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+  color: var(--tinta);
+}
+
+.pruebas__cara svg {
+  /* El icono llena la casilla como llena el emoji del Figma: el interrogante
+     de al lado es una glifa de 72 que dibuja unos 50 de alto, así que un SVG
+     a caja completa se quedaba corto al lado. */
+  width: 92%;
+  height: 92%;
+}
+
+/* La casilla vacía: el interrogante gris de la maqueta, tal cual. */
+.pruebas__cara--vacia {
+  color: var(--tinta-tenue);
+  opacity: 0.55;
+}
+
+.pruebas__nombre {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.4;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--rojo-diario);
+}
+
+/* Lo plantado se lee como plantado: gris y con el pie en tinta apagada. En la
+   maqueta no hay este estado porque la maqueta no tiene pruebas falsas, pero
+   la mecánica sí, y sin distinguirlas el expediente miente. */
+.pruebas__pieza--falsa .pruebas__cara { filter: grayscale(1); opacity: 0.5; }
+.pruebas__pieza--falsa .pruebas__nombre { color: var(--tinta-tenue); }
+
+/* ── El armado ──────────────────────────────────────────────────────────── */
+/* Cada pieza cae en su casilla por turnos. El interrogante no se desvanece:
+   se voltea, que es lo que hace que se lea como «esta casilla YA está» y no
+   como un elemento nuevo que aparece encima. */
+.pruebas__pieza--entra .pruebas__cara {
+  animation: prueba-cae 0.44s var(--rebote) both;
+  animation-delay: var(--retardo, 0s);
+}
+
+.pruebas__pieza--entra .pruebas__nombre {
+  animation: prueba-pie 0.34s ease-out both;
+  animation-delay: calc(var(--retardo, 0s) + 0.16s);
+}
+
+@keyframes prueba-cae {
+  from { opacity: 0; transform: translateY(-18px) rotateX(90deg) scale(0.7); }
+  60%  { opacity: 1; transform: translateY(0) rotateX(-12deg) scale(1.08); }
   to   { opacity: 1; transform: none; }
 }
 
-/* La pieza: una losa con canto, girando despacio sobre su eje vertical. */
-.botin__caja {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: 0;
-  background: var(--papel-blanco);
-  border: 1px solid var(--papel-sombra);
-  box-shadow: none;
-  transform-style: preserve-3d;
-  overflow: hidden;
-  animation: botin-gira 5.5s ease-in-out infinite;
+@keyframes prueba-pie {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
 }
 
-@keyframes botin-gira {
-  0%, 100% { transform: rotateY(-17deg) rotateX(5deg); }
-  50%      { transform: rotateY(17deg) rotateX(-3deg); }
-}
-
-.botin__cara { filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.6)); }
-
-/* El barrido de luz que cruza la cara. Es lo que dice «esto es un objeto y
-   tiene superficie»: sin él la losa es un rectángulo con un icono encima. */
-.botin__destello {
-  position: absolute;
-  inset: -40%;
-  background: linear-gradient(
-    100deg,
-    transparent 38%,
-    rgba(255, 255, 255, 0.28) 48%,
-    rgba(255, 255, 255, 0.5) 51%,
-    transparent 62%
-  );
-  pointer-events: none;
-  animation: botin-brillo 3.4s ease-in-out infinite;
-  animation-delay: calc(var(--retardo, 0s) + 0.5s);
-}
-
-@keyframes botin-brillo {
-  0%        { transform: translateX(-115%); }
-  55%, 100% { transform: translateX(115%); }
-}
-
-.botin__nombre {
-  font-family: var(--sans);
-  font-size: var(--t-pie);
-  font-weight: 700;
-  letter-spacing: 0.086em;
-  text-align: center;
-  color: var(--rojo-diario);
-}
-
-.botin__pie {
-  max-width: 420px;
-  margin: 14px auto 10px;
-  font-family: var(--serif);
-  font-size: 0.85rem;
-  line-height: 1.5;
-  color: var(--tinta-tenue);
-  text-align: center;
-}
+/* Volver a la rejilla. No es un botón de la maqueta —en la maqueta los dos
+   estados son marcos sueltos y no hay navegación dibujada entre ellos—, así
+   que se resuelve tocando la propia pieza y se anuncia solo a quien lo
+   necesita: aquí el elemento pulsable ya es la pieza entera. */
+.pruebas__mesa--detalle .pruebas__pieza { cursor: zoom-out; }
 
 @media (prefers-reduced-motion: reduce) {
-  .botin__pieza, .botin__caja, .botin__destello, .botin__sello { animation: none !important; }
-  .botin__destello { opacity: 0; }
-  /* Con !important porque este bloque queda ANTES que la regla base en el
-     archivo y a igual especificidad ganaría el opacity: 0 de la base — el
-     sello (incluido NO SE SOSTIENE, el único texto que delata una prueba
-     plantada) quedaba invisible para quien pide menos movimiento. */
-  .botin__sello { opacity: 1 !important; }
+  .pruebas__pieza--entra .pruebas__cara,
+  .pruebas__pieza--entra .pruebas__nombre { animation: none; }
 }
 
-/* --- La columna de OPINIÓN -------------------------------------------------
-   Del Figma: filete arriba, etiqueta roja en Montserrat con tracking, la cita
-   en PT Serif negra y el busto del columnista en un círculo azul. */
-.opinion {
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  width: 100%;
-  max-width: 460px;
-  margin: 18px auto 0;
-  padding: 16px 0 20px;
-  border-top: 1px solid var(--papel-sombra);
-  border-bottom: 1px solid var(--papel-sombra);
-  text-align: left;
-}
-
-.opinion__texto {
-  flex: 1 1 auto;
+/* ── Los botones ────────────────────────────────────────────────────────── */
+.pruebas__botones {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.opinion__etiqueta {
-  font-family: var(--sans);
-  font-size: 0.875rem;
-  font-weight: 700;
-  letter-spacing: 0.086em;
-  text-transform: uppercase;
-  color: var(--rojo-diario);
-}
-
-.opinion__cita {
-  font-family: var(--serif);
-  font-size: clamp(1rem, 4.4vw, 1.125rem);
-  font-weight: 700;
-  line-height: 1.3;
-  color: var(--tinta);
-}
-
-.opinion__busto {
-  flex: 0 0 auto;
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: var(--azul-diario);
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-}
-
-/* --- El ascenso en la tabla -----------------------------------------------
-   La fila del jugador entra por abajo y sube hasta su puesto mientras la cifra
-   cuenta. Ya ordenada y quieta, la tabla se leía como una consulta; subiendo,
-   se lee como el resultado de la partida que se acaba de jugar. */
-.posiciones__fila--sube {
-  animation: posicion-sube 1.15s cubic-bezier(0.22, 0.85, 0.24, 1) 0.25s both;
-  position: relative;
-  z-index: 2;
-}
-
-@keyframes posicion-sube {
-  from { transform: translateY(var(--sube, 0px)); }
-  to   { transform: translateY(0); }
-}
-
-/* El rival, en el instante en que lo pasas. */
-.posiciones__fila--rebasado {
-  animation: posicion-rebasado 0.5s ease-out both;
-}
-
-@keyframes posicion-rebasado {
-  0%   { background: transparent; }
-  35%  { background: rgba(var(--dorado-rgb), 0.28); }
-  100% { background: transparent; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .posiciones__fila--sube,
-  .posiciones__fila--rebasado { animation: none !important; }
-}
-
-/* --- Material plantado ----------------------------------------------------
-   La pieza falsa se revela AQUÍ, no al recogerla: se detecta al contrastarla,
-   nunca al encontrarla. Va apagada, sin el halo naranja de las buenas y con el
-   icono desaturado, para que la diferencia se vea antes de leer el rótulo. */
-.botin__pieza--falsa .botin__caja {
-  background: var(--papel);
-  border-color: var(--papel-sombra);
-  box-shadow: none;
-  animation: none;
-  transform: rotateY(-8deg);
-}
-
-.botin__pieza--falsa .botin__cara { filter: grayscale(1) brightness(0.85); opacity: 0.75; }
-.botin__pieza--falsa .botin__destello { display: none; }
-.botin__pieza--falsa .botin__nombre { color: var(--texto-debil); }
-
-/* La cifra de evidencia, contando hacia arriba en su ficha. */
-.botin__nombre--cifra {
-  font-family: var(--serif);
-  font-size: var(--t-cuerpo);
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--tinta);
-}
-
-/* EL SELLO. Cae sobre la pieza medio tiempo después de que aparezca, grande y
-   torcido como un sello de goma de verdad: primero el objeto, luego el
-   veredicto. Verde para lo recuperado; rojo para lo que no se sostiene. */
-.botin__sello {
-  margin-top: 2px;
-  padding: 2px 8px;
-  border: 1.5px solid var(--verde-senal);
-  border-radius: 0;
-  font-family: var(--sans);
-  font-size: var(--t-micro);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: var(--verde-senal);
-  white-space: nowrap;
-  opacity: 0;
-  /* La torcedura de reposo vive AQUÍ y no solo en el keyframe: sin animación
-     (movimiento reducido) el sello tiene que verse igual de sellado. */
-  transform: rotate(-4deg);
-  animation: sello-estampa 0.32s cubic-bezier(0.2, 1.35, 0.4, 1) var(--sello, 0.5s) both;
-}
-
-.botin__sello--falsa {
-  border-color: var(--rojo-diario);
-  color: var(--rojo-diario);
-}
-
-@keyframes sello-estampa {
-  from { opacity: 0; transform: scale(2.2) rotate(7deg); }
-  to   { opacity: 1; transform: scale(1) rotate(-4deg); }
+  gap: 16px;
 }
 
 /* --- La investigación, en la portada --------------------------------------

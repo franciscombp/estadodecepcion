@@ -130,27 +130,12 @@ export const GUION = {
   botin: {
     _nombre: 'Pruebas',
     _nota: 'El expediente que se arma con lo recogido, al terminar la corrida.',
-    seccion: { t: 'EL MERCIO./resumen', ayuda: 'La marca de sección, arriba del todo.' },
-    titular: { t: 'SALISTE CON ESTO', ayuda: 'El titular de la pantalla.' },
+    seccion: { t: './resumen', ayuda: 'Lo que sigue al punto de EL MERCIO, en rojo.' },
+    siguiente: { t: 'Siguiente', ayuda: 'Botón rojo: sigue al ranking.' },
     caso: { t: 'Caso {caso}', ayuda: 'El caso investigado. Hueco: {caso}.' },
     estadoAbierto: { t: 'Investigación iniciada', ayuda: 'Cuando la corrida deja material.' },
     estadoVacio: { t: 'Investigación bloqueada', ayuda: 'Cuando no se recogió nada útil.' },
-    nada: { t: 'Nada que sostenga', ayuda: 'Bajada cuando el botín está vacío.' },
-    una: { t: 'Sacaste una prueba', ayuda: 'Bajada con una sola prueba.' },
-    varias: { t: 'Sacaste {n} pruebas', ayuda: 'Bajada con varias. Hueco: {n}.' },
     rotuloEvidencia: { t: 'EVIDENCIA', ayuda: 'Encabeza la fila de evidencia suelta.' },
-    noSostiene: { t: 'NO SE SOSTIENE', ayuda: 'Etiqueta de la evidencia que no sirve.' },
-    recuperada: { t: 'RECUPERADA', ayuda: 'Etiqueta de la evidencia buena.' },
-    explicaVacio: {
-      t: '{n} de las que recogiste no aguanta un contraste: te la dejaron ahí. Las buenas se quedan en el archivo.',
-      ayuda: 'Nota al pie cuando no hay pruebas buenas.',
-      largo: true,
-    },
-    explicaLleno: {
-      t: 'Se quedan en el archivo aunque te capturen. Son las que arman el reportaje.',
-      ayuda: 'Nota al pie cuando sí hay pruebas.',
-      largo: true,
-    },
   },
 
   victoria: {
