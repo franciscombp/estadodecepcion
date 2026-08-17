@@ -8,10 +8,18 @@
 // interpolados dentro de innerHTML. Vienen de nuestra configuración, pero es
 // más barato mantener la costumbre que auditar cada vez.
 //
+// AQUÍ NO SE ESCRIBE TEXTO. Lo que dicen las pantallas vive en
+// `config/guion.js` y se pide con `T('portada.titular')`. Este archivo decide
+// la MAQUETA —qué caja va dónde, con qué clase— y el guion decide las
+// PALABRAS. Sirve para dos cosas: cambiar un titular deja de ser un cambio de
+// código, y el editor de `/creador/pantallas/` puede enseñarlos todos juntos.
+// Cuando haga falta un texto nuevo, se añade allí y se pide desde aquí.
+//
 // Estilo en docs/ESTILO.md.
 // ============================================================================
 
 import { obtenerEscenario, ORDEN_ESCENARIOS, ESCENARIOS } from '../config/escenarios.js';
+import { T, Trico } from '../config/guion.js';
 import { CABECERA, hayPendientes, cuantosListos } from '../config/publicaciones.js';
 import { CATALOGO_POTENCIADORES } from '../config/balance.js';
 import { CLASIFICACIONES, clasificacion, tablaConJugador } from '../config/tabla.js';
@@ -28,6 +36,16 @@ function el(etiqueta, clase, texto) {
   if (clase) nodo.className = clase;
   if (texto !== undefined) nodo.textContent = texto;
   return nodo;
+}
+
+/**
+ * «CASO PORSCHE» → «Caso Porsche». Los nombres de caso se guardan en versales
+ * porque el HUD los pinta así; en un pie de foto o en un cuerpo de texto, las
+ * versales se leen como un grito.
+ */
+function cajaDeTitular(texto) {
+  return texto.toLocaleLowerCase('es')
+    .replace(/(^|\s)(\p{Ll})/gu, (entero, espacio, letra) => espacio + letra.toLocaleUpperCase('es'));
 }
 
 function boton(texto, clase, alPulsar) {
@@ -49,8 +67,11 @@ function boton(texto, clase, alPulsar) {
 function cabeceraMarca(seccion = null, portada = false) {
   const cab = el('header', 'plana__cabecera');
   const marca = el('span', `plana__marca${portada ? ' plana__marca--portada' : ''}`);
-  marca.appendChild(document.createTextNode('EL MERCIO'));
-  const sufijo = seccion && seccion !== 'PORTADA'
+  marca.appendChild(document.createTextNode(T('marca.nombre')));
+  // La portada no lleva sección: su punto es solo el punto. Se compara contra
+  // el guion y no contra la palabra escrita aquí, para que renombrar la
+  // sección desde el constructor no deje la mancheta diciendo «./portada».
+  const sufijo = seccion && seccion !== T('victoria.seccion')
     ? `./${seccion.toLowerCase()}`
     : '.';
   marca.appendChild(el('span', 'plana__marca-seccion', sufijo));
@@ -59,7 +80,7 @@ function cabeceraMarca(seccion = null, portada = false) {
 }
 
 /** Cabecera con el sello de El Mercio. */
-function marca(texto = 'EL MERCIO') {
+function marca(texto = T('marca.nombre')) {
   const m = el('div', 'marca');
   const sello = el('span', 'marca__sello');
   sello.innerHTML = Icono.sello(34);
@@ -245,6 +266,15 @@ export class Pantallas {
 
     const esc = obtenerEscenario(this.juego.escenarioActual);
 
+    // Quién sale a la calle. La ficha se elige en Ajustes; aquí hace falta
+    // saberlo dos veces: para nombrarlo en el pie de la foto —el Figma titula
+    // «El Tostadólogo investiga…», con nombre— y para saber a quién mandar
+    // cuando se toque el botón de jugar.
+    const abiertos = new Set(this.cuaderno.personajesDesbloqueados());
+    const elegido = abiertos.has(this.cuaderno.personajePreferido)
+      ? this.cuaderno.personajePreferido
+      : PERSONAJES[0].id;
+
     const plana = el('div', 'plana plana--menu');
     // La hoja va en DOS bloques con un hueco entre medias, y no de una pieza,
     // porque por ese hueco tiene que verse la partida corriendo. Un papel de
@@ -266,9 +296,9 @@ export class Pantallas {
     // es donde un diario dice dónde se tomó— y su lema titula la corrida en el
     // propio juego (ver el bloque del caso en el HUD).
     bloqueAlto.appendChild(el('h2', 'plana__titular plana__titular--menu',
-      'Presidente Roy declara estado de excepción indefinido'));
+      T('portada.titular')));
     bloqueAlto.appendChild(el('div', 'plana__epigrafe plana__epigrafe--menu',
-      '¿Qué está intentando ocultar el oficialismo?'));
+      T('portada.epigrafe')));
     plana.appendChild(bloqueAlto);
 
     // ══ LA FOTO ═════════════════════════════════════════════════════════
@@ -281,10 +311,14 @@ export class Pantallas {
     // El pie de la foto, como lo maqueta el Figma: la escena en vivo es la
     // fotografía de prensa y lleva su crédito.
     const pie = el('div', 'portada__pie');
-    pie.appendChild(document.createTextNode(`Periodista de EL MERCIO./investiga el ${esc.caso.toLowerCase()} en `));
-    const lugar = el('b', '', esc.nombre);
-    pie.appendChild(lugar);
-    pie.appendChild(document.createTextNode('.'));
+    // El caso va en caja de titular —«Caso Porsche», no «CASO PORSCHE»— como
+    // en la maqueta. Los datos lo guardan en versales porque en el HUD sale
+    // así, y un pie de foto en mayúsculas grita.
+    pie.appendChild(Trico('portada.pieFoto', {
+      personaje: PERSONAJES.find((p) => p.id === elegido)?.nombre ?? PERSONAJES[0].nombre,
+      caso: cajaDeTitular(esc.caso),
+      lugar: esc.nombre,
+    }));
 
     const arriba = el('div', 'portada__arriba');
     plana.appendChild(arriba);
@@ -293,13 +327,6 @@ export class Pantallas {
     // ══ BANDA INFERIOR ══════════════════════════════════════════════════
     const abajo = el('div', 'portada__abajo');
     abajo.appendChild(pie);
-
-    // Quién sale a la calle. La ficha se elige en Ajustes (ver más abajo); aquí
-    // solo hace falta saber a quién mandar cuando se toque JUGAR.
-    const abiertos = new Set(this.cuaderno.personajesDesbloqueados());
-    const elegido = abiertos.has(this.cuaderno.personajePreferido)
-      ? this.cuaderno.personajePreferido
-      : PERSONAJES[0].id;
 
     // LA PORTADA NO ELIGE PERSONAJE NI ENSEÑA EL ARSENAL.
     //
@@ -315,7 +342,7 @@ export class Pantallas {
     // potenciadores se compren, la tira vuelve a la portada con una línea.
 
     // --- Jugar -------------------------------------------------------------
-    abajo.appendChild(boton('Toca para investigar', 'boton--diario boton--diario-principal boton--jugar-plana', () => {
+    abajo.appendChild(boton(T('portada.jugar'), 'boton--diario boton--diario-principal boton--jugar-plana', () => {
       this.audio.iniciar();
       this.audio.reanudar();
       this.juego.iniciarPartida(elegido);
@@ -323,13 +350,13 @@ export class Pantallas {
 
     // --- Secundarios -------------------------------------------------------
     const secundarios = el('div', 'portada__secundarios');
-    secundarios.appendChild(boton('Archivo', 'boton--diario', () => {
+    secundarios.appendChild(boton(T('portada.archivo'), 'boton--diario', () => {
       this.mostrar(this.notebook());
     }));
-    secundarios.appendChild(boton('Marcadores', 'boton--diario', () => {
+    secundarios.appendChild(boton(T('portada.marcadores'), 'boton--diario', () => {
       this.mostrar(this.marcadores());
     }));
-    secundarios.appendChild(boton('Ajustes', 'boton--diario', () => {
+    secundarios.appendChild(boton(T('portada.ajustes'), 'boton--diario', () => {
       this.mostrar(this.ajustes());
     }));
     abajo.appendChild(secundarios);
@@ -369,32 +396,31 @@ export class Pantallas {
 
   ajustes() {
     const { pantalla, contenido, plana } = seccionDiario({
-      seccion: 'REDACCIÓN',
-      antetitulo: 'CÓMO SE USA ESTE EJEMPLAR',
-      titular: 'La redacción',
-      bajada: 'Controles, edición y el botón de tirarlo todo a la basura',
+      seccion: T('ajustes.seccion'),
+      antetitulo: T('ajustes.titularCorto'),
+      titular: T('ajustes.titular'),
+      bajada: T('ajustes.bajada'),
     });
 
     // El cuerpo de la página es el bloque elástico: se queda con el hueco que
     // le toque y se desplaza por dentro en pantallas cortas, en vez de estirar
     // la hoja y sacar los botones fuera de cuadro.
     const cuerpo = el('div', 'se-estira se-estira--desplazable');
-    cuerpo.appendChild(ladillo('LA REDACCIÓN'));
+    cuerpo.appendChild(ladillo(T('ajustes.grupoPersonajes')));
     cuerpo.appendChild(this._pintarElectorPersonajes());
-    cuerpo.appendChild(ladillo('EL ARSENAL'));
+    cuerpo.appendChild(ladillo(T('ajustes.grupoArsenal')));
     cuerpo.appendChild(this._pintarArsenal());
 
-    cuerpo.appendChild(ladillo('CONTROLES'));
+    cuerpo.appendChild(ladillo(T('ajustes.grupoControles')));
     cuerpo.appendChild(this._pintarControles());
 
-    cuerpo.appendChild(ladillo('EDICIÓN'));
+    cuerpo.appendChild(ladillo(T('ajustes.grupoEdicion')));
     cuerpo.appendChild(this._pintarVersion(pantalla));
 
     // No es letra pequeña legal: es contexto, y en un periódico eso va en el
     // pie de la página de administración, no perdido debajo de los botones.
     cuerpo.appendChild(el('div', 'plana__nota-tabla',
-      'Sátira política de El Mercio. Los personajes y textos son ficción y no '
-      + 'reproducen declaraciones de personas reales.'));
+      T('ajustes.descargo')));
     plana.appendChild(cuerpo);
 
     const botones = el('div', 'diario__acciones');
@@ -403,11 +429,11 @@ export class Pantallas {
 
     if (this.cuaderno.partidasJugadas > 0) {
       let confirmando = false;
-      const btn = boton('Borrar progreso', 'boton--diario boton--diario-peligro', () => {
+      const btn = boton(T('comunes.borrar'), 'boton--diario boton--diario-peligro', () => {
         if (!confirmando) {
           confirmando = true;
-          btn.textContent = '¿Seguro? Pulsa otra vez';
-          setTimeout(() => { confirmando = false; btn.textContent = 'Borrar progreso'; }, 3000);
+          btn.textContent = T('comunes.borrarConfirma');
+          setTimeout(() => { confirmando = false; btn.textContent = T('comunes.borrar'); }, 3000);
           return;
         }
         this.cuaderno.reiniciarProgreso();
@@ -419,7 +445,7 @@ export class Pantallas {
 
     const pie = el('div', 'pie');
     pie.appendChild(document.createTextNode('elmercio.com · '));
-    const enlace = el('a', '', 'El Mercio');
+    const enlace = el('a', '', T('marca.lema'));
     enlace.href = 'https://elmercio.com';
     enlace.target = '_blank';
     enlace.rel = 'noopener noreferrer';
@@ -457,7 +483,7 @@ export class Pantallas {
       // del lore: cuatro fichas que ponen Política, Sociedad, Investigación y
       // Calle no se leen como cuatro skins, se leen como una redacción.
       if (abierto) ficha.appendChild(el('span', 'elector__seccion', def.seccion));
-      ficha.title = abierto ? `${def.nombre} — ${def.nota}` : `Se ficha a los ${def.tramos} tramos`;
+      ficha.title = abierto ? `${def.nombre} — ${def.nota}` : T('ajustes.fichaje', { tramos: def.tramos });
 
       if (!abierto) {
         ficha.appendChild(el('span', 'elector__candado', `${def.tramos} tramos`));
@@ -510,7 +536,7 @@ export class Pantallas {
 
     bloque.appendChild(el('div', 'arsenal__pista', proximo
       ? `${proximo.nombre} a ${proximo.faltan} ${proximo.faltan === 1 ? 'tramo' : 'tramos'}`
-      : 'Arsenal completo. Ahora solo queda el expediente perfecto.'));
+      : T('ajustes.arsenalCompleto')));
 
     return bloque;
   }
@@ -522,7 +548,7 @@ export class Pantallas {
       [Icono.flecha('izquierda', 18), 'Carril', '← → o swipe lateral'],
       [Icono.flecha('arriba', 18), 'Saltar', '↑, espacio o swipe arriba'],
       [Icono.flecha('abajo', 18), 'Agacharse', '↓ o swipe abajo'],
-      [Icono.pausa(18), 'Pausa', 'ESC o el botón'],
+      [Icono.pausa(18), 'Pausa', T('ajustes.salir')],
     ];
     for (const [svgIcono, titulo, desc] of controles) {
       const item = el('div', 'instruccion');
@@ -560,7 +586,7 @@ export class Pantallas {
     panel.appendChild(fila);
 
     panel.appendChild(el('div', 'edicion__sello',
-      act ? `v${act.version} · ${act.edicion}` : 'edición de desarrollo'));
+      act ? `v${act.version} · ${act.edicion}` : T('edicion.desarrollo')));
 
     // SIN BOTÓN DE BUSCAR. Se comprueba al abrir el juego y cada hora, y la
     // edición nueva entra sola: durante el arranque de inmediato —con la
@@ -568,15 +594,14 @@ export class Pantallas {
     // terminar la corrida. Un botón para pedir a mano lo que ya pasa solo no
     // da control, da la duda de si hace falta pulsarlo.
     panel.appendChild(el('div', 'edicion__nota',
-      'Se comprueba al abrir y cada hora. La edición nueva entra sola: al '
-      + 'arrancar, o al terminar la corrida si estabas jugando.'));
+      T('edicion.explicacion')));
 
     const ESTADOS_TEXTO = {
-      'sin-soporte': ['Sin modo offline en este navegador', 'edicion--tenue'],
-      preparando: ['Guardando el juego para jugar sin conexión…', 'edicion--espera'],
-      listo: ['Listo para jugar sin conexión', 'edicion--listo'],
-      buscando: ['Buscando edición nueva…', 'edicion--espera'],
-      disponible: ['Hay una edición nueva. Toca para instalarla', 'edicion--nueva'],
+      'sin-soporte': [T('edicion.sinSoporte'), 'edicion--tenue'],
+      preparando: [T('edicion.preparando'), 'edicion--espera'],
+      listo: [T('edicion.listo'), 'edicion--listo'],
+      buscando: [T('edicion.buscando'), 'edicion--espera'],
+      disponible: [T('edicion.disponible'), 'edicion--nueva'],
     };
 
     function pintar() {
@@ -633,8 +658,8 @@ export class Pantallas {
     // maquetada como un cartel. Sobre papel, el jugador reconoce al instante
     // que lo que tiene delante es para leerlo.
     const { pantalla, contenido, plana } = seccionDiario({
-      seccion: 'CONTEXTO',
-      antetitulo: esEntrada ? 'ENTRAS AL TRÁMITE' : 'SE ACABÓ EL PASILLO',
+      seccion: T('relato.seccion'),
+      antetitulo: esEntrada ? T('relato.entra') : T('relato.termina'),
       titular: datos.institucion,
       clase: 'pantalla--relato',
     });
@@ -652,7 +677,7 @@ export class Pantallas {
     if (datos.remate) {
       const remate = el('div', 'remate');
       remate.appendChild(document.createTextNode(datos.remate));
-      remate.appendChild(el('span', 'remate__firma', 'El Mercio'));
+      remate.appendChild(el('span', 'remate__firma', T('marca.lema')));
       plana.appendChild(remate);
     }
 
@@ -666,9 +691,9 @@ export class Pantallas {
       // bonificación que no se ve no cambia ninguna decisión.
       const mult = datos.multiplicador ?? 2;
       plana.appendChild(estadisticas([
-        [String(datos.recuperados ?? 0), 'Del suelo'],
-        [String(datos.perdidos ?? 0), 'Ahí quedaron'],
-        [String(datos.devueltos ?? (datos.recuperados ?? 0) * mult), `Al marcador ×${mult}`],
+        [String(datos.recuperados ?? 0), T('relato.delSuelo')],
+        [String(datos.perdidos ?? 0), T('relato.ahiQuedo')],
+        [String(datos.devueltos ?? (datos.recuperados ?? 0) * mult), T('relato.multiplicador', { mult })],
       ]));
 
       if (datos.hallazgo) {
@@ -681,7 +706,7 @@ export class Pantallas {
         // estilos, así que el texto salía sin maquetar: se veía porque hereda,
         // no porque estuviera pensado.
         const texto = el('span', 'desbloqueo__texto');
-        texto.appendChild(el('span', 'desbloqueo__etiqueta', 'PERO SALES CON ALGO'));
+        texto.appendChild(el('span', 'desbloqueo__etiqueta', T('relato.salvado')));
         texto.appendChild(el('span', 'desbloqueo__nombre', datos.hallazgo));
         caja.appendChild(texto);
         plana.appendChild(caja);
@@ -690,7 +715,7 @@ export class Pantallas {
 
     const botones = el('div', 'botones');
     botones.appendChild(boton(
-      esEntrada ? 'ENTRAR' : 'SEGUIR CORRIENDO',
+      esEntrada ? T('relato.entrar') : T('relato.seguir'),
       'boton--principal',
       () => this.juego.continuarRelato(datos.fase),
     ));
@@ -705,10 +730,10 @@ export class Pantallas {
     // a quién le tocó qué sala. Que el sorteo salga impreso en la misma página
     // en la que mañana saldrá la sentencia es la mitad del chiste.
     const { pantalla, contenido, plana } = seccionDiario({
-      seccion: 'JUDICIALES',
-      antetitulo: 'TE RODEARON',
-      titular: 'Se sortea el juez que llevará tu causa',
-      bajada: 'Cinco llevan la camiseta. Para el selector en el que no la lleva.',
+      seccion: T('sorteo.seccion'),
+      antetitulo: T('sorteo.titular'),
+      titular: T('sorteo.bajada'),
+      bajada: T('sorteo.instruccion'),
       clase: 'pantalla--cerco',
     });
 
@@ -854,10 +879,10 @@ export class Pantallas {
 
       const caja = el('div', `resultado ${acerto ? 'resultado--exito' : 'resultado--fracaso'}`);
       caja.appendChild(el('div', 'resultado__titulo',
-        acerto ? 'MEDIDAS SUSTITUTIVAS' : 'LE TOCÓ UNO DE ELLOS'));
+        acerto ? T('sorteo.ganaSeccion') : T('sorteo.pierdeSeccion')));
       caja.appendChild(el('div', 'resultado__texto', acerto
-        ? 'Sales caminando y con la orden de no salir del país. Sigue corriendo.'
-        : 'La sentencia sale mañana en primera plana.'));
+        ? T('sorteo.gana')
+        : T('sorteo.pierde')));
       zonaResultado.appendChild(caja);
 
       this.audio.resultadoRuleta(acerto);
@@ -866,7 +891,7 @@ export class Pantallas {
       setTimeout(() => this.juego.escapar(acerto), acerto ? 900 : 1300);
     };
 
-    const botonParar = boton('Toca para parar', 'boton--principal', parar);
+    const botonParar = boton(T('sorteo.parar'), 'boton--principal', parar);
     botones.appendChild(botonParar);
 
     // Espacio y toque también valen: en móvil el pulgar ya está en la
@@ -877,9 +902,9 @@ export class Pantallas {
     // La cita es la misma sátira que ya cuenta la bajada, dicha por alguien.
     const opinion = el('div', 'opinion');
     const opTexto = el('div', 'opinion__texto');
-    opTexto.appendChild(el('div', 'opinion__etiqueta', 'OPINIÓN'));
+    opTexto.appendChild(el('div', 'opinion__etiqueta', T('sorteo.opinion')));
     opTexto.appendChild(el('div', 'opinion__cita',
-      'Cinco de los seis llevan la camiseta del gobierno. No te sientas mal si no tienes suerte.'));
+      T('sorteo.nota')));
     opinion.appendChild(opTexto);
     const opBusto = el('div', 'opinion__busto');
     opBusto.innerHTML = Icono.juez(44, true);
@@ -917,22 +942,22 @@ export class Pantallas {
     // impresa como tal: sección PORTADA, antetítulo de última hora y el titular
     // de una palabra que se pone cuando de verdad pasó algo.
     const { pantalla, contenido, plana } = seccionDiario({
-      seccion: 'PORTADA',
-      antetitulo: 'SE PRESENTÓ LA DENUNCIA',
-      titular: 'La denuncia prosperó',
+      seccion: T('victoria.seccion'),
+      antetitulo: T('victoria.titularCorto'),
+      titular: T('victoria.titular'),
       bajada: datos.institucion,
       clase: 'pantalla--victoria',
     });
 
     const remate = el('div', 'remate');
     remate.appendChild(document.createTextNode(datos.texto));
-    remate.appendChild(el('span', 'remate__firma', 'El Mercio'));
+    remate.appendChild(el('span', 'remate__firma', T('marca.lema')));
     plana.appendChild(remate);
 
     plana.appendChild(el('p', 'plana__cuerpo',
-      `Te tiraron el expediente por el suelo y lo recogiste entero: ` +
-      `${datos.papelesEntregados} papeles, sin que falte uno. ` +
-      'No sabemos cómo lo lograste, pero lo lograste.'));
+      datos.papelesEntregados > 0
+        ? T('victoria.conEvidencia', { n: datos.papelesEntregados })
+        : T('victoria.sinEvidencia')));
 
     const cuerpoVictoria = el('div', 'se-estira se-estira--desplazable');
     cuerpoVictoria.appendChild(estadisticas([
@@ -944,18 +969,18 @@ export class Pantallas {
     plana.appendChild(cuerpoVictoria);
 
     if (datos.ruta?.length > 1) {
-      cuerpoVictoria.appendChild(ladillo('RUTA DE ESTA CORRIDA'));
+      cuerpoVictoria.appendChild(ladillo(T('victoria.ruta')));
       cuerpoVictoria.appendChild(this._pintarRuta(datos.ruta));
     }
 
     this._pintarDesbloqueos(datos, cuerpoVictoria);
 
     const botones = el('div', 'botones');
-    botones.appendChild(boton('Volver a investigar', 'boton--principal',
+    botones.appendChild(boton(T('comunes.reintentar'), 'boton--principal',
       () => this.juego.iniciarPartida()));
-    botones.appendChild(boton('Archivo de El Mercio', '',
+    botones.appendChild(boton(T('victoria.archivo'), '',
       () => this.mostrar(this.notebook())));
-    botones.appendChild(boton('Ir al menú principal', 'boton--tenue',
+    botones.appendChild(boton(T('comunes.menu'), 'boton--tenue',
       () => this.juego.volverAlMenu()));
     contenido.appendChild(botones);
 
@@ -984,7 +1009,7 @@ export class Pantallas {
     // de hoja. Las tres opciones de antes —volver, archivo, menú— cabían mal y
     // encima obligaban a decidir antes de haber terminado de leer.
     const botones = el('div', 'botones');
-    botones.appendChild(boton('Toca para continuar', 'boton--principal',
+    botones.appendChild(boton(T('comunes.continuar'), 'boton--principal',
       () => this.mostrar((datos.pruebas?.length)
         ? this.botin(datos)
         : this.deportes(datos))));
@@ -1072,8 +1097,7 @@ export class Pantallas {
     pintar(datos ? 'mejor' : (this.pestanaDeportes ?? 'papeles'));
 
     plana.appendChild(el('div', 'plana__nota-tabla',
-      'Tabla de muestra. Todavía no hay marcadores en línea: los puestos que no '
-      + 'son el tuyo son de mentira, como tantas cosas.'));
+      T('marcadores.aviso')));
 
     // Lo desbloqueado va aquí y no en la portada: es lo último que se lee
     // antes de decidir si se vuelve a correr, y habla del futuro.
@@ -1084,11 +1108,11 @@ export class Pantallas {
     const botones = el('div', 'botones');
     if (datos) {
       const donde = obtenerEscenario(datos.escenario ?? this.juego.escenarioActual);
-      botones.appendChild(boton('Volver a investigar', 'boton--principal',
+      botones.appendChild(boton(T('comunes.reintentar'), 'boton--principal',
         () => this.juego.iniciarPartida()));
-      botones.appendChild(boton('Ver todo el diario', '',
+      botones.appendChild(boton(T('comunes.diario'), '',
         () => this.mostrar(this.notebook())));
-      botones.appendChild(boton('Ir al menú principal', 'boton--tenue',
+      botones.appendChild(boton(T('comunes.menu'), 'boton--tenue',
         () => this.juego.volverAlMenu()));
     } else {
       botones.appendChild(boton('Volver', 'boton--principal',
@@ -1112,16 +1136,16 @@ export class Pantallas {
     plana.appendChild(cabeceraMarca(null, true));
 
     const titulos = {
-      captura: 'Te alcanzaron a media cuadra',
-      exhausto: 'El periodista ya no daba más',
-      cerco: 'Cruzó el cerco y no volvió a salir',
+      captura: T('captura.titularAlcanzado'),
+      exhausto: T('captura.titularExhausto'),
+      cerco: T('captura.titularCerco'),
     };
     const sentencia = datos.sentencia;
 
     plana.appendChild(el('div', 'plana__antetitulo',
-      sentencia ? 'PERIODISTA DETENIDO' : 'SE INTERRUMPE LA COBERTURA'));
+      sentencia ? T('captura.seccionCaptura') : T('captura.seccionExhausto')));
     plana.appendChild(el('h1', 'plana__titular',
-      sentencia?.titular ?? titulos[datos.motivo] ?? 'Se acabó la cobertura'));
+      sentencia?.titular ?? titulos[datos.motivo] ?? T('captura.titularGenerico')));
 
     // --- La foto del arresto -----------------------------------------------
     // Sale del propio juego: es el fotograma del cerco, con el círculo ya
@@ -1140,14 +1164,14 @@ export class Pantallas {
     // letra de pie de foto.
     const papeles = datos.papeles ?? 0;
     const marcador = el('div', 'plana__marcador');
-    marcador.appendChild(el('span', 'plana__marcador-rotulo', 'EVIDENCIA RECOLECTADA'));
+    marcador.appendChild(el('span', 'plana__marcador-rotulo', T('captura.rotuloEvidencia')));
 
     const cifra = el('span', 'plana__marcador-cifra', '0');
     marcador.appendChild(cifra);
     contarHasta(cifra, papeles);
 
     if (datos.esRecord && papeles > 0) {
-      const sello = el('span', 'plana__record', 'RÉCORD PERSONAL');
+      const sello = el('span', 'plana__record', T('captura.rotuloRecord'));
       // El sello cae DESPUÉS de que la cifra termine de subir. Apareciendo a la
       // vez compiten, y lo que se quiere es que primero se lea el número y
       // luego llegue la palmadita.
@@ -1176,7 +1200,7 @@ export class Pantallas {
     if (pruebas.length) {
       const caja = el('div', 'plana__pruebas');
       caja.appendChild(el('div', 'plana__pruebas-rotulo',
-        pruebas.length === 1 ? 'SACASTE UNA PRUEBA' : `SACASTE ${pruebas.length} PRUEBAS`));
+        pruebas.length === 1 ? T('captura.prueba') : `SACASTE ${pruebas.length} PRUEBAS`));
       const lista = el('ul', 'plana__pruebas-lista');
       for (const nombre of pruebas) lista.appendChild(el('li', '', nombre));
       caja.appendChild(lista);
@@ -1186,7 +1210,7 @@ export class Pantallas {
     // --- Y si con ellas se completó un reportaje ---------------------------
     for (const pagina of datos.paginasNuevas ?? []) {
       const abierta = el('div', 'plana__reportaje');
-      abierta.appendChild(el('span', 'plana__reportaje-sello', 'REPORTAJE COMPLETO'));
+      abierta.appendChild(el('span', 'plana__reportaje-sello', T('captura.reportaje')));
       abierta.appendChild(el('span', 'plana__reportaje-nombre', pagina.nombre));
       plana.appendChild(abierta);
     }
@@ -1204,13 +1228,13 @@ export class Pantallas {
     const siguiente = this.cuaderno?.proximaPagina?.();
     if (siguiente && siguiente.pruebasPedidas > 0) {
       const meta = el('div', 'plana__meta');
-      meta.appendChild(el('div', 'plana__meta-rotulo', 'EN LA SIGUIENTE CORRIDA'));
+      meta.appendChild(el('div', 'plana__meta-rotulo', T('captura.siguiente')));
 
       const frase = siguiente.faltan === 0
         ? `«${siguiente.nombre}» sale con lo que ya tienes.`
         : siguiente.faltan === 1
-          ? `Te falta UNA prueba para «${siguiente.nombre}».`
-          : `Te faltan ${siguiente.faltan} pruebas para «${siguiente.nombre}».`;
+          ? T('captura.faltaUna', { nombre: siguiente.nombre })
+          : T('captura.faltanVarias', { faltan: siguiente.faltan, nombre: siguiente.nombre });
       meta.appendChild(el('div', 'plana__meta-frase', frase));
 
       const barra = el('div', 'plana__meta-casillas');
@@ -1227,7 +1251,7 @@ export class Pantallas {
       const cuerpo = el('p', 'plana__cuerpo');
       cuerpo.appendChild(document.createTextNode(datos.texto));
       plana.appendChild(cuerpo);
-      plana.appendChild(el('div', 'plana__firma', 'El Mercio'));
+      plana.appendChild(el('div', 'plana__firma', T('marca.lema')));
     }
 
     // La TABLA y los DESBLOQUEOS ya no están aquí: se fueron a la página de
@@ -1262,13 +1286,13 @@ export class Pantallas {
 
     // La sección de la redacción, como titula el Figma la página de pruebas.
     contenido.appendChild(cabeceraMarca('redacción'));
-    contenido.appendChild(el('div', 'botin__antetitulo', 'SALISTE CON ESTO'));
+    contenido.appendChild(el('div', 'botin__antetitulo', T('botin.titular')));
 
     const pruebas = datos.pruebas ?? [];
     const buenas = pruebas.filter((n) => !Notebook.esFalsa(n)).length;
     contenido.appendChild(el('h1', 'botin__titular',
-      buenas === 0 ? 'Nada que sostenga'
-        : buenas === 1 ? 'Sacaste una prueba' : `Sacaste ${buenas} pruebas`));
+      buenas === 0 ? T('botin.nada')
+        : buenas === 1 ? T('botin.una') : T('botin.varias', { n: buenas })));
 
     const rejilla = el('div', 'botin__rejilla se-estira se-estira--desplazable');
 
@@ -1302,7 +1326,7 @@ export class Pantallas {
       pieza.appendChild(caja);
       const cifra = el('div', 'botin__nombre botin__nombre--cifra', '0');
       pieza.appendChild(cifra);
-      const sello = el('div', 'botin__sello', 'EVIDENCIA');
+      const sello = el('div', 'botin__sello', T('botin.rotuloEvidencia'));
       sello.style.setProperty('--sello', `${turno + 0.42}s`);
       pieza.appendChild(sello);
       rejilla.appendChild(pieza);
@@ -1336,7 +1360,7 @@ export class Pantallas {
       // plantadas, el chiste.
       const sello = el('div',
         `botin__sello${falsa ? ' botin__sello--falsa' : ''}`,
-        falsa ? 'NO SE SOSTIENE' : 'RECUPERADA');
+        falsa ? T('botin.noSostiene') : T('botin.recuperada'));
       sello.style.setProperty('--sello', `${turno + 0.42}s`);
       pieza.appendChild(sello);
       rejilla.appendChild(pieza);
@@ -1350,12 +1374,11 @@ export class Pantallas {
     const plantadas = pruebas.length - buenas;
     contenido.appendChild(el('div', 'botin__pie',
       plantadas > 0
-        ? `${plantadas === 1 ? 'Una' : plantadas} de las que recogiste no aguanta un `
-          + 'contraste: te la dejaron ahí. Las buenas se quedan en el archivo.'
-        : 'Se quedan en el archivo aunque te capturen. Son las que arman el reportaje.'));
+        ? T('botin.explicaVacio', { n: plantadas === 1 ? 'Una' : plantadas })
+        : T('botin.explicaLleno')));
 
     const botones = el('div', 'botones');
-    botones.appendChild(boton('Toca para continuar', 'boton--principal',
+    botones.appendChild(boton(T('comunes.continuar'), 'boton--principal',
       () => this.mostrar(this.deportes(datos))));
     contenido.appendChild(botones);
 
@@ -1375,14 +1398,14 @@ export class Pantallas {
 
     const img = document.createElement('img');
     img.src = datos.foto;
-    img.alt = 'Momento de la detención';
+    img.alt = T('captura.altFoto');
     img.loading = 'lazy';
     figura.appendChild(img);
     figura.appendChild(el('span', 'plana__trama'));
 
     const esc = obtenerEscenario(datos.escenario ?? 'bahia');
     figura.appendChild(el('figcaption', 'plana__pie',
-      `El momento de la detención en ${esc.nombre}. Foto: El Mercio`));
+      T('captura.pieFoto', { lugar: esc.nombre })));
 
     return figura;
   }
@@ -1481,7 +1504,7 @@ export class Pantallas {
       caja.appendChild(icono);
 
       const texto = el('span', 'desbloqueo__texto');
-      texto.appendChild(el('span', 'desbloqueo__etiqueta', 'FICHAJE EN LA REDACCIÓN'));
+      texto.appendChild(el('span', 'desbloqueo__etiqueta', T('captura.fichaje')));
       texto.appendChild(el('span', 'desbloqueo__nombre', per.nombre));
       texto.appendChild(el('span', 'desbloqueo__desc', per.nota));
       caja.appendChild(texto);
@@ -1496,7 +1519,7 @@ export class Pantallas {
       caja.appendChild(icono);
 
       const texto = el('span', 'desbloqueo__texto');
-      texto.appendChild(el('span', 'desbloqueo__etiqueta', 'POTENCIADOR NUEVO'));
+      texto.appendChild(el('span', 'desbloqueo__etiqueta', T('captura.potenciador')));
       texto.appendChild(el('span', 'desbloqueo__nombre', pot.nombre));
       texto.appendChild(el('span', 'desbloqueo__desc', pot.descripcion));
       caja.appendChild(texto);
@@ -1663,11 +1686,11 @@ export class Pantallas {
 
     if (this.cuaderno.partidasJugadas > 0) {
       let confirmando = false;
-      const btn = boton('Borrar progreso', 'boton--diario boton--diario-peligro', () => {
+      const btn = boton(T('comunes.borrar'), 'boton--diario boton--diario-peligro', () => {
         if (!confirmando) {
           confirmando = true;
-          btn.textContent = '¿Seguro? Pulsa otra vez';
-          setTimeout(() => { confirmando = false; btn.textContent = 'Borrar progreso'; }, 3000);
+          btn.textContent = T('comunes.borrarConfirma');
+          setTimeout(() => { confirmando = false; btn.textContent = T('comunes.borrar'); }, 3000);
           return;
         }
         this.cuaderno.reiniciarProgreso();
@@ -1679,16 +1702,16 @@ export class Pantallas {
 
     if (hayPendientes()) {
       pie.appendChild(el('div', 'diario__nota',
-        `Redacción: ${cuantosListos()} de ${paginas.reduce((n, p) => n + p.articulos.length, 0)} ` +
-        'reportajes cargados. Los huecos se rellenan en src/config/publicaciones.js ' +
-        'con titular, autoría, fecha y enlace reales. El periódico reserva el ' +
-        'espacio, pero no inventa la pieza.'));
+        T('archivo.progreso', {
+          listos: cuantosListos(),
+          total: paginas.reduce((n, p) => n + p.articulos.length, 0),
+        })));
+      pie.appendChild(el('div', 'diario__nota', T('archivo.explicacion')));
     }
 
     if (!this.cuaderno.almacenamientoDisponible) {
       pie.appendChild(el('div', 'diario__nota',
-        'Tu navegador tiene el almacenamiento bloqueado (suele pasar en modo ' +
-        'privado). Puedes jugar igual, pero el ejemplar no se guardará.'));
+        T('archivo.sinAlmacenamiento')));
     }
 
     return pantalla;
@@ -1712,11 +1735,11 @@ export class Pantallas {
     const franja = el('div', 'diario__franja');
     if (esPortada) {
       franja.appendChild(el('span', '', CABECERA.sitio));
-      franja.appendChild(el('span', '', `${this.cuaderno.paginasAbiertas} pág. recuperadas`));
+      franja.appendChild(el('span', '', T('archivo.paginasAbiertas', { n: this.cuaderno.paginasAbiertas })));
       franja.appendChild(el('span', '', CABECERA.precio));
     } else {
       franja.appendChild(el('span', '', pagina.nombre));
-      franja.appendChild(el('span', '', `Pág. ${pagina.numero}`));
+      franja.appendChild(el('span', '', T('archivo.pagina', { n: pagina.numero })));
     }
     cab.appendChild(franja);
 
@@ -1751,10 +1774,9 @@ export class Pantallas {
 
     if (art.pendiente) {
       nodo.appendChild(el('div', 'articulo__antetitulo', art.tema));
-      nodo.appendChild(el('div', 'articulo__reservado', 'ESPACIO RESERVADO'));
+      nodo.appendChild(el('div', 'articulo__reservado', T('archivo.reservado')));
       nodo.appendChild(el('p', 'articulo__cuerpo',
-        'Reportaje en preparación. Cuando se publique aparecerá aquí, con su ' +
-        'firma y su enlace.'));
+        T('archivo.enPreparacion')));
       return nodo;
     }
 
@@ -1768,7 +1790,7 @@ export class Pantallas {
     nodo.appendChild(firma);
 
     if (art.url) {
-      const enlace = el('a', 'articulo__enlace', 'Leer el reportaje completo →');
+      const enlace = el('a', 'articulo__enlace', T('archivo.leer'));
       enlace.href = art.url;
       enlace.target = '_blank';
       enlace.rel = 'noopener noreferrer';
@@ -1782,7 +1804,7 @@ export class Pantallas {
   _paginaCerrada(pagina, repintar) {
     const cerrada = el('div', 'pagina-cerrada');
 
-    cerrada.appendChild(el('div', 'pagina-cerrada__sello', 'PÁGINA SIN RECUPERAR'));
+    cerrada.appendChild(el('div', 'pagina-cerrada__sello', T('archivo.sinRecuperar')));
     cerrada.appendChild(el('h3', 'pagina-cerrada__titulo', pagina.nombre));
 
     const temas = el('ul', 'pagina-cerrada__temas');
@@ -1812,9 +1834,8 @@ export class Pantallas {
 
     cerrada.appendChild(el('div', 'pagina-cerrada__ayuda',
       reunidas >= pedidas
-        ? 'Ya tienes con qué. Sale al terminar la próxima corrida.'
-        : 'Las pruebas están en la calle: USB, videos, chats, actas. '
-          + 'Recógelas aunque te capturen; lo recogido se queda.'));
+        ? T('archivo.yaPuedes')
+        : T('archivo.comoAbrir')));
 
     return cerrada;
   }
@@ -1847,10 +1868,10 @@ export class Pantallas {
     // sale. Es la pantalla más tonta del juego y por eso mismo tenía que ir
     // impresa: si esta se salvara del papel, el sistema no sería un sistema.
     const { pantalla, contenido, plana } = seccionDiario({
-      seccion: 'PAUSA',
-      antetitulo: 'EN PAUSA',
-      titular: 'Respira',
-      bajada: 'La rotativa espera. Nadie te está persiguiendo mientras esto esté abierto.',
+      seccion: T('pausa.seccion'),
+      antetitulo: T('pausa.antetitulo'),
+      titular: T('pausa.titular'),
+      bajada: T('pausa.bajada'),
     });
 
     // La pausa no tiene contenido variable, pero su aire se declara igual que
@@ -1859,9 +1880,9 @@ export class Pantallas {
     plana.appendChild(el('div', 'se-estira'));
 
     const botones = el('div', 'botones');
-    botones.appendChild(boton('Seguir corriendo', 'boton--principal',
+    botones.appendChild(boton(T('pausa.seguir'), 'boton--principal',
       () => this.juego.reanudar()));
-    botones.appendChild(boton('Abandonar la corrida', 'boton--tenue',
+    botones.appendChild(boton(T('pausa.abandonar'), 'boton--tenue',
       () => this.juego.terminarPartida('captura')));
     contenido.appendChild(botones);
 

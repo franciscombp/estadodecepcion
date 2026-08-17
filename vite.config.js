@@ -42,6 +42,12 @@ export default defineConfig({
       input: {
         principal: resolve(__dirname, 'index.html'),
         exportador: resolve(__dirname, 'creador/exportador/index.html'),
+        // El editor de pantallas importa `src/config/guion.js` —el guion de
+        // verdad, no una copia— por el mismo motivo que el exportador importa
+        // los generadores: una copia se queda vieja en cuanto alguien añade un
+        // texto, y entonces la herramienta enseña un catálogo que no es el que
+        // el juego usa.
+        pantallas: resolve(__dirname, 'creador/pantallas/index.html'),
       },
       output: {
         // Separamos Three.js en su propio chunk para que el Service Worker

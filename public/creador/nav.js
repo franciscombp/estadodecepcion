@@ -23,6 +23,7 @@
 (() => {
   const HERRAMIENTAS = [
     { id: '',            icono: '🛠️', nombre: 'Portal',       corto: 'Portal' },
+    { id: 'pantallas',   icono: '📝', nombre: 'Pantallas',    corto: 'Pantallas' },
     { id: 'mapas',       icono: '🗺️', nombre: 'Escenas',      corto: 'Escenas' },
     { id: 'niveles',     icono: '⚙️',  nombre: 'Niveles',      corto: 'Niveles' },
     { id: 'personajes',  icono: '👥', nombre: 'Personajes',   corto: 'Personajes' },

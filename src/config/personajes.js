@@ -49,7 +49,7 @@
 export const PERSONAJES = [
   {
     id: 'tostadologo',
-    nombre: 'Tostadologo',
+    nombre: 'Tostadólogo',
     seccion: 'Política',
     nota: 'Sombrero, gafas y treinta años de oficio',
     ficha: 'Lleva en la redacción más tiempo que casi todos los ministros que ha cubierto. Ese es el problema: se acuerda.',

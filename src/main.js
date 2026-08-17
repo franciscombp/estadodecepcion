@@ -23,6 +23,7 @@ import { cargarPersonajesGLB } from './models/personajeGLB.js';
 import { detectarCalidad } from './utils/calidad.js';
 import { Actualizador } from './utils/actualizacion.js';
 import { PAGINAS } from './config/publicaciones.js';
+import { cargarGuion } from './config/guion.js';
 import { CATALOGO_POTENCIADORES, RACHA, tramoRacha } from './config/balance.js';
 import * as Icono from './ui/iconos.js';
 
@@ -122,6 +123,15 @@ async function arrancar() {
   // procedural, así que no hay nada que bajar.
   const cache = new AssetCache();
   await cache.abrir();
+
+  // EL GUION, ANTES QUE NADA QUE PINTE TEXTO.
+  //
+  // Trae `public/contenido/guion.json` —lo que baja el editor de pantallas— y
+  // lo que haya guardado el editor en este navegador para probar en vivo. Si
+  // no hay ninguno de los dos, se sigue con el guion escrito en
+  // `config/guion.js`, que es el caso normal. Va antes de construir el juego
+  // porque la pantalla de carga ya es la primera que dice cosas.
+  await cargarGuion(import.meta.env.BASE_URL ?? '/');
 
   // Los edificios reconocibles de la ciudad. Se esperan AQUÍ, con la pantalla
   // de carga puesta, porque las escenas los clonan al construirse: llegando

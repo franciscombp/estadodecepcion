@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pantallas y mensajes — Estado de Excepción</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='80'>📝</text></svg>">
+  <link rel="stylesheet" href="/creador/creador.css">
+  <style>
+    /* Igual que el exportador: esta herramienta vive DENTRO del build porque
+       importa `src/config/guion.js`, o sea el guion de verdad y no una copia.
+       Enlaza la hoja compartida desde public/ y solo declara lo suyo: las dos
+       columnas, la lista de campos y el teléfono de la vista previa. */
+    .envoltorio { max-width: 1240px; margin: 0 auto; padding: 0 0 40px; }
+    .bajada { color: var(--tinta-tenue); margin-bottom: 18px; max-width: 62ch; }
+
+    .columnas { display: grid; grid-template-columns: 1fr; gap: 22px; align-items: start; }
+    @media (min-width: 1000px) { .columnas { grid-template-columns: 1fr 420px; } }
+
+    .panel { background: var(--papel-blanco); border: 1px solid var(--papel-sombra); padding: 16px; }
+
+    /* --- La barra de acciones, pegada arriba: se edita bajando por una lista
+           larga y el botón de guardar no puede quedarse en el sótano. --- */
+    .acciones { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap;
+                gap: 8px; align-items: center; padding: 10px 0 12px; background: var(--papel);
+                border-bottom: 1px solid var(--papel-sombra); margin-bottom: 16px; }
+    .acciones .hueco { flex: 1 1 auto; }
+    .marcador { font-family: var(--sans); font-size: var(--t-micro); color: var(--tinta-tenue); }
+    .marcador b { color: var(--rojo-diario); }
+
+    /* --- Grupos y campos --- */
+    .grupo { margin-bottom: 26px; }
+    .grupo > h2 { font-family: var(--sans); font-size: var(--t-micro); letter-spacing: .086em;
+                  text-transform: uppercase; color: var(--rojo-diario); margin: 0 0 2px; }
+    .grupo > p { font-family: var(--sans); font-size: var(--t-micro); color: var(--tinta-tenue);
+                 margin: 0 0 10px; }
+
+    .campo { border-bottom: 1px solid var(--papel-sombra); padding: 10px 0; }
+    .campo:last-child { border-bottom: 0; }
+    .campo__cabeza { display: flex; gap: 8px; align-items: baseline; margin-bottom: 5px; }
+    .campo__ruta { font-family: var(--sans); font-size: var(--t-micro); font-weight: 700;
+                   color: var(--tinta); }
+    .campo__ayuda { font-family: var(--sans); font-size: var(--t-micro); color: var(--tinta-tenue);
+                    flex: 1 1 auto; }
+    .campo--tocado .campo__ruta::after { content: ' ●'; color: var(--rojo-diario); }
+
+    .campo input, .campo textarea {
+      width: 100%; font-family: var(--sans); font-size: 14px; line-height: 1.45;
+      color: var(--tinta); background: var(--papel); border: 1px solid var(--papel-sombra);
+      padding: 8px 10px; border-radius: 0; resize: vertical;
+    }
+    .campo input:focus, .campo textarea:focus { outline: 2px solid var(--rojo-diario); outline-offset: -2px; }
+    .campo--tocado input, .campo--tocado textarea { border-color: var(--rojo-diario); background: var(--papel-blanco); }
+    .campo__huecos { margin-top: 4px; font-family: var(--sans); font-size: var(--t-micro);
+                     color: var(--tinta-tenue); }
+    .campo__huecos code { background: var(--papel-sombra); padding: 1px 4px; }
+    .campo__original { margin-top: 4px; font-family: var(--sans); font-size: var(--t-micro);
+                       color: var(--tinta-tenue); }
+
+    /* --- La vista previa: un teléfono con el juego dentro --- */
+    .previa { position: sticky; top: 64px; }
+    .previa h2 { font-family: var(--sans); font-size: var(--t-micro); letter-spacing: .086em;
+                 text-transform: uppercase; color: var(--rojo-diario); margin: 0 0 8px; }
+    .telefono { width: 100%; max-width: 402px; aspect-ratio: 402 / 874; margin: 0 auto;
+                border: 1px solid var(--tinta); background: var(--papel); overflow: hidden; }
+    .telefono iframe { width: 402px; height: 874px; border: 0; display: block;
+                       transform-origin: top left; }
+    .previa__nota { font-family: var(--sans); font-size: var(--t-micro); color: var(--tinta-tenue);
+                    margin-top: 8px; }
+
+    .buscador { width: 100%; font-family: var(--sans); font-size: 14px; padding: 9px 11px;
+                border: 1px solid var(--papel-sombra); background: var(--papel-blanco);
+                margin-bottom: 14px; }
+    .oculto { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="envoltorio">
+      <h1>📝 Pantallas y mensajes</h1>
+      <p class="bajada">
+        Todo lo que el juego dice, en una lista. Se escribe encima, se mira en
+        el teléfono de la derecha y, cuando está, se baja el <code>guion.json</code>
+        y se deja en <code>public/contenido/</code>. Lo que no se toca se queda
+        como está en el código: el archivo solo lleva los cambios.
+      </p>
+
+      <div class="acciones">
+        <button class="boton boton--principal" id="probar">Probar en el juego</button>
+        <button class="boton" id="bajar">Bajar guion.json</button>
+        <button class="boton" id="subir">Cargar un guion.json</button>
+        <input type="file" id="archivo" accept="application/json" class="oculto">
+        <button class="boton boton--tenue" id="deshacer">Deshacerlo todo</button>
+        <span class="hueco"></span>
+        <span class="marcador" id="marcador"></span>
+      </div>
+
+      <div class="columnas">
+        <div>
+          <input class="buscador" id="buscador" type="search"
+                 placeholder="Buscar por texto o por identificador (portada.titular)…">
+          <div id="lista"></div>
+        </div>
+
+        <div class="previa panel">
+          <h2>Vista previa</h2>
+          <div class="telefono"><iframe id="marco" title="El juego con el guion editado"></iframe></div>
+          <p class="previa__nota" id="notaPrevia">
+            «Probar en el juego» guarda el guion en este navegador y recarga el
+            teléfono. Es una prueba local: no toca el repositorio ni lo que ven
+            los demás. Para publicarlo hay que bajar el JSON y commitearlo.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    // El guion de verdad, importado del código del juego. Por eso esta
+    // herramienta va en el build y no en public/: así no hay una copia del
+    // catálogo que se quede vieja en cuanto alguien añada un texto.
+    import { guionPlano, aplicarGuion, CLAVE_GUION } from '/src/config/guion.js';
+
+    const $ = (s) => document.querySelector(s);
+    const lista = $('#lista');
+    const marco = $('#marco');
+
+    // Lo que hay guardado en este navegador manda sobre lo escrito en el
+    // código, igual que en el juego. Se aplica ANTES de pintar la lista para
+    // que los campos salgan con lo que se estaba probando.
+    let cambios = leerGuardado();
+    aplicarGuion(cambios);
+
+    const grupos = guionPlano();
+
+    function leerGuardado() {
+      try {
+        const crudo = localStorage.getItem(CLAVE_GUION);
+        const leido = crudo ? JSON.parse(crudo) : null;
+        return leido && typeof leido === 'object' ? leido : {};
+      } catch { return {}; }
+    }
+
+    // ── La lista ───────────────────────────────────────────────────────────
+    function pintar() {
+      lista.innerHTML = '';
+      for (const grupo of grupos) {
+        const caja = document.createElement('section');
+        caja.className = 'grupo panel';
+        caja.dataset.grupo = grupo.id;
+
+        const titulo = document.createElement('h2');
+        titulo.textContent = grupo.nombre;
+        caja.appendChild(titulo);
+
+        if (grupo.nota) {
+          const nota = document.createElement('p');
+          nota.textContent = grupo.nota;
+          caja.appendChild(nota);
+        }
+
+        for (const entrada of grupo.entradas) caja.appendChild(pintarCampo(entrada));
+        lista.appendChild(caja);
+      }
+      contar();
+    }
+
+    function pintarCampo(entrada) {
+      const campo = document.createElement('div');
+      campo.className = 'campo';
+      campo.dataset.ruta = entrada.ruta;
+      // Para el buscador: identificador y los dos textos, todo junto y en
+      // minúsculas, para no normalizar en cada tecla.
+      campo.dataset.busca = `${entrada.ruta} ${entrada.original} ${entrada.valor}`.toLowerCase();
+
+      const cabeza = document.createElement('div');
+      cabeza.className = 'campo__cabeza';
+      const ruta = document.createElement('span');
+      ruta.className = 'campo__ruta';
+      ruta.textContent = entrada.ruta;
+      const ayuda = document.createElement('span');
+      ayuda.className = 'campo__ayuda';
+      ayuda.textContent = entrada.ayuda;
+      cabeza.append(ruta, ayuda);
+      campo.appendChild(cabeza);
+
+      const caja = document.createElement(entrada.largo ? 'textarea' : 'input');
+      if (entrada.largo) caja.rows = 3; else caja.type = 'text';
+      caja.value = entrada.valor;
+      caja.addEventListener('input', () => {
+        // Volver al texto original BORRA la entrada en vez de guardarla igual:
+        // así el JSON que se baja lleva de verdad solo lo que cambió.
+        if (caja.value === entrada.original) delete cambios[entrada.ruta];
+        else cambios[entrada.ruta] = caja.value;
+        campo.classList.toggle('campo--tocado', entrada.ruta in cambios);
+        contar();
+      });
+      campo.appendChild(caja);
+
+      if (entrada.huecos.length) {
+        const huecos = document.createElement('div');
+        huecos.className = 'campo__huecos';
+        huecos.append('Huecos: ');
+        entrada.huecos.forEach((h, i) => {
+          if (i) huecos.append(' · ');
+          const c = document.createElement('code');
+          c.textContent = `{${h}}`;
+          huecos.appendChild(c);
+        });
+        huecos.append(' — si los quitas, el dato no sale.');
+        campo.appendChild(huecos);
+      }
+
+      if (entrada.ruta in cambios) {
+        campo.classList.add('campo--tocado');
+        const orig = document.createElement('div');
+        orig.className = 'campo__original';
+        orig.textContent = `Original: ${entrada.original}`;
+        campo.appendChild(orig);
+      }
+
+      return campo;
+    }
+
+    function contar() {
+      const n = Object.keys(cambios).length;
+      $('#marcador').innerHTML = n
+        ? `<b>${n}</b> ${n === 1 ? 'texto cambiado' : 'textos cambiados'}`
+        : 'Sin cambios';
+    }
+
+    // ── Buscador ───────────────────────────────────────────────────────────
+    $('#buscador').addEventListener('input', (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      for (const campo of lista.querySelectorAll('.campo')) {
+        campo.classList.toggle('oculto', !!q && !campo.dataset.busca.includes(q));
+      }
+      // Un grupo sin ningún campo visible sobra: deja un título huérfano.
+      for (const grupo of lista.querySelectorAll('.grupo')) {
+        const vivos = grupo.querySelectorAll('.campo:not(.oculto)').length;
+        grupo.classList.toggle('oculto', vivos === 0);
+      }
+    });
+
+    // ── Vista previa ───────────────────────────────────────────────────────
+    // El juego lee el guion de localStorage al arrancar, y la herramienta y el
+    // juego están en el mismo origen: guardar y recargar el iframe basta. No
+    // hace falta mensajería entre ventanas.
+    function recargarPrevia() {
+      const base = new URL('../../', location.href).pathname;
+      marco.src = `${base}?previa=${Date.now()}`;
+    }
+
+    $('#probar').addEventListener('click', () => {
+      try {
+        localStorage.setItem(CLAVE_GUION, JSON.stringify(cambios));
+      } catch {
+        $('#notaPrevia').textContent =
+          'Tu navegador tiene el almacenamiento bloqueado (suele pasar en modo privado): ' +
+          'la vista previa no puede guardar el guion. El JSON se puede bajar igual.';
+        return;
+      }
+      aplicarGuion(cambios);
+      recargarPrevia();
+    });
+
+    // ── Bajar / cargar / deshacer ──────────────────────────────────────────
+    $('#bajar').addEventListener('click', () => {
+      const json = JSON.stringify(cambios, null, 2) + '\n';
+      const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'guion.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    $('#subir').addEventListener('click', () => $('#archivo').click());
+    $('#archivo').addEventListener('change', async (e) => {
+      const archivo = e.target.files?.[0];
+      if (!archivo) return;
+      try {
+        const leido = JSON.parse(await archivo.text());
+        if (!leido || typeof leido !== 'object') throw new Error('no es un objeto');
+        // Se acepta tanto el plano que baja esta herramienta como uno anidado
+        // escrito a mano: aplicarGuion() aplana los dos.
+        cambios = aplicarGuion(leido);
+        pintar();
+      } catch (err) {
+        $('#notaPrevia').textContent = `Ese archivo no se pudo leer como guion: ${err.message}`;
+      }
+      e.target.value = '';
+    });
+
+    $('#deshacer').addEventListener('click', () => {
+      if (!confirm('¿Volver al guion del código y descartar los cambios de este navegador?')) return;
+      cambios = {};
+      aplicarGuion({});
+      try { localStorage.removeItem(CLAVE_GUION); } catch { /* da igual */ }
+      pintar();
+      recargarPrevia();
+    });
+
+    // ── El teléfono escala al ancho disponible ─────────────────────────────
+    function encajarTelefono() {
+      const caja = document.querySelector('.telefono');
+      marco.style.transform = `scale(${caja.clientWidth / 402})`;
+    }
+    new ResizeObserver(encajarTelefono).observe(document.querySelector('.telefono'));
+
+    pintar();
+    encajarTelefono();
+    recargarPrevia();
+  </script>
+  <script src="/creador/nav.js"></script>
+</body>
+</html>
