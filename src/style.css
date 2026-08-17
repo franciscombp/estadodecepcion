@@ -4411,13 +4411,10 @@ html, body {
 .tombola-contenedor .tombola-banda .juez:nth-child(3n) { background: var(--azul-diario); }
 
 /* Juez comprado (no honesto). */
-/* SIN FILTROS. Los dos jueces ya vienen dibujados cada uno con lo suyo —el
-   neutral de birrete sobre verde, el del gobierno encapuchado en morado— así
-   que virarles el tono encima solo servía para ensuciarlos. */
-.juez--comprado .juez__toga { filter: none; }
+.juez--comprado .juez__toga { filter: hue-rotate(250deg) saturate(0.8); }
 
 /* Juez limpio (honesto). */
-.juez--limpio .juez__toga { filter: none; }
+.juez--limpio .juez__toga { filter: saturate(1.2); }
 
 /* Resultado de la selección: acertó. */
 .juez--acierto {

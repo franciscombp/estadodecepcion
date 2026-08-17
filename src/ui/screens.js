@@ -602,8 +602,7 @@ export class Pantallas {
   // EL SORTEO DEL JUEZ
   // -------------------------------------------------------------------------
   // Te rodearon. Ahora te sortean un juez: seis, y un selector que los
-  // recorre. Cinco vienen encapuchados de morado, con la cadena al cuello; uno
-  // no: ese lleva birrete y toga, y es el único que estudió para esto.
+  // recorre. Cinco llevan la camiseta morada del oficialismo; uno no.
   //
   // NO ES UNA RULETA, y la diferencia es todo. Aquí no hay número oculto ni
   // sorteo: el selector está a la vista, los jueces están a la vista, y el
@@ -709,7 +708,7 @@ export class Pantallas {
       seccion: 'JUDICIALES',
       antetitulo: 'TE RODEARON',
       titular: 'Se sortea el juez que llevará tu causa',
-      bajada: 'Cinco vienen encapuchados. Para el selector en el que no lo está.',
+      bajada: 'Cinco llevan la camiseta. Para el selector en el que no la lleva.',
       clase: 'pantalla--cerco',
     });
 
@@ -880,7 +879,7 @@ export class Pantallas {
     const opTexto = el('div', 'opinion__texto');
     opTexto.appendChild(el('div', 'opinion__etiqueta', 'OPINIÓN'));
     opTexto.appendChild(el('div', 'opinion__cita',
-      'Cinco de los seis vienen con la capucha del gobierno. No te sientas mal si no tienes suerte.'));
+      'Cinco de los seis llevan la camiseta del gobierno. No te sientas mal si no tienes suerte.'));
     opinion.appendChild(opTexto);
     const opBusto = el('div', 'opinion__busto');
     opBusto.innerHTML = Icono.juez(44, true);

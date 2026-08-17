@@ -90,64 +90,26 @@ export function iconoTemporada(idEscenario, tamano = 24) {
 // ---------------------------------------------------------------------------
 
 /**
- * LOS JUECES DEL SORTEO — dos retratos, no un icono con una variante.
+ * JUEZ. El mismo dibujo para los seis, con una sola diferencia: la camiseta
+ * que asoma bajo la toga. Cinco la llevan morada; uno no.
  *
- * Había un solo dibujo con un detalle cambiado en el pecho, y la idea era
- * buena —obligar a mirar a cada uno— pero pedía demasiado: en una tómbola que
- * pasa a siete fichas por segundo, un botón de la camisa no se ve. Ahora son
- * dos retratos distintos, con la misma cabeza y la misma manera de estar
- * dibujados pero con dos siluetas que se leen de un vistazo:
- *
- *   · EL NEUTRAL va de birrete y toga negra, sobre verde. Es el juez de
- *     carrera: estudió, y lo que lleva encima es un título.
- *   · EL DEL GOBIERNO va encapuchado de morado, con la cadena al cuello y sin
- *     que se le vea de dónde sale. El morado es el color del oficialismo en
- *     todo el juego —las banderas de la campaña, las cápsulas— así que no hace
- *     falta explicar de quién es.
- *
- * Se dibujan en vectores y no con una imagen por el mismo motivo que todo lo
- * demás aquí: entran en el paquete, escalan a cualquier tamaño y no hay un
- * archivo que se pueda perder.
+ * Que solo cambie un detalle es deliberado. Si el juez honesto tuviera otra
+ * silueta se distinguiría de un vistazo y el sorteo dejaría de pedir
+ * atención; así hay que mirar el pecho de cada uno.
  *
  * @param {boolean} limpio ¿Es el que no está comprado?
  */
-export const juez = (t, limpio = false) => (limpio ? juezNeutral(t) : juezOficial(t));
-
-/** EL NEUTRAL: birrete, borla y toga negra sobre verde. */
-const juezNeutral = (t) => svg(`
-  <rect width="24" height="24" fill="#9fdc8b"/>
-  <!-- Toga: hombros anchos y solapas cruzadas. -->
-  <path d="M2.6 24v-4.2c0-3 2.6-5.2 6-6.1h6.8c3.4.9 6 3.1 6 6.1V24z" fill="#141c22"/>
-  <path d="M9.4 13.7 12 18l2.6-4.3-2.6-1z" fill="#242e36"/>
-  <!-- Cuello y cara, con el plano de la mandíbula marcado. -->
-  <path d="M10.1 10.4h3.8v3.6h-3.8z" fill="#c99a72"/>
-  <path d="M8.5 5.6h7v6.2c0 1.5-1.6 2.6-3.5 2.6s-3.5-1.1-3.5-2.6z" fill="#e2b78d"/>
-  <path d="M8.5 5.6h7v2.1h-7z" fill="#3a2d24"/>
-  <path d="M9.4 9.2h1.6v.9H9.4zM13 9.2h1.6v.9H13z" fill="#3a2d24"/>
-  <!-- Birrete: el tablero, la copa y la borla dorada. -->
-  <path d="M12 1.4 20 4.6l-8 3.2-8-3.2z" fill="#2b3946"/>
-  <path d="M8.6 6.1h6.8v1.9c0 .7-1.5 1.2-3.4 1.2S8.6 8.7 8.6 8z" fill="#37485a"/>
-  <path d="M18.4 5.2v3.1" stroke="#c8a24a" stroke-width=".8" stroke-linecap="round"/>
-  <circle cx="18.4" cy="8.7" r=".9" fill="#c8a24a"/>
-`, { tamano: t });
-
-/** EL DEL GOBIERNO: capucha morada y cadena al cuello. */
-const juezOficial = (t) => svg(`
-  <rect width="24" height="24" fill="#8f6fa8"/>
-  <!-- La capucha, de una pieza: entra por los hombros y sube por detrás. -->
-  <path d="M2.6 24v-5.1c0-3.4 2.1-6.2 5-7.2V8.4C7.6 5.7 9.6 3.6 12 3.6s4.4 2.1
-           4.4 4.8v3.3c2.9 1 5 3.8 5 7.2V24z" fill="#6d4a80"/>
-  <path d="M8.2 12.1c-1.9 1-3.1 2.9-3.1 5.1V24H2.6v-5.1c0-3 1.7-5.6 4.2-6.8z"
-        fill="#5a3b6b"/>
-  <!-- La cara, hundida dentro de la capucha. -->
-  <path d="M9.1 6.7h5.8v6.2c0 1.4-1.3 2.4-2.9 2.4s-2.9-1-2.9-2.4z" fill="#e2b78d"/>
-  <path d="M10.2 12.5h3.6v2.6h-3.6z" fill="#c99a72"/>
-  <path d="M9.1 6.7h5.8v1.4H9.1z" fill="#4a3226"/>
-  <path d="M9.9 9.9h1.4v.9H9.9zM12.7 9.9h1.4v.9h-1.4z" fill="#4a3226"/>
-  <!-- La cadena: dos ramales en V, que es lo que se ve del cargo. -->
-  <path d="M9.6 15.4 12 20.6l2.4-5.2" stroke="#d8b45a" stroke-width="1.3"
-        fill="none" stroke-linejoin="round"/>
-  <circle cx="12" cy="21" r="1.2" fill="#d8b45a"/>
+export const juez = (t, limpio = false) => svg(`
+  <circle cx="12" cy="6.4" r="3.1" fill="#e6e6e6"/>
+  <path d="M6.2 22v-6.6c0-3 2.6-5.4 5.8-5.4s5.8 2.4 5.8 5.4V22z" fill="#141414"/>
+  <path d="M12 10c1.5 0 2.9.4 4 1.1L12 16l-4-4.9c1.1-.7 2.5-1.1 4-1.1z"
+        fill="${limpio ? '#ffffff' : '#646464'}"/>
+  <path d="M9.6 3.4h4.8v1.5H9.6z" fill="#141414"/>
+  <path d="M6.2 22v-6.6c0-1.2.4-2.3 1.1-3.2M17.8 22v-6.6c0-1.2-.4-2.3-1.1-3.2"
+        stroke="#646464" stroke-width="1" fill="none"/>
+  ${limpio
+    ? '<path d="M9.9 13.6l1.5 1.6 2.8-3.2" stroke="#67b857" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'
+    : '<circle cx="12" cy="13.4" r="1.1" fill="#ddbeff"/>'}
 `, { tamano: t });
 
 // ---------------------------------------------------------------------------
