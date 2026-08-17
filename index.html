@@ -6,9 +6,19 @@
        sin zoom accidental al hacer doble tap durante la partida. -->
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <!-- El color de la barra del navegador: PAPEL, como el manifiesto y como la
-       página. En azul noche, el navegador pintaba una franja oscura encima de
-       una página blanca. -->
+  <!-- LAS BARRAS NEGRAS DE ARRIBA Y DE ABAJO SON ESTE COLOR.
+       Las dibuja el sistema, no la página: en Android es el theme-color el que
+       pinta la barra de estado y la de navegación; en iOS es el fondo del
+       documento el que se ve por debajo de la barra translúcida. Con el azul
+       noche de antes, la aplicación instalada salía con dos franjas casi
+       negras enmarcando una página de papel. Papel aquí, papel en el
+       manifiesto y papel en html/body: las tres tienen que coincidir o vuelven
+       las franjas.
+
+       OJO al actualizar: en Android el theme-color queda GRABADO en el WebAPK
+       al instalar. Cambiarlo aquí no repinta las barras de una instalación ya
+       hecha hasta que Chrome regenera el WebAPK (lo hace solo, con su ritmo) o
+       hasta que se reinstala desde el navegador. -->
   <meta name="theme-color" content="#f3f3f3" />
   <meta name="description"
         content="EL MERCIO presenta: ESTADO DE EXCEPCIÓN. Corre, esquiva y documenta." />
@@ -16,10 +26,18 @@
   <!-- Icono de pestaña. Va con ruta relativa para que funcione igual en la
        raíz del dominio que bajo el subdirectorio de GitHub Pages. -->
   <link rel="icon" type="image/svg+xml" href="./icons/favicon.svg" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png" />
+  <!-- EN PNG. iOS no lee SVG en el apple-touch-icon: sin este archivo, el
+       icono de la pantalla de inicio es una captura de la página. -->
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png" />
 
   <!-- Permite instalarlo como app en iOS -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <!-- `black-translucent` es lo más cerca que iOS deja de "quitar la barra de
+       estado": no se quita —el sistema no lo permite en una web instalada—
+       pero se vuelve transparente y la página pasa por debajo. Lo que se ve en
+       esa franja es el fondo del documento, y por eso html/body van en papel.
+       Requiere viewport-fit=cover, que está arriba. -->
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Estado Decepción" />
 

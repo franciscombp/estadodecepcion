@@ -113,19 +113,29 @@ export default defineConfig({
         orientation: 'portrait',
         start_url: '.',
         scope: '.',
+        // LOS ICONOS VAN EN PNG, no en SVG.
+        //
+        // Estaban los dos en SVG y eso deja a la aplicación instalada sin
+        // icono de verdad en las dos plataformas: iOS no lee SVG en el
+        // apple-touch-icon —usa una captura de la página— y Android necesita
+        // un mapa de bits para generar el WebAPK y su pantalla de arranque.
+        // Los .svg siguen listados detrás, para el navegador de escritorio,
+        // que sí los prefiere por nítidos.
+        //
+        // El maskable va aparte y no como `any maskable` en el mismo archivo:
+        // Android recorta el maskable a un círculo, y con el dibujo a sangre
+        // se comía el sombrero del corredor. El que lleva `maskable` trae el
+        // dibujo al 78 % dentro de la zona segura.
         icons: [
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
           {
-            src: 'icons/icon-192.svg',
-            sizes: '192x192',
-            type: 'image/svg+xml',
-            purpose: 'any',
-          },
-          {
-            src: 'icons/icon-512.svg',
+            src: 'icons/icon-maskable-512.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
-            purpose: 'any maskable',
+            type: 'image/png',
+            purpose: 'maskable',
           },
+          { src: 'icons/icon-512.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
         ],
       },
       workbox: {
