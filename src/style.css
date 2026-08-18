@@ -1173,6 +1173,25 @@ html, body {
   overscroll-behavior: contain;
 }
 
+/* El compás lo llevan los rótulos de sección y NADIE MÁS: dentro de un cuerpo
+   desplazable, cualquier margen vertical propio de un bloque se suma al del
+   rótulo y rompe el ritmo. El primer rótulo no lleva hueco arriba porque ya lo
+   pone el bloque de encabezado. */
+.se-estira--desplazable > * { margin-top: 0; margin-bottom: 0; }
+.se-estira--desplazable > .plana__seccion { margin: 26px 0 10px; }
+/* El primero lleva la mitad de hueco: el encabezado de la página ya pone aire
+   por arriba, pero pegarlo del todo a la bajada los funde en un solo bloque. */
+.se-estira--desplazable > .plana__seccion:first-child { margin-top: 13px; }
+
+/* Y un respiro al final, o la última línea queda cortada a ras del borde y
+   parece que falta contenido en vez de que haya que desplazar. */
+.se-estira--desplazable::after {
+  content: '';
+  display: block;
+  height: 12px;
+  flex: 0 0 auto;
+}
+
 /* Los botones se pegan abajo, como en la maqueta. */
 .pantalla__contenido > .botones,
 .plana > .botones { margin-top: auto; flex: 0 0 auto; }
@@ -3292,7 +3311,7 @@ html, body {
   font-family: var(--serif);
   font-size: clamp(1.6rem, 7.6vw, 2rem);
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.22;
   letter-spacing: -0.01em;
   margin-bottom: 6px;
 }
@@ -3608,8 +3627,15 @@ html, body {
 
 /* --- Tabla de posiciones --------------------------------------------------- */
 
+/* EL COMPÁS DE LAS SECCIONES.
+   Medido en Ajustes, los huecos entre bloques salían 8, 13, 8, 17, 10, 14, 8 y
+   9: cada pieza traía su propio margen y el resultado era que dos secciones
+   consecutivas nunca respiraban igual. No se nota como un error concreto —se
+   nota como que la página está mal maquetada—.
+   Un solo compás: 26 antes del rótulo de sección y 10 después. Lo demás no
+   pone margen vertical propio (ver la regla de abajo). */
 .plana__seccion {
-  margin: 14px 0 8px;
+  margin: 26px 0 10px;
   padding-bottom: 4px;
   font-size: var(--t-micro);
   font-weight: 900;
@@ -4128,9 +4154,21 @@ html, body {
 }
 
 .elector__nombre {
-  font-size: var(--t-pie);
+  /* El nombre PARTE, no se desborda. «Tostadólogo» mide once caracteres y la
+     ficha, con cuatro en fila dentro de 354, da 78 de ancho útil: a cuerpo de
+     pie se salía por los dos lados y se leía «ostadólog». Se encoge un punto,
+     se permite partir por donde haga falta y se centra: dos líneas cortas se
+     leen mejor que una recortada. */
+  max-width: 100%;
+  font-size: calc(var(--t-pie) * 0.92);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.15;
+  text-align: center;
+  /* `break-word` y no `anywhere`: con `anywhere` el navegador parte por donde
+     le pilla y salía «Tostadólo / go». Con `break-word` prueba primero la
+     partición por sílabas de `hyphens`, que en español da «Tosta- / dólogo». */
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 /* La sección de cada uno, debajo del nombre y en versalitas: es lo que

@@ -67,7 +67,9 @@ export class Bifurcacion {
     // Segundo y tres cuartos. El giro es lo que más se recuerda de un tramo y
     // en un segundo escaso no daba tiempo ni a verlo: se entraba en el polvo y
     // se salía en otra calle sin haber visto la esquina.
-    this.DURACION_VIRAJE_LATERAL = 1.75;
+    // 2.1 y no 1.75. Con el giro repartido en tres tiempos —entrar, mirar de
+    // lado, salir— hay más que enseñar, y a 1.75 los tres se atropellaban.
+    this.DURACION_VIRAJE_LATERAL = 2.1;
 
     // El soportal que se cruza al doblar la esquina.
     this.paso = null;
@@ -273,19 +275,58 @@ export class Bifurcacion {
   cinematicaGiro() {
     if (!this.virando || this.direccionViraje === 0) return null;
     const t = Math.min(1, this.tiempoViraje / this.duracionActual);
-    if (t >= 0.62) return { dir: this.direccionViraje, fuerza: 0 };
-    const fuerza = t < 0.2
-      ? Math.sin((t / 0.2) * Math.PI / 2)
-      : Math.cos(((t - 0.2) / 0.42) * (Math.PI / 2));
-    return { dir: this.direccionViraje, fuerza };
+
+    // EL GIRO SE PASA POR EL CUARTO DE VUELTA, no rebota contra él.
+    //
+    // Antes la curva era seno hasta el 20 % y coseno hasta el 62 %: la cámara
+    // salía disparada al máximo en un cuarto de segundo, se quedaba ahí un
+    // instante y volvía. Eso no es doblar una esquina, es un tirón y su vuelta
+    // —y encima con un pico anguloso en el empalme de las dos curvas, que es lo
+    // que se sentía como un golpe.
+    //
+    // Ahora son tres tiempos:
+    // Un ARCO ENTERO, sin meseta: la cámara entra en la curva, pasa por el
+    // punto de máxima inclinación y sale, sin quedarse quieta en ningún sitio.
+    //
+    // Hubo una versión con meseta —quedarse mirando de lado mientras el mundo
+    // cambiaba— y era peor: al costado no hay nada construido, así que
+    // sostener el encuadre ahí enseñaba una pared negra durante medio segundo.
+    // El cambio de escenario no necesita que se mire a otro sitio; le basta
+    // con el instante de máxima rotación, que es cuando el pasillo viejo está
+    // más escorado.
+    //
+    // El arco es un seno elevado: sube y baja suave, y pasa más tiempo cerca
+    // del máximo que en los extremos, que es como se dobla una esquina de
+    // verdad —se entra frenando y se sale acelerando—.
+    const arco = Math.sin(t * Math.PI);
+    return { dir: this.direccionViraje, fuerza: arco * arco * (3 - 2 * arco) };
   }
 
   /** Fracción 0..1 del destello de transición. */
   destello() {
     if (!this.virando) return 0;
     const t = this.tiempoViraje / this.duracionActual;
-    // Sube de golpe y baja despacio: así el corte de escenario queda tapado.
-    return t < 0.25 ? t / 0.25 : Math.max(0, 1 - (t - 0.25) / 0.75);
+
+    // EL FOGONAZO, MUCHO MÁS CORTO Y CENTRADO EN EL CAMBIO.
+    //
+    // Subía en el primer cuarto y tardaba tres cuartos en irse: un velón
+    // blanco encima de tres cuartos del giro. Un fogonazo es lo que se usa
+    // cuando NO se puede enseñar la transición, y aquí sí se puede —para eso
+    // está el cuarto de vuelta—, así que tapar con luz lo que ya se está
+    // enseñando solo consigue que el giro se vea sucio.
+    //
+    // Ahora vive dentro de la meseta del giro (40-58 %), que es cuando el
+    // mundo cambia de verdad, y no pasa del 45 % de opacidad: acompaña el
+    // cambio en vez de sustituirlo.
+    //
+    // De frente (al trámite) no hay giro que tape nada, así que ahí se queda
+    // como estaba: es el único caso en que el fogonazo hace falta.
+    if (this.direccionViraje === 0) {
+      return t < 0.25 ? t / 0.25 : Math.max(0, 1 - (t - 0.25) / 0.75);
+    }
+    if (t < 0.38 || t > 0.66) return 0;
+    const u = (t - 0.38) / 0.28;
+    return Math.sin(u * Math.PI) * 0.40;
   }
 
   // -------------------------------------------------------------------------

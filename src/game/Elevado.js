@@ -69,8 +69,11 @@ export class ElevadoManager {
     // uno solo para repartirlo todo y el juego degenera en pasillo único.
     if (!this.generacionPausada
         && this.distanciaDesdeUltima >= ELEVADO.DISTANCIA_ENTRE
-        && this.activas.length < 2
-        && !this.activas.some((t) => t.z - t.largoTotal < 30)) {
+        && this.activas.length < (ELEVADO.MAXIMO_VIVAS ?? 2)
+        // Que no se solapen en Z: dos hileras reservan dos carriles, y si se
+        // pisan el generador de obstáculos se queda con uno solo para todo y
+        // el juego degenera en pasillo único. El margen es el hueco saltable.
+        && !this.activas.some((t) => t.z - t.largoTotal < ELEVADO.DISTANCIA_ENTRE)) {
       this._generar(obstaculos, papeles);
       this.distanciaDesdeUltima = 0;
     }

@@ -128,7 +128,14 @@ export class BaseScene {
 
   _crearNiebla() {
     // Exponencial: se ve más natural que la lineal a estas distancias.
-    this.densidadBase = 0.017;
+    //
+    // 0.012 y no 0.017. A 0.017 la niebla se comía el 69 % del color a
+    // sesenta metros, o sea justo donde ahora hay que MIRAR: con la curvatura
+    // subida, el siguiente grupo de obstáculos asoma por ahí, y asomaba ya
+    // teñido del color del cielo. Se pierde algo de profundidad atmosférica y
+    // se gana poder decidir el carril con tiempo, que es el trato correcto en
+    // un juego que va de esquivar.
+    this.densidadBase = 0.012;
     this.escena.fog = new THREE.FogExp2(this.colores.nieblaLejos, this.densidadBase);
     this.escena.background = new THREE.Color(this.colores.nieblaLejos);
   }

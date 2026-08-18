@@ -72,7 +72,17 @@ const DISTANCIA_RETIRAR_SENAL = 50;
 
 // Cuánto gira la cámara al doblar por un costado. Noventa grados: la calle
 // nueva sale de verdad por donde el jugador la eligió.
-const GIRO_CAMARA_DESVIO = Math.PI / 2;
+// CUÁNTO GIRA LA CÁMARA AL DOBLAR.
+//
+// Estuvo en un cuarto de vuelta (90°) y era demasiado: a esa amplitud la
+// cámara deja de mirar el pasillo y apunta al COSTADO, donde no hay nada
+// construido —el interior de las fachadas—, así que en mitad del giro se veía
+// una pared negra. El giro se notaba, sí, pero se notaba como un fallo.
+//
+// A 42° el mundo rota lo suficiente para que se lea «estoy doblando» —la
+// fachada sale por un lado y la calle nueva entra por el otro— sin que el
+// encuadre llegue nunca a salirse de lo que está montado.
+const GIRO_CAMARA_DESVIO = Math.PI * 42 / 180;
 
 export class Game {
   /**
@@ -198,7 +208,11 @@ export class Game {
     // pantalla parecidos a como están escritos en la paleta. La exposición baja
     // un poco para compensar que ahora los medios pesan más.
     this.renderizador.toneMapping = THREE.CineonToneMapping;
-    this.renderizador.toneMappingExposure = 1.05;
+    // 1.28 y no 1.05. Cineon ya devolvía los colores de la paleta, pero la
+    // escena seguía saliendo apagada porque el conjunto está iluminado para
+    // no quemar y luego se expone por debajo: dos frenos seguidos. Con 1.28
+    // los amarillos del mercado son amarillos y el asfalto deja de ser barro.
+    this.renderizador.toneMappingExposure = 1.28;
 
     this._configurarPostproceso();
   }

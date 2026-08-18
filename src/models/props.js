@@ -939,8 +939,18 @@ export function crearEvidencia() {
   if (!_geoEvidencia) {
     // Diámetro 0.86, el mismo de siempre: no toca ni la separación de la
     // hilera ni las cajas de recogida. Lo que cambia es el canto.
-    _geoEvidencia = new THREE.CylinderGeometry(0.43, 0.43, 0.14, 20, 1);
-    _geoEvidencia.rotateX(Math.PI / 2);
+    // ES UN PAPEL, NO UNA MONEDA. Estuvo un rato siendo un disco dorado y era
+    // más legible, pero también era otro juego: aquí lo que se recoge son
+    // EXPEDIENTES, y una moneda de oro rodando por la Bahía convierte al
+    // periodista en un fontanero italiano. Lo que se llevó de la moneda es lo
+    // que hacía falta —el CANTO— porque una hoja de cinco centímetros
+    // desaparece dos veces por vuelta y la fila entera parpadea.
+    //
+    // Doce centímetros de canto es un legajo, no un folio: se lee como un
+    // taco de papeles grapado, se ve de perfil, y de paso justifica que valga
+    // algo. Un poco más ancho que alto, que es como se ve un documento
+    // apaisado en una mesa.
+    _geoEvidencia = new THREE.BoxGeometry(0.84, 0.94, 0.12);
 
     const tex = textura('papel', (ctx, w, h) => {
       ctx.fillStyle = '#ffd94f';
@@ -970,6 +980,17 @@ export function crearEvidencia() {
       ctx.stroke();
     }, 64, 80);
 
+    // El canto del legajo: crema pálido, sin textura y con más rugosidad. Es
+    // el borde de las hojas apiladas, y es lo que hace que de perfil se siga
+    // viendo un objeto en vez de una raya.
+    _matCanto = new THREE.MeshStandardMaterial({
+      color: 0xf2e6c2,
+      emissive: COLOR3D.dorado,
+      emissiveIntensity: 0.38,
+      roughness: 0.85,
+      flatShading: true,
+    });
+
     _matCara = new THREE.MeshStandardMaterial({
       map: tex,
       emissive: COLOR3D.dorado,
@@ -979,16 +1000,6 @@ export function crearEvidencia() {
       // visibles es su TAMAÑO, su separación y su halo, no que brillen.
       emissiveIntensity: 0.55,
       roughness: 0.4,
-      flatShading: true,
-    });
-
-    // El canto, sin textura y más oscuro. Es lo que da el volumen: con la cara
-    // y el canto del mismo tono, el cilindro se vuelve a leer como una losa.
-    _matCanto = new THREE.MeshStandardMaterial({
-      color: 0xb58a1e,
-      emissive: COLOR3D.dorado,
-      emissiveIntensity: 0.55,
-      roughness: 0.55,
       flatShading: true,
     });
 
@@ -1015,8 +1026,11 @@ export function crearEvidencia() {
     });
   }
 
-  // El orden de materiales de CylinderGeometry es [lateral, tapa, fondo].
-  const papel = new THREE.Mesh(_geoEvidencia, [_matCanto, _matCara, _matCara]);
+  // El orden de materiales de BoxGeometry es [+x, -x, +y, -y, +z, -z]: los
+  // cuatro cantos van con el borde de las hojas y las dos caras con el
+  // documento.
+  const papel = new THREE.Mesh(_geoEvidencia,
+    [_matCanto, _matCanto, _matCanto, _matCanto, _matCara, _matCara]);
   papel.userData.tipo = 'papel';
 
   if (_haloEncendido) {
@@ -1096,19 +1110,27 @@ export function crearPrueba() {
   // rejilla dura alrededor de un objeto pequeño no lo destaca: lo esconde
   // dentro de una caja. La referencia usa un resplandor difuso, y de paso esto
   // devuelve la jerarquía que se había perdido: moneda < prueba < potenciador.
+  // EL MISMO MECANISMO QUE EL POTENCIADOR, y casi el mismo tamaño: la prueba
+  // es lo segundo más valioso de la pista y tiene que avisar desde igual de
+  // lejos. Antes era una jaula de alambre de 0.48 que a veinte metros se leía
+  // como suciedad en la lente.
   const halo = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.8, 0.8),
+    new THREE.PlaneGeometry(2.2, 2.2),
     new THREE.MeshBasicMaterial({
       map: texturaEstallido(COLOR3D.naranja),
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.95,
       toneMapped: false,
     }),
   );
-  halo.position.z = -0.2;
+  halo.position.z = -0.25;
   g.add(halo);
+
+  // Y luz propia, como la cápsula. Sin ella la prueba es una calcomanía
+  // pegada al aire: no tiñe el suelo de debajo y el ojo la descarta como HUD.
+  g.add(new THREE.PointLight(COLOR3D.naranja, 3.2, 5.2, 2));
 
   g.userData.tipo = 'evidencia';
   g.userData.halo = halo;
@@ -1162,8 +1184,12 @@ function capsulaPotenciador(color) {
   // Va encarado a cámara (`PowerUps.actualizar` lo orienta cada fotograma): un
   // plano fijo se ve de canto a treinta metros y desaparece justo cuando más
   // falta hace verlo.
+  // 3.4 y no 2.35. Medido en pantalla, 2.35 daba un estallido de 0.38 del
+  // ancho: se veía, pero no se veía DESDE LEJOS, que es de lo que se trata.
+  // Tienes que decidir a treinta metros si te cambias de carril a por él, y
+  // para eso el aviso tiene que llegar antes que el objeto.
   const estallido = new THREE.Mesh(
-    new THREE.PlaneGeometry(2.35, 2.35),
+    new THREE.PlaneGeometry(3.4, 3.4),
     new THREE.MeshBasicMaterial({
       map: texturaEstallido(color),
       blending: THREE.AdditiveBlending,
@@ -1246,8 +1272,9 @@ function texturaEstallido(color) {
       const a0 = (i / RAYOS) * Math.PI * 2;
       const a1 = a0 + (Math.PI * 2 / RAYOS) * 0.55;
       const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      grad.addColorStop(0, i % 2 ? 'rgba(255,255,255,0.95)' : `${hex}f0`);
-      grad.addColorStop(0.45, i % 2 ? 'rgba(255,255,255,0.35)' : `${hex}60`);
+      grad.addColorStop(0, i % 2 ? 'rgba(255,255,255,1)' : `${hex}ff`);
+      grad.addColorStop(0.35, i % 2 ? 'rgba(255,255,255,0.8)' : `${hex}c0`);
+      grad.addColorStop(0.7, i % 2 ? 'rgba(255,255,255,0.3)' : `${hex}50`);
       grad.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = grad;
       ctx.beginPath();
@@ -1258,8 +1285,9 @@ function texturaEstallido(color) {
     }
 
     // El núcleo, para que el centro no se vea hueco entre rayo y rayo.
-    const nucleo = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.42);
-    nucleo.addColorStop(0, 'rgba(255,255,255,0.9)');
+    const nucleo = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.62);
+    nucleo.addColorStop(0, 'rgba(255,255,255,1)');
+    nucleo.addColorStop(0.4, 'rgba(255,255,255,0.55)');
     nucleo.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = nucleo;
     ctx.fillRect(0, 0, w, h);

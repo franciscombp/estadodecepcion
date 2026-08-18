@@ -678,8 +678,13 @@ export const ELEVADO = {
   // menos de un segundo arriba: se subía y se bajaba sin tiempo de estar. La
   // gracia de la capa de arriba del original es que se vive ahí un rato —se
   // recogen papeles, se salta de una a otra, se ve la calle desde lo alto—.
-  LARGO_MINIMO: 34,
-  LARGO_MAXIMO: 62,
+  // Y MÁS LARGAS TODAVÍA: 34-62 seguían siendo una tarima suelta a la que se
+  // sube y de la que se baja. Lo que hace la capa de arriba en este género es
+  // ser un CAMINO: una hilera de contenedores tras otra, con el hueco justo
+  // para saltar entre ellas. A 55-95 metros y con el hueco de abajo, arriba se
+  // vive un tramo entero saltando de una a la siguiente.
+  LARGO_MINIMO: 55,
+  LARGO_MAXIMO: 95,
   LARGO_RAMPA: 5.5,      // Tramo inclinado de subida.
   // Impulso vertical que da la rampa al pisarla. Sale de la altura, no se
   // elige: v0 = √(2·g·h) con h = ALTURA + 0.5 de margen. Al subir la
@@ -690,7 +695,16 @@ export const ELEVADO = {
   // Cada cuántos metros se intenta colocar una tarima. A 190 salía una cada
   // diez segundos largos y la capa de arriba se sentía una rareza; a 95 es una
   // parte del recorrido y no un premio.
-  DISTANCIA_ENTRE: 95,
+  // Y MÁS JUNTAS. El hueco entre el final de una hilera y el principio de la
+  // siguiente tiene que ser saltable: con el salto en 2.20 m de pico y 0.8 s
+  // de vuelo, a velocidad de crucero (20 u/s) se cubren dieciséis metros. Con
+  // 12 de separación el salto entra con margen a cualquier velocidad, y el
+  // tramo de arriba pasa a ser una cadena en vez de islas sueltas.
+  DISTANCIA_ENTRE: 12,
+  // Cuántas hileras seguidas puede haber vivas a la vez. Dos era lo justo
+  // para que se solaparan en pantalla; con tres se ve la cadena entera desde
+  // la primera rampa, que es lo que invita a subirse.
+  MAXIMO_VIVAS: 3,
   // Margen de tolerancia al aterrizar sobre la plataforma: si el jugador está
   // cayendo y su pie queda dentro de esta franja por encima, se le engancha.
   MARGEN_ATERRIZAJE: 0.55,
@@ -788,7 +802,14 @@ export const CAMARA = {
   // bruma. Con el picado nuevo y 0.0004 la cresta sube a 0.29-0.36, que es
   // donde la referencia pone el punto de fuga, y quien corta el mundo vuelve a
   // ser la niebla, que es lo que se espera de una niebla.
-  CURVATURA: 0.0004,
+  // 0.0009. Estuvo en 0.0004 para que la cresta cayera donde la referencia
+  // pone el punto de fuga, y esa medida se cumplía a costa de lo que la
+  // curvatura sirve DE VERDAD: con el suelo casi plano, lo que viene a treinta
+  // metros queda escondido detrás de lo que viene a quince. Curvado, el mundo
+  // se levanta hacia el fondo y el siguiente grupo de obstáculos asoma por
+  // encima del anterior, que es el motivo por el que estos juegos curvan el
+  // mundo y no un adorno.
+  CURVATURA: 0.0009,
   // Sacudida al chocar.
   SACUDIDA_GOLPE: 0.5,
 
