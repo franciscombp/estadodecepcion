@@ -3089,22 +3089,40 @@ html, body {
    secciones interiores el punto crece a «./judiciales», como un dominio.
    Centrada y sobre un filete gris #646464: es la cabecera de todas las
    páginas y el único sitio donde la marca habla. */
+/* LA MANCHETA, UNA SOLA, EN LAS DIEZ PANTALLAS.
+
+   Había dos implementaciones del mismo rótulo —`.plana__marca` en seis
+   pantallas y `.pruebas__mancheta` en el ranking y el expediente— y no
+   coincidían. Medido en el navegador:
+
+       .plana__marca      peso 800   relleno 10 arriba / 14 abajo
+       .pruebas__mancheta peso 600   relleno 16 arriba / 16 abajo
+
+   O sea que «EL MERCIO.» salía más gordo y diez píxeles más arriba en unas
+   pantallas que en otras. Es de esas cosas que no se saben nombrar y se notan
+   al pasar de una a la siguiente: la cabecera del periódico bailando.
+
+   Manda el Figma, y el Figma dice el 600: el nodo de la mancheta (105:373)
+   es Montserrat SemiBold 24, interlineado 1,1, dentro de un marco con 16 de
+   relleno arriba y abajo y filete inferior de un píxel en #646464. O sea que
+   las dos que parecían la excepción —ranking y expediente— eran las únicas
+   bien copiadas, y las seis mayoritarias las que se habían desviado. */
 .plana__cabecera {
   display: flex;
   justify-content: center;
   align-items: baseline;
-  padding: 10px 0 14px;
-  margin-bottom: 16px;
+  padding: var(--e-16) 0;
+  margin-bottom: var(--e-16);
   border-bottom: 1px solid var(--tinta-tenue);
   text-align: center;
 }
 
 .plana__marca {
   font-family: var(--sans);
-  font-size: clamp(1.35rem, 6vw, 1.5rem);
-  font-weight: 800;
+  font-size: var(--t-marca);
+  font-weight: 600;
   letter-spacing: 0;
-  line-height: 1.1;
+  line-height: var(--i-marca);
   color: var(--tinta);
   text-transform: uppercase;
 }
@@ -4653,16 +4671,20 @@ html, body {
 }
 
 /* ── La mancheta ────────────────────────────────────────────────────────── */
+/* La misma mancheta, con el otro nombre de clase. Las dos pantallas que la
+   usan (ranking y expediente) se construyen aparte en screens.js; mientras
+   sigan así, lo que no puede pasar es que se separen otra vez, así que van
+   los mismos tokens y no números escritos a mano. */
 .pruebas__mancheta {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px 0;
+  padding: var(--e-16) 0;
   border-bottom: 1px solid var(--tinta-tenue);
   font-family: var(--sans);
   font-weight: 600;
-  font-size: 24px;
-  line-height: 1.1;
+  font-size: var(--t-marca);
+  line-height: var(--i-marca);
   color: var(--tinta);
   text-align: center;
 }
