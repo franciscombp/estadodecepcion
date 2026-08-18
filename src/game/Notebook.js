@@ -232,6 +232,18 @@ export class Notebook {
     return null;
   }
 
+  /**
+   * Lo que te plantaron y recogiste, en orden de aparición.
+   *
+   * No se guarda aparte: sale de la misma lista de siempre filtrada por
+   * `esFalsa`. Dos fuentes de verdad para el mismo dato acaban separándose, y
+   * esta en concreto se separaría en la peor dirección —una pieza que el
+   * expediente da por falsa y la sección de recortes da por buena—.
+   */
+  get plantadas() {
+    return (this.estado.pruebasEncontradas ?? []).filter((n) => Notebook.esFalsa(n));
+  }
+
   /** Cuántas pruebas distintas tienes de un caso. Sin `caso`, de todos. */
   pruebasDelCaso(caso = null) {
     // Las plantadas NO cuentan, ni para su caso ni para el total. Contarlas en

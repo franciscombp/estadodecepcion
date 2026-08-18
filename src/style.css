@@ -2464,6 +2464,110 @@ html, body {
 
 .pagina-cerrada__temas li::before { content: '— '; color: var(--tinta-tenue); }
 
+/* A dónde va a parar una pieza plantada. Se lee en el detalle, en el momento
+   en que el jugador la abre creyendo que ha recogido algo. */
+.pruebas__destino {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: var(--rojo-diario);
+}
+
+/* --- LO QUE DICE EL GOBIERNO ----------------------------------------------
+   La contraportada del material plantado, y la única parte del Archivo que se
+   llena por equivocarse.
+
+   VA EN NEGATIVO Y ES DELIBERADO. El resto del periódico es papel gris con
+   filetes finos; esto es un bloque de tinta con los recortes en blanco. No es
+   una variante de estilo: estos titulares son INVENTADOS y los reportajes de
+   al lado no, así que tienen que ser imposibles de confundir incluso en una
+   captura de pantalla suelta. Es la línea que separa la sátira de aquello de
+   lo que se ríe, y aquí la dibuja el color. */
+.contraversion {
+  margin-top: 18px;
+  padding: 16px;
+  background: var(--tinta);
+  color: #ffffff;
+}
+
+.contraversion__rotulo {
+  font-family: var(--sans);
+  font-size: var(--t-pie);
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.contraversion__nota {
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.62);
+  margin: 4px 0 14px;
+}
+
+/* Cada recorte, como lo que es: una pieza pegada en una hoja. */
+.contraversion__recorte {
+  background: rgba(255, 255, 255, 0.07);
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.contraversion__recorte:last-child { margin-bottom: 0; }
+
+.contraversion__medio {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.contraversion__marca {
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #ffffff;
+}
+
+.contraversion__tipo {
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.contraversion__titular {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 1.02rem;
+  line-height: 1.25;
+  color: #ffffff;
+  margin-bottom: 5px;
+}
+
+.contraversion__bajada {
+  font-family: var(--serif);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* De qué pieza tuya salió. Sin esta línea el recorte es una noticia más y no
+   LA CONSECUENCIA de lo que recogiste, que es todo el sentido de la sección. */
+.contraversion__origen {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #ffb3a6;
+}
+
 /* El caso al que pertenece la página. Va debajo del nombre y en dos piezas:
    el caso en rojo —es lo accionable— y el barrio en tinta apagada, que es
    dónde hay que ir a buscarlo. */

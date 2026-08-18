@@ -24,6 +24,8 @@ import { detectarCalidad } from './utils/calidad.js';
 import { Actualizador } from './utils/actualizacion.js';
 import { PAGINAS } from './config/publicaciones.js';
 import { cargarGuion } from './config/guion.js';
+import { comprobarVersionOficial } from './config/versionOficial.js';
+import { ESCENARIOS } from './config/escenarios.js';
 import { CATALOGO_POTENCIADORES, RACHA, tramoRacha } from './config/balance.js';
 import * as Icono from './ui/iconos.js';
 
@@ -132,6 +134,13 @@ async function arrancar() {
   // `config/guion.js`, que es el caso normal. Va antes de construir el juego
   // porque la pantalla de carga ya es la primera que dice cosas.
   await cargarGuion(import.meta.env.BASE_URL ?? '/');
+
+  // Que ninguna prueba plantada se quede sin su titular en la sección de «lo
+  // que dice el gobierno». Un desajuste de nombres no rompe nada —la pieza
+  // simplemente no aparece— y por eso hace falta avisar: un fallo silencioso
+  // en una tabla de nombres se descubre meses después, cuando alguien se
+  // pregunta por qué esa pieza nunca sale publicada.
+  comprobarVersionOficial(ESCENARIOS);
 
   // Los edificios reconocibles de la ciudad. Se esperan AQUÍ, con la pantalla
   // de carga puesta, porque las escenas los clonan al construirse: llegando

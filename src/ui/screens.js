@@ -19,6 +19,7 @@
 // ============================================================================
 
 import { obtenerEscenario, ORDEN_ESCENARIOS, ESCENARIOS } from '../config/escenarios.js';
+import { publicacionDe } from '../config/versionOficial.js';
 import { T, Trico } from '../config/guion.js';
 import { CABECERA, hayPendientes, cuantosListos } from '../config/publicaciones.js';
 import { CATALOGO_POTENCIADORES } from '../config/balance.js';
@@ -1481,6 +1482,17 @@ export class Pantallas {
         if (casilla.sinConfirmar) {
           nodo.appendChild(el('div', 'pruebas__marca', T('botin.sinConfirmar')));
         }
+        // AQUÍ SE ENTIENDE EL CHISTE, y no dos pantallas después. Al abrir una
+        // pieza plantada, lo primero que se lee es quién la va a publicar: no
+        // te la colaron para que perdieras una casilla, te la colaron para que
+        // mañana salga en otro sitio contando otra cosa.
+        if (casilla.falsa) {
+          const pub = publicacionDe(casilla.nombre);
+          if (pub) {
+            nodo.appendChild(el('div', 'pruebas__destino',
+              T('botin.destinoPlantada', { medio: pub.medio.nombre })));
+          }
+        }
       }
 
       if (casilla && alPulsar) nodo.addEventListener('click', alPulsar);
@@ -1773,6 +1785,12 @@ export class Pantallas {
       });
       botones.appendChild(btn);
     }
+    // LO QUE DICE EL GOBIERNO, antes de los botones. Puesta después quedaba
+    // debajo de «Volver», o sea después del final de la página: se leía como
+    // un pie de página y no como una sección del ejemplar.
+    const contra = this._pintarVersionOficial();
+    if (contra) pie.appendChild(contra);
+
     pie.appendChild(botones);
 
     if (hayPendientes()) {
@@ -1931,6 +1949,58 @@ export class Pantallas {
         : T('archivo.comoAbrir')));
 
     return cerrada;
+  }
+
+  /**
+   * LO QUE DICE EL GOBIERNO — la contraportada del material plantado.
+   *
+   * Recoger una prueba falsa era un castigo mudo: la metías en la mochila
+   * creyendo que servía, al contrastarla salía NO SE SOSTIENE y ahí acababa
+   * todo. El chiste estaba, pero se quedaba a medias, porque en la realidad
+   * que esto satiriza el material plantado no desaparece: se publica.
+   *
+   * Aquí se cierra. Cada pieza que te colaron aparece con el titular que un
+   * medio afín construyó a partir de ella. Tú corriste, te la colaron, y al
+   * día siguiente sale en portada de otro.
+   *
+   * Va con OTRA PIEL a propósito —fondo de tinta, sin filetes de El Mercio—
+   * porque estos titulares son inventados y el resto del Archivo no. Que no se
+   * puedan confundir no es maquetación: es la línea que separa la sátira de
+   * aquello de lo que se ríe.
+   *
+   * @returns {HTMLElement|null} null si no te han colado nada todavía
+   */
+  _pintarVersionOficial() {
+    const plantadas = this.cuaderno?.plantadas ?? [];
+    const fichas = plantadas
+      .map((nombre) => ({ nombre, pub: publicacionDe(nombre) }))
+      .filter((f) => f.pub);
+    if (!fichas.length) return null;
+
+    const caja = el('section', 'contraversion');
+    caja.appendChild(el('div', 'contraversion__rotulo', T('archivo.versionOficial')));
+    caja.appendChild(el('p', 'contraversion__nota', T('archivo.versionOficialNota')));
+
+    for (const { nombre, pub } of fichas) {
+      const recorte = el('article', 'contraversion__recorte');
+
+      const cabecera = el('div', 'contraversion__medio');
+      cabecera.appendChild(el('span', 'contraversion__marca', pub.medio.nombre));
+      cabecera.appendChild(el('span', 'contraversion__tipo', pub.medio.tipo));
+      recorte.appendChild(cabecera);
+
+      recorte.appendChild(el('h4', 'contraversion__titular', pub.titular));
+      recorte.appendChild(el('p', 'contraversion__bajada', pub.bajada));
+
+      // De qué pieza tuya salió. Es lo que cierra el círculo: sin esta línea
+      // el recorte es una noticia más y no LA CONSECUENCIA de lo que recogiste.
+      recorte.appendChild(el('div', 'contraversion__origen',
+        T('archivo.versionOficialOrigen', { pieza: nombre })));
+
+      caja.appendChild(recorte);
+    }
+
+    return caja;
   }
 
   /** Paginador inferior, con el estado de cada página. */

@@ -129,6 +129,10 @@ export const GUION = {
     caso: { t: 'Caso {caso}', ayuda: 'El caso investigado. Hueco: {caso}.' },
     estadoAbierto: { t: 'Investigación iniciada', ayuda: 'Cuando la corrida deja material.' },
     estadoVacio: { t: 'Investigación bloqueada', ayuda: 'Cuando no se recogió nada útil.' },
+    destinoPlantada: {
+      t: 'Mañana sale en {medio}',
+      ayuda: 'Al abrir una prueba plantada: qué medio afín la va a publicar. Hueco: {medio}.',
+    },
     sinConfirmar: {
       t: 'Sin confirmar',
       ayuda: 'Marca de las pistas que solo están en redes: se guardan pero no cierran un reportaje.',
@@ -295,6 +299,19 @@ export const GUION = {
     },
     leer: { t: 'Leer el reportaje completo →', ayuda: 'El enlace al reportaje.' },
     sinRecuperar: { t: 'PÁGINA SIN RECUPERAR', ayuda: 'Página aún cerrada.' },
+    versionOficial: {
+      t: 'Lo que dice el gobierno',
+      ayuda: 'Rótulo de la sección que recoge lo publicado con el material plantado.',
+    },
+    versionOficialNota: {
+      t: 'Cada pieza que te colaron terminó publicada. Estos titulares son ficción; el resto del Archivo, no.',
+      ayuda: 'La aclaración de la sección. Ojo antes de tocarla: es lo que evita que los recortes inventados se confundan con los reportajes reales.',
+      largo: true,
+    },
+    versionOficialOrigen: {
+      t: 'Salió de: {pieza}',
+      ayuda: 'De qué pieza plantada salió el titular. Hueco: {pieza}.',
+    },
     yaPuedes: {
       t: 'Ya tienes con qué. Sale al terminar la próxima corrida.',
       ayuda: 'Cuando hay pruebas de sobra para abrirla.',
