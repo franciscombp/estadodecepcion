@@ -165,7 +165,7 @@ export const GUION = {
       ayuda: 'Debajo del titular.',
     },
     instruccion: {
-      t: 'Cinco llevan la camiseta. Para el selector en el que no la lleva.',
+      t: 'Cinco son del gobierno y salen en morado. Para la ventana en el verde.',
       ayuda: 'La regla del minijuego, antes de girar.',
       largo: true,
     },
@@ -184,7 +184,7 @@ export const GUION = {
     parar: { t: 'Toca para parar', ayuda: 'El botón que detiene la tómbola.' },
     opinion: { t: 'OPINIÓN', ayuda: 'Etiqueta de la nota al pie.' },
     nota: {
-      t: 'Cinco de los seis llevan la camiseta del gobierno. No te sientas mal si no tienes suerte.',
+      t: 'Cinco de los seis ya están repartidos antes de empezar. No te sientas mal si no tienes suerte.',
       ayuda: 'La nota al pie del sorteo.',
       largo: true,
     },

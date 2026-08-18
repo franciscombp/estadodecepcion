@@ -759,7 +759,10 @@ export class Pantallas {
       const esHonesto = puesto === honesto;
       const ficha = el('div', `juez ${esHonesto ? 'juez--limpio' : 'juez--comprado'}`);
       const toga = el('span', 'juez__toga');
-      toga.innerHTML = Icono.juez(38, esHonesto);
+      // 54 y no 38: la carta mide más de cien de ancho y la toga se quedaba
+      // en una manchita en el centro. Lo que hay que reconocer de un vistazo
+      // es la carta entera —fondo y figura—, y la figura tiene que pesar.
+      toga.innerHTML = Icono.juez(54, esHonesto);
       ficha.appendChild(toga);
       // Los seis se llaman igual. Rotular al bueno como «el bueno» convertiría
       // la prueba en leer una etiqueta; lo que hay que mirar es el pecho.
@@ -813,10 +816,17 @@ export class Pantallas {
       return paso1 > 0;
     };
 
+    // MIENTRAS GIRA, EL ÚNICO INDICADOR ES LA VENTANA.
+    //
+    // Antes se resaltaba además la ficha más cercana al centro, y como la banda
+    // corre en continuo, «la más cercana» puede estar a media ficha de la
+    // ventana: se veía el marco rojo en un sitio y el recuadro negro en otro,
+    // los dos diciendo «este». Dos indicadores que no coinciden no informan,
+    // confunden —y en un sorteo, hacen sospechar del sorteo—.
+    //
+    // La ventana es fija y lo que pasa por debajo es lo que toca. El recuadro
+    // se pone solo al parar, cuando la ficha ya está encajada en el centro.
     const marcar = () => {
-      fichas.forEach((f, i) => {
-        f.classList.toggle('juez--senalado', i === indiceGlobal);
-      });
       banda.style.transform = `translateX(${-desplazamiento}px)`;
     };
 
@@ -862,10 +872,19 @@ export class Pantallas {
       if (paso1) {
         desplazamiento = indiceGlobal * paso1 + offsetPrimera
           - contenedorTombola.clientWidth / 2;
-        banda.style.transition = 'transform 0.22s cubic-bezier(0.22, 0.9, 0.3, 1)';
+        // EL ENCAJE, LARGO Y BLANDO. Estaba en 0.22 s con una curva de
+        // salida brusca, y como el recorrido es de menos de media ficha, esos
+        // 0.22 se leían como un tirón: la banda estaba corriendo a toda
+        // velocidad y de pronto daba un salto seco de veinte píxeles.
+        // Con 0.55 s y una curva que solo frena —sin rebote, sin adelanto— la
+        // banda PARA, que es lo que hace una tómbola de verdad. El resultado
+        // sigue decidiéndose en el instante del toque: aquí solo se acomoda
+        // lo que ya está decidido.
+        banda.style.transition = 'transform 0.55s cubic-bezier(0.16, 0.85, 0.3, 1)';
         marcar();
       }
 
+      fichas[indiceGlobal].classList.add('juez--senalado');
       fichas[indiceGlobal].classList.add(acerto ? 'juez--acierto' : 'juez--fallo');
       if (!acerto) {
         // El honesto que se enseña es la copia MÁS CERCANA a donde paró, para

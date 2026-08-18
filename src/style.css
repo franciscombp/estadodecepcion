@@ -3114,6 +3114,18 @@ html, body {
 
 /* DEL FIGMA: las cartas del sorteo van en los acentos del diario —lila y
    azul, alternadas por nth-child— y el marco del elegido es rojo pleno. */
+/* EL BANDO VA EN EL FONDO DE LA CAJA, no en un detalle de la toga.
+   ---------------------------------------------------------------------------
+   El indicio era la camiseta del icono: dos píxeles de color dentro de una
+   figura de 38 que pasa por delante a siete fichas por segundo. Eso no es una
+   prueba de observación, es una tirada de dado con pasos extra —el jugador no
+   podía distinguirlos aunque quisiera, así que paraba al azar y el minijuego
+   no significaba nada—.
+   Con el bando en el FONDO de la caja se ve venir: morado los del gobierno,
+   verde el que no lo es. Sigue habiendo que acertar el momento, que es lo que
+   el minijuego mide, pero ahora se puede.
+   Los fondos van claros a propósito: la toga tiene que seguir leyéndose
+   encima, y un morado saturado la convertiría en una silueta. */
 .juez {
   display: flex;
   flex-direction: column;
@@ -3121,12 +3133,16 @@ html, body {
   gap: 4px;
   padding: 10px 4px 8px;
   border-radius: 0;
-  background: var(--lila-diario);
   border: 2px solid transparent;
   transition: transform var(--t-instantaneo), border-color var(--t-instantaneo);
 }
 
-.tombola-banda .juez:nth-child(3n) { background: var(--azul-diario); }
+/* Los cinco del gobierno */
+.juez--comprado { background: var(--lila-diario); }
+
+/* Y el que no. Verde claro: el mismo verde de los letreros de salida, que en
+   este juego es siempre «por aquí sí». */
+.juez--limpio { background: #cdeac4; }
 
 .juez__toga { display: flex; }
 
@@ -3139,9 +3155,10 @@ html, body {
   text-align: center;
 }
 
+/* El que está bajo el selector ahora mismo. */
 .juez--senalado {
-  border-color: var(--rojo-diario);
-  transform: scale(1.04);
+  border-color: var(--tinta);
+  transform: scale(1.06);
 }
 
 .juez--acierto {
@@ -4006,22 +4023,27 @@ html, body {
   margin: 12px auto;
 }
 
-/* DEL FIGMA: las cartas del sorteo van en lila y azul, con el marco del
-   señalado en rojo pleno. Los estados de acierto/fallo conservan su verde y
-   rojo, en la paleta del diario. */
+/* EL FONDO DICE DE QUÉ BANDO ES CADA UNO.
+   El lila y el azul alternos venían del mock y eran decorativos: coloreaban
+   una de cada tres cartas sin que eso significara nada, y encima tapaban el
+   único indicio real —la camiseta de la toga—, que a siete fichas por segundo
+   no se ve. Ahora el color ES el dato. */
 .plana .juez {
-  background: var(--lila-diario);
   border: 2px solid transparent;
   border-radius: 0;
 }
 
-.plana .tombola-banda .juez:nth-child(3n) { background: var(--azul-diario); }
+.plana .juez--comprado,
+.tombola-contenedor .juez--comprado { background: var(--lila-diario); }
+.plana .juez--limpio,
+.tombola-contenedor .juez--limpio { background: #cdeac4; }
 
 .plana .juez__rotulo { color: rgba(20, 20, 20, 0.62); }
 
+/* El señalado NO cambia de fondo: cambiarlo taparía justo el dato que hay que
+   leer. Se marca con el filete, que es lo que un selector hace. */
 .plana .juez--senalado {
-  background: var(--lila-diario);
-  border: 2px solid transparent;
+  border: 2px solid var(--tinta);
   box-shadow: none;
 }
 
@@ -4319,7 +4341,10 @@ html, body {
   gap: 6px;
   padding: 12px 8px;
   border-radius: 0;
-  background: var(--lila-diario);
+  /* SIN FONDO AQUÍ. El fondo lo pone el BANDO —.juez--comprado en morado y
+     .juez--limpio en verde— y ponerlo también en esta regla, que es más
+     específica, lo pisaba: los seis salían del mismo color y el minijuego se
+     quedaba sin su único dato legible. */
   border: 2px solid transparent;
   color: rgba(20, 20, 20, 0.62);
   font-family: var(--sans);
@@ -4402,13 +4427,11 @@ html, body {
    dentro del marco, y una que crece al pasar se sale por los lados y empuja
    ópticamente a las vecinas cada vez que la banda avanza un puesto. */
 .tombola-contenedor .juez--senalado {
-  background: var(--lila-diario);
-  border-color: transparent;
+  /* Tampoco aquí: el señalado se marca con el filete y con la escala, no
+     repintándole el fondo, que es justo el dato que hay que poder leer. */
+  border-color: var(--tinta);
   color: var(--tinta);
 }
-
-/* Cada tercera carta va en azul, como en el mock del sorteo. */
-.tombola-contenedor .tombola-banda .juez:nth-child(3n) { background: var(--azul-diario); }
 
 /* Juez comprado (no honesto). */
 .juez--comprado .juez__toga { filter: hue-rotate(250deg) saturate(0.8); }
