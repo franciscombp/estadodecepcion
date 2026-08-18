@@ -1169,8 +1169,33 @@ html, body {
 
 /* Y si su contenido no cabe, se desplaza ÉL, no la página. */
 .se-estira--desplazable {
+  position: relative;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+/* HAY MÁS ABAJO. La clase la pone `marcarDesplazables()` en screens.js
+   mientras quede contenido por debajo del corte, y se quita al llegar al
+   final. Sin esto, el último renglón visible sale cortado a media altura
+   contra un borde duro y parece un fallo de dibujado, no una página larga.
+
+   Va con `mask` y no con un degradado encima: un degradado necesita conocer el
+   color del fondo, y estas cuatro cajas están sobre tres fondos distintos —el
+   papel de Ajustes, el blanco del Archivo, el de la victoria—. La máscara
+   desvanece lo que haya debajo, sea lo que sea. */
+.se-estira--hay-mas {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
+}
+
+/* Quien no quiere movimiento tampoco quiere que el texto se desvanezca al
+   desplazar: se sustituye por un filete, que dice lo mismo y se está quieto. */
+@media (prefers-reduced-motion: reduce) {
+  .se-estira--hay-mas {
+    -webkit-mask-image: none;
+    mask-image: none;
+    border-bottom: 1px solid var(--papel-sombra);
+  }
 }
 
 /* El compás lo llevan los rótulos de sección y NADIE MÁS: dentro de un cuerpo
@@ -1357,18 +1382,29 @@ html, body {
               color var(--t-rapido);
 }
 
-/* EL FOCO DE TECLADO, que no estaba en ninguna parte.
-   Había :hover, :active y :disabled, y nada para quien navega con tabulador:
-   se podía recorrer una pantalla entera sin ver JAMÁS dónde estaba el cursor.
+/* ══ EL FOCO DE TECLADO ══════════════════════════════════════════════════
+   No estaba en ninguna parte. Había :hover, :active y :disabled, y nada para
+   quien navega con tabulador: se podía recorrer una pantalla entera —menú,
+   ajustes, archivo, ranking— sin ver JAMÁS dónde estaba el cursor.
+
+   Se declara UNA VEZ y para todo lo que se puede tabular, en vez de repetir
+   el bloque en cada componente: si se repite, el día que cambie el grosor
+   cambiará en tres sitios de cuatro.
+
    Va con `outline` y no con `box-shadow` para que sobreviva al modo de alto
-   contraste, y separado dos píxeles para que se lea sobre el fondo rojo del
-   botón principal igual que sobre el contorno del secundario. */
-.boton:focus-visible {
+   contraste de Windows, que descarta las sombras. Y separado dos píxeles del
+   borde para que se lea igual sobre el rojo pleno del botón principal que
+   sobre el contorno del secundario. */
+.boton:focus-visible,
+.boton-icono:focus-visible,
+.paginador__pag:focus-visible,
+.ranking__pestana:focus-visible,
+.pruebas__pieza:focus-visible,
+.elector__ficha:focus-visible,
+.ranking__campo:focus-visible {
   outline: 3px solid var(--tinta);
   outline-offset: 2px;
 }
-
-.boton--principal:focus-visible { outline-color: var(--tinta); }
 
 /* El botón se hunde al pulsar y REBOTA al soltar. El rebote está en la
    transición, no en el :active: al soltar, el navegador vuelve al estado de
@@ -2596,10 +2632,20 @@ html, body {
 }
 
 /* Del escalón inventado (salía a 12,86 por un clamp propio) al cuerpo 2 del
-   sistema. Son los temas que va a tratar la pieza: se leen, no se hojean. */
+   sistema. Son los temas que va a tratar la pieza: se leen, no se hojean.
+
+   Y CON SANGRÍA FRANCESA. La raya iba en un `::before` dentro del renglón, así
+   que al envolver la segunda línea empezaba debajo de la raya y no debajo del
+   texto: «— Cadena de custodia y pruebas / desaparecidas», con el
+   «desaparecidas» alineado con el guion. En una lista de tres eso basta para
+   que no se vea dónde acaba un tema y empieza el siguiente. Con la sangría
+   colgante la raya se queda sola en el margen y todas las líneas del mismo
+   tema caen a plomo. */
 .pagina-cerrada__temas li {
+  padding-left: 1.1em;
+  text-indent: -1.1em;
   font-size: var(--t-cuerpo-2);
-  line-height: var(--i-cuerpo);
+  line-height: var(--i-cabeza);
   color: var(--tinta-media);
   font-style: italic;
 }
@@ -2794,10 +2840,6 @@ html, body {
               background-color var(--t-rapido);
 }
 
-.paginador__pag:focus-visible {
-  outline: 3px solid var(--tinta);
-  outline-offset: 2px;
-}
 
 .paginador__pag--actual {
   background: var(--tinta);
@@ -4000,10 +4042,6 @@ html, body {
   color: var(--papel-blanco);
 }
 
-.ranking__pestana:focus-visible {
-  outline: 3px solid var(--tinta);
-  outline-offset: 2px;
-}
 
 /* ── El podio ───────────────────────────────────────────────────────────── */
 /* Alineado ABAJO, que es lo que hace que el primero se lea como más alto y no
@@ -4193,7 +4231,11 @@ html, body {
   color: #ffffff;
 }
 
-.ranking__campo:focus { outline: none; border-bottom-color: #ffffff; }
+/* El campo del apodo llevaba `outline: none` a secas. Quitar el foco y dejar
+   solo un cambio de color de subrayado es dejar sin marca a quien lo necesita;
+   el subrayado se queda —dice que estás escribiendo— y el aro lo pone la regla
+   común de arriba. */
+.ranking__campo:focus { border-bottom-color: var(--papel-blanco); }
 
 /* El botón negro del marco: mismo cuerpo que los otros dos, tinta llena. */
 .boton--diario-oscuro {
@@ -4479,9 +4521,10 @@ html, body {
 
 .elector {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
 }
+
 
 /* Cuatro fichas donde antes había dos, así que se estrechan y el nombre se
    parte si hace falta. Se prefirió apretar antes que apilar en dos filas: la
@@ -4493,17 +4536,29 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 9px 4px;
-  border-radius: 0;
+  /* CUATRO EN FILA Y EL NOMBRE ENTERO. Medido: la ficha da 83 px, el relleno
+     se llevaba 4 por lado y a «Tostadólogo» en cuerpo micro le hacían falta
+     80 —siete más de los 73 que quedaban—, así que partía por la última
+     letra: «Tostadólog / o». Y no, `hyphens: auto` no salva eso: hace falta un
+     diccionario de partición que este navegador no trae, así que la propiedad
+     está puesta y no hace nada.
+     Con dos píxeles de relleno quedan 79 de hueco y el nombre, sin tracking,
+     mide 78. Cabe, y con eso el presupuesto queda dicho: un apodo nuevo que
+     pase de ONCE caracteres vuelve a partir. */
+  padding: 9px 1px;
+  border-radius: var(--r-sm);
   background: var(--papel-blanco);
   border: 1.5px solid var(--papel-sombra);
   color: var(--tinta-tenue);
   font-family: var(--sans);
   font-size: var(--t-pie);
   font-weight: 700;
-  letter-spacing: 0.0125em;
+  letter-spacing: 0.2px;
   cursor: pointer;
-  transition: all var(--t-rapido);
+  /* `all` transiciona TODO, incluidos el ancho y el relleno: al elegir otra
+     ficha las cuatro se recolocaban con un temblor. Solo lo que cambia. */
+  transition: border-color var(--t-rapido), color var(--t-rapido),
+              box-shadow var(--t-rapido), opacity var(--t-rapido);
 }
 
 .elector__nombre {
@@ -4520,17 +4575,26 @@ html, body {
   font-weight: 700;
   line-height: 1.15;
   text-align: center;
-  /* `break-word` y no `anywhere`: con `anywhere` el navegador parte por donde
-     le pilla y salía «Tostadólo / go». Con `break-word` prueba primero la
-     partición por sílabas de `hyphens`, que en español da «Tosta- / dólogo». */
+  /* Sin tracking: los 0,2 px por letra que hereda de la ficha son dos píxeles
+     largos en un nombre de once caracteres, y son justo los que faltaban. */
+  letter-spacing: 0;
+  /* Último recurso para un apodo más largo que el presupuesto: parte antes de
+     desbordar. Feo, pero se lee; desbordado, no. */
   overflow-wrap: break-word;
-  hyphens: auto;
 }
 
 /* La sección de cada uno, debajo del nombre y en versalitas: es lo que
    convierte cuatro fichas de personaje en una plantilla de redacción. Va muy
    por debajo del nombre en peso visual —se lee cuando ya elegiste, no antes—
-   porque es lore, no un dato para decidir. */
+   porque es lore, no un dato para decidir.
+
+   EL ROJO MARCA LO ELEGIDO. Estaba justo al revés: la sección salía en rojo
+   en TODAS las fichas y en la elegida se apagaba a gris. En pantalla se leía
+   como que las que no habías escogido eran las importantes, y además había
+   dos rojos diciendo cosas distintas —el filete de «esta es la tuya» y el
+   rótulo de «esta es su sección»— en la misma fila. El rojo es
+   `interactive/primary` en la biblioteca: es el color de lo que está activo,
+   y de nada más. */
 .elector__seccion {
   display: block;
   margin-top: 2px;
@@ -4538,10 +4602,10 @@ html, body {
   font-weight: 700;
   letter-spacing: 0.086em;
   text-transform: uppercase;
-  color: var(--rojo-diario);
+  color: var(--tinta-tenue);
 }
 
-.elector__ficha--elegida .elector__seccion { color: inherit; opacity: 0.75; }
+.elector__ficha--elegida .elector__seccion { color: var(--rojo-diario); }
 
 .elector__ficha--elegida {
   border-color: var(--rojo-diario);
@@ -4565,6 +4629,27 @@ html, body {
   color: var(--tinta-tenue);
   white-space: nowrap;
 }
+/* CUATRO EN FILA SOLO SI CABEN CUATRO.
+
+   Se intentó a base de recortar: menos hueco entre fichas, menos relleno,
+   menos tracking. Medido en cuatro anchos de teléfono, así queda
+   «Tostadólogo» —once caracteres, el apodo más largo de la plantilla—:
+
+       360 px → dos líneas      390 px → dos líneas
+       402 px → una línea       430 px → una línea
+
+   O sea que a base de píxeles solo se arreglaba el teléfono con el que se
+   estaba mirando. Debajo de 404 no caben cuatro fichas con un nombre de once
+   letras, y no es un problema de afinar: es que no caben.
+
+   Así que se parten en dos filas de dos. Ocupa una línea más de página —que
+   ahora se puede desplazar y además lo avisa— y a cambio ningún nombre sale
+   partido en ningún teléfono. */
+@media (max-width: 404px) {
+  .elector { flex-wrap: wrap; }
+  .elector__ficha { flex: 1 1 calc(50% - 3px); }
+}
+
 
 /* En la portada el arsenal es una tira estrecha, no un bloque con título. */
 .portada__abajo .arsenal { margin-bottom: 0; }

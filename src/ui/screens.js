@@ -205,6 +205,49 @@ function estadisticas(pares) {
 // GESTOR
 // ---------------------------------------------------------------------------
 
+/**
+ * AVISA DE QUE HAY MÁS ABAJO.
+ *
+ * Cuatro pantallas usan `.se-estira--desplazable` —ajustes, la bifurcación, la
+ * victoria y el Archivo— y ninguna decía que se pudiera desplazar. En Ajustes,
+ * que es la que más contenido lleva, quedaban ciento cincuenta y seis píxeles
+ * por debajo del corte: el bloque de EDICIÓN salía partido por la mitad de un
+ * renglón, con un borde duro, justo encima del botón de Volver. Eso no se lee
+ * como «sigue abajo», se lee como que algo se rompió al dibujar.
+ *
+ * En un móvil no hay barra de desplazamiento que lo delate, así que hace falta
+ * decirlo: mientras quede contenido por debajo, el borde inferior se desvanece.
+ * Es la señal más vieja del oficio y no ocupa sitio.
+ *
+ * Se mide después de montar —antes no hay alturas— y se vuelve a mirar al
+ * desplazar, al cambiar de tamaño y cuando el contenido cambia solo (el
+ * Archivo se repinta entero al pasar de página).
+ */
+function marcarDesplazables(pantalla) {
+  for (const caja of pantalla.querySelectorAll('.se-estira--desplazable')) {
+    const revisar = () => {
+      // Dos de margen: los redondeos de subpíxel dejan medio píxel de sobra en
+      // cajas que están exactamente llenas, y sin holgura la sombra parpadea.
+      const queda = caja.scrollHeight - caja.clientHeight - caja.scrollTop > 2;
+      caja.classList.toggle('se-estira--hay-mas', queda);
+    };
+
+    caja.addEventListener('scroll', revisar, { passive: true });
+
+    // El contenido cambia sin que cambie el tamaño de la caja: el Archivo
+    // rehace su hoja al pasar de página, y Ajustes crece cuando llega el aviso
+    // de versión nueva.
+    const observador = new ResizeObserver(revisar);
+    observador.observe(caja);
+    for (const hijo of caja.children) observador.observe(hijo);
+
+    pantalla.addEventListener('pantalla:desmontada',
+      () => observador.disconnect(), { once: true });
+
+    requestAnimationFrame(revisar);
+  }
+}
+
 export class Pantallas {
   constructor(contenedor, juego, cuaderno, audio, actualizador = null) {
     this.contenedor = contenedor;
@@ -230,6 +273,7 @@ export class Pantallas {
     this.ocultar();
     this.actual = elementoPantalla;
     this.contenedor.appendChild(elementoPantalla);
+    marcarDesplazables(elementoPantalla);
   }
 
   ocultar() {
