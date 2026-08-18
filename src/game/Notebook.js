@@ -30,6 +30,9 @@ const ESTADO_INICIAL = {
   // te queda por gastar) ni que `evidenciaHistorica` (lo que juntaste desde
   // siempre). Es la marca personal, y es la cifra que compite en la tabla.
   mejorEvidencia: 0,
+  // Cómo te llamas en el ranking. Vacío hasta que alguien lo cambia desde
+  // «Cambiar nombre»; mientras tanto la tabla usa el apodo por defecto.
+  nombreJugador: '',
   // Entes de control cuyo relato ya se leyó. Se cuenta UNA vez cada uno; a
   // partir de la segunda visita solo queda la acusación de siempre. Ver
   // Game._contarInstitucion().
@@ -303,6 +306,14 @@ export class Notebook {
   // estado se lee de localStorage y las partidas viejas no traen este campo.
   get mejorEvidencia() { return this.estado.mejorEvidencia ?? 0; }
   get distanciaHistorica() { return this.estado.distanciaHistorica ?? 0; }
+
+  /** El nombre del jugador en la tabla, o null si nunca lo cambió. */
+  get nombreJugador() { return this.estado.nombreJugador || null; }
+
+  set nombreJugador(nombre) {
+    this.estado.nombreJugador = String(nombre ?? '').trim().slice(0, 24);
+    this.guardar();
+  }
 
   /** ¿Ya se contó el relato de este ente de control? */
   yaConoceInstitucion(id) {

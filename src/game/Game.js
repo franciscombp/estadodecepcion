@@ -598,6 +598,17 @@ export class Game {
     // CONTINUIDAD: la próxima partida arranca aquí, donde te capturaron.
     this.cuaderno.ultimoEscenario = this.escenarioActual;
 
+    // LAS MARCAS DE ANTES, capturadas AQUÍ porque una línea más abajo el
+    // cuaderno se cierra con esta partida dentro y ya no hay con qué comparar.
+    // Las usa el resumen para decidir si la tabla de posiciones se enseña: solo
+    // sale si esta corrida te subió de puesto (ver `hayAscenso` en
+    // config/tabla.js).
+    const marcasPrevias = {
+      evidenciaHistorica: this.cuaderno.evidenciaHistorica ?? 0,
+      distanciaHistorica: this.cuaderno.distanciaHistorica ?? 0,
+      mejorEvidencia: this.cuaderno.mejorEvidencia ?? 0,
+    };
+
     const cierre = this._cerrarEnCuaderno({
       papeles: this.evidenciaPartida,
       distancia: Math.floor(this.distanciaTotal),
@@ -621,6 +632,7 @@ export class Game {
       // corrida ya está dentro y la comparación va con `>=`.
       esRecord: this.evidenciaPartida >= this.cuaderno.mejorEvidencia,
       escenario: this.escenarioActual,
+      marcasPrevias,
       ...cierre,
     };
 

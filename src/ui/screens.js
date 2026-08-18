@@ -22,7 +22,7 @@ import { obtenerEscenario, ORDEN_ESCENARIOS, ESCENARIOS } from '../config/escena
 import { T, Trico } from '../config/guion.js';
 import { CABECERA, hayPendientes, cuantosListos } from '../config/publicaciones.js';
 import { CATALOGO_POTENCIADORES } from '../config/balance.js';
-import { CLASIFICACIONES, clasificacion, tablaConJugador } from '../config/tabla.js';
+import { CLASIFICACIONES, clasificacion, tablaCompleta, hayAscenso, YO } from '../config/tabla.js';
 import { PERSONAJES } from '../config/personajes.js';
 import { Notebook } from '../game/Notebook.js';
 import * as Icono from './iconos.js';
@@ -1026,59 +1026,114 @@ export class Pantallas {
     return pantalla;
   }
 
-  // -------------------------------------------------------------------------
-  // DEPORTES — la segunda página del mismo ejemplar
-  // -------------------------------------------------------------------------
-  // Se pasa de hoja y la portada da paso a la tabla, con sus tres
-  // clasificaciones en pestañas. Es la misma edición: misma mancheta, mismo
-  // papel, otra sección.
-  //
-  // Estaban las dos cosas en la misma página y no cabían: la portada quiere
-  // foto grande y una cifra enorme, la tabla quiere filas. Juntas obligaban a
-  // hacer scroll justo en el momento en que el jugador quiere volver a jugar.
-
+  /**
+   * EL RANKING, RÉPLICA DEL MARCO 105:372.
+   *
+   * Mancheta con «./ranking», antetítulo rojo, titular, el conmutador de tres
+   * pestañas, el podio de tres —con el primero en su tarjeta amarilla y más
+   * alto que los otros dos— la ventana de puestos alrededor del jugador, y
+   * tres botones.
+   *
+   * CUÁNDO SE VE. Al terminar una corrida, solo si esa corrida te subió de
+   * puesto en alguna de las tres tablas (ver `hayAscenso`). Una tabla de
+   * posiciones que sale siempre deja de ser una noticia: la mayoría de las
+   * partidas no mueven nada, y ver tres veces seguidas el mismo puesto solo
+   * alarga el camino de vuelta a jugar. Desde el menú se entra igual, a mano,
+   * porque ahí sí se está buscando algo concreto.
+   */
   deportes(datos = null) {
     const { pantalla, contenido } = pantallaBase();
-    pantalla.classList.add('pantalla--plana');
+    pantalla.classList.add('pantalla--plana', 'pantalla--pruebas');
 
-    const plana = el('div', 'plana');
+    const hoja = el('div', 'pruebas');
 
-    const cab = cabeceraMarca('juegos');
-    plana.appendChild(cab);
+    // ══ MANCHETA ════════════════════════════════════════════════════════
+    const mancheta = el('div', 'pruebas__mancheta');
+    mancheta.appendChild(document.createTextNode(T('marca.nombre')));
+    mancheta.appendChild(el('span', 'pruebas__seccion', T('marcadores.seccion')));
+    hoja.appendChild(mancheta);
 
-    // El antetítulo, el título y el epígrafe cambian con la pestaña, así que
-    // se guardan. El antetítulo cambia porque «Más buscados» no es una tabla de
-    // méritos: es una circular, y tiene que anunciarse como tal.
-    const antetitulo = el('div', 'plana__antetitulo', '');
-    const titular = el('h1', 'plana__titular plana__titular--tabla', '');
-    const epigrafe = el('div', 'plana__epigrafe', '');
-    const cuerpoTabla = el('div', 'plana__tabla se-estira se-estira--desplazable');
-    plana.appendChild(antetitulo);
+    // ══ ANTETÍTULO, TITULAR Y PESTAÑAS ══════════════════════════════════
+    const encabezado = el('div', 'pruebas__encabezado');
+    const antetitulo = el('div', 'pruebas__caso', T('marcadores.antetitulo'));
+    const titular = el('h1', 'pruebas__estado', '');
+    encabezado.appendChild(antetitulo);
+    encabezado.appendChild(titular);
 
-    // --- Pestañas ----------------------------------------------------------
-    const pestanas = el('div', 'pestanas');
+    const pestanas = el('div', 'ranking__pestanas');
     const botonesPestana = new Map();
+    encabezado.appendChild(pestanas);
+    hoja.appendChild(encabezado);
 
+    const podio = el('div', 'ranking__podio');
+    const filas = el('div', 'ranking__filas');
+    hoja.appendChild(podio);
+    hoja.appendChild(filas);
+
+    // ══ PINTAR UNA CLASIFICACIÓN ════════════════════════════════════════
     const pintar = (id) => {
       const clase = clasificacion(id);
-      antetitulo.textContent = clase.antetitulo;
       titular.textContent = clase.titulo;
-      epigrafe.textContent = clase.epigrafe;
-      // La circular de búsqueda se imprime distinta del resto de la sección:
-      // filete grueso arriba y abajo, como los carteles de verdad.
-      plana.classList.toggle('plana--circular', id === 'papeles');
 
       for (const [otro, b] of botonesPestana) {
-        b.classList.toggle('pestana--activa', otro === id);
+        b.classList.toggle('ranking__pestana--activa', otro === id);
       }
 
-      cuerpoTabla.innerHTML = '';
-      cuerpoTabla.appendChild(this._listaPosiciones(clase, datos));
+      const mio = clase.valor(this.cuaderno);
+      const todos = tablaCompleta(clase, mio, this.cuaderno.nombreJugador ?? YO);
+
+      // --- El podio ------------------------------------------------------
+      // El orden en pantalla es 2 · 1 · 3, como en el marco y como en
+      // cualquier podio: el primero en medio y más alto.
+      podio.replaceChildren();
+      const cifra = (v) => v.toLocaleString('es-EC') + clase.unidad;
+      for (const [puesto, medalla] of [[2, '🥈'], [1, '👑'], [3, '🥉']]) {
+        const fila = todos[puesto - 1];
+        if (!fila) continue;
+        const caja = el('div',
+          `ranking__puesto ranking__puesto--${puesto}${fila.esTu ? ' ranking__puesto--tu' : ''}`);
+        caja.appendChild(el('div', 'ranking__medalla', medalla));
+        caja.appendChild(el('div', 'ranking__nombre', fila.arroba));
+        caja.appendChild(el('div', 'ranking__cifra', cifra(fila.valor)));
+        podio.appendChild(caja);
+      }
+
+      // --- La ventana ----------------------------------------------------
+      // Los tres de arriba ya están en el podio, así que la lista empieza en
+      // el cuarto. Se centra en el jugador: enseñar del cuatro al seis cuando
+      // vas noveno es enseñar a gente que no te dice nada.
+      filas.replaceChildren();
+      const yo = todos.findIndex((f) => f.esTu);
+      const desde = Math.min(
+        Math.max(3, yo - 1),
+        Math.max(3, todos.length - 3),
+      );
+
+      for (const fila of todos.slice(desde, desde + 3)) {
+        const nodo = el('div',
+          `ranking__fila${fila.esTu ? ' ranking__fila--tu' : ''}`);
+
+        const quien = el('div', 'ranking__quien');
+        quien.appendChild(el('span', 'ranking__puesto-num', `#${fila.puesto}`));
+        quien.appendChild(el('span', 'ranking__arroba',
+          fila.esTu ? `${fila.arroba} (Tú)` : fila.arroba));
+        nodo.appendChild(quien);
+        nodo.appendChild(el('span', 'ranking__valor', cifra(fila.valor)));
+
+        // Renombrarse se hace TOCANDO TU PROPIA FILA, además de con el botón:
+        // es donde se ve el nombre y es donde la mano ya está.
+        if (fila.esTu) {
+          nodo.addEventListener('click', () => renombrar());
+          nodo.title = T('marcadores.renombrar');
+        }
+        filas.appendChild(nodo);
+      }
+
       this.pestanaDeportes = id;
     };
 
     for (const clase of CLASIFICACIONES) {
-      const b = boton(clase.pestana, 'pestana', () => {
+      const b = boton(clase.pestana, 'ranking__pestana', () => {
         this.audio.cambioCarril();
         pintar(clase.id);
       });
@@ -1086,41 +1141,58 @@ export class Pantallas {
       botonesPestana.set(clase.id, b);
     }
 
-    plana.appendChild(titular);
-    plana.appendChild(pestanas);
-    plana.appendChild(epigrafe);
-    plana.appendChild(cuerpoTabla);
+    // ══ CAMBIAR NOMBRE ══════════════════════════════════════════════════
+    // El marco trae el botón, así que el nombre tiene que poder cambiarse de
+    // verdad. Se hace en la propia fila —un campo de texto donde estaba el
+    // arroba— y no en una pantalla nueva: es un dato de una línea.
+    const renombrar = () => {
+      const fila = filas.querySelector('.ranking__fila--tu');
+      if (!fila || fila.querySelector('input')) return;
 
-    // Al perder se abre SIEMPRE por la marca personal, que es la que habla de
-    // la partida que se acaba de jugar. Desde el menú se recuerda la última
-    // que se miró, porque ahí sí se está buscando algo concreto.
-    pintar(datos ? 'mejor' : (this.pestanaDeportes ?? 'papeles'));
+      const arroba = fila.querySelector('.ranking__arroba');
+      const campo = document.createElement('input');
+      campo.className = 'ranking__campo';
+      campo.type = 'text';
+      campo.maxLength = 24;
+      campo.value = this.cuaderno.nombreJugador ?? YO;
+      campo.setAttribute('aria-label', T('marcadores.renombrar'));
+      arroba.replaceWith(campo);
+      campo.focus();
+      campo.select();
 
-    plana.appendChild(el('div', 'plana__nota-tabla',
-      T('marcadores.aviso')));
+      const guardar = () => {
+        const limpio = campo.value.trim().slice(0, 24);
+        if (limpio) this.cuaderno.nombreJugador = limpio;
+        pintar(this.pestanaDeportes);
+      };
+      campo.addEventListener('blur', guardar, { once: true });
+      campo.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') campo.blur();
+        if (e.key === 'Escape') { campo.value = ''; campo.blur(); }
+      });
+    };
 
-    // Lo desbloqueado va aquí y no en la portada: es lo último que se lee
-    // antes de decidir si se vuelve a correr, y habla del futuro.
-    if (datos) this._pintarDesbloqueos(datos, plana);
+    // Al perder se abre por la tabla en la que subiste, que es la que explica
+    // por qué esta pantalla ha salido. Desde el menú se recuerda la última.
+    pintar(datos?.ascenso ?? (datos ? 'mejor' : (this.pestanaDeportes ?? 'papeles')));
 
-    contenido.appendChild(plana);
+    // ══ BOTONES ═════════════════════════════════════════════════════════
+    const botones = el('div', 'pruebas__botones');
+    botones.appendChild(boton(T('comunes.reintentar'), 'boton--diario boton--diario-principal',
+      () => this.juego.iniciarPartida()));
+    botones.appendChild(boton(T('marcadores.descanso'), 'boton--diario boton--diario-oscuro',
+      () => this.juego.volverAlMenu()));
+    botones.appendChild(boton(T('marcadores.renombrar'), 'boton--diario', renombrar));
+    hoja.appendChild(botones);
 
-    const botones = el('div', 'botones');
-    if (datos) {
-      const donde = obtenerEscenario(datos.escenario ?? this.juego.escenarioActual);
-      botones.appendChild(boton(T('comunes.reintentar'), 'boton--principal',
-        () => this.juego.iniciarPartida()));
-      botones.appendChild(boton(T('comunes.diario'), '',
-        () => this.mostrar(this.notebook())));
-      botones.appendChild(boton(T('comunes.menu'), 'boton--tenue',
-        () => this.juego.volverAlMenu()));
-    } else {
-      botones.appendChild(boton('Volver', 'boton--principal',
-        () => this.juego.volverAlMenu()));
-    }
-    contenido.appendChild(botones);
+    contenido.appendChild(hoja);
 
-    escalonar(contenido);
+    // Lo desbloqueado por esta corrida, si lo hubo. No está en el marco, pero
+    // tampoco cabe en ningún otro sitio: es lo único de esta pantalla que
+    // habla del futuro. Va como aviso flotante y no como bloque, para no
+    // meterle una fila más a una maqueta que está medida.
+    if (datos) this._pintarDesbloqueos(datos, contenido);
+
     return pantalla;
   }
 
@@ -1142,8 +1214,9 @@ export class Pantallas {
     };
     const sentencia = datos.sentencia;
 
-    plana.appendChild(el('div', 'plana__antetitulo',
-      sentencia ? T('captura.seccionCaptura') : T('captura.seccionExhausto')));
+    // SIN ANTETÍTULO ROJO. El marco 89:1025 va directo de la mancheta al
+    // titular; el «PERIODISTA DETENIDO / SE INTERRUMPE LA COBERTURA» que había
+    // aquí no está dibujado en ninguna parte.
     plana.appendChild(el('h1', 'plana__titular',
       sentencia?.titular ?? titulos[datos.motivo] ?? T('captura.titularGenerico')));
 
@@ -1151,7 +1224,16 @@ export class Pantallas {
     // Sale del propio juego: es el fotograma del cerco, con el círculo ya
     // cerrado. Que la imagen sea LA TUYA y no una ilustración genérica es lo
     // que convierte el resumen en una noticia sobre ti.
-    if (sentencia) plana.appendChild(el('p', 'plana__bajada', sentencia.texto));
+    // LA BAJADA VA SIEMPRE. En el marco hay un texto bajo el titular —«Sin
+    // visitas, sin llamadas y sin abogado los primeros días. Después ya no
+    // hacía falta.»— y ese es el sitio de la voz del diario en esta página.
+    //
+    // Aquí abajo estaba el remate por escenario («El conteo rápido te dio por
+    // perdedor…») en un bloque suelto con su firma, y ese bloque no está
+    // dibujado. Se va: la bajada del marco ocupa su función y se edita desde
+    // el constructor. La sentencia del juez manda cuando la hay, porque
+    // entonces la noticia del día es esa.
+    plana.appendChild(el('p', 'plana__bajada', sentencia?.texto ?? T('captura.bajada')));
 
     // --- Los papeles -------------------------------------------------------
     // La ÚNICA cifra grande, y son EVIDENCIA, no puntaje. El puntaje suma
@@ -1170,20 +1252,9 @@ export class Pantallas {
     marcador.appendChild(cifra);
     contarHasta(cifra, papeles);
 
-    if (datos.esRecord && papeles > 0) {
-      const sello = el('span', 'plana__record', T('captura.rotuloRecord'));
-      // El sello cae DESPUÉS de que la cifra termine de subir. Apareciendo a la
-      // vez compiten, y lo que se quiere es que primero se lea el número y
-      // luego llegue la palmadita.
-      sello.style.animationDelay = '0.95s';
-      marcador.appendChild(sello);
-    }
+    // EL SELLO DE «RÉCORD PERSONAL» TAMPOCO ESTÁ EN EL MARCO. Se va con el
+    // resto: la marca personal se ve en el ranking, que es su sitio.
     plana.appendChild(marcador);
-
-    // Y DESPUÉS la foto, como en la maqueta: primero la cifra que resume la
-    // corrida y luego la imagen que la ilustra, con su pie. Es además el
-    // bloque elástico de esta página.
-    if (datos.foto) plana.appendChild(this._fotoArresto(datos));
 
     // La línea de datos, como la escribe el Figma en «Game over» (89:1025):
     // «984m recorridos・1.345 evidencia total». El puntaje se cae de aquí
@@ -1198,70 +1269,21 @@ export class Pantallas {
         .toLocaleString('es-EC'),
     })));
 
-    // --- LO QUE SÍ SACASTE -------------------------------------------------
+    // Y DESPUÉS la foto, como en el marco: primero la cifra que resume la
+    // corrida, luego su línea de datos, y al final la imagen con su pie. Es
+    // además el bloque elástico de esta página.
+    if (datos.foto) plana.appendChild(this._fotoArresto(datos));
+
+    // LO QUE SÍ SACASTE, EL REPORTAJE COMPLETO, LO QUE VIENE Y EL REMATE:
+    // fuera los cuatro. Debajo de la foto había una lista con viñetas de las
+    // pruebas de la corrida, un sello de reportaje cerrado, un bloque de «EN
+    // LA SIGUIENTE CORRIDA» con sus casillas y el remate editorial firmado, y
+    // el marco 89:1025 no dibuja ninguno: va de la foto al botón.
     //
-    // Te capturaron, sí. Pero saliste con pruebas, y las pruebas se quedan: son
-    // lo que arma el reportaje. Enseñarlas AQUÍ, en la portada de la derrota, es
-    // la mitad del sentido del juego —documentar no se castiga; correr mal, sí—
-    // y era justo lo que faltaba: la pantalla contaba metros y puntos, o sea
-    // solo lo que habías perdido.
-    const pruebas = datos.pruebas ?? [];
-    if (pruebas.length) {
-      const caja = el('div', 'plana__pruebas');
-      caja.appendChild(el('div', 'plana__pruebas-rotulo',
-        pruebas.length === 1 ? T('captura.prueba') : `SACASTE ${pruebas.length} PRUEBAS`));
-      const lista = el('ul', 'plana__pruebas-lista');
-      for (const nombre of pruebas) lista.appendChild(el('li', '', nombre));
-      caja.appendChild(lista);
-      plana.appendChild(caja);
-    }
-
-    // --- Y si con ellas se completó un reportaje ---------------------------
-    for (const pagina of datos.paginasNuevas ?? []) {
-      const abierta = el('div', 'plana__reportaje');
-      abierta.appendChild(el('span', 'plana__reportaje-sello', T('captura.reportaje')));
-      abierta.appendChild(el('span', 'plana__reportaje-nombre', pagina.nombre));
-      plana.appendChild(abierta);
-    }
-
-    // --- LO QUE VIENE ------------------------------------------------------
-    //
-    // La razón para volver a jugar, dicha en una línea y con un número que
-    // falta. Es lo único que faltaba en esta pantalla: contaba lo que habías
-    // hecho —bien— pero no daba ningún motivo para pulsar otra vez. «Te falta
-    // UNA prueba para Política» es ese motivo, y funciona porque es concreto,
-    // es corto y depende de ti.
-    //
-    // Va después del reportaje completado a propósito: primero la palmadita por
-    // lo que cerraste, y encima, el siguiente al alcance de la mano.
-    const siguiente = this.cuaderno?.proximaPagina?.();
-    if (siguiente && siguiente.pruebasPedidas > 0) {
-      const meta = el('div', 'plana__meta');
-      meta.appendChild(el('div', 'plana__meta-rotulo', T('captura.siguiente')));
-
-      const frase = siguiente.faltan === 0
-        ? `«${siguiente.nombre}» sale con lo que ya tienes.`
-        : siguiente.faltan === 1
-          ? T('captura.faltaUna', { nombre: siguiente.nombre })
-          : T('captura.faltanVarias', { faltan: siguiente.faltan, nombre: siguiente.nombre });
-      meta.appendChild(el('div', 'plana__meta-frase', frase));
-
-      const barra = el('div', 'plana__meta-casillas');
-      for (let i = 0; i < siguiente.pruebasPedidas; i++) {
-        barra.appendChild(el('span',
-          `plana__meta-casilla${i < siguiente.pruebasReunidas ? ' plana__meta-casilla--hecha' : ''}`));
-      }
-      meta.appendChild(barra);
-      plana.appendChild(meta);
-    }
-
-    // --- El remate editorial, como pie de la nota --------------------------
-    if (datos.texto) {
-      const cuerpo = el('p', 'plana__cuerpo');
-      cuerpo.appendChild(document.createTextNode(datos.texto));
-      plana.appendChild(cuerpo);
-      plana.appendChild(el('div', 'plana__firma', T('marca.lema')));
-    }
+    // Nada de eso se pierde, cambia de página. Las pruebas de la corrida son
+    // justo lo que arma la pantalla de Pruebas, que viene inmediatamente
+    // después y las enseña una a una en la rejilla del caso; los reportajes
+    // cerrados salen en el Archivo. Aquí estaban dos veces.
 
     // La TABLA y los DESBLOQUEOS ya no están aquí: se fueron a la página de
     // deportes. Con todo junto la portada no cabía en una pantalla de móvil y
@@ -1340,27 +1362,54 @@ export class Pantallas {
     // Las casillas: primero lo recogido, luego los huecos hasta completar la
     // fila. La evidencia suelta abre el expediente —no es una prueba, pero es
     // lo que costó la corrida— y por eso ocupa la primera casilla.
-    const casillas = [];
-    if ((datos.papeles ?? 0) > 0) {
-      casillas.push({
-        icono: (t) => Icono.papeles(t),
-        nombre: T('botin.rotuloEvidencia'),
-        falsa: false,
-      });
-    }
+    // ══ EL EXPEDIENTE DEL CASO ══════════════════════════════════════════
+    //
+    // LAS CASILLAS SON LAS PRUEBAS DE ESTE CASO, no nueve huecos genéricos.
+    // Cada escenario declara las suyas en `config/escenarios.js` —la Bahía
+    // tiene el USB sin cadena de custodia, el chat del grupo, el video de
+    // vigilancia y el acta borroneada— y son únicas: el acta borroneada no
+    // aparece en el Apagón ni el audio del ministro en la Bahía.
+    //
+    // Por eso el tablero es el expediente y no un marcador: cada hueco tiene
+    // dueño, se sabe qué falta, y encontrar la pieza que faltaba es un
+    // hallazgo concreto y no «una prueba más».
+    //
+    // SE LLENA CON TODO LO QUE TENGAS DE ESTE CASO, no solo con lo de esta
+    // corrida: el expediente se arma entre partidas, que es de lo que va. Lo
+    // recogido AHORA es lo que cae con animación; lo de antes ya está puesto.
+    const delCaso = esc.evidencia ?? [];
+    const tengo = new Set(this.cuaderno?.pruebas ?? []);
+    const recienRecogidas = new Set(pruebas);
+
+    const casillas = delCaso.map((nombre) => ({
+      nombre,
+      icono: (t) => Icono.iconoPrueba(nombre, t),
+      falsa: false,
+      tengo: tengo.has(nombre) || recienRecogidas.has(nombre),
+      nueva: recienRecogidas.has(nombre),
+    }));
+
+    // El material plantado NO ocupa casilla del expediente —no es de este caso,
+    // es de quien te lo dejó ahí— pero si lo recogiste tiene que verse, o el
+    // chiste no se entiende. Va al final, en gris y fuera de la cuenta.
     for (const nombre of pruebas) {
+      if (!Notebook.esFalsa(nombre)) continue;
       casillas.push({
-        // SE REVELA AQUÍ, no al recogerla. El material plantado se detecta al
-        // contrastarlo, nunca al encontrarlo, y esa es justamente la broma:
-        // lo metiste en la mochila creyendo que servía.
-        icono: (t) => Icono.iconoPrueba(nombre, t),
         nombre,
-        falsa: Notebook.esFalsa(nombre),
+        icono: (t) => Icono.iconoPrueba(nombre, t),
+        // SE REVELA AQUÍ, no al recogerla: el material plantado se detecta al
+        // contrastarlo, nunca al encontrarlo, y esa es justamente la broma.
+        falsa: true,
+        tengo: true,
+        nueva: true,
       });
     }
 
-    const MINIMO = 9;
-    const total = Math.max(MINIMO, Math.ceil(casillas.length / 3) * 3);
+    // Dos columnas hasta cuatro piezas y tres a partir de ahí: con tres
+    // columnas, un caso de cuatro pruebas deja una sola casilla huérfana en la
+    // segunda fila.
+    const columnas = casillas.length <= 4 ? 2 : 3;
+    tablero.style.setProperty('--columnas', String(columnas));
 
     // Cada pieza cae en su turno. El ritmo es el de la versión anterior —un
     // objeto cada 0,3 s—, que es lo que convierte la lista en ceremonia sin
@@ -1409,25 +1458,39 @@ export class Pantallas {
       tablero.replaceChildren();
       mesa.classList.remove('pruebas__mesa--detalle');
 
-      for (let i = 0; i < total; i++) {
-        const casilla = casillas[i] ?? null;
-        const nodo = pieza(casilla, 72, casilla ? () => verDetalle(casilla) : null);
-        if (animar && casilla) {
+      // Solo lo que cae AHORA lleva turno. Lo que ya estaba en el expediente
+      // aparece puesto: animarlo otra vez cada partida convertiría el hallazgo
+      // en un trámite.
+      let turno = 0;
+      casillas.forEach((casilla) => {
+        const nodo = pieza(casilla.tengo ? casilla : null, 72,
+          casilla.tengo ? () => verDetalle(casilla) : null);
+        if (animar && casilla.nueva) {
           nodo.classList.add('pruebas__pieza--entra');
-          nodo.style.setProperty('--retardo', `${0.2 + i * PASO}s`);
+          nodo.style.setProperty('--retardo', `${0.2 + turno * PASO}s`);
           temporizadores.push(setTimeout(
-            () => this.audio?.evidencia?.(), (0.2 + i * PASO) * 1000));
+            () => this.audio?.evidencia?.(), (0.2 + turno * PASO) * 1000));
+          turno++;
         }
         tablero.appendChild(nodo);
-      }
+      });
     };
 
     pintarRejilla(true);
 
     // ══ BOTONES ═════════════════════════════════════════════════════════
+    // EL RANKING SOLO SI SUBISTE DE PUESTO. `hayAscenso` compara las marcas
+    // de antes de esta corrida con las de ahora; si no adelantaste a nadie, el
+    // botón lleva directo a la portada. Una tabla de posiciones que sale
+    // siempre deja de ser una noticia, y la mayoría de las partidas no mueven
+    // nada: era una pantalla más entre perder y volver a jugar.
+    const ascenso = hayAscenso(datos.marcasPrevias, this.cuaderno);
+
     const botones = el('div', 'pruebas__botones');
     botones.appendChild(boton(T('botin.siguiente'), 'boton--diario boton--diario-principal',
-      () => this.mostrar(this.deportes(datos))));
+      () => (ascenso
+        ? this.mostrar(this.deportes({ ...datos, ascenso }))
+        : this.juego.volverAlMenu())));
     botones.appendChild(boton(T('comunes.reintentar'), 'boton--diario',
       () => this.juego.iniciarPartida()));
     hoja.appendChild(botones);
@@ -1459,82 +1522,6 @@ export class Pantallas {
       T('captura.pieFoto', { lugar: esc.nombre })));
 
     return figura;
-  }
-
-  /**
-   * La lista de una clasificación, maquetada como la tabla de resultados de un
-   * diario: puesto, arroba y cifra alineada a la derecha, con filete entre
-   * filas.
-   *
-   * Solo se enseñan el primero y el entorno del jugador. Los diez completos en
-   * un móvil obligan a hacer scroll dentro de una pantalla que ya es larga, y
-   * a nadie le importa el séptimo.
-   *
-   * @param {object} clase  Una de CLASIFICACIONES
-   * @param {object|null} datos Resultado de la partida recién terminada
-   */
-  _listaPosiciones(clase, datos = null) {
-    // El valor del jugador sale del cuaderno, que ya se cerró con esta
-    // partida antes de pintar nada: no hay que sumarle el resultado a mano.
-    const mio = clase.valor(this.cuaderno);
-    const lista = el('ol', 'posiciones');
-    const filas = [];
-    let miFila = null; let miCifra = null; let miValor = 0;
-
-    for (const fila of tablaConJugador(clase, mio)) {
-      if (fila.corte) {
-        lista.appendChild(el('li', 'posiciones__corte', '⋯'));
-        continue;
-      }
-
-      const item = el('li', `posiciones__fila ${fila.esTu ? 'posiciones__fila--tu' : ''}`.trim());
-      item.appendChild(el('span', 'posiciones__puesto', String(fila.puesto)));
-
-      const quien = el('span', 'posiciones__quien');
-      quien.appendChild(el('span', 'posiciones__arroba', fila.arroba));
-      if (fila.nota) quien.appendChild(el('span', 'posiciones__nota', fila.nota));
-      item.appendChild(quien);
-
-      const cifra = el('span', 'posiciones__cifra',
-        fila.valor.toLocaleString('es-EC') + clase.unidad);
-      item.appendChild(cifra);
-      if (fila.esTu) { miFila = item; miCifra = cifra; miValor = fila.valor; }
-      filas.push({ item, fila });
-      lista.appendChild(item);
-    }
-
-    escalonar(lista);
-
-    // --- EL ASCENSO --------------------------------------------------------
-    //
-    // Solo al terminar una partida, que es cuando hay algo que celebrar. La
-    // tabla salía ya ordenada, con el jugador puesto en su sitio: se leía como
-    // una consulta, no como un resultado. Aquí la fila ENTRA POR ABAJO y sube
-    // hasta su puesto mientras la cifra cuenta, y cada rival al que adelanta
-    // parpadea al ser rebasado.
-    //
-    // Se sube desde donde estarías con el peor valor de la ventana, no desde
-    // una posición inventada: si no has adelantado a nadie no se mueve nada, y
-    // eso también es información.
-    const adelantados = filas.filter(({ fila }) => !fila.esTu && fila.valor < miValor);
-    if (datos && miFila && adelantados.length) {
-      const alto = miFila.offsetHeight || 34;
-      miFila.style.setProperty('--sube', `${adelantados.length * alto}px`);
-      miFila.classList.add('posiciones__fila--sube');
-      miCifra.textContent = (0).toLocaleString('es-EC') + clase.unidad;
-
-      requestAnimationFrame(() => {
-        contarHasta(miCifra, miValor, 1100, (v) =>
-          v.toLocaleString('es-EC') + clase.unidad);
-        // Cada rival se enciende justo cuando la fila pasa por encima.
-        adelantados.forEach(({ item }, i) => {
-          setTimeout(() => item.classList.add('posiciones__fila--rebasado'),
-            420 + i * (700 / Math.max(1, adelantados.length)));
-        });
-      });
-    }
-
-    return lista;
   }
 
   /**

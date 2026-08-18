@@ -39,7 +39,10 @@
 // ============================================================================
 
 /** Cómo se llama el jugador en la tabla mientras no haya cuentas. */
-export const YO = '@tú';
+// El marco lo dibuja como «Anónimo4324 (Tú)»: un apodo de verdad y el «(Tú)»
+// aparte, que lo pone la pantalla. Decía '@tú' y la fila salía «@tú (Tú)».
+// Se cambia desde «Cambiar nombre», y entonces manda el del cuaderno.
+export const YO = '@anónimo';
 
 const ARROBAS = ['@paquimal', '@la_chulla_vida', '@ojo_de_agua', '@ni_una_menos_ec',
   '@cronica_del_sur', '@el_desvelado', '@radio_bemba', '@apagon_lover',
@@ -60,7 +63,7 @@ const ARROBAS = ['@paquimal', '@la_chulla_vida', '@ojo_de_agua', '@ni_una_menos_
 export const CLASIFICACIONES = [
   {
     id: 'papeles',
-    pestana: 'Buscados',
+    pestana: 'Total',
     titulo: 'Los más buscados',
     antetitulo: 'CIRCULAR DE BÚSQUEDA',
     epigrafe: 'Ordenados por lo que llevan documentado. Cuanto más arriba, más estorbas',
@@ -68,6 +71,16 @@ export const CLASIFICACIONES = [
     unidad: '',
     valor: (c) => c.evidenciaHistorica,
     marcas: [46_820, 39_140, 34_505, 29_960, 24_340, 19_775, 15_190, 11_640, 8_020, 5_615],
+  },
+  {
+    id: 'mejor',
+    pestana: 'Carrera',
+    titulo: 'Mejor corrida',
+    antetitulo: 'CLASIFICACIÓN',
+    epigrafe: 'Papeles recogidos en una sola partida',
+    unidad: '',
+    valor: (c) => c.mejorEvidencia,
+    marcas: [3_180, 2_740, 2_455, 2_090, 1_815, 1_530, 1_265, 1_010, 780, 545],
   },
   {
     id: 'distancia',
@@ -78,16 +91,6 @@ export const CLASIFICACIONES = [
     unidad: ' m',
     valor: (c) => c.distanciaHistorica,
     marcas: [318_400, 264_900, 221_050, 186_300, 152_700, 118_450, 92_800, 68_300, 44_900, 26_150],
-  },
-  {
-    id: 'mejor',
-    pestana: 'Corrida',
-    titulo: 'Mejor corrida',
-    antetitulo: 'CLASIFICACIÓN',
-    epigrafe: 'Papeles recogidos en una sola partida',
-    unidad: '',
-    valor: (c) => c.mejorEvidencia,
-    marcas: [3_180, 2_740, 2_455, 2_090, 1_815, 1_530, 1_265, 1_010, 780, 545],
   },
 ];
 
@@ -111,16 +114,7 @@ export function clasificacion(id) {
  *                  esTu:boolean, nota?:string, corte?:boolean}>}
  */
 export function tablaConJugador(clase, valor, alrededor = 1) {
-  const todos = [
-    ...clase.marcas.map((v, i) => ({
-      arroba: ARROBAS[i],
-      valor: v,
-      nota: i === 0 ? (clase.notaLider ?? 'director') : undefined,
-    })),
-    { arroba: YO, valor, esTu: true },
-  ]
-    .sort((a, b) => b.valor - a.valor)
-    .map((fila, i) => ({ ...fila, puesto: i + 1, esTu: !!fila.esTu }));
+  const todos = tablaCompleta(clase, valor);
 
   const mio = todos.findIndex((f) => f.esTu);
   const desde = Math.max(0, mio - alrededor);
@@ -137,4 +131,53 @@ export function tablaConJugador(clase, valor, alrededor = 1) {
   }
 
   return ventana;
+}
+
+/**
+ * La tabla entera, ordenada y con el jugador dentro.
+ *
+ * Se saca aparte porque ahora la piden dos sitios: la pantalla, que necesita
+ * el podio y la ventana por separado —así lo dibuja el marco 105:372—, y
+ * `hayAscenso`, que solo necesita saber en qué puesto caería una cifra.
+ */
+export function tablaCompleta(clase, valor, nombreJugador = YO) {
+  return [
+    ...clase.marcas.map((v, i) => ({
+      arroba: ARROBAS[i],
+      valor: v,
+      nota: i === 0 ? (clase.notaLider ?? 'director') : undefined,
+    })),
+    { arroba: nombreJugador, valor, esTu: true },
+  ]
+    .sort((a, b) => b.valor - a.valor)
+    .map((fila, i) => ({ ...fila, puesto: i + 1, esTu: !!fila.esTu }));
+}
+
+/** En qué puesto quedaría esa cifra en esta clasificación. */
+export function puestoDe(clase, valor) {
+  return clase.marcas.filter((m) => m > valor).length + 1;
+}
+
+/**
+ * ¿ESTA CORRIDA TE SUBIÓ DE PUESTO EN ALGUNA TABLA?
+ *
+ * Es la pregunta que decide si el resumen enseña el ranking o se lo salta. Una
+ * tabla de posiciones que sale siempre deja de ser una noticia: la mayoría de
+ * las partidas no mueven nada y ver tres veces seguidas el mismo puesto solo
+ * alarga el camino de vuelta a jugar. Cuando adelantas a alguien, en cambio,
+ * es exactamente lo que quieres ver.
+ *
+ * Devuelve el id de la primera clasificación en la que hubo ascenso, o null.
+ *
+ * @param {object} marcasPrevias Las cifras del cuaderno ANTES de esta partida.
+ * @param {object} cuaderno      El cuaderno ya cerrado con esta partida.
+ */
+export function hayAscenso(marcasPrevias, cuaderno) {
+  if (!marcasPrevias) return null;
+  for (const clase of CLASIFICACIONES) {
+    const antes = puestoDe(clase, clase.valor(marcasPrevias) ?? 0);
+    const ahora = puestoDe(clase, clase.valor(cuaderno));
+    if (ahora < antes) return clase.id;
+  }
+  return null;
 }

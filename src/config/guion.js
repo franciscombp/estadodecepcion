@@ -94,32 +94,26 @@ export const GUION = {
   captura: {
     _nombre: 'Fin de partida',
     _nota: 'La primera plana que sale al perder.',
-    seccionCaptura: { t: 'PERIODISTA DETENIDO', ayuda: 'Sección cuando te alcanzan.' },
-    seccionExhausto: { t: 'SE INTERRUMPE LA COBERTURA', ayuda: 'Sección al quedarte sin fuerzas.' },
     titularAlcanzado: { t: 'Te alcanzaron a media cuadra', ayuda: 'Titular: te atrapó el perseguidor.' },
     titularExhausto: { t: 'El periodista ya no daba más', ayuda: 'Titular: se acabó la estamina.' },
     titularCerco: { t: 'Cruzó el cerco y no volvió a salir', ayuda: 'Titular: chocaste contra el cerco.' },
     titularGenerico: { t: 'Se acabó la cobertura', ayuda: 'Titular de repuesto.' },
     rotuloEvidencia: { t: 'EVIDENCIA RECOLECTADA', ayuda: 'Encima de la cifra grande.' },
-    rotuloRecord: { t: 'RÉCORD PERSONAL', ayuda: 'Cuando la partida es la mejor hasta ahora.' },
+    // Del marco 89:1025, literal. Es el único hueco de voz propia que la
+    // maqueta dibuja en esta página; el remate por escenario que había debajo
+    // no está dibujado y se quitó.
+    bajada: {
+      t: 'Sin visitas, sin llamadas y sin abogado los primeros días. Después ya no hacía falta.',
+      ayuda: 'El texto bajo el titular. Lo sustituye la sentencia cuando hubo sorteo de juez.',
+      largo: true,
+    },
     resumen: {
       t: '{distancia}m recorridos・{evidencia} evidencia total',
       ayuda: 'La línea de datos bajo la cifra. Huecos: {distancia}, {evidencia}.',
     },
-    prueba: { t: 'SACASTE UNA PRUEBA', ayuda: 'Cuando la corrida deja una prueba buena.' },
-    reportaje: { t: 'REPORTAJE COMPLETO', ayuda: 'Cuando se completa un reportaje.' },
-    siguiente: { t: 'EN LA SIGUIENTE CORRIDA', ayuda: 'Encabeza el consejo para la próxima.' },
-    faltaUna: {
-      t: 'Te falta UNA prueba para «{nombre}».',
-      ayuda: 'Cuando falta exactamente una. Hueco: {nombre}.',
-    },
-    faltanVarias: {
-      t: 'Te faltan {faltan} pruebas para «{nombre}».',
-      ayuda: 'Huecos: {faltan}, {nombre}.',
-    },
     altFoto: { t: 'Momento de la detención', ayuda: 'Texto alternativo de la foto, para lectores de pantalla.' },
     pieFoto: {
-      t: 'El momento de la detención en {lugar}. Foto: El Mercio',
+      t: 'Momento de la detención en *{lugar}*.',
       ayuda: 'Pie de la foto del arresto. Hueco: {lugar}.',
       largo: true,
     },
@@ -135,7 +129,6 @@ export const GUION = {
     caso: { t: 'Caso {caso}', ayuda: 'El caso investigado. Hueco: {caso}.' },
     estadoAbierto: { t: 'Investigación iniciada', ayuda: 'Cuando la corrida deja material.' },
     estadoVacio: { t: 'Investigación bloqueada', ayuda: 'Cuando no se recogió nada útil.' },
-    rotuloEvidencia: { t: 'EVIDENCIA', ayuda: 'Encabeza la fila de evidencia suelta.' },
   },
 
   victoria: {
@@ -209,19 +202,17 @@ export const GUION = {
 
   marcadores: {
     _nombre: 'Ranking',
-    _nota: 'La tabla de posiciones.',
-    aviso: {
-      t: 'Tabla de muestra. Todavía no hay marcadores en línea: los puestos que no son el tuyo son de mentira, como tantas cosas.',
-      ayuda: 'La advertencia bajo la tabla. Que quede claro que no es real.',
-      largo: true,
-    },
+    _nota: 'La tabla de posiciones. Al perder solo sale si esa corrida te subió de puesto.',
+    seccion: { t: './ranking', ayuda: 'Lo que sigue al punto de EL MERCIO, en rojo.' },
+    antetitulo: { t: 'Los mejores investigadores', ayuda: 'El antetítulo rojo, sobre el titular.' },
+    descanso: { t: 'Tomar un descanso', ayuda: 'Botón negro: vuelve a la portada.' },
+    renombrar: { t: 'Cambiar nombre', ayuda: 'Botón de contorno. También se toca la propia fila.' },
   },
 
   comunes: {
     _nombre: 'Botones compartidos',
     _nota: 'Salen en varias pantallas. Cambiarlos aquí los cambia en todas.',
     reintentar: { t: 'Volver a investigar', ayuda: 'Botón principal de fin de partida y de la tabla.' },
-    diario: { t: 'Ver todo el diario', ayuda: 'Lleva al Archivo desde la tabla.' },
     menu: { t: 'Ir al menú principal', ayuda: 'Vuelve a la portada.' },
     continuar: { t: 'Toca para continuar', ayuda: 'Avanza entre las pantallas de cierre.' },
     borrar: { t: 'Borrar progreso', ayuda: 'En Ajustes y en el Archivo.' },
