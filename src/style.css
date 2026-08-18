@@ -200,7 +200,7 @@ html, body {
 /* Cifra: grande, encendida, con cifras de ancho fijo. Sin tabular-nums el
    marcador tiembla cada vez que un 1 sustituye a un 8, y a 60 fps se nota. */
 .cifra {
-  font-weight: 900;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -1104,7 +1104,7 @@ html, body {
 
 .titulo {
   font-size: clamp(1.9rem, 10vw, 3.4rem);
-  font-weight: 900;
+  font-weight: 800;
   line-height: 0.92;
   letter-spacing: -0.03em;
   color: var(--dorado);
@@ -1391,7 +1391,7 @@ html, body {
 
 .resultado__titulo {
   font-size: clamp(1.15rem, 5vw, 1.6rem);
-  font-weight: 900;
+  font-weight: 800;
   margin-bottom: 7px;
   letter-spacing: 0.02em;
 }
@@ -1460,7 +1460,7 @@ html, body {
   /* Cuerpo del sistema, no un clamp propio: el suyo daba 18,49 px, o sea un
      escalón que no existe, medio píxel por encima del cuerpo de leer. */
   font-size: var(--t-cuerpo);
-  font-weight: 900;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   color: var(--dorado);
@@ -1956,7 +1956,7 @@ html, body {
    se queda donde está— porque lo que se pasa es la página, no el periódico. */
 .diario--pasa-avanza > *,
 .diario--pasa-retrocede > * {
-  animation: hoja-entra 0.28s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+  animation: hoja-entra var(--t-medio) cubic-bezier(0.22, 0.9, 0.3, 1) both;
 }
 
 .diario--pasa-avanza > *    { --hoja-desde: 26px; }
@@ -2032,7 +2032,7 @@ html, body {
 
 .diario__seccion {
   font-size: clamp(1.1rem, 5vw, 1.5rem);
-  font-weight: 900;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: .04em;
   margin-top: 6px;
@@ -2144,7 +2144,7 @@ html, body {
   border: 1px dashed var(--tinta-tenue);
   font-family: var(--sans);
   font-size: clamp(.54rem, 2.2vw, .64rem);
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: .14em;
   color: var(--tinta-tenue);
 }
@@ -2198,7 +2198,7 @@ html, body {
   color: var(--rojo-diario);
   font-family: var(--sans);
   font-size: var(--t-micro);
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: .16em;
   /* Sello estampado torcido, como los de archivo. */
   transform: rotate(-4deg);
@@ -2208,7 +2208,7 @@ html, body {
 .pagina-cerrada__titulo {
   font-family: var(--serif);
   font-size: var(--t-titular);
-  font-weight: 900;
+  font-weight: 700;
   margin-bottom: 12px;
 }
 
@@ -2368,7 +2368,7 @@ html, body {
 .pagina-cerrada__precio {
   font-family: var(--sans);
   font-size: var(--t-cuerpo);
-  font-weight: 900;
+  font-weight: 800;
   color: var(--rojo-diario);
   margin-bottom: 12px;
   font-variant-numeric: tabular-nums;
@@ -2413,9 +2413,13 @@ html, body {
    con remates, y al lado del «Volver» —Montserrat— se veía que no eran de la
    misma familia de piezas. Y sin radio, cuando la maqueta da `radius/sm` a los
    controles pequeños. */
+/* CUARENTA POR CUARENTA NO SE PUEDE TOCAR.
+   El mínimo de la casa está escrito en docs/ESTILO.md —48 × 48— y es el que
+   cumple el botón del sistema. Caben de sobra: cinco de 48 más cuatro huecos
+   de 8 son 272 px en una columna de 323. */
 .paginador__pag {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border: 1px solid var(--tinta-tenue);
   border-radius: var(--r-sm);
   background: transparent;
@@ -2835,7 +2839,7 @@ html, body {
   align-items: center;
   justify-content: center;
   font-size: 1.1rem;
-  font-weight: 900;
+  font-weight: 800;
   color: var(--texto-debil);
 }
 
@@ -2947,14 +2951,14 @@ html, body {
 
 .desbloqueo__etiqueta {
   font-size: 0.54rem;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.16em;
   color: var(--cian);
 }
 
 .desbloqueo__nombre {
   font-size: 0.95rem;
-  font-weight: 900;
+  font-weight: 800;
   color: var(--texto);
 }
 
@@ -3136,11 +3140,14 @@ html, body {
 }
 
 /* La cabecera del Archivo lleva marca y franja, una debajo de otra. */
+/* Lo propio del Archivo es que la cabecera va en dos filas —marca arriba,
+   franja de datos debajo—. El `padding-top: 0` no: iba después de
+   `.plana__cabecera` y con su misma especificidad, así que la mancheta del
+   Archivo arrancaba a 0 mientras las otras nueve arrancaban a 16. */
 .plana__cabecera--diario {
   flex-direction: column;
   align-items: stretch;
-  gap: 8px;
-  padding-top: 0;
+  gap: var(--e-8);
 }
 
 .plana__antetitulo {
@@ -3241,7 +3248,7 @@ html, body {
   background: rgba(5, 7, 12, 0.7);
   border: 1px solid var(--borde);
   font-size: 0.58rem;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.18em;
   color: var(--texto-tenue);
   opacity: 0;
@@ -3442,7 +3449,7 @@ html, body {
   margin-top: 4px;
   padding: 2px 9px;
   font-size: 0.54rem;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.14em;
   color: #ffffff;
   background: var(--rojo-diario);
@@ -3504,7 +3511,7 @@ html, body {
   margin: 26px 0 10px;
   padding-bottom: 4px;
   font-size: var(--t-micro);
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.2em;
   color: var(--tinta);
   border-bottom: 1px solid var(--papel-sombra);
@@ -3838,8 +3845,15 @@ html, body {
 .plana .edicion__nota { color: var(--tinta-tenue); }
 .plana .edicion__punto { background: var(--tinta-tenue); }
 .plana .edicion--listo .edicion__punto { background: var(--verde-listo); box-shadow: none; }
-.plana .edicion--listo .edicion__estado { color: var(--verde-senal); }
-.plana .edicion--nueva { background: rgba(163, 35, 31, 0.07); border-color: var(--rojo-diario); }
+/* 2,21 : 1 medido. --verde-senal es tinta de letrero, pensada para blanco
+   encima; sobre papel no se lee. Y el punto de al lado (la línea de arriba) ya
+   usaba --verde-listo: el mismo estado se pintaba con dos verdes distintos. */
+.plana .edicion--listo .edicion__estado { color: var(--verde-listo); }
+/* Sin tinte de fondo. Era un SEGUNDO rojo (#a3231f) conviviendo con
+   --rojo-diario en la misma línea, y subía el fondo lo justo para dejar el
+   texto de la línea de abajo en 4,17 : 1. Heredando el papel de `.plana
+   .edicion` sube a 4,69 : 1 y desaparece el rojo huérfano. */
+.plana .edicion--nueva { border-color: var(--rojo-diario); }
 .plana .edicion--nueva .edicion__punto { background: var(--rojo-diario); box-shadow: none; }
 .plana .edicion--nueva .edicion__estado { color: var(--rojo-diario); }
 
@@ -4536,7 +4550,7 @@ html, body {
 .plana__pruebas-rotulo {
   font-family: var(--sans);
   font-size: var(--t-micro);
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.14em;
   color: var(--tinta);
 }
@@ -4564,7 +4578,7 @@ html, body {
 .plana__reportaje-sello {
   font-family: var(--sans);
   font-size: 0.55rem;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.12em;
   color: var(--rojo-prensa, #b3122e);
   white-space: nowrap;
@@ -4592,7 +4606,7 @@ html, body {
 .plana__meta-rotulo {
   font-family: var(--sans);
   font-size: var(--t-micro);
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.16em;
   color: var(--tinta-media);
 }
@@ -5008,7 +5022,7 @@ html, body {
 .plana__cabeza {
   font-family: var(--serif);
   font-size: clamp(2.2rem, 11vw, 3.4rem);
-  font-weight: 900;
+  font-weight: 700;
   line-height: 0.95;
   letter-spacing: -0.02em;
   text-transform: uppercase;
