@@ -1449,8 +1449,8 @@ html, body {
 
 @media (hover: hover) {
   .boton--principal:hover {
-    background: #a93123;
-    border-color: #a93123;
+    background: var(--rojo-pulsado);
+    border-color: var(--rojo-pulsado);
     color: #ffffff;
   }
 }
@@ -1748,10 +1748,12 @@ html, body {
 
 /* Remate editorial de El Mercio */
 .remate {
-  font-size: clamp(0.86rem, 3.5vw, 1.04rem);
-  line-height: 1.55;
+  /* 16,64 px salían de este clamp en pantalla ancha. Es texto de leer: cuerpo
+     del sistema, con su interlineado. */
+  font-size: var(--t-cuerpo);
+  line-height: var(--i-cuerpo);
   font-style: italic;
-  padding: 16px 18px;
+  padding: var(--e-16) 18px;
   border-left: 3px solid var(--dorado);
   background: rgba(var(--dorado-rgb), 0.055);
   text-align: left;
@@ -2175,6 +2177,22 @@ html, body {
      casi iguales. Es de la misma familia que el lila y el azul —un pastel de
      fondo de caja— y no de la del `--verde-senal`, que es tinta de letrero. */
   --verde-diario: #cdeac4;
+
+  /* LOS TRES DERIVADOS DEL ROJO Y DEL VERDE, que estaban escritos a mano en
+     seis reglas repartidas por la hoja. No son colores nuevos: son el mismo
+     rojo y el mismo verde ajustados para el sitio donde tienen que leerse, y
+     por eso van aquí y no sueltos.
+
+       --rojo-pulsado  el rojo un punto más oscuro, para el `hover` del botón
+                       principal. Estaba como #a93123 en TRES reglas.
+       --rojo-en-tinta el rojo aclarado para leerse sobre el bloque negro de
+                       «lo que dice el gobierno»: #c53b2b sobre #141414 no
+                       llega ni a 3 : 1. Estaba como #ffb3a6.
+       --verde-listo   el verde del punto de «edición al día», oscurecido para
+                       leerse sobre papel. Estaba como #2f6b3a. */
+  --rojo-pulsado: #a93123;
+  --rojo-en-tinta: #ffb3a6;
+  --verde-listo: #2f6b3a;
   --verde-senal: #67b857;    /* los letreros de la bifurcación */
   --serif: 'PT Serif', Georgia, 'Times New Roman', serif;
   --sans: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -2345,7 +2363,10 @@ html, body {
 
 @media (hover: hover) {
   .boton--diario:hover { background: var(--tinta); border-color: var(--tinta); color: #ffffff; }
-  .boton--diario-principal:hover { background: #a93123; border-color: #a93123; }
+  .boton--diario-principal:hover {
+    background: var(--rojo-pulsado);
+    border-color: var(--rojo-pulsado);
+  }
 }
 
 .diario__nota {
@@ -2730,7 +2751,7 @@ html, body {
 .contraversion__titular {
   font-family: var(--serif);
   font-weight: 700;
-  font-size: 1.02rem;
+  font-size: var(--t-cuerpo-2);   /* daba 16,32: un escalón inventado */
   line-height: 1.25;
   color: #ffffff;
   margin-bottom: 5px;
@@ -2738,7 +2759,7 @@ html, body {
 
 .contraversion__bajada {
   font-family: var(--serif);
-  font-size: 0.86rem;
+  font-size: var(--t-pie);        /* daba 13,76 */
   line-height: 1.45;
   color: rgba(255, 255, 255, 0.72);
 }
@@ -2753,7 +2774,7 @@ html, body {
   font-size: var(--t-micro);
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: #ffb3a6;
+  color: var(--rojo-en-tinta);
 }
 
 /* El caso al que pertenece la página. Va debajo del nombre y en dos piezas:
@@ -4317,7 +4338,7 @@ html, body {
 .plana .edicion__sello,
 .plana .edicion__nota { color: var(--tinta-tenue); }
 .plana .edicion__punto { background: var(--tinta-tenue); }
-.plana .edicion--listo .edicion__punto { background: #2f6b3a; box-shadow: none; }
+.plana .edicion--listo .edicion__punto { background: var(--verde-listo); box-shadow: none; }
 .plana .edicion--listo .edicion__estado { color: var(--verde-senal); }
 .plana .edicion--nueva { background: rgba(163, 35, 31, 0.07); border-color: var(--rojo-diario); }
 .plana .edicion--nueva .edicion__punto { background: var(--rojo-diario); box-shadow: none; }
