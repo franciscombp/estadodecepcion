@@ -52,7 +52,7 @@ import { CATALOGO_POTENCIADORES } from '../config/balance.js';
 import { PERSONAJES } from '../config/personajes.js';
 import { Controles } from '../utils/controls.js';
 import { curvarEscena } from '../utils/curvatura.js';
-import { pulsarPeligro } from '../models/props.js';
+import { pulsarPeligro, ajustarHaloEvidencia } from '../models/props.js';
 import { remateCaptura, remateExhausto, citaVerificada } from '../config/textos.js';
 import {
   VELOCIDAD, TRAMO, CAMARA, JUGADOR, CARRILES, CERCO, EVIDENCIA,
@@ -308,6 +308,13 @@ export class Game {
     // Las chispas cuelgan de la RAÍZ de la escena, no del grupo del escenario:
     // ese grupo se destruye entero al cambiar de temporada y se llevaría por
     // delante el pozo. Aquí sobreviven a los cambios de escena.
+    // El halo de los papeles se decide AQUÍ y no en props.js, porque tiene que
+    // estar puesto antes de que se cree la primera pieza: `crearEvidencia`
+    // añade el sprite al construir la malla, y el pool no vuelve a pasar por
+    // ahí. Va junto a las partículas porque es la misma decisión —cuánto se
+    // puede permitir este aparato— tomada en el mismo sitio.
+    ajustarHaloEvidencia(this.calidad.halosEvidencia !== false);
+
     this.particulas = new Particulas(
       this.escenaThree,
       this.calidad.particulas ? (this.calidad.pozoParticulas ?? 320) : 0,

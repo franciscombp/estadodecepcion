@@ -168,6 +168,10 @@ export const CALIDAD = {
     decoradosPorLado: 16,
     sombrasNeon: true,
     particulas: true,
+    // El halo de cada papel. Es un sprite más por pieza y hay hasta 340 en
+    // pista —520 en el reguero del trámite—, así que en gama baja se apaga:
+    // la moneda sigue leyéndose por su tamaño y su canto.
+    halosEvidencia: true,
     // Tamaño del pozo de chispas. Es una sola llamada de dibujo pase lo que
     // pase, así que lo que se paga aquí es el recorrido por CPU de un array
     // plano por fotograma: barato, pero no gratis en un móvil de gama baja.
@@ -179,6 +183,7 @@ export const CALIDAD = {
     decoradosPorLado: 12,
     sombrasNeon: false,
     particulas: true,
+    halosEvidencia: true,
     pozoParticulas: 220,
   },
   baja: {
@@ -187,6 +192,7 @@ export const CALIDAD = {
     decoradosPorLado: 8,
     sombrasNeon: false,
     particulas: false,
+    halosEvidencia: false,
     pozoParticulas: 0,
   },
 };
