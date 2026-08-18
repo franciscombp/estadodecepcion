@@ -4178,7 +4178,14 @@ html, body {
   width: 100%;
   max-width: 480px;
   height: clamp(180px, 46vw, 232px);
-  margin: 20px auto;
+  /* EL BOMBO SE CENTRA EN EL HUECO QUE LE QUEDA.
+     Con la altura ya domada, la página del sorteo se quedaba con el bombo
+     pegado a la bajada y trescientos píxeles de papel en blanco antes del
+     botón. `margin: auto` en un hijo de una columna flexible reparte el hueco
+     libre por arriba y por abajo, así que el bombo queda a media página —que
+     es donde está el bombo de una tómbola— y la caja del veredicto aparece
+     debajo de él sin mover nada de sitio cuando para. */
+  margin: auto;
   overflow: hidden;
   border-radius: 0;
   background: var(--papel-blanco);
