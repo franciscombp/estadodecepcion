@@ -63,7 +63,12 @@ export const PAGINAS = [
     // página, que es lo que cierra el círculo del juego —corres, recoges,
     // publicas—.
     caso: 'bahia',
-    costo: 0, // Se abre sola al terminar la primera partida.
+    // DOS PRUEBAS, como las demás páginas de caso. Sin esto la página pedía
+    // cero y el Archivo escribía «0 de 0 pruebas · ya tienes con qué», que es
+    // una casilla que se marca sola: el jugador ve un objetivo cumplido sin
+    // haber hecho nada y deja de fiarse del resto de la cuenta.
+    pruebas: 2,
+    costo: 0,
     articulos: [
       {
         id: 'a01',

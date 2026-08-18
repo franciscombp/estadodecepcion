@@ -301,7 +301,7 @@ export const GUION = {
       largo: true,
     },
     comoAbrir: {
-      t: 'Las pruebas están en la calle: USB, videos, chats, actas. Recógelas aunque te capturen; lo recogido se queda.',
+      t: 'Cada caso tiene sus propias pruebas y solo salen en su barrio. Recógelas aunque te capturen: lo recogido se queda.',
       ayuda: 'Cómo se abren las páginas.',
       largo: true,
     },

@@ -2464,6 +2464,26 @@ html, body {
 
 .pagina-cerrada__temas li::before { content: '— '; color: var(--tinta-tenue); }
 
+/* El caso al que pertenece la página. Va debajo del nombre y en dos piezas:
+   el caso en rojo —es lo accionable— y el barrio en tinta apagada, que es
+   dónde hay que ir a buscarlo. */
+.pagina-cerrada__caso {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--sans);
+  font-size: var(--t-pie);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.pagina-cerrada__caso-nombre { color: var(--rojo-diario); }
+
+.pagina-cerrada__caso-lugar {
+  font-weight: 500;
+  color: var(--tinta-tenue);
+}
+
 .pagina-cerrada__precio {
   font-family: var(--sans);
   font-size: var(--t-cuerpo);

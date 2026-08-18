@@ -1882,6 +1882,24 @@ export class Pantallas {
     cerrada.appendChild(el('div', 'pagina-cerrada__sello', T('archivo.sinRecuperar')));
     cerrada.appendChild(el('h3', 'pagina-cerrada__titulo', pagina.nombre));
 
+    // DE QUÉ CASO SALE ESTA PÁGINA.
+    //
+    // Faltaba, y era justo lo que convierte el Archivo en un objetivo: la
+    // página decía «2 de 4 pruebas» sin decir de qué, así que el jugador sabía
+    // que le faltaban dos y no dónde ir a buscarlas. Con el caso delante, el
+    // Archivo deja de ser un marcador y pasa a ser una lista de tareas: te
+    // faltan dos del Caso Porsche, o sea vuelve a la Bahía.
+    if (pagina.caso) {
+      const esc = ESCENARIOS[pagina.caso];
+      if (esc) {
+        const donde = el('div', 'pagina-cerrada__caso');
+        donde.appendChild(el('span', 'pagina-cerrada__caso-nombre',
+          cajaDeTitular(esc.caso)));
+        donde.appendChild(el('span', 'pagina-cerrada__caso-lugar', esc.nombre));
+        cerrada.appendChild(donde);
+      }
+    }
+
     const temas = el('ul', 'pagina-cerrada__temas');
     for (const art of pagina.articulos) {
       temas.appendChild(el('li', '', art.tema));
