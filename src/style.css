@@ -4794,6 +4794,16 @@ html, body {
   height: auto;
 }
 
+/* Y LA PIEZA SE CENTRA. Sin esto no lo hacía: `.pruebas__pieza` es un
+   `<button>`, y un botón se encoge hasta el tamaño de lo que lleva dentro aun
+   siendo `display: flex`. Medido: 176 px de pieza dentro de un tablero de 354,
+   pegada al borde izquierdo, con la mitad derecha de la caja vacía. El nombre
+   de la prueba y el «mañana sale en EL VOCERO» quedaban descolgados a un lado
+   de una página que en todo lo demás está centrada. */
+.pruebas__mesa--detalle .pruebas__pieza {
+  width: 100%;
+}
+
 .pruebas__pieza {
   min-width: 0;
   display: flex;
