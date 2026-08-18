@@ -43,28 +43,52 @@ import { crearPersonajeGLB, animarCarreraGLB, poseMontadoGLB } from './personaje
 export const PROPORCION = {
   ALTURA: 1.70,
 
+  // ── ACHAPARRADO, como los corredores del género ────────────────────────
+  // Estas medidas salían del modelo original y eran las de una persona: siete
+  // cabezas y media, cuello, brazos largos. A la escala a la que se ve el
+  // personaje —un dieciochoavo de la pantalla, de espaldas y en movimiento— una
+  // figura realista es un palo con una bola encima. Lo que se lee a ese tamaño
+  // es la SILUETA, y por eso los corredores de este género son cabezones y
+  // rechonchos: contorno reconocible incluso a veinte píxeles de alto.
+  //
+  // La altura total sigue siendo 1.70 y las cajas de colisión no se tocan: lo
+  // que cambia es CÓMO se reparte. Las piernas pierden catorce centímetros y
+  // los recupera la cabeza, así que el personaje pasa de siete cabezas y media
+  // a poco menos de seis.
+  //
+  // Es la misma receta que se hornea en el esqueleto del modelo importado (ver
+  // CORPULENCIA en models/personajeGLB.js). Los dos caminos tienen que dar la
+  // misma silueta o el repuesto se nota en cuanto entra.
+
   // El cráneo, sin sombrero. En el modelo original el hueso de la cabeza
   // llegaba a 1.70 y medía 0.68 de ancho, pero eso era el ALA DEL SOMBRERO
   // metida dentro del hueso: el cráneo de verdad acaba en 1.60, y de 1.56 a
   // 1.70 va el sombrero. Confundir las dos cosas daba un cabezón cúbico con
   // una gorrita encima.
-  CABEZA: { ancho: 0.42, alto: 0.34, fondo: 0.40, y: 1.43 },   // 1.26 → 1.60
-  CUELLO: { ancho: 0.16, alto: 0.10, fondo: 0.16, y: 1.235 },
-  TORSO:  { ancho: 0.44, alto: 0.44, fondo: 0.32, y: 1.02 },   // 0.80 → 1.24
-  CADERA: { ancho: 0.42, alto: 0.20, fondo: 0.31, y: 0.80 },   // 0.70 → 0.90
+  CABEZA: { ancho: 0.53, alto: 0.43, fondo: 0.50, y: 1.435 },  // 1.22 → 1.65
+
+  // SIN CUELLO. Es la pieza que más delata a un modelo realista: en cuanto la
+  // cabeza crece, diez centímetros de cuello la dejan flotando como un globo
+  // atado. Tres centímetros la apoyan en los hombros.
+  CUELLO: { ancho: 0.19, alto: 0.03, fondo: 0.19, y: 1.205 },  // 1.19 → 1.22
+  TORSO:  { ancho: 0.55, alto: 0.42, fondo: 0.40, y: 0.98 },   // 0.77 → 1.19
+  CADERA: { ancho: 0.53, alto: 0.22, fondo: 0.39, y: 0.66 },   // 0.55 → 0.77
 
   // Hombro: pivote del brazo. El codo cuelga a BRAZO del hombro, y la muñeca
-  // a ANTEBRAZO del codo.
-  HOMBRO:    { y: 1.17, x: 0.245 },
-  BRAZO:     { largo: 0.24, grueso: 0.145 },
-  ANTEBRAZO: { largo: 0.23, grueso: 0.125 },
-  MANO:      { radio: 0.085 },
+  // a ANTEBRAZO del codo. Brazos cortos y gruesos, y manos de manopla: a esta
+  // escala son lo que hace que se lea el braceo.
+  HOMBRO:    { y: 1.13, x: 0.275 },
+  BRAZO:     { largo: 0.20, grueso: 0.195 },
+  ANTEBRAZO: { largo: 0.19, grueso: 0.163 },
+  MANO:      { radio: 0.132 },
 
   // Ingle: pivote de la pierna. Rodilla a MUSLO, tobillo a PANTORRILLA.
-  INGLE:       { y: 0.80, x: 0.12 },
-  MUSLO:       { largo: 0.34, grueso: 0.18 },
-  PANTORRILLA: { largo: 0.38, grueso: 0.15 },
-  PIE:         { ancho: 0.17, alto: 0.08, fondo: 0.26 },
+  // Acortar las piernas es lo que baja el centro de gravedad y da el aire
+  // achaparrado; engrosarlas es lo que evita que parezcan un taburete.
+  INGLE:       { y: 0.66, x: 0.15 },
+  MUSLO:       { largo: 0.27, grueso: 0.256 },
+  PANTORRILLA: { largo: 0.31, grueso: 0.20 },
+  PIE:         { ancho: 0.24, alto: 0.084, fondo: 0.27 },
 
   // EL LIMBO. Agacharse es doblar las rodillas y echar el tronco atrás, así
   // que hay dos cosas que colocar: cuánto se inclina el cuerpo entero —sobre
@@ -72,15 +96,19 @@ export const PROPORCION = {
   // queda cada pieza. Sin bajar las piezas, el personaje se dobla hacia atrás
   // por la cintura y se queda igual de alto, que es justo lo que no vale bajo
   // un pórtico.
+  //
+  // Las alturas van a la MISMA fracción de su altura de pie que antes: si se
+  // dejaran las de antes, con las piernas ya cortas el agachado quedaría más
+  // alto que el de pie.
   LIMBO: {
     inclinacion: 1.0,
     tobillo: 0.08,
-    cabeza: { y: 1.02, z: -0.06 },
-    cuello: { y: 0.94, z: -0.04 },
-    torso:  { y: 0.80, z: 0.0 },
-    cadera: { y: 0.62, z: 0.06 },
-    hombro: { y: 0.90, z: -0.02 },
-    ingle:  { y: 0.62, z: 0.06 },
+    cabeza: { y: 1.023, z: -0.06 },
+    cuello: { y: 0.917, z: -0.04 },
+    torso:  { y: 0.768, z: 0.0 },
+    cadera: { y: 0.512, z: 0.06 },
+    hombro: { y: 0.869, z: -0.02 },
+    ingle:  { y: 0.512, z: 0.06 },
   },
 };
 

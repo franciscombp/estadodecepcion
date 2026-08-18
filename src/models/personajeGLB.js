@@ -687,6 +687,193 @@ function ponerMinistro(huesos, modelo) {
 // CARGA
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// CORPULENCIA — el achaparrado de los runners
+// ---------------------------------------------------------------------------
+// El modelo viene con proporciones de persona: siete cabezas y media, cuello,
+// brazos largos. Los corredores de este género no son así, y no por descuido:
+// son cabezones y rechonchos —tres cabezas y media, sin cuello, miembros
+// cortos y gruesos, manos y pies grandes— porque a la escala a la que se ven,
+// con el personaje ocupando un dieciochoavo de la pantalla y de espaldas, lo
+// único que se lee es la SILUETA. Una figura realista a ese tamaño es un palo
+// con una bola encima; una achaparrada tiene contorno reconocible incluso a
+// veinte píxeles de alto.
+//
+// CÓMO SE APLICA, que es la parte que tiene truco. El clip de carrera del
+// archivo anima posición, rotación Y ESCALA de los veinticuatro huesos, así
+// que cualquier cambio escrito en el esqueleto lo pisa el mezclador en el
+// siguiente fotograma. Así que la corpulencia se HORNEA: se reescriben las
+// pistas del clip una vez al cargar, y de paso el esqueleto en reposo. A
+// partir de ahí no cuesta nada por fotograma y lo heredan todas las poses
+// escritas a mano —salto, limbo, entrevista— sin tener que tocarlas.
+//
+// EL EJE LARGO DE CADA HUESO ES SU +Y: en este esqueleto todos los hijos
+// cuelgan en (0, N, 0) del padre. Eso permite separar limpiamente GRUESO de
+// LARGO, que es justo lo que hace falta para engordar sin estirar.
+//
+// Las escalas son ABSOLUTAS (respecto al personaje, no al padre) y uniformes.
+// Uniformes a propósito: una escala no uniforme en un padre CIZALLA la malla
+// del hijo en cuanto el hijo rota, y estos huesos rotan todo el rato. El
+// acortamiento no se hace aplastando el hueso, sino acercando al hijo.
+const CORPULENCIA = {
+  // hueso: [escala absoluta, largo del segmento que sale de él]
+  Hips: [1.0, 1.0],
+
+  // El tronco: más ancho y algo más corto. Los tres Spine se reparten el
+  // ensanchado para que no haya un escalón entre la cintura y el pecho.
+  Spine02: [1.20, 0.94],
+  Spine01: [1.26, 0.94],
+  Spine: [1.26, 0.90],
+
+  // SIN CUELLO. Es la pieza que más delata a un modelo realista: en cuanto la
+  // cabeza crece, seis centímetros de cuello la dejan flotando como un globo
+  // atado. Al 30 % la cabeza se apoya en los hombros.
+  neck: [1.0, 0.30],
+
+  // LA CABEZA, que es el cambio que más se nota de los diez, y el que hay que
+  // frenar antes de tiempo. La referencia va a tres cabezas y media, pero aquí
+  // el sombrero de paja está cosido a este hueso y crece con él: a 1.45 el ala
+  // era más ancha que los hombros y tapaba el torso entero visto de espaldas,
+  // que es como se ve el 95 % de la partida. A 1.26 el personaje pasa de siete
+  // cabezas y media a poco menos de seis, se lee claramente cabezón, y el ala
+  // sigue dejando ver la mochila y el braceo.
+  Head: [1.26, 1.0],
+
+  // Brazos: cortos y gruesos. El hombro se ensancha primero para que el brazo
+  // no salga de un torso más estrecho que él.
+  // El hombro se ensancha pero NO se separa del tronco: alejar el nacimiento
+  // del brazo estira la manga y deja un triángulo de tela colgando entre el
+  // costado y el bíceps. Ancho sí, envergadura no.
+  LeftShoulder: [1.30, 1.0],
+  RightShoulder: [1.30, 1.0],
+  LeftArm: [1.34, 0.84],
+  RightArm: [1.34, 0.84],
+  LeftForeArm: [1.30, 0.84],
+  RightForeArm: [1.30, 0.84],
+  // Manos grandes: en las siluetas del género son casi manoplas, y a esta
+  // escala son lo que hace que se lea el braceo.
+  LeftHand: [1.55, 1.0],
+  RightHand: [1.55, 1.0],
+
+  // Piernas: lo mismo, un poco más marcado. Acortarlas es lo que baja el
+  // centro de gravedad y da el aire achaparrado.
+  LeftUpLeg: [1.42, 0.80],
+  RightUpLeg: [1.42, 0.80],
+  LeftLeg: [1.34, 0.82],
+  RightLeg: [1.34, 0.82],
+  LeftFoot: [1.40, 1.05],
+  RightFoot: [1.40, 1.05],
+  LeftToeBase: [1.40, 1.0],
+  RightToeBase: [1.40, 1.0],
+};
+
+/** La escala absoluta que le toca a un hueso, con 1 por defecto. */
+function escalaDe(nombre) {
+  return CORPULENCIA[nombre]?.[0] ?? 1;
+}
+
+/**
+ * El factor local de un hueso: lo que hay que escribir en `scale` para que su
+ * escala ABSOLUTA salga la de la tabla, contando lo que ya hereda del padre.
+ */
+function factorLocal(nodo) {
+  const padre = nodo.parent?.isBone ? escalaDe(nodo.parent.name) : 1;
+  return escalaDe(nodo.name) / padre;
+}
+
+/**
+ * El factor de posición de un hueso. Un hijo situado en `p` acaba a `p * Ap`
+ * del padre, donde `Ap` es la escala absoluta del padre; para que el segmento
+ * mida `L` veces lo que medía, hay que escribir `p * L / Ap`.
+ *
+ * El largo lo manda el PADRE, porque el segmento es la distancia del padre al
+ * hijo: acortar el muslo es acercar la rodilla a la cadera.
+ */
+function factorPosicion(nodo) {
+  if (!nodo.parent?.isBone) return 1;      // la raíz lleva el movimiento
+  const padre = nodo.parent.name;
+  return (CORPULENCIA[padre]?.[1] ?? 1) / escalaDe(padre);
+}
+
+/**
+ * Aplica la corpulencia a los huesos, para la pose de reposo, y DEVUELVE
+ * cuánto hay que bajar la cadera para que los pies vuelvan al suelo.
+ *
+ * Acortar las piernas sin bajar la cadera deja al personaje FLOTANDO: la
+ * cadera sigue a la altura de siempre y el pie ya no llega. Con estos factores
+ * son trece centímetros, o sea el personaje corriendo por el aire un palmo por
+ * encima del asfalto, y eso a esta escala se ve enseguida aunque no se sepa
+ * decir qué falla.
+ *
+ * La bajada NO se calcula a mano: se mide el pie antes y después, y se resuelve
+ * cuánto vale una unidad local de cadera moviéndola una y volviendo a medir.
+ * Así sigue saliendo bien aunque mañana se cambien los factores de la tabla.
+ */
+function engordarEsqueleto(raiz) {
+  const punto = new THREE.Vector3();
+  const dedo = [];
+  raiz.traverse((o) => { if (o.isBone && /ToeBase|Foot/.test(o.name)) dedo.push(o); });
+  const suelo = () => {
+    raiz.updateWorldMatrix(true, true);
+    return Math.min(...dedo.map((o) => o.getWorldPosition(punto).y));
+  };
+
+  const antes = dedo.length ? suelo() : null;
+
+  raiz.traverse((o) => {
+    if (!o.isBone) return;
+    o.scale.multiplyScalar(factorLocal(o));
+    o.position.multiplyScalar(factorPosicion(o));
+  });
+
+  if (antes === null) return 0;
+
+  // Cuánto sube el pie por unidad local de cadera.
+  const conCero = suelo();
+  raiz.position.y += 1;
+  const conUna = suelo();
+  raiz.position.y -= 1;
+  const porUnidad = conUna - conCero;
+  if (!Number.isFinite(porUnidad) || Math.abs(porUnidad) < 1e-9) return 0;
+
+  const bajada = (antes - conCero) / porUnidad;
+  raiz.position.y += bajada;
+  return bajada;
+}
+
+/**
+ * Y a las pistas del clip, que es lo que de verdad manda mientras se corre.
+ *
+ * Se reescriben los valores en sitio. El clip es de este personaje y de nadie
+ * más —cada uno reinterpreta el archivo por su cuenta, ver `cargarUno`— así
+ * que no hay riesgo de engordar a otro dos veces.
+ */
+function engordarClip(clip, huesosPorNombre, bajadaCadera = 0) {
+  for (const pista of clip.tracks) {
+    const nombre = pista.name.split('.')[0].replace(/^.*\//, '');
+    const tipo = pista.name.split('.').pop();
+    const nodo = huesosPorNombre.get(nombre);
+    if (!nodo) continue;
+
+    const f = tipo === 'scale' ? factorLocal(nodo)
+      : tipo === 'position' ? factorPosicion(nodo)
+        : 0;
+    // La cadera lleva el movimiento del clip, así que su posición no se escala
+    // —eso movería la zancada entera— pero sí hay que BAJARLA lo mismo que se
+    // bajó en reposo, o el mezclador devuelve al personaje al aire en el primer
+    // fotograma. Solo la componente Y, que en estas pistas va en el índice 1
+    // de cada terna.
+    if (tipo === 'position' && !nodo.parent?.isBone && bajadaCadera) {
+      for (let i = 1; i < pista.values.length; i += 3) pista.values[i] += bajadaCadera;
+      continue;
+    }
+
+    if (!f || f === 1) continue;
+
+    for (let i = 0; i < pista.values.length; i++) pista.values[i] *= f;
+  }
+}
+
 const cargados = new Map();
 // La geometría ORIGINAL (indexada, sin pintar) de cada modelo. Solo la usa
 // `__islas()`, que es como se miden las reglas de clasificación.
@@ -739,6 +926,15 @@ async function cargarUno(id, base) {
   // Se ve de espaldas y a contraluz media partida: sin esto, cualquier giro
   // de cámara que lo pille de lado enseña el interior de la malla.
   piel.frustumCulled = false;
+
+  // LA CORPULENCIA, horneada aquí y una sola vez. Va después de pintar —no
+  // toca los colores— y antes de guardar, para que todas las copias salgan ya
+  // rechonchas y ninguna pose escrita a mano tenga que enterarse.
+  const porNombre = new Map();
+  escena.traverse((o) => { if (o.isBone) porNombre.set(o.name, o); });
+  const raizHueso = piel.skeleton.bones.find((b) => !b.parent?.isBone);
+  const bajada = raizHueso ? engordarEsqueleto(raizHueso) : 0;
+  for (const clip of gltf.animations) engordarClip(clip, porNombre, bajada);
 
   cargados.set(id, { escena, clips: gltf.animations, paleta, accesorios: ficha.accesorios });
   return true;
