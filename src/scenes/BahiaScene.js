@@ -98,7 +98,12 @@ export class BahiaScene extends BaseScene {
     this.papelesVolando = [];
 
     const geometria = new THREE.PlaneGeometry(0.5, 0.65);
-    const material = new THREE.MeshBasicMaterial({
+    // `matPapel` y no `material`: este módulo importa ahora una función que se
+    // llama `material()` —la del acabado de la casa— y una variable local con
+    // ese nombre la tapa dentro del método. Aquí no rompía nada porque no se
+    // usan las dos juntas, pero la que sí lo hacía se llevó por delante el
+    // bucle de animación entero con un «Cannot access before initialization».
+    const matPapel = new THREE.MeshBasicMaterial({
       color: 0xf0e6c8,
       side: THREE.DoubleSide,
       transparent: true,
@@ -106,7 +111,7 @@ export class BahiaScene extends BaseScene {
     });
 
     for (let i = 0; i < 12; i++) {
-      const papel = new THREE.Mesh(geometria, material);
+      const papel = new THREE.Mesh(geometria, matPapel);
       // Por DEBAJO de la clave de la bóveda: ahora hay techo, y unas hojas
       // volando por encima de él serían hojas volando fuera del edificio.
       papel.position.set(

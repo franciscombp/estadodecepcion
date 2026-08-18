@@ -1994,10 +1994,10 @@ function _cajonesBahia(g, rnd, cuantos) {
     const pila = 1 + Math.floor(rnd() * 3);
     const lado = 0.34 + rnd() * 0.16;
     for (let n = 0; n < pila; n++) {
-      const caja = _caja(lado, lado * 0.72, lado * 0.9, matCarton,
+      const bulto = _caja(lado, lado * 0.72, lado * 0.9, matCarton,
         x, LOCAL.PISO + lado * 0.36 + n * lado * 0.72, z);
-      caja.rotation.y = (rnd() - 0.5) * 0.5;
-      g.add(caja);
+      bulto.rotation.y = (rnd() - 0.5) * 0.5;
+      g.add(bulto);
     }
     // Un saco encima de algunas pilas: la silueta redondeada rompe la
     // cuadrícula de cajas, que si no se lee como almacén de cubos.
@@ -3537,12 +3537,12 @@ function _contenedoresBajoTarima(g, largo, ancho, alto) {
 
   for (let i = 0; i < cuantos; i++) {
     const z = -i * paso - paso / 2;
-    const caja = new THREE.Mesh(
+    const contenedor = new THREE.Mesh(
       caja(ancho * 0.96, alto * 0.94, paso * 0.96),
       mat(COLORES[i % COLORES.length], 0.05, 0.92),
     );
-    caja.position.set(0, alto * 0.47, z);
-    g.add(caja);
+    contenedor.position.set(0, alto * 0.47, z);
+    g.add(contenedor);
 
     // Corrugado: cuatro nervios verticales por costado. Es la firma de un
     // contenedor y sale casi gratis.

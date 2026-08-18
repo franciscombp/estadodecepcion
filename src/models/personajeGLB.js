@@ -51,6 +51,7 @@
 import * as THREE from 'three';
 import { material } from '../utils/materiales.js';
 import { caja as cajaBiselada } from '../utils/geometria.js';
+import { colgar, menear, descolgar } from '../utils/meneo.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as clonarConEsqueleto } from 'three/examples/jsm/utils/SkeletonUtils.js';
 
@@ -993,6 +994,17 @@ export function crearPersonajeGLB(id) {
   // un dedal.)
   const esqueleto = armarEsqueleto(cuerpo);
 
+  // SE SUELTA LO COLGADO ANTES DE COLGAR NADA NUEVO.
+  //
+  // El registro de meneo es global —una lista que se recorre entera cada
+  // fotograma— y aquí se construye un personaje cada vez que se cambia de
+  // protagonista en Ajustes, se previsualiza uno, o arranca una partida. Sin
+  // esto, la lista crece a cada cambio y el juego se pasa el rato meneando los
+  // huesos de personajes que ya no existen: primero cuesta rendimiento y
+  // luego, cuando el recolector no puede llevárselos porque la lista los
+  // retiene, es una fuga de memoria en toda regla.
+  descolgar();
+
   // LOS ACCESORIOS SE CUELGAN DE ESTA COPIA, no de la plantilla, y el orden
   // importa: van después de fichar el esqueleto —para que se coloquen contra
   // la pose de reposo— y antes de que el mezclador toque nada.
@@ -1014,6 +1026,37 @@ export function crearPersonajeGLB(id) {
 
   grupo.userData.glb = { mezclador, correr, cuerpo, ...esqueleto };
   grupo.userData.nombre = id;
+
+  // --- LO QUE SE MUEVE DESPUÉS DEL CUERPO ----------------------------------
+  //
+  // El sombrero de paja y la mochila del tostadólogo NO se pueden colgar: van
+  // dentro de la malla con piel del modelo, cosidos a los huesos, y separarlos
+  // sería partir la geometría en dos. Lo que sí se puede es menear los HUESOS
+  // de los que cuelgan, y el efecto que se ve en pantalla es el mismo: al
+  // cambiar de carril la cabeza —con su sombrero— se queda un pelo atrás y
+  // vuelve rebasando, que es justo lo que hace un sombrero.
+  //
+  // Solo dos huesos, y a propósito. La cabeza lleva el meneo largo, que es el
+  // que se lee; el tronco uno mucho más corto y tieso, para que el torso
+  // acompañe sin que el personaje parezca de goma. Meter también los brazos
+  // convertía la carrera en un baile.
+  const cabeza = esqueleto.huesos?.get('Head')?.nodo;
+  const tronco = esqueleto.huesos?.get('Spine01')?.nodo
+    ?? esqueleto.huesos?.get('Spine')?.nodo;
+  if (cabeza) {
+    colgar(cabeza, {
+      sobreAnimacion: true,
+      rigidez: 78, amortiguacion: 9.5, sensibilidad: 0.05, tope: 0.3,
+    });
+  }
+  if (tronco) {
+    colgar(tronco, {
+      sobreAnimacion: true,
+      // Más rígido y menos sensible: el torso responde, pero no se dobla.
+      rigidez: 150, amortiguacion: 15, sensibilidad: 0.018, tope: 0.12,
+    });
+  }
+
   return grupo;
 }
 
@@ -1163,6 +1206,13 @@ export function animarCarreraGLB(modelo, dt, velocidad = 20) {
   const g = modelo.userData.glb;
   if (!g) return;
   g.mezclador.update(dt * (0.62 + velocidad / 46));
+  // EL MENEO VA DESPUÉS DEL MEZCLADOR, siempre.
+  //
+  // El mezclador reescribe la rotación de todos los huesos que el clip toca,
+  // cada fotograma y sin preguntar. Cualquier cosa que se le sume antes se
+  // pierde entera. Llamando aquí —justo detrás— la cabeza y el tronco parten
+  // de la zancada que acaba de escribir el clip y le añaden el retraso.
+  menear(dt);
 }
 
 /**
