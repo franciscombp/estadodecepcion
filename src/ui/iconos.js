@@ -223,17 +223,41 @@ export const foto = (t) => svg(`
 /** Icono de evidencia según su nombre. Reparte por palabras clave. */
 export function iconoPrueba(nombre, tamano = 24) {
   const n = (nombre ?? '').toLowerCase();
-  if (n.includes('usb') || n.includes('contrato') || n.includes('factura') || n.includes('nómina')) {
-    return usb(tamano);
+
+  // POR PALABRA CLAVE, y en este orden: el dossier de la redacción nombra cada
+  // pista por el DOCUMENTO que es —«Video del Nissan huyendo», «Auditoría de
+  // Contraloría», «Sentencia del caso Malvinas»— así que el icono se saca de
+  // ahí y no de una tabla paralela que habría que mantener a mano cada vez que
+  // el equipo añade una pista a un expediente.
+  //
+  // Lo primero que se mira es lo más específico. «Video de la disculpa
+  // pública» lleva «video» y «pública»: si la regla de publicación fuera
+  // antes, saldría un móvil donde tiene que salir una cámara.
+  if (n.includes('video') || n.includes('vigilancia') || n.includes('foto')
+      || n.includes('cámara')) {
+    return foto(tamano);
   }
-  if (n.includes('chat') || n.includes('audio') || n.includes('grupo')) {
+  if (n.includes('publicación') || n.includes('post') || n.includes('redes')
+      || n.includes('captura de pantalla')) {
     return chat(tamano);
   }
-  if (n.includes('video') || n.includes('vigilancia') || n.includes('foto')) {
-    return foto(tamano);
+  if (n.includes('sentencia') || n.includes('resolución') || n.includes('decreto')
+      || n.includes('acta') || n.includes('orden') || n.includes('allanamiento')) {
+    return sello(tamano);
+  }
+  if (n.includes('chat') || n.includes('audio') || n.includes('grupo')
+      || n.includes('declaracion') || n.includes('entrevista')
+      || n.includes('testimonio') || n.includes('denuncia')) {
+    return chat(tamano);
+  }
+  if (n.includes('usb') || n.includes('contrato') || n.includes('factura')
+      || n.includes('nómina') || n.includes('planilla') || n.includes('registro')
+      || n.includes('millones')) {
+    return usb(tamano);
   }
   return papeles(tamano);
 }
+
 
 // ---------------------------------------------------------------------------
 // CONTROLES E INTERFAZ

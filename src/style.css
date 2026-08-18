@@ -4656,6 +4656,36 @@ html, body {
   color: var(--tinta);
 }
 
+/* El sumario del caso: dos o tres líneas que dicen QUÉ pasó. Sin esto la
+   rejilla es un álbum de cromos —nueve casillas y un contador— y lo que
+   sostiene este juego es justamente que cada casilla es un documento de un
+   caso real. Va en el cuerpo pequeño del diario y en tinta media: se lee si
+   se quiere, no se impone sobre el titular. */
+.pruebas__sumario {
+  font-family: var(--serif);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--tinta-tenue);
+}
+
+/* La marca de las pistas que solo están en redes. Roja y en versalitas, como
+   una nota al margen del corrector: no es un error, es una advertencia. */
+.pruebas__marca {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--rojo-diario);
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  padding: 1px 5px;
+}
+
+/* Y en la rejilla, donde no cabe el rótulo, la casilla va apagada y con el
+   filete punteado: se ve que está, y se ve que no está cerrada. */
+.pruebas__pieza--sin-confirmar .pruebas__cara { opacity: 0.72; }
+
 .pruebas__filete {
   height: 1px;
   border-bottom: 1px solid var(--papel-sombra);

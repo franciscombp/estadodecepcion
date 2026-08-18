@@ -57,6 +57,12 @@ export const PAGINAS = [
     numero: 1,
     nombre: 'Portada',
     seccion: 'Primera plana',
+    // LA PORTADA ES EL CASO PORSCHE. Era la única página sin `caso`, así que
+    // las pistas de la Bahía no tenían dónde publicarse: se recogían, se
+    // guardaban y no abrían nada. Ahora los cuatro escenarios tienen su
+    // página, que es lo que cierra el círculo del juego —corres, recoges,
+    // publicas—.
+    caso: 'bahia',
     costo: 0, // Se abre sola al terminar la primera partida.
     articulos: [
       {

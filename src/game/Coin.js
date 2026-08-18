@@ -444,7 +444,15 @@ export class CoinManager {
   aplicarTema(escenario) {
     this.densidad = escenario.densidadEvidencia ?? 1.0;
     this.maximoPorTramo = escenario.maximoEvidenciaPorTramo ?? Infinity;
-    this.tiposPrueba = escenario.evidencia ?? ['Documento'];
+    // LAS DE REDES ENTRAN AL SORTEO IGUAL QUE LAS DEMÁS. Si solo se sortearan
+    // las que tienen documento, su casilla del expediente no se llenaría
+    // nunca: sería un hueco permanente que el jugador leería como un fallo, no
+    // como «esta pista existe pero no está probada». Se recogen igual; lo que
+    // cambia es que no cuentan para publicar (ver Notebook.sinConfirmar).
+    this.tiposPrueba = [
+      ...(escenario.evidencia ?? ['Documento']),
+      ...(escenario.pistasSinConfirmar ?? []),
+    ];
     // Material plantado. Solo lo tienen los escenarios tardíos: ver
     // config/escenarios.js, donde está explicado por qué no aparece antes.
     this.tiposFalsos = escenario.pruebasFalsas ?? [];

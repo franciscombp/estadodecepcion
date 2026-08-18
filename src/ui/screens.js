@@ -1346,6 +1346,13 @@ export class Pantallas {
       T('botin.caso', { caso: esc.caso.replace(/^caso\s+/i, '') })));
     encabezado.appendChild(el('h1', 'pruebas__estado',
       buenas > 0 ? T('botin.estadoAbierto') : T('botin.estadoVacio')));
+
+    // La línea del expediente: lo que el caso ES, en la voz del dossier. Va
+    // debajo del estado porque es lo que explica por qué recoger esto importa;
+    // sin ella, la rejilla es un marcador de cromos.
+    if (esc.expediente) {
+      encabezado.appendChild(el('p', 'pruebas__sumario', esc.expediente.escena));
+    }
     hoja.appendChild(encabezado);
     hoja.appendChild(el('div', 'pruebas__filete'));
 
@@ -1377,7 +1384,12 @@ export class Pantallas {
     // SE LLENA CON TODO LO QUE TENGAS DE ESTE CASO, no solo con lo de esta
     // corrida: el expediente se arma entre partidas, que es de lo que va. Lo
     // recogido AHORA es lo que cae con animación; lo de antes ya está puesto.
-    const delCaso = esc.evidencia ?? [];
+    // Las casillas del expediente: primero las pistas con documento detrás y
+    // luego las que solo están en redes, que ocupan su sitio igual —existen—
+    // pero van marcadas, porque con una captura de pantalla no se publica.
+    const conDocumento = esc.evidencia ?? [];
+    const soloRedes = esc.pistasSinConfirmar ?? [];
+    const delCaso = [...conDocumento, ...soloRedes];
     const tengo = new Set(this.cuaderno?.pruebas ?? []);
     const recienRecogidas = new Set(pruebas);
 
@@ -1385,6 +1397,7 @@ export class Pantallas {
       nombre,
       icono: (t) => Icono.iconoPrueba(nombre, t),
       falsa: false,
+      sinConfirmar: soloRedes.includes(nombre),
       tengo: tengo.has(nombre) || recienRecogidas.has(nombre),
       nueva: recienRecogidas.has(nombre),
     }));
@@ -1432,8 +1445,10 @@ export class Pantallas {
     };
 
     const pieza = (casilla, tamano, alPulsar) => {
-      const nodo = el('button',
-        `pruebas__pieza${casilla?.falsa ? ' pruebas__pieza--falsa' : ''}`);
+      const nodo = el('button', ['pruebas__pieza',
+        casilla?.falsa ? 'pruebas__pieza--falsa' : '',
+        casilla?.sinConfirmar ? 'pruebas__pieza--sin-confirmar' : '',
+      ].filter(Boolean).join(' '));
       nodo.type = 'button';
       nodo.style.setProperty('--cara', `${tamano}px`);
 
@@ -1444,6 +1459,9 @@ export class Pantallas {
 
       if (casilla && tamano > 100) {
         nodo.appendChild(el('div', 'pruebas__nombre', casilla.nombre));
+        if (casilla.sinConfirmar) {
+          nodo.appendChild(el('div', 'pruebas__marca', T('botin.sinConfirmar')));
+        }
       }
 
       if (casilla && alPulsar) nodo.addEventListener('click', alPulsar);

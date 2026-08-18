@@ -129,6 +129,10 @@ export const GUION = {
     caso: { t: 'Caso {caso}', ayuda: 'El caso investigado. Hueco: {caso}.' },
     estadoAbierto: { t: 'Investigación iniciada', ayuda: 'Cuando la corrida deja material.' },
     estadoVacio: { t: 'Investigación bloqueada', ayuda: 'Cuando no se recogió nada útil.' },
+    sinConfirmar: {
+      t: 'Sin confirmar',
+      ayuda: 'Marca de las pistas que solo están en redes: se guardan pero no cierran un reportaje.',
+    },
   },
 
   victoria: {

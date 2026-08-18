@@ -84,7 +84,28 @@ export const ESCENARIOS = {
     },
 
     // Tipos de evidencia que suelta este escenario.
-    evidencia: ['USB sin cadena de custodia', 'Chat del grupo "Los Panas"', 'Video de vigilancia', 'Acta borroneada'],
+    // LAS PISTAS DEL EXPEDIENTE 1, del dossier de la redacción. No son
+    // objetos inventados: cada una es un documento o una grabación que existe
+    // y que está en el sumario del caso. Por eso se llaman como se llaman —el
+    // nombre del papel, no un adjetivo— y por eso el nombre es corto: lo pinta
+    // la rejilla del expediente en versalitas de catorce.
+    evidencia: [
+      'Video del Nissan huyendo',
+      'Video del Cayenne llegando',
+      'Registro vehicular del Cayenne',
+      'Testimonio ante Fiscalía',
+    ],
+
+    expediente: {
+      titulo: 'El Porsche que llegó tarde',
+      escena: 'Explosión en La Bahía. Las cámaras municipales siguen a un '
+        + 'Nissan y una moto hasta una casa en la Isla Trinitaria. Horas '
+        + 'después de la detención llega a esa misma puerta un Cayenne '
+        + 'registrado a nombre de una empresa del grupo del presidente.',
+      estado: 'Abierto. La Fiscalía investiga; nadie del entorno de poder '
+        + 'ha sido procesado.',
+      picante: 4,
+    },
 
     // Densidad de recolectables: la Bahía es generosa, es donde se aprende.
     densidadEvidencia: 1.0,
@@ -175,7 +196,25 @@ export const ESCENARIOS = {
       doble: 'Turbina varada',
     },
 
-    evidencia: ['Contrato con sobreprecio', 'Audio del ministro', 'Chat del gabinete', 'Informe técnico ignorado'],
+    evidencia: [
+      'Auditoría de Contraloría',
+      'Actas de los 17 allanamientos',
+      'Planilla de los 175 millones',
+      'Parte técnico: 16 de 48',
+      'Informe de Transparencia',
+    ],
+
+    expediente: {
+      titulo: 'El apagón que iluminó a todos menos a los responsables',
+      escena: 'Contratos de emergencia para generación eléctrica en plena '
+        + 'crisis. La auditoría encuentra perjuicio al Estado y contratos '
+        + 'leoninos, y en el mismo informe deja fuera de responsabilidad a '
+        + 'los ministros. Diecisiete allanamientos por presunto peculado.',
+      estado: 'En el congelador. Más de 175 millones desembolsados, dieciséis '
+        + 'de cuarenta y ocho equipos funcionando, y el ochenta por ciento '
+        + 'del contrato cobrado igual.',
+      picante: 5,
+    },
 
     densidadEvidencia: 0.8,
 
@@ -244,7 +283,25 @@ export const ESCENARIOS = {
       doble: 'Bus de simpatizantes',
     },
 
-    evidencia: ['Prueba de campaña anticipada', 'Nómina con apellidos repetidos', 'Factura de publicidad fantasma', 'Acta con más votos que votantes'],
+    evidencia: [
+      'Decretos de los 14 bonos',
+      'Resolución del TCE',
+      'Resolución del CNE',
+      'Entrevista al presidente del CNE',
+      'Calendario de campaña recortado',
+    ],
+
+    expediente: {
+      titulo: 'Campaña adelantada para mí, suspensión para ti',
+      escena: 'Catorce beneficios nuevos por decreto entre las dos vueltas, '
+        + 'sin pedir licencia del cargo. Mientras tanto se suspende a un '
+        + 'movimiento de oposición, se abre proceso de cancelación contra '
+        + 'otros dos y se adelantan las seccionales alegando riesgo '
+        + 'climático.',
+      estado: 'Activo, en plena ejecución. El periodo de campaña queda '
+        + 'reducido de veintinueve días a catorce.',
+      picante: 4,
+    },
 
     // PRUEBAS FALSAS. Aparecen a partir de aquí y no antes: en la Bahía y en el
     // Apagón se aprende qué es una prueba, y solo cuando el jugador ya se fía
@@ -317,8 +374,37 @@ export const ESCENARIOS = {
       doble: 'Tanqueta',
     },
 
-    evidencia: ['Orden de allanamiento sin firma', 'Lista de periodistas vigilados'],
+    evidencia: [
+      'Reporte de las vallas',
+      'Video de los infiltrados',
+      'Declaraciones cruzadas',
+      'Sentencia del caso Malvinas',
+      'Video de la disculpa pública',
+    ],
+
+    // LAS PISTAS QUE SOLO ESTÁN EN REDES.
+    //
+    // Son ciertas hasta donde se sabe, pero su único respaldo es una
+    // publicación: no hay documento, ni acta, ni sentencia. Se recogen igual y
+    // ocupan su casilla en el expediente —quitarlas sería fingir que no
+    // existen— pero NO cuentan para publicar el reportaje. Es la regla de la
+    // casa aplicada a la mecánica: con una captura de pantalla no se cierra
+    // una pieza, se abre una línea de investigación.
+    pistasSinConfirmar: ['Publicación del plantón'],
+
     pruebasFalsas: ['Denuncia anónima sin respaldo', 'Audio editado'],
+
+    expediente: {
+      titulo: 'El cerco, los infiltrados y el parlante',
+      escena: 'Estados de excepción sucesivos, el Centro Histórico vallado y '
+        + 'la protesta cercada. Denuncias de agentes de civil infiltrados '
+        + 'entre los manifestantes. Y en la puerta del Palacio, música a todo '
+        + 'volumen desde dentro mientras afuera se pide medicina.',
+      estado: 'El cerco y los infiltrados siguen sin sanciones. El caso de '
+        + 'los cuatro de Las Malvinas es de los pocos con condena real, y '
+        + 'llegó dos años después.',
+      picante: 5,
+    },
 
     // Carondelet es árido: casi no hay qué documentar. Es el punto del juego.
     densidadEvidencia: 0.25,

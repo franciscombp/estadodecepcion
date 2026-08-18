@@ -206,14 +206,44 @@ export class Notebook {
     return false;
   }
 
+  /**
+   * ¿Es una pista que solo está en redes?
+   *
+   * No es falsa —es cierta hasta donde se sabe— pero su único respaldo es una
+   * publicación: ni documento, ni acta, ni sentencia. Se recoge, se guarda y
+   * ocupa su casilla en el expediente; lo que NO hace es cerrar un reportaje.
+   * Con una captura de pantalla se abre una línea de investigación, no se
+   * publica una pieza, y esa es la regla de la casa metida en la mecánica.
+   */
+  static sinConfirmar(nombre) {
+    for (const id of Object.keys(ESCENARIOS)) {
+      if ((ESCENARIOS[id].pistasSinConfirmar ?? []).includes(nombre)) return true;
+    }
+    return false;
+  }
+
+  /** El escenario al que pertenece una pista, sea del tipo que sea. */
+  static casoDe(nombre) {
+    for (const id of Object.keys(ESCENARIOS)) {
+      const e = ESCENARIOS[id];
+      if ((e.evidencia ?? []).includes(nombre)) return id;
+      if ((e.pistasSinConfirmar ?? []).includes(nombre)) return id;
+    }
+    return null;
+  }
+
   /** Cuántas pruebas distintas tienes de un caso. Sin `caso`, de todos. */
   pruebasDelCaso(caso = null) {
     // Las plantadas NO cuentan, ni para su caso ni para el total. Contarlas en
     // el total —que es lo que pasaba mirando solo la longitud de la lista—
     // dejaba que un puñado de material falso abriera el último reportaje, que
     // es exactamente lo contrario de lo que la mecánica quiere decir.
+    // Ni las plantadas ni las de solo-redes cuentan para PUBLICAR: las
+    // primeras porque no son ciertas y las segundas porque no están probadas.
+    // Las de redes sí se guardan y sí salen en el expediente —ver casoDe()—,
+    // solo que no bastan para cerrar la pieza.
     const mias = (this.estado.pruebasEncontradas ?? [])
-      .filter((n) => !Notebook.esFalsa(n));
+      .filter((n) => !Notebook.esFalsa(n) && !Notebook.sinConfirmar(n));
     if (!caso) return mias.length;
     return mias.filter((n) => Notebook._casoDeLaPrueba(n) === caso).length;
   }
