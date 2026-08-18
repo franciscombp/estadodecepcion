@@ -277,11 +277,11 @@ export const GUION = {
     _nota: 'El periódico con los reportajes reales.',
     progreso: {
       t: 'Redacción: {listos} de {total} reportajes cargados.',
-      ayuda: 'Huecos: {listos}, {total}.',
+      ayuda: 'SOLO EN DESARROLLO. Recado para quien monta el juego, no para el jugador: cuántos reportajes reales quedan por cargar. Huecos: {listos}, {total}.',
     },
     explicacion: {
       t: 'Los huecos se rellenan en src/config/publicaciones.js con titular, autoría, fecha y enlace reales. El periódico reserva el espacio, pero no inventa la pieza.',
-      ayuda: 'La nota que explica qué es el Archivo.',
+      ayuda: 'SOLO EN DESARROLLO. Nombra una ruta de código a propósito: es la instrucción para la redacción. En la versión publicada no aparece.',
       largo: true,
     },
     sinAlmacenamiento: {

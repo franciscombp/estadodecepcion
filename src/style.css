@@ -1316,22 +1316,37 @@ html, body {
   margin: 14px 0 0;
 }
 
-/* DEL FIGMA: los botones son RECTOS, de 48 px, en Montserrat Bold 16 con
-   tracking de 0.2. Dos variantes y solo dos: el primario en rojo pleno con
-   texto blanco, y el secundario en contorno de 1.5 px sobre transparente.
-   Nada de degradados ni esquinas: es un periódico, no una consola. */
+/* EL BOTÓN, componente `Button` de la maqueta.
+
+   Aquí ponía «los botones son RECTOS ... nada de esquinas: es un periódico, no
+   una consola». Sonaba bien y no era lo que dice el Figma: el componente
+   Button trae `radius/md`, o sea 8. Preguntado a la biblioteca de variables,
+   sin lugar a dudas. Se corrige, porque la regla de la casa es replicar la
+   maqueta, no la idea que uno se hace de ella.
+
+   Del componente, literal:
+     alto 48 · relleno 12/24 · hueco 8 · radio 8
+     texto Montserrat Bold 16, interlineado 1, tracking 0.2, sin partir
+     TRES variantes, no dos:
+       Primary  fondo #c53b2b, texto blanco
+       Dark     fondo #141414, texto blanco
+       Outline  contorno 1.5 px #282828, texto #141414 */
 .boton {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-8);
   font-family: var(--sans);
-  font-size: 1rem;
+  font-size: var(--t-cuerpo-2);
   font-weight: 700;
-  letter-spacing: 0.0125em;
+  letter-spacing: 0.2px;
   text-transform: none;
   line-height: 1;
-  padding: 12px 24px;
+  padding: var(--e-12) var(--e-24);
   min-height: 48px;
   border: 1.5px solid var(--tinta-media);
-  border-radius: 0;
+  border-radius: var(--r-md);
   background: transparent;
   color: var(--tinta);
   cursor: pointer;
@@ -1341,6 +1356,19 @@ html, body {
               border-color var(--t-rapido),
               color var(--t-rapido);
 }
+
+/* EL FOCO DE TECLADO, que no estaba en ninguna parte.
+   Había :hover, :active y :disabled, y nada para quien navega con tabulador:
+   se podía recorrer una pantalla entera sin ver JAMÁS dónde estaba el cursor.
+   Va con `outline` y no con `box-shadow` para que sobreviva al modo de alto
+   contraste, y separado dos píxeles para que se lea sobre el fondo rojo del
+   botón principal igual que sobre el contorno del secundario. */
+.boton:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 2px;
+}
+
+.boton--principal:focus-visible { outline-color: var(--tinta); }
 
 /* El botón se hunde al pulsar y REBOTA al soltar. El rebote está en la
    transición, no en el :active: al soltar, el navegador vuelve al estado de
@@ -1388,6 +1416,22 @@ html, body {
     background: #a93123;
     border-color: #a93123;
     color: #ffffff;
+  }
+}
+
+/* Variante Dark del Figma: tinta plena con texto blanco. Estaba pintada a
+   mano en el ranking («Tomar un descanso» salía negro por una regla suelta de
+   esa pantalla) cuando es una de las tres variantes del componente. */
+.boton--oscuro {
+  background: var(--tinta);
+  border-color: var(--tinta);
+  color: var(--papel-blanco);
+}
+
+@media (hover: hover) {
+  .boton--oscuro:hover {
+    background: var(--tinta-media);
+    border-color: var(--tinta-media);
   }
 }
 
@@ -1726,7 +1770,9 @@ html, body {
 }
 
 .estadistica__valor {
-  font-size: clamp(1.1rem, 4.6vw, 1.5rem);
+  /* Cuerpo del sistema, no un clamp propio: el suyo daba 18,49 px, o sea un
+     escalón que no existe, medio píxel por encima del cuerpo de leer. */
+  font-size: var(--t-cuerpo);
   font-weight: 900;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
@@ -1916,7 +1962,11 @@ html, body {
   border-radius: 0;
   background: rgba(255, 255, 255, 0.035);
   border: 2px solid rgba(255, 255, 255, 0.06);
-  font-size: clamp(0.64rem, 2.5vw, 0.74rem);
+  /* Diez píxeles con veinticuatro centésimas. Eso daba el clamp que había aquí
+     en un móvil de 402, y es lo que medía la línea que explica CÓMO SE JUEGA:
+     «← → o swipe lateral» en un cuerpo que no se lee sin acercar el teléfono.
+     Escalón micro, que es el mínimo del sistema para texto corrido. */
+  font-size: var(--t-micro);
   line-height: 1.35;
   color: var(--texto-tenue);
 }
@@ -2084,43 +2134,91 @@ html, body {
   --rojo-rgb-diario: 197, 59, 43;
   --lila-diario: #ddbeff;    /* accent/purple */
   --azul-diario: #a6c7f2;    /* accent/blue */
+  /* El verde pálido del juez honesto. Estaba escrito a mano como #cdeac4 en
+     DOS reglas distintas del sorteo, que es como se acaba teniendo dos verdes
+     casi iguales. Es de la misma familia que el lila y el azul —un pastel de
+     fondo de caja— y no de la del `--verde-senal`, que es tinta de letrero. */
+  --verde-diario: #cdeac4;
   --verde-senal: #67b857;    /* los letreros de la bifurcación */
   --serif: 'PT Serif', Georgia, 'Times New Roman', serif;
   --sans: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
-  /* LOS CINCO CUERPOS. La maqueta no tiene más:
+  /* LOS ESTILOS CON NOMBRE DE LA MAQUETA.
 
-       40  Display     PT Serif Bold    1.1   -0.5    la cifra del resumen
-       32  Titular     PT Serif Bold    1.15  -0.3    los titulares
-       18  Cuerpo      PT Serif         1.5    0      bajadas y texto
-       16  Cuerpo·2    PT Serif         1.5    0      texto secundario
-                       Montserrat Bold  1      0.2    los botones
-       14  Pie         Montserrat Med   1.4    0      pies y datos
-                       Montserrat Bold  1.4    1.2    etiquetas de sección
+     Aquí ponía «los cinco cuerpos, la maqueta no tiene más». Era mentira, y
+     era la causa de media auditoría. Preguntándole a la biblioteca de
+     variables del Figma (EM · Design System) salen SIETE estilos con nombre,
+     no cinco, y los dos que faltaban son justo los que cada pantalla se venía
+     inventando por su cuenta:
 
-     Todo lo que no sea uno de estos cinco es un tamaño inventado, y de eso
-     venían las tablas: puestos a 11.52, arrobas a 13.44, notas a 8.32 y
-     cifras a 9.28, cada una de su padre y de su madre. Se declaran aquí para
-     que no haya dónde inventar.
+       Estilo Figma   px   Familia            Interl.  Track.  Dónde
+       ------------   --   ----------------   -------  ------  -----------------
+       Display        40   PT Serif Bold      1.1      -0.5    la cifra grande
+       Heading 1      32   PT Serif Bold      1.15     -0.3    los titulares
+       Heading 2      24   PT Serif Bold      1.2      -0.2    la mancheta ←
+       Heading 4      18   PT Serif Bold      1.3       0      cabezas de pieza
+       Body           18   PT Serif           1.5       0      bajadas y texto
+       Body 2 / Button 16  PT Serif / Mont.B  1.5 / 1   0/0.2  texto 2.º, botones
+       Caption        14   Montserrat Medium  1.4       0      pies y datos
+       Overline       14   Montserrat Bold    1.4       1.2    rótulos de sección
+       Badge           9   Montserrat Bold    1         0.5    apodos y pestañas ←
 
-     Van con clamp para que en un móvil estrecho encojan a la vez y sin
-     recolocar nada: la proporción entre ellos no cambia. */
+     Los dos marcados con ← no estaban declarados. Y como no estaban, la
+     mancheta se puso 24 a mano en seis pantallas y el ranking se puso 9 a mano
+     en tres sitios, y las dos cosas salían en la auditoría como «tamaño
+     inventado» cuando en realidad venían clavadas del Figma. El fallo no era
+     el número: era que el sistema no lo nombraba.
+
+     Van con clamp los que llevan peso en la página, para que en un móvil
+     estrecho encojan a la vez y sin recolocar nada. Los pequeños no: a 14 y
+     por debajo, encoger es dejar de leerse. */
   --t-display: clamp(2rem, 10vw, 2.5rem);
   --t-titular: clamp(1.6rem, 7.6vw, 2rem);
+  --t-marca: clamp(1.25rem, 6vw, 1.5rem);
   --t-cuerpo: clamp(1rem, 4.4vw, 1.125rem);
   --t-cuerpo-2: 1rem;
   --t-pie: 0.875rem;
-  /* Sexto escalón, para etiquetas dentro de piezas apretadas: la sección de
-     una ficha de personaje, el sello de una prueba, el rótulo de una carta del
-     sorteo. La maqueta no lo necesita porque no tiene componentes tan densos;
-     lo que no puede ser es que cada pieza se invente el suyo. */
+  /* Sexto escalón, del proyecto y no del Figma: etiquetas dentro de piezas
+     densas que la maqueta no tiene —la sección de una ficha de personaje, el
+     sello de una prueba, el rótulo de una carta del sorteo—. Se queda porque
+     el hueco entre 14 y 9 es demasiado grande para saltarlo. */
   --t-micro: 0.75rem;
+  /* Badge. Nueve píxeles es poquísimo y es lo que dice la maqueta; se usa SOLO
+     donde ella lo usa —apodos del podio, pestañas del ranking, cifras de la
+     tabla— y siempre en versalitas con tracking, que es lo que lo hace legible
+     a ese cuerpo. Fuera de esos tres sitios, --t-micro. */
+  --t-insignia: 0.5625rem;
 
   /* Interlineados y prosas, atados a su cuerpo. */
   --i-display: 1.1;
   --i-titular: 1.15;
+  --i-marca: 1.2;
   --i-cuerpo: 1.5;
   --i-pie: 1.4;
+  /* Heading 4: el 18 en negra de las cabezas de pieza va más apretado que el
+     18 de leer. */
+  --i-cabeza: 1.3;
+
+  /* LA FORMA. Otra que estaba mal escrita: el comentario de los botones decía
+     «los botones son RECTOS ... nada de esquinas: es un periódico, no una
+     consola», y el componente Button del Figma tiene radius/md, o sea 8. Lo
+     recto era una interpretación, no la maqueta. Con los dos radios
+     declarados, el ranking deja de ser la única pantalla con esquinas: pasa a
+     ser la única que las estaba usando bien. */
+  --r-sm: 4px;   /* radius/sm — pestañas, la carta del primer puesto */
+  --r-md: 8px;   /* radius/md — botones y tarjetas */
+
+  /* EL COMPÁS. space/8, space/12 y space/24 son variables del Figma. El 4 y el
+     16 no están declarados allí pero salen por todas partes en las maquetas
+     —los huecos de las pestañas del ranking, el relleno del primer puesto— y
+     son los dos escalones que más veces se escribían a mano aquí. La escala es
+     de cuatro en cuatro; lo que no cuadre con ella (9, 11, 13, 14, 22, 26...)
+     no venía de ninguna parte. */
+  --e-4: 4px;
+  --e-8: 8px;
+  --e-12: 12px;
+  --e-16: 16px;
+  --e-24: 24px;
 }
 
 /* Sobre el fondo oscuro, el papel se lee como un objeto físico encima. */
@@ -2160,8 +2258,10 @@ html, body {
   flex: 1 1 auto;
 }
 
-.diario__cuerpo,
-.diario .pagina-cerrada { flex: 1 1 auto; }
+/* El cuerpo de una página ABIERTA sí se estira: sus artículos rellenan la
+   hoja. La cerrada no —ver más abajo, junto a su bloque—: estirarla dejaba
+   media caja rayada vacía debajo del último renglón. */
+.diario__cuerpo { flex: 1 1 auto; }
 
 .diario .paginador { margin-top: auto; }
 
@@ -2273,17 +2373,35 @@ html, body {
   font-weight: 700;
 }
 
+/* LA FRANJA DE CABECERA es un dato de mancheta, no un renglón de texto.
+
+   Iba en el escalón micro (12) en caja baja, y las tres cosas que lleva
+   —«elmercio.com», «0 pág. recuperadas», «Gratis para quien corre»— suman más
+   de lo que cabe en un móvil de 402: se partía en dos renglones y las tres
+   quedaban descuadradas entre sí, cada una centrada sobre su propio hueco.
+
+   Pasa al estilo «Badge» de la maqueta —Montserrat Bold 9 en versalitas con
+   tracking de 0,5—, que es exactamente para lo que existe: dato corto y denso.
+   Entra en una línea y, de paso, deja de competir con la mancheta que tiene
+   justo encima. Las tres se anclan a su borde para que, si algún día una
+   crece, siga leyéndose como una franja de tres columnas y no como tres
+   párrafos sueltos. */
 .diario__franja {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  align-items: baseline;
+  gap: var(--e-8);
   font-family: var(--sans);
-  font-size: var(--t-micro);
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
+  font-size: var(--t-insignia);
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   color: var(--tinta-tenue);
 }
+
+.diario__franja > :first-child { text-align: left; }
+.diario__franja > :last-child { text-align: right; }
 
 .diario__franja--interior { border-top: 0; padding-top: 0; }
 
@@ -2415,8 +2533,20 @@ html, body {
 
 /* --- Página sin recuperar ------------------------------------------------- */
 
+/* LA PÁGINA CERRADA SE MAQUETA COMO EL RESTO DEL EJEMPLAR.
+
+   Iba centrada —`text-align: center`— cuando el diario entero es de bandera a
+   la izquierda: era la única pieza del periódico con el texto al medio, y con
+   la lista de temas centrada además quedaban las rayas de los guiones bailando
+   en zigzag. Se alinea a la izquierda como cualquier otra página impresa.
+
+   Lo que SÍ se queda centrado es el sello, que es un estampado y no texto
+   corrido; se centra él solo, con `margin: auto`. */
 .pagina-cerrada {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
   padding: clamp(20px, 7vw, 34px) 16px;
   border: 2px dashed var(--tinta-tenue);
   /* Papel más apagado: se ve que falta, no que esté vacío. */
@@ -2427,8 +2557,17 @@ html, body {
   );
 }
 
+/* Y NO SE ESTIRA. En el diario lleva `flex: 1 1 auto`, así que se comía todo
+   el hueco que el alto fijo del ejemplar deja libre: bajo el último renglón
+   quedaba casi medio palmo de caja rayada vacía —94 px medidos— y la página
+   parecía cortada a media frase. El ejemplar sigue teniendo su alto fijo (que
+   es lo que impide que los botones salten al pasar de hoja); lo que ya no pasa
+   es que el hueco sobrante se lo quede la caja rayada. */
+.diario .pagina-cerrada { flex: 0 0 auto; }
+
 .pagina-cerrada__sello {
   display: inline-block;
+  align-self: center;
   padding: 5px 13px;
   border: 2px solid var(--rojo-diario);
   color: var(--rojo-diario);
@@ -2456,8 +2595,11 @@ html, body {
   gap: 6px;
 }
 
+/* Del escalón inventado (salía a 12,86 por un clamp propio) al cuerpo 2 del
+   sistema. Son los temas que va a tratar la pieza: se leen, no se hojean. */
 .pagina-cerrada__temas li {
-  font-size: clamp(.8rem, 3.2vw, .9rem);
+  font-size: var(--t-cuerpo-2);
+  line-height: var(--i-cuerpo);
   color: var(--tinta-media);
   font-style: italic;
 }
@@ -2625,23 +2767,36 @@ html, body {
 .paginador {
   display: flex;
   justify-content: center;
-  gap: 7px;
+  gap: var(--e-8);
   margin-top: 20px;
   padding-top: 14px;
   border-top: 1px solid var(--papel-sombra);
 }
 
+/* EL PAGINADOR ES UN CONTROL, Y LOS CONTROLES VAN EN MONTSERRAT.
+   Estaba en PT Serif, o sea la familia de LEER: era el único botón del juego
+   con remates, y al lado del «Volver» —Montserrat— se veía que no eran de la
+   misma familia de piezas. Y sin radio, cuando la maqueta da `radius/sm` a los
+   controles pequeños. */
 .paginador__pag {
   width: 40px;
   height: 40px;
   border: 1px solid var(--tinta-tenue);
+  border-radius: var(--r-sm);
   background: transparent;
   color: var(--tinta-media);
-  font-family: var(--serif);
-  font-size: 1rem;
+  font-family: var(--sans);
+  font-size: var(--t-cuerpo-2);
   font-weight: 700;
+  letter-spacing: 0.2px;
   cursor: pointer;
-  transition: all var(--t-rapido);
+  transition: border-color var(--t-rapido), color var(--t-rapido),
+              background-color var(--t-rapido);
+}
+
+.paginador__pag:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 2px;
 }
 
 .paginador__pag--actual {
@@ -2650,21 +2805,44 @@ html, body {
   color: var(--papel);
 }
 
-/* Página cerrada: la esquina doblada dice que está por abrir. */
+/* Página cerrada: la esquina doblada dice que está por abrir.
+
+   OJO CON EL ORDEN. Esta regla va DESPUÉS de `--actual` y tiene su misma
+   especificidad, así que cuando una página está a la vez cerrada y abierta en
+   pantalla —que es el caso de la portada mientras no reúnas sus pruebas— le
+   ganaba el color: el número salía en gris tenue sobre el fondo de tinta del
+   botón activo. Medido con el navegador: 3,11 : 1, por debajo del 4,5 : 1 que
+   pide un texto de este cuerpo. El «1» del paginador no se leía.
+
+   Se arregla devolviéndole el color a la actual más abajo, que es donde tiene
+   que estar la última palabra sobre quién manda. */
 .paginador__pag--cerrada {
   color: var(--tinta-tenue);
   border-style: dashed;
   position: relative;
 }
 
+/* La página en la que estás manda sobre cualquier otro estado: es papel sobre
+   tinta y se lee a 15,9 : 1. */
+.paginador__pag--actual,
+.paginador__pag--actual.paginador__pag--cerrada {
+  background: var(--tinta);
+  border-color: var(--tinta);
+  border-style: solid;
+  color: var(--papel-blanco);
+}
+
 .paginador__pag--cerrada::after {
   content: '';
   position: absolute;
-  top: 0;
-  right: 0;
+  /* Un píxel dentro y con el mismo radio arriba a la derecha: pegada al borde
+     asomaba por fuera de la esquina redondeada nueva. */
+  top: 1px;
+  right: 1px;
   border: 7px solid transparent;
   border-top-color: var(--tinta-tenue);
   border-right-color: var(--tinta-tenue);
+  border-top-right-radius: var(--r-sm);
   opacity: .55;
 }
 
@@ -3266,7 +3444,7 @@ html, body {
 
 /* Y el que no. Verde claro: el mismo verde de los letreros de salida, que en
    este juego es siempre «por aquí sí». */
-.juez--limpio { background: #cdeac4; }
+.juez--limpio { background: var(--verde-diario); }
 
 .juez__toga { display: flex; }
 
@@ -3280,33 +3458,18 @@ html, body {
 }
 
 /* El que está bajo el selector ahora mismo. */
-.juez--senalado {
-  border-color: var(--tinta);
-  transform: scale(1.06);
-}
+/* SIN ESCALA. Crecer un 6 % al pararse era la «transición torpe»: la ventana
+   roja mide exactamente una carta, así que la carta elegida se salía del marco
+   por los cuatro lados justo al terminar el sorteo —medido: 106 × 168 dentro
+   de una ventana de 100 × 159—. La ficha se queda donde está; lo que la señala
+   es el marco. */
+.juez--senalado { border-color: var(--tinta); }
 
-.juez--acierto {
-  border-color: var(--verde-senal);
-  background: #d7ecd2;
-}
-
-.juez--acierto .juez__rotulo { color: var(--verde-senal); }
-
-/* Al fallar se enseña cuál era. Antes no: el rótulo de los seis es el mismo. */
-.juez--revelado .juez__rotulo { color: var(--verde-senal); }
-
-.juez--fallo {
-  border-color: var(--rojo-diario);
-  background: #f3d4cf;
-}
-
-.juez--fallo .juez__rotulo { color: var(--rojo-diario); }
-
-/* El que era: se enseña al fallar, para que la derrota se entienda. */
-.juez--revelado {
-  border-color: var(--verde-senal);
-  animation: late-juez 620ms var(--rebote) 3;
-}
+/* MISMO CRITERIO QUE ABAJO: el resultado no repinta el fondo de la carta.
+   Estas dos traían un verde y un rosa escritos a mano (#d7ecd2 y #f3d4cf) que
+   sustituían al color del bando en el momento exacto en que hay que leerlo.
+   Solo se marca el honesto que se escapó, y solo con filete. */
+.juez--revelado { border-color: var(--tinta); }
 
 @keyframes late-juez {
   0%, 100% { transform: none; }
@@ -3795,12 +3958,15 @@ html, body {
    abajo; filas de 40 con 2 de separación, número a 16 en caja de 24, nombre a
    14 en peso medio y cifra a 9 con 0,5 de tracking. */
 
+/* Los 4 y los 8 de esta pantalla no eran números sueltos: son `radius/sm` y
+   `radius/md` de la biblioteca del Figma. Ahora están declarados como tokens,
+   así que se nombran. */
 .ranking__pestanas {
   display: flex;
-  gap: 4px;
-  padding: 4px;
+  gap: var(--r-sm);
+  padding: var(--r-sm);
   background: var(--papel-blanco);
-  border-radius: 8px;
+  border-radius: var(--r-md);
 }
 
 .ranking__pestana {
@@ -3816,11 +3982,11 @@ html, body {
   padding: 0;
   min-height: 0;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--r-sm);
   background: none;
   font-family: var(--sans);
   font-weight: 700;
-  font-size: 9px;
+  font-size: var(--t-insignia);
   line-height: 1;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -3831,7 +3997,12 @@ html, body {
 
 .ranking__pestana--activa {
   background: var(--rojo-diario);
-  color: #ffffff;
+  color: var(--papel-blanco);
+}
+
+.ranking__pestana:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 2px;
 }
 
 /* ── El podio ───────────────────────────────────────────────────────────── */
@@ -3851,9 +4022,9 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 12px;
-  border-radius: 8px;
+  gap: var(--r-sm);
+  padding: var(--e-12);
+  border-radius: var(--r-md);
   background: var(--papel);
   text-align: center;
 }
@@ -3862,38 +4033,57 @@ html, body {
    Es el único sitio del sistema donde entra un color que no es papel, tinta o
    rojo, y entra porque el marco lo pide: es la marca de subrayado sobre el
    nombre que hay que alcanzar. */
+/* El amarillo del primer puesto (#fff9c4) es el único color del sistema que no
+   es papel, tinta ni rojo, y viene tal cual del componente: es la marca de
+   resaltador sobre el nombre que hay que alcanzar. Se queda como literal
+   porque no tiene hermanos —no es una familia, es este sitio y ninguno más—. */
 .ranking__puesto--1 {
   height: 120px;
   padding: 16px;
-  border-radius: 4px;
+  border-radius: var(--r-sm);
   background: #fff9c4;
 }
 
+/* Los 24 y los 28 son los del componente, comprobados contra la biblioteca:
+   el emoji es la medalla del podio y ahí la maqueta sí sale del papel. */
 .ranking__medalla { font-size: 24px; line-height: 1; }
 .ranking__puesto--1 .ranking__medalla { font-size: 28px; }
 
-/* El nombre del podio PARTE, no se corta. En el marco los apodos son cortos
-   («DonSátira»); los de la tabla de muestra no —«@la_chulla_vida»— y con
-   recorte el primer puesto salía como «@paqui…», que es justo el nombre que
-   hay que poder leer. */
+/* EL NOMBRE DEL PODIO SE CORTA CON PUNTOS SUSPENSIVOS, COMO EN LA MAQUETA.
+
+   Aquí ponía que «PARTE, no se corta», y se hacía partir con
+   `overflow-wrap: anywhere`. Lo que salía en pantalla era «@LA_CHULLA_VI /
+   DA»: un apodo roto por la mitad, en versalitas de nueve, en el sitio más
+   visible de la tabla. No parecía un nombre largo, parecía un fallo.
+
+   El componente del Figma (nodo 105:403) resuelve esto y lo resuelve al revés:
+   `whitespace-nowrap` en la fila y `overflow-hidden text-ellipsis` en cada
+   nombre. O sea, se corta con puntos. Y tiene razón: un apodo cortado con
+   puntos se sigue reconociendo —lo has escrito tú— y sobre todo NO CAMBIA LA
+   FORMA DE LA CARTA, que es de lo que va un podio. El nombre entero está dos
+   dedos más abajo, en la fila de la tabla.
+
+   El nueve tampoco es un descuido: es el estilo «Badge» de la biblioteca
+   —Montserrat Bold 9, interlineado 1, tracking 0,5, versalitas— y a ese cuerpo
+   las versalitas con tracking son lo que lo hace legible. */
 .ranking__nombre {
   max-width: 100%;
   overflow: hidden;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-family: var(--sans);
   font-weight: 700;
-  font-size: 9px;
+  font-size: var(--t-insignia);
   line-height: 1;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--tinta);
 }
 
-/* El primero baja a 14 y no parte por la mitad: a 16 el apodo más largo de la
-   tabla de muestra se cortaba en «@paquim / al». */
+/* El primero, a 16 como manda el componente. Estaba bajado a 14 «porque a 16
+   el apodo más largo se cortaba»: cortarse es justo lo que tiene que hacer. */
 .ranking__puesto--1 .ranking__nombre {
-  overflow-wrap: break-word;
-  font-size: 14px;
+  font-size: var(--t-cuerpo-2);
   line-height: 1.1;
   letter-spacing: 0.2px;
   text-transform: none;
@@ -3901,14 +4091,14 @@ html, body {
 
 .ranking__cifra {
   font-family: var(--sans);
-  font-size: 11px;
+  font-size: 11px;   /* del componente 105:403, junto al Badge de 9 */
   line-height: 1;
   color: var(--tinta-tenue);
 }
 
 .ranking__puesto--1 .ranking__cifra {
   font-weight: 700;
-  font-size: 16px;
+  font-size: var(--t-cuerpo-2);
   letter-spacing: 0.2px;
   color: var(--rojo-diario);
 }
@@ -4052,27 +4242,33 @@ html, body {
 /* --- Chuleta de controles --- */
 .plana .instrucciones { margin: 10px 0 4px; }
 
+/* SOBRE PAPEL, CON LOS COLORES DEL PAPEL.
+   Estas cajas iban pintadas con `rgba(22, 19, 13, 0.045)` y su filete con
+   `rgba(22, 19, 13, 0.22)`: una tinta escrita a mano, en siete sitios y con
+   cinco opacidades distintas, que ni siquiera es la tinta del sistema
+   (--tinta es #141414, esto es #16130d, un marrón). Son la superficie y el
+   filete de siempre. */
 .plana .instruccion {
-  background: rgba(22, 19, 13, 0.045);
-  border: 1px solid rgba(22, 19, 13, 0.22);
-  border-radius: 0;
+  background: var(--papel);
+  border: 1px solid var(--papel-sombra);
+  border-radius: var(--r-sm);
   color: var(--tinta-tenue);
 }
 
 .plana .instruccion strong { color: var(--tinta); }
 
 .plana .instruccion__icono {
-  background: rgba(22, 19, 13, 0.08);
+  background: var(--papel-sombra);
   color: var(--tinta);
-  border-radius: 0;
+  border-radius: var(--r-sm);
 }
 
 /* --- Panel de edición --- */
 .plana .edicion {
-  background: rgba(22, 19, 13, 0.045);
-  border: 1px solid rgba(22, 19, 13, 0.22);
-  border-radius: 0;
-  margin-top: 8px;
+  background: var(--papel);
+  border: 1px solid var(--papel-sombra);
+  border-radius: var(--r-sm);
+  margin-top: var(--e-8);
 }
 
 .plana .edicion__estado { color: var(--tinta-tenue); }
@@ -4160,7 +4356,7 @@ html, body {
 .plana .juez--comprado,
 .tombola-contenedor .juez--comprado { background: var(--lila-diario); }
 .plana .juez--limpio,
-.tombola-contenedor .juez--limpio { background: #cdeac4; }
+.tombola-contenedor .juez--limpio { background: var(--verde-diario); }
 
 .plana .juez__rotulo { color: rgba(20, 20, 20, 0.62); }
 
@@ -4173,23 +4369,34 @@ html, body {
 
 .plana .juez--senalado .juez__rotulo { color: var(--tinta); }
 
+/* EL RESULTADO NO REPINTA EL FONDO DE LA CARTA. Es la tercera copia de la
+   misma regla —había otras dos, en el bloque de la tómbola y en el general— y
+   era la que ganaba: la carta que salía se lavaba de rosa (#f3d4cf) o de verde
+   (#d7ecd2) tapando el morado o el verde del bando.
+
+   Y el bando es LO ÚNICO que este minijuego enseña. Se pasa media pantalla
+   explicando que morado es comprado y verde es honesto, y justo en el momento
+   de entender qué pasó, el color cambiaba a un tercero. Medido en pantalla: el
+   juez que tocó salía en rosa salmón dentro de una ventana roja, y no había
+   forma de saber si ese juez era de los comprados o no.
+
+   Lo que salió ya lo dicen dos cosas que sí están: la ventana roja encima de
+   la carta, y la caja de veredicto debajo con su titular. */
+/* Ojo: aquí NO se declara `background`, ni siquiera `none`. Se probó con
+   `background: none` y el navegador confirmó que esta regla gana a
+   `.tombola-contenedor .juez--comprado` —misma especificidad, va después— y
+   dejaba la carta TRANSPARENTE, que es el mismo error con otro color. La
+   forma de no pisar una propiedad es no nombrarla. */
 .plana .juez--acierto,
-.plana .juez--revelado {
-  background: #d7ecd2;
-  border-color: var(--verde-senal);
-  box-shadow: none;
-}
-
-.plana .juez--acierto .juez__rotulo,
-.plana .juez--revelado .juez__rotulo { color: var(--verde-senal); }
-
 .plana .juez--fallo {
-  background: #f3d4cf;
-  border-color: var(--rojo-diario);
   box-shadow: none;
 }
 
-.plana .juez--fallo .juez__rotulo { color: var(--rojo-diario); }
+/* El honesto que se te escapó sí necesita filete: no está bajo la ventana. */
+.plana .juez--revelado {
+  border-color: var(--tinta);
+  box-shadow: none;
+}
 
 /* --- Veredicto --- */
 .plana .resultado {
@@ -4218,9 +4425,9 @@ html, body {
 
 /* --- Ruta de la corrida, en la victoria --- */
 .plana .ruta {
-  background: rgba(22, 19, 13, 0.04);
-  border: 1px solid rgba(22, 19, 13, 0.24);
-  border-radius: 3px;
+  background: var(--papel);
+  border: 1px solid var(--papel-sombra);
+  border-radius: var(--r-sm);
   box-shadow: none;
 }
 
@@ -4306,7 +4513,10 @@ html, body {
      se permite partir por donde haga falta y se centra: dos líneas cortas se
      leen mejor que una recortada. */
   max-width: 100%;
-  font-size: calc(var(--t-pie) * 0.92);
+  /* Multiplicar un token por 0,92 es inventarse un escalón intermedio: daba
+     12,88 px, entre el micro (12) y el pie (14), y era el que partía
+     «Tostadólogo» por la mitad. El escalón que le toca es el micro. */
+  font-size: var(--t-micro);
   font-weight: 700;
   line-height: 1.15;
   text-align: center;
@@ -4377,12 +4587,25 @@ html, body {
    dos cambia, y el sorteo pasa a señalar a un juez que no está debajo. */
 .tombola-contenedor { --juez-ancho: clamp(100px, 22vw, 140px); }
 
-/* Contenedor principal de la tómbola. */
+/* Contenedor principal de la tómbola.
+
+   EL BOMBO NO SE ESTIRA. Llevaba la clase `.se-estira` puesta en el JS, que
+   es `flex: 1 1 0`, y en un contenedor en columna eso gana a la altura
+   declarada aquí: el bombo pasaba de los 140-200 px de la maqueta a ocupar
+   TODO el hueco libre —361 px medidos en un iPhone— y con él las cartas, que
+   van al cien por cien de alto. Resultado: cartas de 100 × 335 con una
+   figurita de 54 px flotando en el centro, el dieciséis por ciento del alto de
+   su propia caja. La carta se leía como un rectángulo de color con algo
+   pequeño dentro, cuando lo que hay que reconocer de un vistazo es la figura.
+
+   Con `flex: 0 0 auto` la altura declarada vuelve a mandar y la proporción se
+   acerca a la carta de naipe, que es lo que pide un sorteo. */
 .tombola-contenedor {
   position: relative;
+  flex: 0 0 auto;
   width: 100%;
   max-width: 480px;
-  height: clamp(140px, 35vw, 200px);
+  height: clamp(180px, 46vw, 232px);
   margin: 20px auto;
   overflow: hidden;
   border-radius: 0;
@@ -4421,8 +4644,14 @@ html, body {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: calc(var(--juez-ancho) + 10px);
-  height: 84%;
+  /* EL MARCO MIDE LA CARTA, NI UN PÍXEL MÁS.
+     Iba a `--juez-ancho + 10`, o sea diez más ancho que la ficha, y al parar
+     asomaba por los costados un dedo del color del juez de al lado: en un
+     sorteo donde el color de fondo ES la respuesta, enseñar dos colores dentro
+     del marco es enseñar dos respuestas. Ahora el marco es exactamente la
+     carta, así que lo que está dentro es lo que salió y no admite lectura. */
+  width: var(--juez-ancho);
+  height: calc(100% - 24px);
   /* DEL FIGMA: el marco del sorteo es rojo pleno de 5 px, sin brillos. */
   border: 5px solid var(--rojo-diario);
   border-radius: 0;
@@ -4462,23 +4691,111 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 12px 8px;
+  gap: var(--e-8);
+  padding: var(--e-12) var(--e-8);
   border-radius: 0;
   /* SIN FONDO AQUÍ. El fondo lo pone el BANDO —.juez--comprado en morado y
      .juez--limpio en verde— y ponerlo también en esta regla, que es más
      específica, lo pisaba: los seis salían del mismo color y el minijuego se
      quedaba sin su único dato legible. */
   border: 2px solid transparent;
-  color: rgba(20, 20, 20, 0.62);
+  color: var(--tinta);
   font-family: var(--sans);
-  font-size: clamp(0.56rem, 2vw, 0.68rem);
+  /* El rótulo baja al escalón micro y sube de contraste. Iba en un clamp
+     propio que daba 12 justos y en tinta al 62 %, o sea gris claro sobre
+     morado claro: el número de juez no se leía, y es lo que se nombra al
+     contar lo que pasó. */
+  font-size: var(--t-micro);
   font-weight: 700;
   letter-spacing: 0.06em;
   /* Solo color: nada de `all`. Con la banda girando, transicionar geometría
      deja las fichas persiguiendo su propio tamaño y la fila tiembla. */
   transition: background-color var(--t-rapido), border-color var(--t-rapido),
               color var(--t-rapido);
+}
+
+/* ==========================================================================
+   LA COLUMNA DE OPINIÓN — componente `Opinion / Item` de la maqueta
+   ==========================================================================
+   ESTE BLOQUE NO EXISTÍA. El JS del sorteo construía `.opinion`, con su
+   `.opinion__etiqueta`, su `.opinion__cita` y su `.opinion__busto`, y encima
+   dejaba escrito en un comentario cómo tenía que verse —«el filete, la
+   etiqueta roja, la cita en negra y el busto del columnista»—. De las cuatro
+   clases, NINGUNA tenía una sola regla en la hoja de estilos.
+
+   Lo que salía en pantalla, medido: los tres nodos en PT Serif 16 del mismo
+   negro, uno debajo de otro, sin filete, y el busto descolgado al pie pegado
+   al borde izquierdo y cortado por el fondo. O sea: la etiqueta no se
+   distinguía de la cita, y el columnista era un manchón.
+
+   Se implementa ahora contra el componente del Figma (nodo 42:128), literal:
+     fila con hueco de 8, alineada arriba, filete inferior de 1 px y 24 de
+     respiro debajo;
+     el texto ocupa el resto con un mínimo de 120 y va en PT Serif Bold 18
+     con interlineado 1,3 —el estilo «Heading 4»—;
+     el retrato mide 80 × 80, es redondo y no encoge.
+
+   La etiqueta «OPINIÓN» no está en el componente porque el componente es solo
+   la pieza; el rótulo que la encabeza es el estilo «Overline» del sistema
+   —Montserrat Bold 14 con tracking de 1,2— que ya usan todos los rótulos de
+   sección del juego. Con eso, ni se inventa nada ni se deja el hueco.
+   ========================================================================== */
+
+.opinion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--e-8);
+  padding-bottom: var(--e-24);
+  border-bottom: 1px solid var(--papel-sombra);
+}
+
+.opinion__texto {
+  flex: 1 0 0;
+  min-width: 120px;
+}
+
+/* Overline: el mismo rótulo que encabeza cualquier sección del periódico. */
+.opinion__etiqueta {
+  margin-bottom: 6px;
+  font-family: var(--sans);
+  font-size: var(--t-pie);
+  font-weight: 700;
+  line-height: var(--i-pie);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--rojo-diario);
+}
+
+/* Heading 4. */
+.opinion__cita {
+  font-family: var(--serif);
+  font-size: var(--t-cuerpo);
+  font-weight: 700;
+  line-height: var(--i-cabeza);
+  color: var(--tinta);
+}
+
+/* El retrato del columnista: redondo, 80, y sin encoger cuando el titular
+   ocupa dos líneas. El SVG que va dentro se centra y se recorta al círculo. */
+.opinion__busto {
+  flex: 0 0 auto;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--papel-sombra);
+}
+
+.opinion__busto svg {
+  width: 72%;
+  height: 72%;
+  /* El busto se apoya en el borde de abajo del círculo, como un retrato
+     recortado de verdad, en vez de flotar en el centro con aire por los pies. */
+  margin-bottom: -6%;
 }
 
 /* ==========================================================================
@@ -4563,39 +4880,61 @@ html, body {
 /* Juez limpio (honesto). */
 .juez--limpio .juez__toga { filter: saturate(1.2); }
 
-/* Resultado de la selección: acertó. */
-.juez--acierto {
-  background: rgba(var(--verde-rgb), 0.2);
-  border-color: rgba(var(--verde-rgb), 0.6);
-  color: var(--verde);
-  box-shadow: 0 0 16px rgba(var(--verde-rgb), 0.4);
-}
+/* ─────────────────────────────────────────────────────────────────────────
+   AL PARAR NO SE REPINTA NADA.
 
-/* Resultado de la selección: falló. */
-.juez--fallo {
-  background: rgba(var(--rojo-rgb), 0.2);
-  border-color: rgba(var(--rojo-rgb), 0.6);
-  color: var(--rojo);
-  box-shadow: 0 0 16px rgba(var(--rojo-rgb), 0.4);
-}
+   Aquí quedaban tres reglas del diseño de neón que este juego ya no usa: al
+   acertar la carta se lavaba con un verde flúor al 20 % y un halo de dieciséis
+   píxeles, al fallar con un rojo igual, y la revelada con otro verde. Todas
+   PISABAN EL FONDO DEL BANDO, que es el único dato del minijuego: pasabas
+   media pantalla aprendiendo que morado es comprado y verde es honesto, y en
+   el momento del resultado —justo cuando hay que entender qué salió— el color
+   cambiaba a otra cosa.
 
-/* Revelación del juez honesto cuando fallaste. */
-.juez--revelado {
-  background: rgba(var(--verde-rgb), 0.15);
-  border-color: rgba(var(--verde-rgb), 0.5);
-  color: var(--verde);
+   Y no hace falta ninguna: cuando la banda para, la ventana roja está encima
+   de la carta que tocó y debajo hay una caja que lo dice con letra. Añadir un
+   tercer indicador que además contradice al primero no aclara, enturbia.
+
+   Se quedan sin regla propia a propósito. Las clases siguen puestas desde el
+   JS porque son el enganche para las pruebas y para lo que venga; lo que no
+   hacen es pintar.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* La única que SÍ necesita marca: el juez honesto que se te escapó. No está
+   debajo de la ventana, así que sin filete no se distingue de sus vecinos.
+   Filete de tinta y nada más —ni halo, ni latido, ni escala—: el `late-juez`
+   que llevaba la hacía crecer y encoger tres veces seguidas, que es
+   exactamente el aspaviento que sobra en un sorteo que acabas de perder. */
+.tombola-contenedor .juez--revelado {
+  border-color: var(--tinta);
+  animation: none;
 }
 
 /* Los potenciadores activos, escondidos. Ver el comentario en HUD.montar():
    enseñar cuál te tocó y cuánto le queda solo informa de algo sobre lo que el
    jugador no decide nada mientras no haya tienda donde comprarlos. */
 
+/* LAS CASILLAS DEL MEDIDOR SON `<span>`, O SEA EN LÍNEA.
+   Y a un elemento en línea el navegador le IGNORA el ancho y el alto. Estaban
+   declarados —22 × 8, con su filete— y no servían de nada: las dos casillas de
+   «0 de 2 pruebas» salían de 2 × 24 px, pegadas, y en pantalla se veían como
+   una rayita negra vertical en medio del papel. Un jugador no lee eso como un
+   medidor; lo lee como que algo se rompió.
+   Con `inline-block` las medidas vuelven a contar. */
 .pagina-cerrada__prueba {
+  display: inline-block;
   width: 22px;
   height: 8px;
   border-radius: 2px;
   border: 1.5px solid var(--tinta-media);
   background: transparent;
+}
+
+/* Y el carril que las alinea, que tampoco existía. */
+.pagina-cerrada__medidor {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .pagina-cerrada__prueba--hecha {
@@ -5154,7 +5493,8 @@ html, body {
 .plana__epigrafe--menu {
   font-style: normal;
   font-family: var(--serif);
-  font-size: clamp(0.95rem, 4.2vw, 1.125rem);
+  /* 16,88 salía de este clamp. Es el cuerpo de leer y ya está declarado. */
+  font-size: var(--t-cuerpo);
   line-height: 1.5;
   color: var(--tinta);
   margin-bottom: 10px;
@@ -5207,11 +5547,12 @@ html, body {
 /* El pie de la foto de portada, como en el Figma: Montserrat gris con la
    marca y el barrio en negrita. Va sobre papel (el bloque de abajo). */
 .portada__pie {
+  /* 12,8 px salían de `0.8rem`. Escalón micro. */
   display: block;
   width: 100%;
   text-align: left;
   font-family: var(--sans);
-  font-size: 0.8rem;
+  font-size: var(--t-micro);
   font-weight: 500;
   line-height: 1.4;
   color: var(--tinta-tenue);

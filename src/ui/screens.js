@@ -747,7 +747,12 @@ export class Pantallas {
     const total = datos.jueces ?? 6;
     const honesto = Math.floor(Math.random() * total);
 
-    const contenedorTombola = el('div', 'tombola-contenedor se-estira');
+    // SIN `.se-estira`. Esa clase es `flex: 1 1 0` y, en la columna de la
+    // pantalla, hacía que el bombo se comiera todo el hueco libre: las cartas
+    // van al cien por cien de su alto, así que salían de 100 × 335 con la
+    // figura del juez ocupando el dieciséis por ciento. El bombo tiene la
+    // altura que le da la maqueta y no negocia.
+    const contenedorTombola = el('div', 'tombola-contenedor');
     const banda = el('div', 'tombola-banda');
 
     // Los jueces se repiten para que la banda no se acabe nunca. Cinco vueltas
@@ -760,10 +765,13 @@ export class Pantallas {
       const esHonesto = puesto === honesto;
       const ficha = el('div', `juez ${esHonesto ? 'juez--limpio' : 'juez--comprado'}`);
       const toga = el('span', 'juez__toga');
-      // 54 y no 38: la carta mide más de cien de ancho y la toga se quedaba
-      // en una manchita en el centro. Lo que hay que reconocer de un vistazo
-      // es la carta entera —fondo y figura—, y la figura tiene que pesar.
-      toga.innerHTML = Icono.juez(54, esHonesto);
+      // 76 Y NO 54. Con el bombo estirado la carta medía 335 de alto y la
+      // figura ocupaba el 16 %: una manchita en medio de un rectángulo de
+      // color. Arreglada la altura del bombo la carta baja a 159 y la misma
+      // figura sube al 34 %, que sigue siendo poco para lo único que hay que
+      // reconocer de un vistazo. A 76 ocupa el ancho útil de la carta —100
+      // menos 8 de relleno a cada lado— y se lee la toga, no una silueta.
+      toga.innerHTML = Icono.juez(76, esHonesto);
       ficha.appendChild(toga);
       // Los seis se llaman igual. Rotular al bueno como «el bueno» convertiría
       // la prueba en leer una etiqueta; lo que hay que mirar es el pecho.
@@ -1793,7 +1801,18 @@ export class Pantallas {
 
     pie.appendChild(botones);
 
-    if (hayPendientes()) {
+    // EL RECADO A LA REDACCIÓN NO SE LE ENSEÑA AL JUGADOR.
+    //
+    // Estas dos notas salían siempre que quedara un reportaje por cargar, o
+    // sea SIEMPRE mientras el archivo real no esté completo, y la segunda dice
+    // literalmente «los huecos se rellenan en src/config/publicaciones.js».
+    // Una ruta de código, en la interfaz, debajo del botón de Volver. Es un
+    // recordatorio para quien monta el juego, y quien monta el juego trabaja
+    // en desarrollo: ahí se queda.
+    //
+    // No se borran —hacen falta, y son la razón de que nadie se olvide de que
+    // el periódico está a medio llenar— pero dejan de ser parte de la página.
+    if (import.meta.env?.DEV && hayPendientes()) {
       pie.appendChild(el('div', 'diario__nota',
         T('archivo.progreso', {
           listos: cuantosListos(),
