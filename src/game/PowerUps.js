@@ -26,8 +26,11 @@ import { crearPotenciador } from '../models/props.js';
 import { crearCaja, hayColisionPlana } from '../utils/collision.js';
 
 export class PowerUpManager {
-  constructor(escena) {
+  constructor(escena, camara = null) {
     this.escena = escena;
+    // La cámara, para encarar el estallido radial. Es el primer objeto del
+    // juego que necesita billboarding.
+    this.camara = camara;
     this.grupo = new THREE.Group();
     escena.add(this.grupo);
 
@@ -107,6 +110,9 @@ export class PowerUpManager {
       def,
       x: CARRILES.POSICIONES[carril],
       z,
+      // Fase propia para la flotación. Ver el bucle de actualización: usar la
+      // Z hacía que «flotar» se convirtiera en temblar a cinco hercios.
+      fase: Math.random() * Math.PI * 2,
     });
 
     return true;
@@ -125,13 +131,34 @@ export class PowerUpManager {
       p.z += avance;
       p.malla.position.z = p.z;
 
-      // Gira despacio y late. Un potenciador quieto se confunde con decorado.
-      p.malla.position.y = POTENCIADORES.ALTURA + Math.sin(this.tiempo * 2.2 + p.z) * 0.18;
+      // FLOTA, no tiembla. La fase iba en `p.z`, que avanza a la velocidad de
+      // carrera: el seno corría a 17-34 rad/s, o sea un temblor de ±0.18 m a
+      // entre tres y cinco hercios. Un objeto que vibra a cinco hercios no se
+      // lee como flotando, se lee como ruido. Con una fase fija por pieza el
+      // ciclo dura los 2.86 s que siempre quiso durar.
+      p.malla.position.y = POTENCIADORES.ALTURA + Math.sin(this.tiempo * 2.2 + p.fase) * 0.18;
       p.malla.rotation.y = this.tiempo * 1.1;
 
       const u = p.malla.userData;
+
+      // EL ESTALLIDO, ENCARADO A CÁMARA. Es un plano, así que sin esto se ve
+      // de canto —o sea, no se ve— justo desde lejos, que es cuando tiene que
+      // avisar de que hay algo. Se le quita el giro de la cápsula y se le pone
+      // el suyo, lento, sobre el eje de visión.
+      if (u.estallido && this.camara) {
+        u.estallido.quaternion.copy(this.camara.quaternion);
+        u.estallido.rotateZ(this.tiempo * 0.35);
+      }
+
+      // LA PEANA, PEGADA AL SUELO. Es hija del grupo, así que subía y bajaba
+      // con la flotación y se hundía bajo el asfalto un tercio de cada ciclo.
+      if (u.peana) u.peana.position.y = 0.02 - p.malla.position.y;
+
       if (u.aro) {
-        u.aro.rotation.z = this.tiempo * 2.4;
+        // Sin `rotation.z`: el aro está tumbado (rotation.x = PI/2) y en orden
+        // Euler XYZ la Z se aplica ANTES, o sea sobre su propio eje de
+        // simetría. Geométricamente no pasaba nada; era trabajo por fotograma
+        // que no pintaba un píxel.
         u.aro.scale.setScalar(1 + Math.sin(this.tiempo * 3.4) * 0.14);
       }
       if (u.cristal) {
@@ -167,7 +194,10 @@ export class PowerUpManager {
       const p = this.activos[i];
       if (Math.abs(p.z) > 3.5) continue;
 
-      const cajaItem = crearCaja(p.x, POTENCIADORES.ALTURA, p.z, 0.9, 1.2, 0.9);
+      // 0.9 de alto y no 1.2: con la cápsula bajada a la altura del pecho
+      // (1.45), una caja de 1.2 llegaría hasta 0.85 y se podría recoger
+      // agachado, que es justo lo que la regla de la casa no quiere.
+      const cajaItem = crearCaja(p.x, POTENCIADORES.ALTURA, p.z, 0.9, 0.9, 0.9);
       if (!hayColisionPlana(cajaRecogida, cajaItem)) continue;
 
       const def = p.def;

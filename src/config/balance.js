@@ -147,7 +147,7 @@ export const OBSTACULOS = {
   //
   // A 6.5, cuando desaparecen ya solo se les ve el techo por el borde inferior
   // del cuadro, así que se van sin que se note.
-  DISTANCIA_RECICLADO: 6.5,
+  DISTANCIA_RECICLADO: 5.5,
   // Dónde va el PRIMER grupo al arrancar una partida o un tramo nuevo.
   // A velocidad inicial (18 u/s) son ~2.5 s para leer el primer obstáculo:
   // suficiente para colocarse, sin que se sienta que no pasa nada.
@@ -192,17 +192,17 @@ export const EVIDENCIA = {
   // Y A 6.0 se separan del todo. A 4.0 seguían leyéndose como una tira: se
   // recogían sin verlos, que es lo contrario de lo que hace el original —ahí
   // cada moneda es una pieza que se ve venir, se apunta y se coge—.
-  SEPARACION: 6.0,
+  SEPARACION: 7.0,
   // Ondulación vertical de la hilera. Sube y baja un poco de papel en papel,
   // que es el segundo golpe contra el efecto cinta: aunque dos se acerquen en
   // pantalla, no están a la misma altura y siguen leyéndose como dos.
-  ONDA: 0.14,
+  ONDA: 0,
   // Holgura respecto a los obstáculos. La hilera empieza pasado el grupo y
   // tiene que terminar antes del siguiente: los carriles libres lo son para
   // UN grupo, no para el tramo entero.
   MARGEN_TRAS_GRUPO: 5,
   MARGEN_ANTES_GRUPO: 5,
-  ALTURA: 1.0,
+  ALTURA: 1.25,
   // Altura de la hilera cuando acompaña a un salto (arco sobre el obstáculo).
   ALTURA_ARCO: 2.1,
   DISTANCIA_APARICION: 200,
@@ -244,7 +244,7 @@ export const PRUEBAS = {
 // generosa (imán), después el que la hace más rentable (portada), luego los
 // que cambian cómo te mueves, y al final el que te salva la vida.
 export const POTENCIADORES = {
-  ALTURA: 1.6,           // Aún más arriba que la estamina: es lo más llamativo.
+  ALTURA: 1.45,          // Altura de pecho, como en la referencia.
   TAMANO_POOL: 6,
   // Cada cuántos metros se intenta soltar uno, una vez desbloqueados.
   DISTANCIA_ENTRE: 320,
@@ -364,8 +364,8 @@ export const PERSEGUIDOR = {
   // que era el problema— y son un tercio más grandes que el jugador, que es
   // lo que corresponde a dos personas una encima de otra. Si se toca uno de
   // los cuatro valores hay que rehacer la división.
-  Z_LEJOS: 3.8,
-  Z_CERCA: 2,
+  Z_LEJOS: 2.8,
+  Z_CERCA: 1.0,
   ESCALA_LEJOS: 0.72,
   ESCALA_CERCA: 0.95,
 
@@ -724,12 +724,12 @@ export const CAMARA = {
   // pasan de largo por el borde del cuadro. El problema de los perseguidores no
   // se resuelve con la focal, se resuelve con su rango de Z (ver PERSEGUIDOR).
   FOV: 58,
-  POSICION: { x: 0, y: 4, z: 7.4 },
+  POSICION: { x: 0, y: 4.7, z: 6.4 },
   // La mira va ALTA —por encima de la cabeza del personaje— y eso es lo que lo
   // baja al tercio inferior del cuadro, que es donde lo pone Subway Surfers.
   // Con la mira a la altura del pecho, el personaje se planta en el centro y
   // se come el sitio por donde hay que mirar.
-  MIRA: { x: 0, y: 1.9, z: -6 },
+  MIRA: { x: 0, y: 2.00, z: -6 },
 
   // Encuadre según la forma de la pantalla.
   //
@@ -741,7 +741,7 @@ export const CAMARA = {
   // carriles exteriores dejan de verse a tiempo. Es una red de seguridad: con
   // el gran angular actual ni siquiera se activa en un móvil normal (aspecto
   // ~0.46), solo en formatos extremos.
-  SEMIANGULO_HORIZONTAL: 14,
+  SEMIANGULO_HORIZONTAL: 16,
   // MÁXIMO — en pantallas anchas pasa lo contrario: un FOV vertical de 58 en
   // 16:9 da casi 90° horizontales, y eso ya no es gran angular, es ojo de pez.
   // Las líneas de la calle se curvan y los laterales se estiran.
@@ -754,8 +754,8 @@ export const CAMARA = {
   // se salía del borde de la pantalla en vertical. Siguiéndolo a la mitad se
   // queda a media distancia del centro, que es donde debe estar: dentro, pero
   // suficientemente descentrado como para que se note el cambio de carril.
-  SEGUIMIENTO_LATERAL: 0.5,
-  AMORTIGUACION: 6,
+  SEGUIMIENTO_LATERAL: 0.7,
+  AMORTIGUACION: 8,
 
   // --- CORRIENDO POR ARRIBA -------------------------------------------------
   // Sobre la plataforma la cámara se queda corta: seguía al jugador solo con
@@ -767,9 +767,9 @@ export const CAMARA = {
   // ver el borde de la plataforma —que es de donde te caes—, sube porque si no
   // el propio tablado tapa lo que viene, y la mira baja para que el final del
   // elevado entre en cuadro con antelación.
-  ARRIBA_ALTURA_EXTRA: 1.9,
-  ARRIBA_DISTANCIA_EXTRA: 2.6,
-  ARRIBA_MIRA_BAJA: 0.9,
+  ARRIBA_ALTURA_EXTRA: 0.4,
+  ARRIBA_DISTANCIA_EXTRA: 1.2,
+  ARRIBA_MIRA_BAJA: 0.2,
   // Lo que tarda en llegar a ese encuadre y en volver. Medio segundo: más
   // rápido se lee como un tirón al subir, más lento y la cámara sigue
   // acomodándose cuando ya te bajaste.
@@ -782,7 +782,13 @@ export const CAMARA = {
   // aparezcan SUBIENDO por la cresta en vez de materializarse en la niebla.
   // Se probó 0.0004 —no se notaba— y 0.0013 —el fondo entero se hundía y la
   // fachada de la bifurcación tardaba demasiado en asomar—.
-  CURVATURA: 0.0008,
+  // 0.0004 y no 0.0008. Con 0.0008 la cresta del suelo caía en y=0.46 de la
+  // pantalla —la mitad del cuadro era loma— y encima a 64 m, donde la niebla ya
+  // solo deja pasar el 31 % del color: no se leía como loma, se leía como
+  // bruma. Con el picado nuevo y 0.0004 la cresta sube a 0.29-0.36, que es
+  // donde la referencia pone el punto de fuga, y quien corta el mundo vuelve a
+  // ser la niebla, que es lo que se espera de una niebla.
+  CURVATURA: 0.0004,
   // Sacudida al chocar.
   SACUDIDA_GOLPE: 0.5,
 

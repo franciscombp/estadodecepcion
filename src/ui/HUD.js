@@ -22,13 +22,9 @@
 // come el presupuesto de 16 ms en un móvil de gama media.
 // ============================================================================
 
-import { JUGADOR, tramoRacha } from '../config/balance.js';
+import { JUGADOR } from '../config/balance.js';
 
-// Casillas de la batería de un potenciador activo. Ocho es el número que hace
-// que cada una valga algo: con cuatro, cada casilla es un cuarto de la duración
-// y el aviso llega tarde; con dieciséis nadie las cuenta, se leen como barra.
-const TRAMOS_BATERIA = 8;
-import { obtenerEscenario, ORDEN_ESCENARIOS } from '../config/escenarios.js';
+
 import * as Icono from './iconos.js';
 
 export class HUD {
@@ -70,10 +66,9 @@ export class HUD {
       distancia: -1,
       cercania: -1,
       golpes: -1,
-      combo: -1,
       escenario: null,
       linterna: -1,
-      pruebas: -1,
+      record: -1,
       tramite: -1,
       porArriba: null,
       efectos: '',
@@ -90,38 +85,46 @@ export class HUD {
     this.raiz = document.createElement('div');
     this.raiz.className = 'hud';
     this.raiz.innerHTML = `
-      <!-- ══ FILA SUPERIOR ══
-           DEL FIGMA: rótulo en Montserrat roja, cifra en PT Serif roja con un
-           halo blanco que la despega de la calle, y la pausa como un cuadrado
-           rojo pleno. Debajo, un filete fino cierra la cabecera. -->
+      <!-- ══ EL HUD, COMO LO MONTA LA REFERENCIA ══
+           Subway Surfers pone CUATRO cosas encima del juego y ni una más: la
+           pausa arriba a la izquierda, la columna de cifras arriba a la
+           derecha, las píldoras de lo que esté activo abajo, y NADA en el
+           centro. Nunca.
+
+           Ese vacío del centro no es austeridad, es que el centro es por donde
+           se corre: todo lo que se ponga ahí compite con lo único que el
+           jugador está mirando de verdad.
+
+           Aquí había además un rótulo fijo de «Evidencia recolectada», la
+           ficha de racha, los «+N» flotantes, el titular del barrio en dos
+           líneas de PT Serif, la línea de progreso de escenario, hasta tres
+           toasts apilados y un pie de foto con crédito. Todo eso se lee en la
+           pantalla de resultados, que es donde hay tiempo para leer. -->
+
       <div class="hud__superior">
-        <span class="hud__rotulo-evidencia">Evidencia recolectada</span>
-
-        <div class="contador contador--dorado">
-          <span class="contador__valor" data-campo="papeles">0</span>
-
-          <!-- La racha. Cuelga del contador de papeles porque es lo que la
-               produce, y hacia abajo, fuera de la calle. No multiplica nada:
-               es el termómetro de que vas encadenando. -->
-          <span class="racha racha--oculta" data-campo="racha">
-            <span class="racha__x" data-campo="racha-valor">×0</span>
-            <span class="racha__nombre" data-campo="racha-nombre"></span>
-          </span>
-        </div>
-
+        <!-- Arriba a la izquierda: SOLO la pausa. -->
         <button class="boton-icono boton-icono--rojo" data-campo="pausa"
                 type="button" aria-label="Pausar">
           ${Icono.pausa(22)}
         </button>
-      </div>
 
-      <!-- EL CASO. La cabecera editorial de la corrida: el lema del barrio en
-           redonda y el nombre en negra, ambos en PT Serif blanca, como titula
-           el Figma la pantalla de juego. Se retira cuando otra pieza manda
-           (señal de salida, expediente del trámite). -->
-      <div class="caso-corrida" data-campo="caso">
-        <div class="caso-corrida__lema" data-campo="caso-lema"></div>
-        <div class="caso-corrida__nombre" data-campo="caso-nombre"></div>
+        <!-- Arriba a la derecha, en columna y alineado a la derecha: la cifra
+             de la corrida, los metros, el récord con su etiqueta, y los puntos
+             de intento. En la referencia son cuatro renglones y ninguno lleva
+             fondo propio: van sueltos sobre la calle, con sombra. -->
+        <div class="marcador">
+          <div class="marcador__linea marcador__linea--fuerte">
+            <span class="contador__valor" data-campo="papeles">0</span>
+          </div>
+          <div class="marcador__linea">
+            <span class="marcador__cifra" data-campo="distancia">0 m</span>
+          </div>
+          <div class="marcador__record">
+            <span class="marcador__rotulo">MEJOR</span>
+            <span class="marcador__cifra" data-campo="record">0</span>
+          </div>
+          <div class="intentos" data-campo="intentos"></div>
+        </div>
       </div>
 
       <!-- Marcador del expediente. Solo aparece dentro del túnel del centro,
@@ -143,16 +146,6 @@ export class HUD {
         </div>
       </div>
 
-      <!-- Potenciadores activos. OCULTOS.
-           Enseñar qué potenciador te tocó y cuánto le queda solo sirve si se
-           puede hacer algo al respecto, y hoy no se puede: caen solos, duran lo
-           que duran y no hay dónde elegirlos ni comprarlos. Es una fila de
-           iconos que ocupa la columna izquierda para informar de algo sobre lo
-           que el jugador no decide nada.
-           El marcado se queda montado y el estado se sigue llevando: cuando
-           haya tienda donde comprarlos, la fila vuelve quitando esta clase. -->
-      <div class="efectos efectos--ocultos" data-campo="efectos"></div>
-
       <!-- Cartel de salida. Es señalización de autopista, y va en el HUD y no
            en la calle: un pórtico dentro del mundo se lee de refilón, en
            escorzo y a la velocidad a la que pasa. Este baja desde arriba,
@@ -162,36 +155,15 @@ export class HUD {
         <div class="rotulo__vias" data-campo="rotulo-vias"></div>
       </div>
 
-      <!-- ══ ZONA MEDIA ══ -->
-      <div class="hud__medio">
-        <div class="riel">
-          <div class="riel__etiqueta">RUTA ACTUAL</div>
-          <div class="riel__nombre" data-campo="nombre-escenario">BAHÍA</div>
-          <div class="riel__nodos" data-campo="riel-nodos"></div>
-        </div>
-      </div>
-
-      <!-- Avisos. Van CENTRADOS: a un costado se los pierde quien mira el
-           carril, que es todo el mundo, todo el rato. -->
-      <div class="avisos" data-campo="avisos"></div>
-
-      <!-- ══ PIE DE FOTO ══
-           LA PARTIDA ES LA FOTO DE LA PÁGINA, Y UNA FOTO LLEVA PIE.
-           Aquí abajo había tres paneles flotantes —PRUEBAS, DISTANCIA y la
-           rosa de deslizamiento— con su marco y su fondo cada uno. Eran
-           widgets de aplicación puestos encima de una página de revista, y se
-           notaba: la maqueta no tiene NADA ahí abajo.
-           Lo que sí hace un diario con una imagen a toda plana es ponerle un
-           pie: crédito, lugar y datos, en una línea de cuerpo pequeño. Así que
-           la distancia, los intentos y las pruebas se leen como el pie de la
-           foto, que es información sin ser un tablero. -->
-      <div class="hud__pie">
-        <span class="pie-juego__credito">Fotografía de EL MERCIO.</span>
-        <span class="pie-juego__separador">·</span>
-        <span class="pie-juego__dato" data-campo="distancia">0 m</span>
-        <span class="intentos" data-campo="intentos"></span>
-        <span class="fichas-prueba" data-campo="pruebas"></span>
-      </div>
+      <!-- ══ ABAJO: LO QUE ESTÁ ACTIVO Y CUÁNTO LE QUEDA ══
+           Estaba montado y APAGADO a mano, con el argumento de que enseñar un
+           potenciador que no se puede elegir no informa de nada. Informa de lo
+           que informa en la referencia: CUÁNTO TE QUEDA. Sin eso, el imán se
+           acaba y el jugador no sabe por qué han dejado de venirle los papeles
+           solos. Y ahora hace falta el doble, porque al quitar los toasts esta
+           píldora es lo único que dice qué acabas de recoger.
+           Solo se pinta si hay algo activo: la lista vacía no deja nada. -->
+      <div class="efectos" data-campo="efectos"></div>
 
       <!-- La rosa de deslizamiento. Solo en la primera corrida: es la chuleta
            de controles, no un panel permanente. -->
@@ -220,20 +192,12 @@ export class HUD {
     this.ref = {
       pausa: q('pausa'),
       papeles: q('papeles'),
-      racha: q('racha'),
-      rachaValor: q('racha-valor'),
-      rachaNombre: q('racha-nombre'),
       distancia: q('distancia'),
+      record: q('record'),
       intentos: q('intentos'),
-      nombreEscenario: q('nombre-escenario'),
-      casoLema: q('caso-lema'),
-      casoNombre: q('caso-nombre'),
-      rielNodos: q('riel-nodos'),
       rotulo: q('rotulo'),
       rotuloSalida: q('rotulo-salida'),
       rotuloVias: q('rotulo-vias'),
-      pruebas: q('pruebas'),
-      avisos: q('avisos'),
       hint: q('hint'),
       tinte: q('tinte'),
       destello: q('destello'),
@@ -247,7 +211,6 @@ export class HUD {
     };
 
     this._construirIntentos();
-    this._construirRiel();
   }
 
   _construirIntentos() {
@@ -261,19 +224,6 @@ export class HUD {
     }
   }
 
-  /** Riel vertical de escenarios: muestra en cuál estás dentro del loop. */
-  _construirRiel() {
-    this.ref.rielNodos.innerHTML = '';
-    this.nodosRiel = new Map();
-
-    for (const id of ORDEN_ESCENARIOS) {
-      const nodo = document.createElement('span');
-      nodo.className = 'riel__nodo';
-      nodo.title = obtenerEscenario(id).nombre;
-      this.ref.rielNodos.appendChild(nodo);
-      this.nodosRiel.set(id, nodo);
-    }
-  }
 
   /** Engancha el botón de pausa. */
   alPulsarPausa(callback) {
@@ -331,33 +281,16 @@ export class HUD {
         this._golpe = setTimeout(
           () => this.ref.papeles.classList.remove('contador__valor--golpe'), 150,
         );
-        this._sumarFlotante(datos.papeles - c.papeles);
       }
       c.papeles = datos.papeles;
     }
 
-    // --- Racha -------------------------------------------------------------
-    // Aparece a partir del primer escalón con nombre y no antes: encadenar
-    // cinco papeles es lo normal sin proponérselo, y una ficha que sale sola
-    // cada cuatro segundos deja de significar nada a los dos minutos.
-    if (datos.combo !== c.combo) {
-      const t = tramoRacha(datos.combo ?? 0);
-      const luce = !!t.nombre;
-
-      this.ref.racha.classList.toggle('racha--oculta', !luce);
-      if (luce) {
-        this.ref.rachaValor.textContent = `×${datos.combo}`;
-        this.ref.rachaNombre.textContent = t.nombre;
-        this.ref.racha.style.setProperty('--tono', `#${t.color.toString(16).padStart(6, '0')}`);
-        // Un rebote por papel encadenado. Es la misma técnica que el latido del
-        // contador: quitar la clase, forzar el reflujo y volver a ponerla, que
-        // es la única forma de reiniciar una animación CSS ya empezada.
-        this.ref.racha.classList.remove('racha--sube');
-        void this.ref.racha.offsetWidth;
-        this.ref.racha.classList.add('racha--sube');
-      }
-      c.combo = datos.combo;
-    }
+    // LA RACHA YA NO SE PINTA. El campo `combo` se sigue emitiendo y lo usan
+    // el color de las chispas y el tono del audio, que es donde la racha se
+    // percibe SIN LEER NADA. La ficha de «×7 IMPARABLE» colgaba del contador y
+    // rebotaba con cada papel: texto en movimiento justo en la esquina que hay
+    // que mirar para saber la cifra, así que el ojo volvía ahí en vez de al
+    // carril. La referencia no tiene nada parecido, y no es un descuido suyo.
 
     // --- Distancia ---------------------------------------------------------
     if (datos.distancia !== c.distancia) {
@@ -375,16 +308,11 @@ export class HUD {
 
     // --- Escenario ---------------------------------------------------------
     if (datos.escenario !== c.escenario) {
-      const esc = obtenerEscenario(datos.escenario);
-      this.ref.nombreEscenario.textContent = esc.nombre;
-
-      // La cabecera editorial de la corrida: lema del barrio + nombre.
-      this.ref.casoLema.textContent = esc.subtitulo ?? '';
-      this.ref.casoNombre.textContent = esc.nombre;
-
-      for (const [id, nodo] of this.nodosRiel) {
-        nodo.classList.toggle('riel__nodo--activo', id === datos.escenario);
-      }
+      // EL BARRIO NO SE ESCRIBE ENCIMA. Estaban el lema y el nombre en dos
+      // líneas de PT Serif ocupando el tercio superior izquierdo, permanentes.
+      // El barrio ya lo dice el barrio: los toldos de la Bahía no se parecen a
+      // Carondelet. Y si hay que nombrarlo, se nombra en los resultados, que es
+      // donde hay tiempo para leer.
 
       // El escenario tiñe el HUD entero: cada tramo se siente distinto.
       this.raiz.dataset.escenario = datos.escenario;
@@ -427,11 +355,10 @@ export class HUD {
     // --- Potenciadores activos ---------------------------------------------
     this._actualizarEfectos(datos.efectos ?? []);
 
-    // --- Evidencias --------------------------------------------------------
-    const nPruebas = datos.pruebas?.length ?? 0;
-    if (nPruebas !== c.pruebas) {
-      this._pintarEvidencias(datos.pruebas ?? []);
-      c.pruebas = nPruebas;
+    // --- El récord, tercera línea de la columna ----------------------------
+    if (datos.record !== c.record) {
+      this.ref.record.textContent = (datos.record ?? 0).toLocaleString('es-EC');
+      c.record = datos.record;
     }
   }
 
@@ -518,7 +445,6 @@ export class HUD {
     // no bastaba: un aviso dura 2,4 segundos, así que recoger una evidencia
     // justo antes de entrar al túnel dejaba la tarjeta colgando encima del
     // marcador del expediente durante los dos primeros segundos del tramo.
-    if (activo && this.ref?.avisos) this.ref.avisos.innerHTML = '';
   }
 
   /**
@@ -561,25 +487,22 @@ export class HUD {
       for (const efecto of lista) {
         const ficha = document.createElement('div');
         ficha.className = `efecto efecto--${efecto.id}`;
-        // Pastilla grande con el icono, y debajo la batería de tramos. La
-        // batería se lee de un vistazo periférico: no hay que medir un ancho,
-        // se cuenta cuántas casillas quedan encendidas.
+        // PÍLDORA HORIZONTAL: icono a la izquierda, barra a la derecha, como
+        // en la referencia. Era una pastilla cuadrada con una batería de ocho
+        // casillas DEBAJO, en columna, ocupando el costado entero de la
+        // pantalla. Ocho casillas se cuentan; una barra continua se mira de
+        // reojo, que es todo el tiempo que hay para mirarla mientras corres.
         ficha.innerHTML = `
-          <span class="efecto__tarjeta">${Icono.iconoPotenciador(efecto.id, 34)}</span>
-          <span class="bateria"></span>
+          <span class="efecto__tarjeta">${Icono.iconoPotenciador(efecto.id, 22)}</span>
+          <span class="efecto__barra"><span class="efecto__relleno"></span></span>
         `;
         ficha.title = efecto.nombre;
-
-        const bateria = ficha.querySelector('.bateria');
-        for (let i = 0; i < TRAMOS_BATERIA; i++) {
-          bateria.appendChild(document.createElement('span')).className = 'bateria__tramo';
-        }
 
         this.ref.efectos.appendChild(ficha);
         this.fichasEfecto.set(efecto.id, {
           ficha,
-          tramos: [...bateria.children],
-          encendidos: -1,
+          relleno: ficha.querySelector('.efecto__relleno'),
+          ultimo: -1,
         });
       }
 
@@ -590,125 +513,28 @@ export class HUD {
       const ref = this.fichasEfecto?.get(efecto.id);
       if (!ref) continue;
 
-      // Se escribe solo cuando cambia el NÚMERO de casillas encendidas, o sea
-      // ocho veces en toda la duración del potenciador en vez de sesenta por
-      // segundo. La fracción cruda solo decide cuándo cruza cada umbral.
-      const encendidos = Math.ceil(efecto.fraccion * TRAMOS_BATERIA);
-      if (encendidos === ref.encendidos) continue;
-
-      ref.tramos.forEach((t, i) => {
-        t.classList.toggle('bateria__tramo--apagado', i >= encendidos);
-      });
-      // Los dos últimos tramos parpadean: es el aviso de que se acaba.
-      ref.ficha.classList.toggle('efecto--agotandose', encendidos <= 2);
-      ref.encendidos = encendidos;
+      // Se escribe al uno por ciento, no a sesenta veces por segundo: una barra
+      // de doscientos píxeles no distingue nada por debajo de eso.
+      const pct = Math.round(efecto.fraccion * 100);
+      if (pct === ref.ultimo) continue;
+      ref.relleno.style.width = `${pct}%`;
+      // El último quinto parpadea: es el aviso de que se acaba.
+      ref.ficha.classList.toggle('efecto--agotandose', pct <= 20);
+      ref.ultimo = pct;
     }
   }
 
-  _pintarEvidencias(lista) {
-    // Sin pruebas no se escribe nada: el pie de foto es una línea de texto, y
-    // una casilla vacía con una raya dentro era exactamente el widget que se
-    // quería quitar de ahí.
-    if (lista.length === 0) {
-      this.ref.pruebas.innerHTML = '';
-      return;
-    }
-
-    // Agrupamos por tipo de icono y contamos: cuatro fichas con badge se leen
-    // mucho mejor que veinte iconos repetidos.
-    const grupos = new Map();
-    for (const nombre of lista) {
-      const svg = Icono.iconoPrueba(nombre, 24);
-      grupos.set(svg, (grupos.get(svg) ?? 0) + 1);
-    }
-
-    this.ref.pruebas.innerHTML = '';
-    for (const [svg, cuenta] of grupos) {
-      const ficha = document.createElement('div');
-      ficha.className = 'ficha-prueba';
-      ficha.innerHTML = `${svg}<span class="ficha-evidencia__cuenta">${cuenta}</span>`;
-      this.ref.pruebas.appendChild(ficha);
-    }
-  }
 
   // -------------------------------------------------------------------------
   // AVISOS
   // -------------------------------------------------------------------------
 
-  /**
-   * Muestra un aviso temporal, centrado en pantalla.
-   * @param {{tipo:string, titulo:string, subtitulo?:string}} datos
-   */
-  mostrarAviso({ tipo, titulo, subtitulo }) {
-    if (!this.ref?.avisos) return;
 
-    // Mientras el trámite o el cartel manden, ni se crea. Un «EN RACHA» encima
-    // del cartel de salida no informa de nada: quita medio segundo de lectura
-    // justo cuando hay que decidir por dónde salir. Y el aviso de la propia
-    // bifurcación es redundante con el cartel, que dice lo mismo y mejor.
-    if (this.prioridad.size) return;
 
-    // Tope de tres: si el jugador encadena golpes no queremos una torre.
-    while (this.ref.avisos.childElementCount >= 3) {
-      this.ref.avisos.removeChild(this.ref.avisos.firstChild);
-    }
-
-    const iconos = {
-      golpe: Icono.alerta(18),
-      prueba: Icono.usb(18),
-      escenario: Icono.ruta(18),
-      bifurcacion: Icono.ruta(18),
-      consejo: Icono.alerta(18),
-      potenciador: Icono.sello(18),
-      desbloqueo: Icono.sello(18),
-    };
-
-    const aviso = document.createElement('div');
-    aviso.className = `aviso aviso--${tipo}`;
-    aviso.innerHTML = `
-      <span class="aviso__icono">${iconos[tipo] ?? Icono.alerta(18)}</span>
-      <span class="aviso__texto">
-        <span class="aviso__titulo"></span>
-        ${subtitulo ? '<span class="aviso__subtitulo"></span>' : ''}
-      </span>
-    `;
-    // textContent, no interpolación: los textos vienen de configuración, pero
-    // no hay razón para abrir la puerta a inyección.
-    aviso.querySelector('.aviso__titulo').textContent = titulo;
-    if (subtitulo) aviso.querySelector('.aviso__subtitulo').textContent = subtitulo;
-
-    this.ref.avisos.appendChild(aviso);
-
-    setTimeout(() => {
-      if (aviso.parentNode === this.ref.avisos) {
-        this.ref.avisos.removeChild(aviso);
-      }
-    }, 2400);
-  }
-
-  /**
-   * El «+3» que sale del contador y sube.
-   *
-   * Es la recompensa más pequeña del juego y la que más veces ocurre: unas
-   * cien por partida. El contador ya subía y latía, pero eso solo dice que
-   * algo cambió; el número flotante dice CUÁNTO, y sobre todo lo dice donde
-   * está pasando, sin que haya que leer el marcador.
-   *
-   * Se destruye solo al acabar la animación. No hay pool porque no hace falta:
-   * a lo sumo hay dos o tres vivos a la vez, y cada uno es un span.
-   */
-  _sumarFlotante(cantidad) {
-    if (cantidad <= 0 || !this.ref?.papeles) return;
-
-    const chip = document.createElement('span');
-    chip.className = 'suma-flotante';
-    chip.textContent = `+${cantidad}`;
-    this.ref.papeles.parentNode.appendChild(chip);
-    chip.addEventListener('animationend', () => chip.remove());
-  }
-
+  // Ya no hay avisos que limpiar —los toasts se fueron con el bloque de
+  // borrado—, pero el método se queda: es el que apaga el tinte de peligro y
+  // el destello al salir de la partida, y lo llaman tres sitios de main.js.
   limpiarAvisos() {
-    if (this.ref?.avisos) this.ref.avisos.innerHTML = '';
     if (this.ref?.tinte) this.ref.tinte.style.opacity = '0';
     if (this.ref?.destello) this.ref.destello.style.opacity = '0';
     this.ocultarRotulo();

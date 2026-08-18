@@ -137,7 +137,6 @@ export class Game {
     // Callbacks hacia la UI. Los rellena main.js.
     this.alCambiarEstado = () => {};
     this.alActualizarHUD = () => {};
-    this.alMostrarAviso = () => {};
     /** Baja el cartel de salida con los tres destinos. */
     this.alSeñalizar = () => {};
     // ¿Ya se quitó el cartel de esta bifurcación? Se retira solo al acercarse
@@ -295,7 +294,7 @@ export class Game {
     this.pista = new Track(this.escenaThree);
     this.jugador = new Player(this.escenaThree, this.cuaderno.personajePreferido);
     this.obstaculos = new ObstacleManager(this.escenaThree);
-    this.evidencia = new CoinManager(this.escenaThree);
+    this.evidencia = new CoinManager(this.escenaThree, this.camara);
     this.perseguidor = new Chaser(this.escenaThree);
     this.rutas = new Rutas();
     this.bifurcacion = new Bifurcacion(this.escenaThree);
@@ -303,7 +302,7 @@ export class Game {
     this.tramite = new TramiteManager(this.escenaThree);
     this.cerco = new Cerco(this.escenaThree);
     this.intro = new Intro(this.escenaThree);
-    this.potenciadores = new PowerUpManager(this.escenaThree);
+    this.potenciadores = new PowerUpManager(this.escenaThree, this.camara);
     this.potenciadores.establecerDesbloqueados(this.cuaderno.potenciadoresDesbloqueados());
 
     // Las chispas cuelgan de la RAÍZ de la escena, no del grupo del escenario:
@@ -463,11 +462,6 @@ export class Game {
 
     if (anunciar) {
       this.audio.cambioEscenario();
-      this.alMostrarAviso({
-        tipo: 'escenario',
-        titulo: config.nombre,
-        subtitulo: config.subtitulo,
-      });
     }
   }
 
@@ -533,11 +527,6 @@ export class Game {
 
     const config = obtenerEscenario(this.escenarioActual);
     this.audio.cambioEscenario();
-    this.alMostrarAviso({
-      tipo: 'escenario',
-      titulo: config.nombre,
-      subtitulo: config.subtitulo,
-    });
 
     this.controles.activar();
     this.relojAnterior = performance.now();
@@ -668,13 +657,6 @@ export class Game {
     this.senalRetirada = false;
 
     const esc = obtenerEscenario(this.escenarioActual);
-    this.alMostrarAviso({
-      tipo: 'bifurcacion',
-      titulo: 'ELIGE TÚNEL',
-      subtitulo: esc.frenteEsMuerte
-        ? 'El del centro es el cerco. No lleva a ninguna parte.'
-        : 'El túnel por el que entres decide la temporada',
-    });
   }
 
   /**
@@ -913,35 +895,15 @@ export class Game {
   _resumirInstitucion(fase, institucion, extra) {
     if (fase === 'entrada') {
       this._entrarEnTramite();
-      this.alMostrarAviso({
-        tipo: 'golpe',
-        titulo: institucion?.nombre ?? 'TRÁMITE',
-        subtitulo: `Se te cayeron TODOS. Lo que recojas vale ×${TRAMITE.MULTIPLICADOR_RESCATE}.`,
-      });
       return;
     }
 
-    this.alMostrarAviso({
-      tipo: 'golpe',
-      titulo: institucion?.nombre ?? 'SE ARCHIVÓ',
-      subtitulo: institucion?.portazo ?? 'Se archiva el caso.',
-    });
     // El ×2 se anuncia siempre, también en la versión corta. Es la única cifra
     // del trámite que cambia si vale la pena entrar, y esta es la variante que
     // se ve a partir de la segunda visita: o sea, casi todas las veces.
     if (extra.devueltos) {
-      this.alMostrarAviso({
-        tipo: 'bifurcacion',
-        titulo: `×${extra.multiplicador ?? 2}: +${extra.devueltos}`,
-        subtitulo: `Recogiste ${extra.recuperados ?? 0} del suelo y valen el doble`,
-      });
     }
     if (extra.hallazgo) {
-      this.alMostrarAviso({
-        tipo: 'prueba',
-        titulo: 'PERO SALES CON ALGO',
-        subtitulo: `${extra.hallazgo} · ${extra.perdidos ?? 0} se quedaron en el suelo`,
-      });
     }
 
     const destino = this.rutas.resolverRuta(this.escenarioActual, 'derecha');
@@ -1154,11 +1116,6 @@ export class Game {
       color: def.color ?? 0x39d98a, cantidad: 24, fuerza: 4.6, tam: 0.42, vida: 0.62,
     });
 
-    this.alMostrarAviso({
-      tipo: 'potenciador',
-      titulo: def.nombre.toUpperCase(),
-      subtitulo: def.descripcion,
-    });
   }
 
   /** Descuenta los temporizadores y deshace los efectos que caducan. */
@@ -1636,7 +1593,6 @@ export class Game {
         this.particulas.anillo(this.jugador.x, this.jugador.y + 0.9, 0.2, {
           color: t.color, cantidad: 30, radio: 6.5,
         });
-        this.alMostrarAviso({ tipo: 'racha', titulo: t.nombre, subtitulo: `${this.combo} seguidos` });
       }
 
       // Dentro del trámite se cuenta el VALOR, no el número de piezas. Cada
@@ -1651,7 +1607,6 @@ export class Game {
         this.pruebasPartida.push(ev.nombre);
       }
       this.audio.evidencia();
-      this.alMostrarAviso({ tipo: 'prueba', titulo: 'PRUEBA', subtitulo: ev.nombre });
     }
 
     // El combo caduca si dejas de recoger.
@@ -1703,11 +1658,6 @@ export class Game {
       });
 
       const esc = obtenerEscenario(this.escenarioActual);
-      this.alMostrarAviso({
-        tipo: 'golpe',
-        titulo: esc.obstaculos[golpe.tipo] ?? 'Obstáculo',
-        subtitulo: `${JUGADOR.GOLPES_MAXIMOS - this.jugador.golpes} intentos restantes`,
-      });
     }
 
     // ---- Condiciones de fin ----------------------------------------------
@@ -1757,6 +1707,10 @@ export class Game {
       cercania: this.perseguidor.cercania(),
       golpesRestantes: JUGADOR.GOLPES_MAXIMOS - this.jugador.golpes,
       combo: this.combo,
+      // El récord de siempre, tercera línea de la columna. Es la cifra que la
+      // referencia pone bajo «MEJOR PUNTUACIÓN»: se compite contra uno mismo
+      // sin tener que salir a mirar la tabla.
+      record: this.cuaderno?.mejorEvidencia ?? 0,
       escenario: this.escenarioActual,
       progresoTramo: this.distanciaTramo / TRAMO.LONGITUD,
       linterna: this.escenarioActual === 'apagon' ? this.escenario.fraccionLinterna() : null,
@@ -1824,14 +1778,36 @@ export class Game {
     // porque ese está afinado para el seguimiento lateral —que tiene que ser
     // rápido— y aquí un cambio así de grande a esa velocidad se lee como un
     // tirón. Medio segundo.
-    const arriba = this.jugador.vaPorArriba && !this.jugador.volando;
+    // EL VUELO CUENTA COMO IR POR ARRIBA. Estaba excluido con un `&& !volando`,
+    // y por eso al coger la cobertura aérea el personaje se iba al tercio
+    // SUPERIOR del cuadro —por encima del horizonte— mientras la cámara se
+    // quedaba abajo. En la referencia pasa lo contrario: el personaje no sale
+    // nunca del tercio inferior, y lo que hay encima de él es cielo vacío.
+    const arriba = this.jugador.vaPorArriba || this.jugador.volando;
     this.mezclaArriba = (this.mezclaArriba ?? 0)
       + ((arriba ? 1 : 0) - (this.mezclaArriba ?? 0))
       * (1 - Math.exp(-dt / (CAMARA.ARRIBA_TRANSICION / 3)));
     const m = this.mezclaArriba;
 
-    // Sube un poco cuando el jugador salta: no lo pierde de vista.
-    const yObjetivo = CAMARA.POSICION.y + this.jugador.y * 0.28
+    // SUBIR DE NIVEL Y SALTAR NO SON LO MISMO, y con un factor único los dos
+    // se seguían igual de mal: subirse a una tarima dejaba al personaje en el
+    // centro exacto de la pantalla y encogido, y un salto normal apenas movía
+    // el encuadre.
+    //
+    // Se parten en dos. La ALTURA DEL SUELO —tarima, o vuelo— se sigue casi
+    // entera (0.90): la cámara sube contigo y el personaje se queda donde
+    // estaba en el cuadro. El SALTO se sigue a medias (0.45): que el encuadre
+    // ceda un poco es lo que hace que un salto se sienta salto.
+    //
+    // Y la diferencia entre este factor y el de la mira (más abajo) es lo que
+    // ABRE EL PICADO al subir, que es lo que dice la referencia: «la cámara
+    // sube con él y ADEMÁS pica más hacia abajo». Antes esa diferencia era de
+    // 0.08 y valía tres cuartos de grado; ahora son tres grados en el pico del
+    // salto y siete en pleno vuelo.
+    const alturaSuelo = this.jugador.volando ? this.jugador.y : (this.jugador.alturaSuelo ?? 0);
+    const alturaSalto = this.jugador.volando ? 0 : this.jugador.y - alturaSuelo;
+
+    const yObjetivo = CAMARA.POSICION.y + alturaSuelo * 0.90 + alturaSalto * 0.45
       + CAMARA.ARRIBA_ALTURA_EXTRA * m;
     this.camara.position.y += (yObjetivo - this.camara.position.y) * t;
 
@@ -1855,7 +1831,8 @@ export class Game {
     // orbitaría alrededor del personaje. Van juntas.
     this.camara.lookAt(
       this.jugador.x * CAMARA.SEGUIMIENTO_LATERAL,
-      CAMARA.MIRA.y + this.jugador.y * 0.2 - CAMARA.ARRIBA_MIRA_BAJA * m,
+      CAMARA.MIRA.y + alturaSuelo * 0.55 + alturaSalto * 0.12
+        - CAMARA.ARRIBA_MIRA_BAJA * m,
       CAMARA.MIRA.z,
     );
 

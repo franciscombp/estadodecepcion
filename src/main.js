@@ -176,14 +176,11 @@ async function arrancar() {
   actualizador.alDetectar = () => {
     if (aplicarSiEsSeguro()) return;
 
-    // Aquí solo se llega estando ya jugando. El aviso se queda puesto y la
-    // edición entra al terminar la corrida: recargar en mitad de una partida se
-    // la borra al jugador por una razón que no tiene nada que ver con el juego.
-    hud.mostrarAviso({
-      tipo: 'consejo',
-      titulo: 'EDICIÓN NUEVA',
-      subtitulo: 'Entra al terminar esta corrida',
-    });
+    // Aquí solo se llega estando ya jugando, y ya no hay dónde decirlo: los
+    // avisos flotantes se fueron con el HUD nuevo. No se pierde nada, porque
+    // la edición entra sola al terminar la corrida —recargar en mitad de una
+    // partida se la borra al jugador por un motivo que no tiene nada que ver
+    // con el juego— y el panel de Ajustes lo cuenta con todas las letras.
   };
 
   /**
@@ -296,7 +293,6 @@ async function arrancar() {
   };
 
   juego.alActualizarHUD = (datos) => hud.actualizar(datos);
-  juego.alMostrarAviso = (datos) => hud.mostrarAviso(datos);
   juego.alSeñalizar = (destinos, peligro) => hud.mostrarRotulo(destinos, peligro);
   juego.alQuitarSenal = () => hud.ocultarRotulo();
 

@@ -899,26 +899,48 @@ function _figuraDeUniforme(g, colorRopa, colorOscuro, conEscudo = false) {
 
 // Compartidos por todas las instancias.
 let _geoEvidencia = null;
-let _matPapel = null;
+let _matCara = null;
+let _matCanto = null;
+let _texHalo = null;
+let _matHalo = null;
+
+// El halo se apaga en calidad baja: son 340 sprites más en pista y el
+// subsistema ya es el que más duele en el reguero del trámite.
+let _haloEncendido = true;
+
+/** Enciende o apaga el halo de los papeles. Lo llama el detector de calidad. */
+export function ajustarHaloEvidencia(encendido) {
+  _haloEncendido = !!encendido;
+}
 
 /**
- * PAPEL — la moneda. Una hoja con renglones que gira sobre sí misma.
+ * PAPEL — la moneda. Un disco grueso que gira sobre su eje vertical.
  *
- * Es UNA malla, no un grupo: los renglones van en una textura en vez de ser
- * geometría aparte. A la velocidad del juego se ve igual y ahorra tres draw
- * calls por papel (más de 200 con la pista llena).
+ * ERA UNA LOSA de 0.05 de canto, y una losa tiene un problema que no se ve
+ * hasta que la miras girar: DESAPARECE DOS VECES POR VUELTA. Al pasar de perfil
+ * quedan cinco centímetros de nada, y como toda la hilera giraba con la misma
+ * fase, la fila entera parpadeaba a la vez. Eso no se lee como monedas girando,
+ * se lee como un fallo de dibujado.
+ *
+ * Ahora es un cilindro de 0.14 de grosor —el 16 % del diámetro, que es lo que
+ * hace legible el canto— con la cara y el canto de distinto valor: el canto va
+ * un 45 % más oscuro, que es lo que en la referencia distingue el borde
+ * moleteado de la cara. Los 20 segmentos radiales dan esas muescas.
+ *
+ * El `rotateX` va HORNEADO EN LA GEOMETRÍA y no en `mesh.rotation.x`: el bucle
+ * de Coin.js reescribe `rotation.y` cada fotograma y una rotación de malla en X
+ * pelearía con él.
+ *
+ * Sigue siendo UNA malla más un sprite: los renglones van en textura en vez de
+ * ser geometría, que a la velocidad del juego se ve igual y ahorra tres draw
+ * calls por papel.
  */
 export function crearEvidencia() {
   if (!_geoEvidencia) {
-    // Algo más pequeño y casi cuadrado: cuanto menos alto es el papel,
-    // menos separación hace falta para que se vea el hueco entre dos.
-    // Subido un 25%: con la curvatura del mundo los papeles asoman por la
-    // cresta ya pequeños, y a este tamaño la hilera se lee desde que nace.
-    // MÁS GRANDE. Un papel de 0.58 a treinta metros es un píxel: se recogían
-    // sin llegar a verlos, y lo que hace que apetezca recogerlos es verlos
-    // venir. A 0.86 tiene el tamaño de una moneda del original —la mitad del
-    // ancho de un carril— y se aprecia lo que es.
-    _geoEvidencia = new THREE.BoxGeometry(0.86, 0.92, 0.05);
+    // Diámetro 0.86, el mismo de siempre: no toca ni la separación de la
+    // hilera ni las cajas de recogida. Lo que cambia es el canto.
+    _geoEvidencia = new THREE.CylinderGeometry(0.43, 0.43, 0.14, 20, 1);
+    _geoEvidencia.rotateX(Math.PI / 2);
 
     const tex = textura('papel', (ctx, w, h) => {
       ctx.fillStyle = '#ffd94f';
@@ -932,29 +954,78 @@ export function crearEvidencia() {
         const ancho = i === 4 ? 0.4 : 0.64;
         ctx.fillRect(w * 0.18, y, w * ancho, h * 0.035);
       }
-      // Sello
-      ctx.strokeStyle = 'rgba(255,51,85,0.55)';
-      ctx.lineWidth = 3;
+      // EL SELLO, GRANDE Y CENTRADO. Estaba pequeño y en una esquina, y a
+      // treinta metros no se veía nada: la cara quedaba lisa y el giro no se
+      // leía. En la referencia la cara lleva una marca central clara que ocupa
+      // casi la mitad del disco, y es esa marca la que hace visible la vuelta.
+      // Aquí es el sello del expediente, que además es lo que el papel ES.
+      const cx = w * 0.5, cy = h * 0.52, r = w * 0.21;
+      ctx.strokeStyle = 'rgba(197,59,43,0.85)';
+      ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.arc(w * 0.72, h * 0.78, w * 0.12, 0, Math.PI * 2);
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.66, 0, Math.PI * 2);
       ctx.stroke();
     }, 64, 80);
 
-    _matPapel = new THREE.MeshStandardMaterial({
+    _matCara = new THREE.MeshStandardMaterial({
       map: tex,
       emissive: COLOR3D.dorado,
       // 0.55 de base. Estuvo en 0.85 para que el reguero le ganase el ojo al
       // decorado, y le ganaba de más: los papeles salían resplandecientes,
       // como si cada uno fuera un potenciador. Lo que los tiene que hacer
-      // visibles es su TAMAÑO y su separación, no que brillen.
+      // visibles es su TAMAÑO, su separación y su halo, no que brillen.
       emissiveIntensity: 0.55,
       roughness: 0.4,
       flatShading: true,
     });
+
+    // El canto, sin textura y más oscuro. Es lo que da el volumen: con la cara
+    // y el canto del mismo tono, el cilindro se vuelve a leer como una losa.
+    _matCanto = new THREE.MeshStandardMaterial({
+      color: 0xb58a1e,
+      emissive: COLOR3D.dorado,
+      emissiveIntensity: 0.55,
+      roughness: 0.55,
+      flatShading: true,
+    });
+
+    // El halo. Es lo que hace visible la pieza a treinta metros, donde el disco
+    // mide cuatro píxeles, y lo que tapa el hueco cuando pasa de canto.
+    _texHalo = textura('halo-papel', (ctx, w, h) => {
+      const g = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+      // Cálido y SUAVE. A 0.55 en el centro, sobre un cielo claro y en
+      // aditivo, el halo se quemaba a blanco y la moneda desaparecía dentro de
+      // su propio resplandor. La referencia tiene halo, no farola.
+      g.addColorStop(0, 'rgba(255,190,50,0.34)');
+      g.addColorStop(0.4, 'rgba(255,180,40,0.13)');
+      g.addColorStop(1, 'rgba(255,170,30,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+    }, 64, 64);
+
+    _matHalo = new THREE.SpriteMaterial({
+      map: _texHalo,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      toneMapped: false,
+      transparent: true,
+    });
   }
 
-  const papel = new THREE.Mesh(_geoEvidencia, _matPapel);
+  // El orden de materiales de CylinderGeometry es [lateral, tapa, fondo].
+  const papel = new THREE.Mesh(_geoEvidencia, [_matCanto, _matCara, _matCara]);
   papel.userData.tipo = 'papel';
+
+  if (_haloEncendido) {
+    const halo = new THREE.Sprite(_matHalo);
+    halo.scale.setScalar(1.85);
+    papel.add(halo);
+    papel.userData.halo = halo;
+  }
+
   return papel;
 }
 
@@ -968,8 +1039,10 @@ export function crearEvidencia() {
  * la hilera dibuja la ruta, que es justo lo que un reguero de monedas hace en
  * cualquier runner, solo que aquí además significa algo.
  *
- * El material es único y compartido por las tres mil piezas de la pista, así
- * que esto es una escritura, no tres mil.
+ * Los materiales son dos —cara y canto— y están compartidos por las tres mil
+ * piezas de la pista, así que esto son dos escrituras, no tres mil. Escribir
+ * solo en la cara dejaba el canto apagado y en el Apagón se encendía media
+ * moneda.
  *
  * @param {number} intensidad   Emisión. ~0.55 con luz, ~2 a oscuras.
  * @param {boolean} atraviesaNiebla
@@ -979,11 +1052,16 @@ export function crearEvidencia() {
  *   objeto que no se funde con el fondo se lee como pegatina.
  */
 export function ajustarBrilloEvidencia(intensidad, atraviesaNiebla = false) {
-  if (!_matPapel) crearEvidencia();
-  _matPapel.emissiveIntensity = intensidad;
-  _matPapel.fog = !atraviesaNiebla;
-  _matPapel.toneMapped = !atraviesaNiebla;
-  _matPapel.needsUpdate = true;
+  if (!_matCara) crearEvidencia();
+  for (const m of [_matCara, _matCanto]) {
+    m.emissiveIntensity = intensidad;
+    m.fog = !atraviesaNiebla;
+    m.toneMapped = !atraviesaNiebla;
+    m.needsUpdate = true;
+  }
+  // Con la emisión alta del Apagón, un halo aditivo encima se quema a blanco y
+  // el reguero pasa de guiar a deslumbrar. Se baja a la mitad.
+  if (_matHalo) _matHalo.opacity = intensidad > 1.2 ? 0.45 : 1;
 }
 
 /**
@@ -1013,17 +1091,23 @@ export function crearPrueba() {
   conector.position.y = 0.28;
   g.add(conector);
 
-  // Halo en alambre: la hace destacar sobre cualquier fondo.
+  // HALO SUAVE, NO JAULA DE ALAMBRE. Era un octaedro en wireframe de 0.48 —o
+  // sea 0.30 del ancho de pantalla, MÁS grande que un potenciador— y una
+  // rejilla dura alrededor de un objeto pequeño no lo destaca: lo esconde
+  // dentro de una caja. La referencia usa un resplandor difuso, y de paso esto
+  // devuelve la jerarquía que se había perdido: moneda < prueba < potenciador.
   const halo = new THREE.Mesh(
-    new THREE.OctahedronGeometry(0.48, 0),
+    new THREE.PlaneGeometry(0.8, 0.8),
     new THREE.MeshBasicMaterial({
-      color: COLOR3D.naranja,
+      map: texturaEstallido(COLOR3D.naranja),
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
       transparent: true,
-      opacity: 0.3,
-      wireframe: true,
+      opacity: 0.55,
       toneMapped: false,
     }),
   );
+  halo.position.z = -0.2;
   g.add(halo);
 
   g.userData.tipo = 'evidencia';
@@ -1066,14 +1150,41 @@ export function crearPrueba() {
 function capsulaPotenciador(color) {
   const g = new THREE.Group();
 
+  // ══ EL ESTALLIDO RADIAL ══
+  //
+  // Es LO QUE FALTABA. En la referencia el power-up es, con diferencia, lo más
+  // brillante del cuadro: no por su tamaño sino porque lleva detrás un abanico
+  // de rayos que ocupa medio ancho de pantalla y que se ve venir desde el
+  // fondo. Aquí lo más brillante eran las franjas de peligro de los
+  // obstáculos, o sea que lo que más llamaba la atención era lo que hay que
+  // esquivar y no lo que hay que coger.
+  //
+  // Va encarado a cámara (`PowerUps.actualizar` lo orienta cada fotograma): un
+  // plano fijo se ve de canto a treinta metros y desaparece justo cuando más
+  // falta hace verlo.
+  const estallido = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.35, 2.35),
+    new THREE.MeshBasicMaterial({
+      map: texturaEstallido(color),
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      transparent: true,
+      toneMapped: false,
+    }),
+  );
+  estallido.position.z = -0.35;
+  g.add(estallido);
+
   const cristal = new THREE.Mesh(
-    new THREE.OctahedronGeometry(0.62, 0),
+    new THREE.OctahedronGeometry(0.72, 0),
     new THREE.MeshStandardMaterial({
       color,
       emissive: color,
-      emissiveIntensity: 0.35,
+      // Subido de 0.35 a 1.2 y de 0.24 a 0.42 de opacidad: la jaula tiene que
+      // leerse como un objeto encendido, no como un cristal apagado.
+      emissiveIntensity: 1.2,
       transparent: true,
-      opacity: 0.24,
+      opacity: 0.42,
       roughness: 0.15,
       metalness: 0.3,
       flatShading: true,
@@ -1082,7 +1193,7 @@ function capsulaPotenciador(color) {
   g.add(cristal);
 
   const aro = new THREE.Mesh(
-    new THREE.TorusGeometry(0.58, 0.05, 6, 20),
+    new THREE.TorusGeometry(0.66, 0.055, 6, 24),
     new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, toneMapped: false }),
   );
   aro.rotation.x = Math.PI / 2;
@@ -1098,9 +1209,64 @@ function capsulaPotenciador(color) {
   peana.position.y = -1.5;
   g.add(peana);
 
+  // QUE ILUMINE. Sin luz propia, la cápsula se lee como una calcomanía pegada
+  // al aire: no tiñe el asfalto de debajo ni las cajas de al lado, y el ojo la
+  // descarta como parte del HUD. Cuesta cero: nunca hay más de un potenciador
+  // vivo a la vez, porque salen cada 320 m y se ven desde 220.
+  const farol = new THREE.PointLight(color, 4.5, 6.5, 2);
+  g.add(farol);
+
   g.userData.aro = aro;
   g.userData.cristal = cristal;
+  g.userData.estallido = estallido;
+  g.userData.peana = peana;
+  g.userData.farol = farol;
   return g;
+}
+
+// Los estallidos se cachean por color: hay seis potenciadores y seis texturas,
+// no una por aparición.
+const _texEstallido = new Map();
+
+/**
+ * El abanico de rayos que va detrás de un potenciador. Catorce rayos
+ * alternando blanco y el color del catálogo, con el alfa cayendo del centro al
+ * borde para que el plano no se recorte en un cuadrado.
+ */
+function texturaEstallido(color) {
+  const clave = `estallido-${color}`;
+  if (_texEstallido.has(clave)) return _texEstallido.get(clave);
+
+  const tex = textura(clave, (ctx, w, h) => {
+    const cx = w / 2, cy = h / 2, r = w / 2;
+    const hex = `#${color.toString(16).padStart(6, '0')}`;
+    const RAYOS = 14;
+
+    for (let i = 0; i < RAYOS; i++) {
+      const a0 = (i / RAYOS) * Math.PI * 2;
+      const a1 = a0 + (Math.PI * 2 / RAYOS) * 0.55;
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      grad.addColorStop(0, i % 2 ? 'rgba(255,255,255,0.95)' : `${hex}f0`);
+      grad.addColorStop(0.45, i % 2 ? 'rgba(255,255,255,0.35)' : `${hex}60`);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, a0, a1);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // El núcleo, para que el centro no se vea hueco entre rayo y rayo.
+    const nucleo = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.42);
+    nucleo.addColorStop(0, 'rgba(255,255,255,0.9)');
+    nucleo.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = nucleo;
+    ctx.fillRect(0, 0, w, h);
+  }, 256, 256);
+
+  _texEstallido.set(clave, tex);
+  return tex;
 }
 
 /** IMÁN — "Fuente anónima". La herradura de siempre, que se lee al instante. */
@@ -1311,11 +1477,27 @@ const INSIGNIAS = {
  * @param {string} id    Clave del catálogo (ver config/balance.js)
  * @param {number} color Color del potenciador
  */
+// Cuánto hay que escalar cada insignia para que las seis midan lo mismo en
+// pantalla. Estaban dibujadas a su aire —de 0.25 de ancho las botas a 0.76 la
+// portada, o sea un factor tres entre la más pequeña y la más grande— y el
+// resultado era que el mismo objeto de juego se leía enorme o diminuto según
+// cuál te tocara. La referencia las pone todas al mismo cuerpo, ≈0.25 del
+// ancho de pantalla, porque lo que importa es reconocer QUÉ es, no cuál.
+const ESCALA_INSIGNIA = {
+  botas: 4.2,
+  linterna: 3.9,
+  salvoconducto: 2.5,
+  iman: 1.9,
+  portada: 1.4,
+  cobertura: 1.4,
+};
+
 export function crearPotenciador(id, color) {
   const g = capsulaPotenciador(color);
 
   const constructor = INSIGNIAS[id] ?? insigniaIman;
   const insignia = constructor(color);
+  insignia.scale.setScalar(ESCALA_INSIGNIA[id] ?? 2);
   g.add(insignia);
 
   g.userData.tipo = 'potenciador';

@@ -22,7 +22,7 @@
 // ============================================================================
 
 import * as THREE from 'three';
-import { CARRILES, ELEVADO } from '../config/balance.js';
+import { CARRILES, ELEVADO, SALTO } from '../config/balance.js';
 import { crearTarima } from '../models/props.js';
 
 export class ElevadoManager {
@@ -52,9 +52,25 @@ export class ElevadoManager {
   actualizar(dt, avance, jugador, obstaculos, papeles) {
     this.distanciaDesdeUltima += avance;
 
+    // DOS TARIMAS VIVAS, NO UNA.
+    //
+    // Con el tope en una sola, la configuración decía 95 m entre tarimas y la
+    // realidad eran 340-370: la siguiente no podía nacer hasta que la anterior
+    // se destruía, y la anterior no se destruía hasta haber recorrido su largo
+    // entero más cuarenta metros de cortesía. Salían dos por tramo, una cada
+    // once o veintitrés segundos. En la referencia los trenes por los que se
+    // corre por encima son parte constante del recorrido, no una rareza.
+    //
+    // Con dos vivas y el reciclado a doce metros, el intervalo real baja a
+    // 95-130 m: una cada seis u ocho segundos a velocidad de crucero.
+    //
+    // LA CONDICIÓN DE NO SOLAPARSE NO ES OPCIONAL: dos tarimas reservan dos
+    // carriles, y si se solapan en Z el generador de obstáculos se queda con
+    // uno solo para repartirlo todo y el juego degenera en pasillo único.
     if (!this.generacionPausada
         && this.distanciaDesdeUltima >= ELEVADO.DISTANCIA_ENTRE
-        && this.activas.length === 0) {
+        && this.activas.length < 2
+        && !this.activas.some((t) => t.z - t.largoTotal < 30)) {
       this._generar(obstaculos, papeles);
       this.distanciaDesdeUltima = 0;
     }
@@ -68,7 +84,7 @@ export class ElevadoManager {
       // El pie de la rampa es el borde CERCANO y el tablado se extiende hacia
       // -Z, así que el borde lejano está en z - largoTotal. La tarima entera
       // ha quedado atrás cuando incluso ese ha pasado de largo al jugador.
-      if (t.z - t.largoTotal > 40) {
+      if (t.z - t.largoTotal > 12) {
         this._destruir(t);
         this.activas.splice(i, 1);
       }
@@ -104,15 +120,26 @@ export class ElevadoManager {
     // El carril queda reservado: el generador de obstáculos no pondrá nada
     // ahí mientras la tarima ocupe ese tramo. Sin esto, un bloque sólido
     // aparecería dentro de la madera.
-    obstaculos?.reservar(carril, z - largoTotal - 6, z + 6);
+    obstaculos?.reservar(carril, z - largoTotal - 6, z + 8);
 
     // Premio por subir: una hilera de papeles sobre el tablado. Es la razón
     // para tomar la rampa en vez de ignorarla.
+    // LA CINTA EMPIEZA EN LA RAMPA, no pasada la rampa.
+    //
+    // Arrancaba en `z - LARGO_RAMPA - 2`, o sea ya arriba del todo: los cinco
+    // metros y medio de rampa no tenían ni una moneda, y por tanto nada decía
+    // que aquello se pudiera subir. En la referencia la cinta de monedas ES la
+    // señal de por dónde va el camino, y arquea hacia arriba precisamente
+    // donde hay que subir.
+    //
+    // Ahora sube con la rampa: la reserva de carril se amplía a z + 8 para que
+    // esas piezas no caigan donde el generador sí pone obstáculos.
     papeles?.generarHileraElevada(
       carril,
-      z - ELEVADO.LARGO_RAMPA - 2,
-      largo - 4,
+      z + 4,
+      largo + ELEVADO.LARGO_RAMPA,
       ELEVADO.ALTURA,
+      { zRampaFin: z - ELEVADO.LARGO_RAMPA, zRampaIni: z },
     );
   }
 
@@ -144,9 +171,22 @@ export class ElevadoManager {
       if (avanceEnTarima <= ELEVADO.LARGO_RAMPA) {
         // Solo empuja si viene por el suelo. Quien llega saltando ya está
         // arriba y no necesita ayuda; darle otro impulso lo lanzaría al cielo.
-        if (!jugador.estaEnElAire && !t.impulsoDado) {
+        if (!t.impulsoDado) {
           t.impulsoDado = true;
-          jugador.impulsar(ELEVADO.IMPULSO_RAMPA);
+          if (!jugador.estaEnElAire) {
+            jugador.impulsar(ELEVADO.IMPULSO_RAMPA);
+          } else if (jugador.y < ELEVADO.ALTURA) {
+            // LLEGAR SALTANDO YA NO TE CUESTA LA TARIMA. Antes la rampa solo
+            // empujaba a quien venía por el suelo, así que saltar justo antes
+            // —que es lo que hace cualquiera al ver una rampa— te dejaba
+            // pasando por debajo: la rampa castigaba por saltar.
+            // Ahora se le completa la velocidad vertical justo hasta la altura
+            // del tablado, ni un centímetro más. Una vez por tarima, y solo
+            // dentro de la rampa, para que no se lea como un doble salto.
+            const falta = ELEVADO.ALTURA - jugador.y;
+            const necesaria = Math.sqrt(2 * SALTO.GRAVEDAD * falta);
+            if (jugador.velocidadY < necesaria) jugador.velocidadY = necesaria;
+          }
         }
         // Durante la rampa el suelo sube linealmente: si el jugador vuelve a
         // tocarla, se apoya en la pendiente y no atraviesa la madera.

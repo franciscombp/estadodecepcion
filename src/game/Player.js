@@ -224,7 +224,12 @@ export class Player {
         // El salto manda sobre la agachada: si el jugador pidió las dos cosas,
         // saltar es lo que le saca de más apuros.
         if (this.bufferSalto > 0) {
-          this.velocidadY = SALTO.VELOCIDAD_INICIAL;
+          // CON EL MULTIPLICADOR DE LAS BOTAS. El salto que sale del buffer de
+      // entrada lo ignoraba, así que con las botas de campo puestas el salto
+      // amortiguado subía 2.20 m en vez de 3.60 y no llegaba a la tarima: el
+      // jugador veía que iba a subir y pasaba por debajo. Es la misma fórmula
+      // que usa saltar().
+      this.velocidadY = SALTO.VELOCIDAD_INICIAL * (this.multiplicadorSalto ?? 1);
           this.estaEnElAire = true;
           this.bufferSalto = 0;
           this.agacharAlAterrizar = false;

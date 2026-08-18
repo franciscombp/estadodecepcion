@@ -300,16 +300,6 @@ html, body {
    encendiéndose no dicen nada, y encima competían por la mirada con el carril.
    El marcado se queda —el estado se sigue llevando— y basta con quitar este
    `display` el día que haya algo que contar ahí. */
-.hud__medio { display: none; }
-
-.riel { opacity: 0; }
-
-/* La racha cuelga del contador y cae justo en la banda disputada. */
-.hud--tramite .racha,
-.hud--rotulo .racha {
-  opacity: 0;
-  transform: scale(0.88);
-}
 
 /* En el túnel el contador marca cero —te acaban de confiscar los papeles— y un
    cero grande al lado de un «12 / 45» solo confunde sobre cuál es la cuenta
@@ -333,11 +323,9 @@ html, body {
    filete fino. Sin cápsulas ni vidrios: texto sobre la calle. */
 .hud__superior {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
   justify-content: space-between;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(230, 230, 230, 0.75);
+  gap: 8px;
 }
 
 /* BLANCO, Y SIN HALO. Iba en rojo con un resplandor blanco detrás para
@@ -345,14 +333,6 @@ html, body {
    ese halo se veía como una mancha sucia alrededor de cada letra. Blanco sobre
    una calle oscura no necesita nada detrás; sobre una clara, el filete de la
    cabecera ya lo sostiene. */
-.hud__rotulo-evidencia {
-  font-family: var(--sans);
-  font-size: 0.875rem;
-  font-weight: 700;
-  line-height: 1.4;
-  color: #ffffff;
-  text-shadow: none;
-}
 
 /* Botón de icono (pausa). 48×48 mínimo: un botón de pausa que falla en un
    endless runner cuesta una partida. */
@@ -382,29 +362,8 @@ html, body {
    pantalla de juego: el lema del barrio en redonda y el nombre en negra,
    PT Serif blanca con sombra suave para leerse sobre cualquier calle. Se
    retira cuando otra pieza manda (señal de salida, expediente del trámite). */
-.caso-corrida {
-  padding: 8px 0 10px;
-  text-align: left;
-  transition: opacity var(--t-medio) ease;
-}
 
-.caso-corrida__lema {
-  font-family: var(--serif);
-  font-size: clamp(0.85rem, 3.8vw, 1rem);
-  line-height: 1.5;
-  color: #ffffff;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
-}
 
-.caso-corrida__nombre {
-  font-family: var(--serif);
-  font-size: var(--t-titular);
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.0094em;
-  color: #ffffff;
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6);
-}
 
 .hud--rotulo .caso-corrida,
 .hud--tramite .caso-corrida { opacity: 0; }
@@ -517,17 +476,6 @@ html, body {
 /* El «+3» que sale del contador y sube. Es la recompensa más pequeña del juego
    y la que más veces ocurre —unas cien por partida—, y es la que enseña que
    los papeles no valen todos lo mismo sin decirlo en ninguna parte. */
-.suma-flotante {
-  position: absolute;
-  right: 46px;
-  top: 4px;
-  font-size: clamp(0.8rem, 3.4vw, 1rem);
-  font-weight: 900;
-  color: var(--dorado);
-  text-shadow: 0 0 10px rgba(var(--dorado-rgb), 0.8);
-  pointer-events: none;
-  animation: suma-sube 0.72s cubic-bezier(0.15, 0.9, 0.3, 1) forwards;
-}
 
 @keyframes suma-sube {
   from { opacity: 0; transform: translateY(6px) scale(0.7); }
@@ -535,17 +483,58 @@ html, body {
   to   { opacity: 0; transform: translateY(-30px) scale(0.95); }
 }
 
-.contador {
-  position: relative;
-  flex: 1 1 auto;
+/* LA COLUMNA DE CIFRAS, arriba a la derecha y alineada a la derecha, como en
+   la referencia: la cifra de la corrida en grande, los metros debajo, el
+   récord con su etiqueta, y los puntos de intento al final. Sin caja, sin
+   fondo y sin filete: van sueltas sobre la calle y las sostiene su sombra.
+   Cualquier recuadro aquí convierte el HUD en un tablero de aplicación. */
+.marcador {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+  line-height: 1;
+}
+
+.marcador__linea {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  gap: 6px;
+}
+
+.marcador__cifra {
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+}
+
+.marcador__record {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.marcador__rotulo {
+  font-family: var(--sans);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.72);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.marcador .intentos { margin-top: 5px; }
+
+.contador {
+  position: relative;
+  display: flex;
+  align-items: center;
   gap: 8px;
-  height: 48px;
-  padding: 0 6px;
-  background: transparent;
-  border: 0;
 }
 
 .contador__valor {
@@ -584,42 +573,9 @@ html, body {
    variable, así que subir de escalón cambia la pieza entera de un tirón sin
    una sola clase de estado más. */
 
-.racha {
-  position: absolute;
-  top: calc(100% + 5px);
-  right: 0;
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 3px 9px 4px;
-  border-radius: 0;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1.5px solid var(--tono, var(--rojo-diario));
-  color: var(--tinta);
-  font-family: var(--sans);
-  white-space: nowrap;
-  transform-origin: 100% 0;
-  transition: opacity var(--t-corto) ease, transform var(--t-corto) var(--rebote);
-}
 
-.racha--oculta {
-  opacity: 0;
-  transform: scale(0.7) translateY(-4px);
-  pointer-events: none;
-}
 
-.racha__x {
-  font-size: clamp(0.78rem, 3.2vw, 1rem);
-  font-weight: 900;
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 10px color-mix(in srgb, var(--tono, #ffcf3f) 70%, transparent);
-}
 
-.racha__nombre {
-  font-size: var(--t-micro);
-  font-weight: 900;
-  letter-spacing: 0.14em;
-}
 
 /* Un rebote por papel encadenado. Va con `animation` y no con `transition`
    porque el valor de partida y el de llegada son el mismo. */
@@ -646,38 +602,11 @@ html, body {
 
 /* --- Zona media ----------------------------------------------------------- */
 
-.hud__medio {
-  flex: 1 1 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding-top: 12px;
-  gap: 10px;
-  /* El centro se deja libre: es donde el jugador tiene la mirada. */
-  pointer-events: none;
-}
 
 /* Riel de ruta: dónde estás dentro del loop de cuatro escenarios */
-.riel {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
 
 /* Con el caso titulando en serif justo arriba, el riel ya no repite nombre:
    solo quedan los nodos de la ruta. */
-.riel__etiqueta { display: none; }
-
-.riel__nombre { display: none; }
-
-.riel__nodos {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 9px;
-  width: 22px;
-  position: relative;
-}
 
 /* Línea punteada que une los nodos */
 .riel__nodos::before {
@@ -695,23 +624,7 @@ html, body {
   );
 }
 
-.riel__nodo {
-  position: relative;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.16);
-  transition: all var(--t-medio) var(--rebote);
-}
 
-.riel__nodo--activo {
-  width: 17px;
-  height: 17px;
-  background: var(--acento);
-  box-shadow:
-    0 0 0 3px rgba(var(--acento-rgb), 0.2),
-    0 0 16px rgba(var(--acento-rgb), 0.8);
-}
 
 /* Columna derecha: avisos + barra de acoso */
 /* --- Cartel de salida ------------------------------------------------------
@@ -856,33 +769,12 @@ html, body {
    vienen casi todos, y dejan la calle entera despejada. El arranque vertical
    NO es negociable: la ficha de racha cuelga del contador hasta los 87 px, y
    por encima de eso el aviso se monta sobre el marcador. */
-.avisos {
-  position: absolute;
-  right: calc(var(--seg-der) + 12px);
-  /* POR DEBAJO DE LA CABECERA DEL BARRIO. A 96 los avisos caían justo encima
-     del lema y el nombre del escenario —«LA BAHÍA» tapado por un toast de
-     obstáculo— y las dos piezas se estorbaban cada vez que coincidían. La
-     cabecera acaba sobre los 165, así que los avisos empiezan ahí. */
-  top: calc(var(--seg-arriba) + 172px);
-  transition: transform 0.42s cubic-bezier(0.2, 0.9, 0.28, 1.06);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-  width: auto;
-  max-width: min(62%, 260px);
-  pointer-events: none;
-  z-index: 5;
-}
 
 /* El cartel de salida baja hasta esta misma banda, y los dos coinciden: el
    aviso de «ELIGE TÚNEL» se dispara en el mismo fotograma que el cartel. Se
    apartan hacia abajo mientras esté puesto y vuelven solos al subirse.
    Solo vertical: la columna ya está anclada a la derecha, y el translateX que
    había aquí —de cuando iba centrada— la sacaba media anchura fuera de sitio. */
-.avisos--bajo-rotulo {
-  transform: translateY(76px);
-}
 
 .aviso {
   display: flex;
@@ -980,26 +872,7 @@ html, body {
    calle: crédito, distancia, intentos y las pruebas que lleves. Ni marcos ni
    fondos: es texto impreso sobre la imagen, como el pie de una foto a toda
    plana. Ver el marcado en HUD.js. */
-.hud__pie {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  font-family: var(--sans);
-  font-size: 0.8rem;
-  font-weight: 500;
-  line-height: 1.4;
-  color: #ffffff;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
-}
 
-.pie-juego__credito { opacity: 0.85; }
-.pie-juego__separador { opacity: 0.5; }
-
-.pie-juego__dato {
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
 
 /* La rosa de deslizamiento, sin caja: es la chuleta de la primera corrida.
    Va sobre la foto, así que se dibuja en blanco como el pie: los iconos traen
@@ -1052,19 +925,6 @@ html, body {
 }
 
 /* Fichas de evidencia */
-.fichas-prueba { display: flex; gap: 5px; }
-
-.ficha-prueba {
-  position: relative;
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  border-radius: 0;
-  background: transparent;
-  border: 0;
-  animation: ficha-entra var(--t-medio) var(--rebote);
-}
 
 .ficha-evidencia--vacia {
   color: var(--texto-debil);
@@ -2791,68 +2651,83 @@ html, body {
    un potenciador que no se disfruta: la mitad de la gracia de recogerlo es
    ver que lo llevas puesto. */
 
+/* LO ACTIVO, ABAJO Y EN PÍLDORA HORIZONTAL: icono a la izquierda, barra a la
+   derecha, como en la referencia. Estaba en columna vertical con una batería
+   de ocho casillas debajo del icono, y ocupaba el costado entero.
+   El `bottom` iba a 150 px para no chocar con el pie de foto; ese pie ya no
+   existe, así que baja a la zona segura + 24. */
 .efectos {
   position: absolute;
-  left: calc(var(--seg-izq) + 12px);
-  bottom: calc(var(--seg-abajo) + 150px);
+  left: calc(var(--seg-izq) + 24px);
+  bottom: calc(var(--seg-abajo) + 24px);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 8px;
   pointer-events: none;
   z-index: 5;
-  /* Potentiators are at message level, but positioned below HUD bottom area */
 }
+
+.efecto__barra {
+  width: clamp(90px, 26vw, 120px);
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  overflow: hidden;
+}
+
+.efecto__relleno {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+  background: #ffffff;
+  transition: width 0.2s linear;
+}
+
+.efecto--agotandose .efecto__relleno { animation: efecto-agota 0.5s steps(2, end) infinite; }
+
+@keyframes efecto-agota {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
 
 .efecto {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 10px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 999px;
+  background: rgba(20, 20, 20, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   animation: entra-efecto 0.34s var(--rebote);
 }
 
 @keyframes entra-efecto {
-  from { transform: translateX(-18px) scale(0.7); opacity: 0; }
+  from { transform: translateY(14px) scale(0.9); opacity: 0; }
   to   { transform: none; opacity: 1; }
 }
 
 /* La pastilla del icono. Cuadrada y con borde grueso, que es lo que la
    distingue de un icono suelto del HUD. */
 .efecto__tarjeta {
+  flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: clamp(48px, 15vw, 62px);
-  aspect-ratio: 1;
-  border-radius: 14px;
-  background: rgba(13, 18, 32, 0.9);
-  border: 3px solid rgba(var(--cian-rgb), 0.75);
-  box-shadow: 0 0 22px rgba(var(--cian-rgb), 0.35), inset 0 0 16px rgba(var(--cian-rgb), 0.12);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  border: 0;
+  box-shadow: none;
 }
 
 /* La batería: ocho casillas que se van apagando. Se lee de reojo, sin medir
    un ancho ni leer un número. */
-.bateria {
-  display: flex;
-  gap: 2px;
-  padding: 3px;
-  border-radius: 6px;
-  background: rgba(13, 18, 32, 0.9);
-  border: 2px solid rgba(255, 255, 255, 0.18);
-}
 
-.bateria__tramo {
-  width: clamp(4px, 1.2vw, 6px);
-  height: clamp(9px, 2.4vw, 13px);
-  border-radius: 1px;
-  background: var(--cian);
-  box-shadow: 0 0 6px rgba(var(--cian-rgb), 0.7);
-  transition: opacity 0.14s linear;
-}
 
-.bateria__tramo--apagado {
-  opacity: 0.12;
-  box-shadow: none;
-}
 
 /* Los dos últimos tramos: el aviso de que se acaba. */
 .efecto--agotandose .efecto__tarjeta,
@@ -4529,18 +4404,6 @@ html, body {
 /* Los potenciadores activos, escondidos. Ver el comentario en HUD.montar():
    enseñar cuál te tocó y cuánto le queda solo informa de algo sobre lo que el
    jugador no decide nada mientras no haya tienda donde comprarlos. */
-.efectos--ocultos { display: none; }
-
-/* --- Progreso de pruebas de una página sin armar --------------------------
-   Sustituye al precio en papeles que había aquí: un reportaje no se compra, se
-   completa. Una casilla por prueba, rellenas las que ya tienes. Se cuentan de
-   un vistazo, que es lo que un número solo no permite. */
-.pagina-cerrada__medidor {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  margin: 8px 0 4px;
-}
 
 .pagina-cerrada__prueba {
   width: 22px;

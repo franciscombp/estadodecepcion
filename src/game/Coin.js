@@ -16,7 +16,9 @@ import { crearEvidencia, crearPrueba, ajustarBrilloEvidencia } from '../models/p
 import { crearCaja, hayColisionPlana, distanciaHorizontal } from '../utils/collision.js';
 
 export class CoinManager {
-  constructor(escena) {
+  constructor(escena, camara = null) {
+    // La cámara, para encarar el halo de las pruebas. Ver el bucle de reposo.
+    this.camara = camara;
     this.escena = escena;
     this.grupo = new THREE.Group();
     escena.add(this.grupo);
@@ -134,6 +136,10 @@ export class CoinManager {
       Math.floor(Math.random() * (EVIDENCIA.LARGO_HILERA_MAX - EVIDENCIA.LARGO_HILERA_MIN + 1));
 
     const largo = Math.min(largoDeseado, cabenPorEspacio);
+
+    // La fase de giro de esta hilera. Que cada cinta arranque en un ángulo
+    // distinto es lo que evita que dos hileras seguidas se vean calcadas.
+    const faseHilera = Math.random() * Math.PI * 2;
     if (largo < 1) return null;
 
     for (let i = 0; i < largo; i++) {
@@ -147,11 +153,12 @@ export class CoinManager {
       if (enArco) {
         const t = i / Math.max(1, largo - 1);
         y = EVIDENCIA.ALTURA + Math.sin(t * Math.PI) * (EVIDENCIA.ALTURA_ARCO - EVIDENCIA.ALTURA);
-      } else {
-        // Ondulación: dos papeles seguidos nunca están a la misma altura, así
-        // que aunque se junten en pantalla se siguen distinguiendo.
-        y = EVIDENCIA.ALTURA + Math.sin(i * 1.15) * EVIDENCIA.ONDA;
       }
+      // SIN ONDULACIÓN DE ALTURA. Subía y bajaba ±0.14 con periodo de 5.5
+      // índices, y las hileras reales tienen entre tres y cinco piezas: no
+      // completaba ni un ciclo, así que no se leía como onda sino como
+      // desorden. La variedad que buscaba ya la pone el desfase de GIRO, que
+      // es lo que hace la referencia.
 
       const malla = this._obtenerEvidencia();
       malla.visible = true;
@@ -163,6 +170,9 @@ export class CoinManager {
         x,
         y,
         z: zEvidencia,
+        // Una fase por hilera y 60° entre vecinas: desfase legible dentro de
+        // la fila y distinto en cada hilera. Ver el bucle de animación.
+        fase: faseHilera + i * 1.05,
         valor: EVIDENCIA.VALOR_MINIMO +
           Math.floor(Math.random() * (EVIDENCIA.VALOR_MAXIMO - EVIDENCIA.VALOR_MINIMO + 1)),
         recogido: false,
@@ -210,15 +220,27 @@ export class CoinManager {
    * @param {number} largo   Metros de tablado utilizables
    * @param {number} altura  Altura de la superficie
    */
-  generarHileraElevada(carril, zInicio, largo, altura) {
+  generarHileraElevada(carril, zInicio, largo, altura, rampa = null) {
     const x = CARRILES.POSICIONES[carril];
     const cuantos = Math.max(2, Math.floor(largo / EVIDENCIA.SEPARACION));
+
+    const faseElevada = Math.random() * Math.PI * 2;
 
     for (let i = 0; i < cuantos; i++) {
       const zEvidencia = zInicio - i * EVIDENCIA.SEPARACION;
       const malla = this._obtenerEvidencia();
       malla.visible = true;
-      const y = altura + EVIDENCIA.ALTURA;
+
+      // Las piezas que caen sobre la rampa suben CON la rampa, siguiendo su
+      // pendiente. Son las que dicen «esto se puede subir»: puestas a la
+      // altura del tablado flotarían en el aire delante de la madera, y
+      // puestas a ras de suelo no enseñarían nada.
+      let y = altura + EVIDENCIA.ALTURA;
+      if (rampa && zEvidencia > rampa.zRampaFin) {
+        const t = Math.min(1, Math.max(0,
+          (rampa.zRampaIni - zEvidencia) / (rampa.zRampaIni - rampa.zRampaFin)));
+        y = t * altura + EVIDENCIA.ALTURA;
+      }
       malla.position.set(x, y, zEvidencia);
 
       this.activos.push({
@@ -227,6 +249,7 @@ export class CoinManager {
         x,
         y,
         z: zEvidencia,
+        fase: faseElevada + i * 1.05,
         valor: EVIDENCIA.VALOR_MAXIMO, // Arriba se paga mejor. Para eso subiste.
         recogido: false,
       });
@@ -255,6 +278,9 @@ export class CoinManager {
       x,
       y,
       z,
+      // El reguero del trámite también necesita fase, o quinientas piezas
+      // giran clavadas a la vez y el pasillo parece un molinillo.
+      fase: Math.random() * Math.PI * 2,
       valor,
       recogido: false,
     });
@@ -317,15 +343,35 @@ export class CoinManager {
 
       // --- Animación de reposo ---------------------------------------------
       if (item.tipo === 'evidencia') {
-        // Cada papel gira desfasado según su Z: una hilera girando al unísono
-        // se lee como una sola pieza articulada, no como ocho objetos.
-        item.malla.rotation.y = this.tiempo * 3 + item.z * 0.55;
+        // EL DESFASE VA EN LA PIEZA, no en su Z.
+        //
+        // Estaba en `tiempo * 3 + z * 0.55`, y esa Z avanza a la velocidad de
+        // carrera: el desfase real entre dos vecinas era de nueve grados —o
+        // sea, la hilera giraba al unísono— y la velocidad de giro dependía de
+        // lo rápido que fueras, llegando a tres vueltas por segundo. Tres
+        // vueltas por segundo no es un giro, es un centelleo.
+        //
+        // Con una fase fija por pieza, en la misma fila hay monedas de canto
+        // junto a monedas de frente, que es exactamente lo que hace que la
+        // cinta se vea viva en la referencia. Y 4.2 rad/s es una vuelta cada
+        // vuelta y media de segundo: aproximadamente lo que la pieza tarda en
+        // cruzar el cuadro, o sea una pose por moneda.
+        //
+        // El `?? 0` no es decorativo: una pieza sin fase daría NaN y
+        // desaparecería.
+        item.malla.rotation.y = (item.fase ?? 0) + this.tiempo * 4.2;
       } else {
-        item.malla.rotation.y = this.tiempo * 2;
-        item.malla.rotation.x = this.tiempo * 1.4;
-        // Pulso del halo.
-        const escala = 1 + Math.sin(this.tiempo * 5) * 0.12;
-        if (item.malla.userData.halo) item.malla.userData.halo.scale.setScalar(escala);
+        // La prueba gira SOLO sobre el eje vertical. Volteaba también en X y
+        // la silueta quedaba irreconocible la mitad del tiempo.
+        item.malla.rotation.y = (item.fase ?? 0) + this.tiempo * 2;
+        // El halo late y va encarado a cámara. Encararlo SOLO aquí, en la
+        // rama de las pruebas: hay doce vivas como mucho, mientras que por la
+        // rama de los papeles pasan trescientas cuarenta por fotograma.
+        const halo = item.malla.userData.halo;
+        if (halo) {
+          halo.scale.setScalar(1 + Math.sin(this.tiempo * 5) * 0.12);
+          if (this.camara) halo.quaternion.copy(this.camara.quaternion);
+        }
       }
 
       // --- Reciclado --------------------------------------------------------
@@ -362,7 +408,12 @@ export class CoinManager {
       if (item.recogido) continue;
       if (Math.abs(item.z) > 3) continue;
 
-      const cajaItem = crearCaja(item.x, item.y, item.z, 0.5, 0.6, 0.5);
+      // La caja de recogida, del tamaño de la pieza. Era 0.5×0.6 sobre un
+      // disco de 0.86: la mitad del área visible no recogía, así que la moneda
+      // se atravesaba sin contar. Con 0.86 el alcance lateral llega a 1.18 m,
+      // todavía muy lejos de los 2.4 que separan dos carriles: no aparece
+      // recogida cruzada.
+      const cajaItem = crearCaja(item.x, item.y, item.z, 0.86, 0.86, 0.5);
 
       if (hayColisionPlana(cajaRecogida, cajaItem)) {
         // Para la evidencia sí comprobamos altura: está flotando y debe
