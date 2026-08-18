@@ -21,6 +21,8 @@ import { AssetCache } from './utils/assetCache.js';
 import { cargarHitos } from './models/hitos.js';
 import { cargarPersonajesGLB } from './models/personajeGLB.js';
 import { detectarCalidad } from './utils/calidad.js';
+import { afinarBisel, tamanoCache, segmentosBisel } from './utils/geometria.js';
+import { afinarAcabado, acabadoActual } from './utils/materiales.js';
 import { Actualizador } from './utils/actualizacion.js';
 import { PAGINAS } from './config/publicaciones.js';
 import { cargarGuion } from './config/guion.js';
@@ -98,7 +100,23 @@ async function arrancar() {
 
   // --- Comprobación de WebGL ------------------------------------------------
   // Mejor un mensaje claro que un canvas negro sin explicación.
-  const prueba = lienzo.getContext('webgl2') || lienzo.getContext('webgl');
+  //
+  // EN UN LIENZO DE USAR Y TIRAR, NO EN EL DEL JUEGO. Esto probaba sobre
+  // `lienzo`, y un canvas SOLO TIENE UN CONTEXTO: el primer `getContext` fija
+  // sus atributos y todas las llamadas posteriores devuelven ese mismo,
+  // ignorando en silencio lo que se les pida. O sea que el contexto con el que
+  // el juego lleva corriendo desde siempre es este de aquí —el de la prueba,
+  // con todo por defecto— y los atributos que pide `WebGLRenderer` unas líneas
+  // más abajo (`antialias`, `powerPreference: 'high-performance'`) nunca han
+  // llegado a aplicarse. Se descubrió al intentar activar
+  // `preserveDrawingBuffer` para poder fotografiar la pantalla y ver que salía
+  // en `false` por mucho que se pidiera.
+  //
+  // Con un canvas suelto, la prueba comprueba lo que tiene que comprobar —si
+  // este navegador sabe hacer WebGL— y deja el lienzo de verdad intacto para
+  // que lo estrene el renderizador con sus opciones.
+  const canvasPrueba = document.createElement('canvas');
+  const prueba = canvasPrueba.getContext('webgl2') || canvasPrueba.getContext('webgl');
   if (!prueba) {
     carga.cerrar();
     pantallaError(
@@ -109,6 +127,10 @@ async function arrancar() {
     return;
   }
 
+  // Se suelta en cuanto ha dicho que sí: los contextos WebGL vivos están
+  // limitados (unos dieciséis por pestaña) y este ya no hace falta.
+  prueba.getExtension('WEBGL_lose_context')?.loseContext();
+
   carga.progreso(0.2, 'Abriendo el cuaderno…');
   const cuaderno = new Notebook();
 
@@ -116,6 +138,19 @@ async function arrancar() {
   // Detectamos de qué es capaz el dispositivo ANTES de montar la escena:
   // el nivel decide si hay bloom, cuánto decorado y a qué resolución se pinta.
   const calidad = detectarCalidad();
+
+  // EL BISEL SE DECIDE AQUÍ Y SOLO AQUÍ.
+  //
+  // Las geometrías del mundo se construyen una vez y se comparten entre miles
+  // de mallas, así que el detalle de los cantos tiene que quedar fijado ANTES
+  // de que nadie pida una caja. Después ya no: cambiarlo con la escena montada
+  // no rehace lo que existe, solo hace que las piezas nuevas no casen con las
+  // viejas.
+  //
+  // En calidad baja se queda en cero, que devuelve la caja de siempre. Un
+  // teléfono que va justo no tiene por qué pagar diez veces los triángulos por
+  // un brillo en la arista.
+  afinarBisel(calidad.nivel);
 
   carga.progreso(0.55, 'Afinando instrumentos…');
   // El contexto de audio se crea suspendido; arranca con el primer toque.
@@ -402,9 +437,114 @@ async function arrancar() {
     // Los escalones de racha y su resolución, para poder ver un color sin
     // encadenar treinta papeles a mano.
     window.__racha = { TRAMOS: RACHA.TRAMOS, tramo: tramoRacha };
+    // El detalle del bisel y cuántas geometrías comparte el mundo.
+    window.__bisel = () => ({ segmentos: segmentosBisel(), geometrias: tamanoCache() });
+    // Los mandos de la luz, en caliente. Ajustar iluminación recompilando y
+    // recargando es un ciclo de veinte segundos por prueba; con esto se barren
+    // treinta combinaciones en una sola sesión y se elige con números delante
+    // en vez de a ojo. Solo en desarrollo.
+    // MEDIR LO QUE HAY EN PANTALLA, DE VERDAD.
+    //
+    // Playwright saca capturas del compositor, y para un lienzo WebGL sin
+    // `preserveDrawingBuffer` eso devuelve el último fotograma presentado —que
+    // dentro de una misma sesión se queda congelado—. Barriendo treinta
+    // combinaciones de luz, las treinta salían con el mismo brillo al
+    // milésimo, que es la clase de medida que parece un resultado y no lo es.
+    //
+    // Esto lee los píxeles del propio contexto. Va en un `requestAnimationFrame`
+    // que se registra DESPUÉS del bucle del juego, así que corre en el mismo
+    // fotograma pero cuando ya está pintado y antes de que el navegador
+    // presente y limpie: el búfer aún es válido. Y como lee la pantalla y no la
+    // escena, incluye el postproceso —el bloom, que es justo lo que puede estar
+    // quemando la imagen—.
+    window.__muestra = () => new Promise((listo) => {
+      // REINTENTA HASTA PILLAR UN FOTOGRAMA PINTADO.
+      //
+      // El orden de los `requestAnimationFrame` no está garantizado respecto
+      // al bucle del juego: unas veces esta devolución de llamada corre después
+      // de pintar —y el búfer tiene la imagen— y otras antes, con el búfer
+      // recién limpiado, y entonces se lee negro. Midiendo una sola vez, dos de
+      // cada tres lecturas salían a cero y parecían una escena apagada.
+      // Se prueba hasta doce veces y se devuelve la primera lectura con luz.
+      let intentos = 0;
+      const probar = () => {
+        const gl = window.__juego.renderizador.getContext();
+        // AL BÚFER DE PANTALLA, EXPLÍCITAMENTE.
+        //
+        // Con el postproceso encendido, el compositor deja atado el destino de
+        // la última pasada, y `readPixels` lee SIEMPRE lo que esté atado en ese
+        // momento. Según qué pasada hubiera corrido de última, esto leía un
+        // objetivo intermedio recién limpiado y devolvía negro: en un barrido
+        // de siete combinaciones, las cinco últimas salían a cero seguidas y
+        // parecía que la escena se hubiera apagado a mitad de la prueba.
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        const an = gl.drawingBufferWidth;
+        const al = gl.drawingBufferHeight;
+        const buf = new Uint8Array(an * al * 4);
+        gl.readPixels(0, 0, an, al, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+
+        // Se salta las bandas del HUD: arriba el marcador, abajo los mandos.
+        // (readPixels devuelve las filas de abajo arriba; da igual, el recorte
+        // es simétrico.)
+        const y0 = Math.floor(al * 0.14), y1 = Math.floor(al * 0.78);
+        let lum = 0, sat = 0, quem = 0, n = 0;
+        for (let y = y0; y < y1; y++) {
+          for (let x = 0; x < an; x++) {
+            const i = (y * an + x) * 4;
+            const r = buf[i] / 255, g = buf[i + 1] / 255, b = buf[i + 2] / 255;
+            const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+            lum += 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            sat += mx === 0 ? 0 : (mx - mn) / mx;
+            if (mx > 0.985) quem++;
+            n++;
+          }
+        }
+        if (lum === 0 && ++intentos < 12) { requestAnimationFrame(probar); return; }
+        listo({
+          brillo: +(lum / n).toFixed(3),
+          saturacion: +(sat / n).toFixed(3),
+          quemado: +((quem / n) * 100).toFixed(1),
+          intentos,
+        });
+      };
+      requestAnimationFrame(probar);
+    });
+
+    window.__luz = (v = {}) => {
+      const j = window.__juego;
+      const e = j.escenaThree;
+      const esc = j.escenario;
+      if (v.exposicion !== undefined) j.renderizador.toneMappingExposure = v.exposicion;
+      if (v.entorno !== undefined) e.environmentIntensity = v.entorno;
+      if (v.ambiente !== undefined) esc.luzAmbiente.intensity = v.ambiente;
+      if (v.cielo !== undefined) esc.luzCielo.intensity = v.cielo;
+      if (v.direccional !== undefined) esc.luzDireccional.intensity = v.direccional;
+      if (v.niebla !== undefined && e.fog) { e.fog.density = v.niebla; esc.densidadBase = v.niebla; }
+      // El acabado de los materiales entra por el mismo mando: rugosidad,
+      // brillo de entorno y metalidad son parte de «cuánta luz hay» tanto como
+      // las lámparas, y separarlos obligaba a barrer dos veces.
+      if (v.techo !== undefined || v.brillo !== undefined || v.metal !== undefined) {
+        afinarAcabado({ techo: v.techo, entorno: v.brillo, metal: v.metal });
+      }
+      return {
+        ...acabadoActual(),
+        exposicion: j.renderizador.toneMappingExposure,
+        entorno: e.environmentIntensity,
+        ambiente: esc.luzAmbiente?.intensity,
+        cielo: esc.luzCielo?.intensity,
+        direccional: esc.luzDireccional?.intensity,
+        niebla: e.fog?.density,
+      };
+    };
+    // Cuántas geometrías distintas hay vivas. La caché de utils/geometria.js
+    // dice que la calle repite medidas y que por eso se puede pagar el bisel;
+    // este número es la comprobación de que es verdad, y no una suposición
+    // sobre el reparto de tamaños del mundo. Si sube a los millares, es que
+    // algo está generando cajas con decimales distintos cada vez y el bisel
+    // ha pasado de barato a carísimo sin avisar.
     console.info(
       `[Estado de Excepción] Modo desarrollo. Calidad detectada: ${calidad.nivel}. ` +
-      'Usa window.__juego para depurar.',
+      `Geometrías compartidas: ${tamanoCache()}. Usa window.__juego para depurar.`,
     );
   }
 }

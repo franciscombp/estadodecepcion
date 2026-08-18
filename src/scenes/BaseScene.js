@@ -94,21 +94,43 @@ export class BaseScene {
     // liso pasa a tener tres tonos sin necesidad de más focos, y el rebote
     // caliente por debajo es exactamente el truco que hace que los juegos de
     // esta familia se vean soleados en vez de tristes.
+    // AHORA EL AMBIENTE LO PONE EL CIELO, NO ESTA LÁMPARA.
+    //
+    // Iba a 0.45 del ambiente del escenario, y era la que sostenía las caras en
+    // sombra. Desde que la escena tiene mapa de entorno (utils/entorno.js), ese
+    // trabajo lo hace el cielo —y lo hace mucho mejor, porque una cara que mira
+    // al este recibe el color del este y no el mismo gris por los cuatro
+    // costados—. Dejar las dos era sumar dos ambientes: el mundo salía lavado,
+    // con un 24 % de la pantalla quemada a blanco, medido.
+    //
+    // Se queda un rescoldo —0.067, una séptima parte de lo que había— para que
+    // nada caiga a negro absoluto en los rincones donde el cielo no llega.
     this.luzAmbiente = new THREE.AmbientLight(
-      c.luzAmbiente, c.intensidadAmbiente * 0.45,
+      c.luzAmbiente, c.intensidadAmbiente * 0.067,
     );
     this.grupo.add(this.luzAmbiente);
 
+    // La hemisférica baja de 0.95 a 0.233 por el mismo motivo: el mapa de
+    // entorno ES una hemisférica, pero con la forma del cielo de verdad en vez
+    // de dos colores interpolados. Se queda con la cuarta parte porque el
+    // reparto cielo/suelo que hace ella sigue ayudando en las caras que miran
+    // justo al horizonte, donde el degradado del entorno se aplana.
     this.luzCielo = new THREE.HemisphereLight(
       c.luzCielo ?? c.nieblaLejos,
       c.rebote ?? c.luzAmbiente,
-      c.intensidadAmbiente * 0.95,
+      c.intensidadAmbiente * 0.233,
     );
     this.luzCielo.position.set(0, 30, 0);
     this.grupo.add(this.luzCielo);
 
     // 2. Direccional cálida: da volumen a las cajas low-poly.
-    this.luzDireccional = new THREE.DirectionalLight(c.luzDireccional, c.intensidadDireccional);
+    // Y la direccional SUBE un 44 %. Con el ambiente recortado, es la que tiene
+    // que dibujar el volumen: es la diferencia entre la cara iluminada y la
+    // sombra lo que hace que un color se lea como color y no como una mancha
+    // plana. Medido: la saturación media del cuadro pasa de 0,14 a 0,18.
+    this.luzDireccional = new THREE.DirectionalLight(
+      c.luzDireccional, c.intensidadDireccional * 1.44,
+    );
     this.luzDireccional.position.set(6, 15, 4);
     this.grupo.add(this.luzDireccional);
 
@@ -135,7 +157,18 @@ export class BaseScene {
     // teñido del color del cielo. Se pierde algo de profundidad atmosférica y
     // se gana poder decidir el carril con tiempo, que es el trato correcto en
     // un juego que va de esquivar.
-    this.densidadBase = 0.012;
+    // 0.005 Y NO 0.012.
+    //
+    // Esta niebla venía de 0.017, y bajó a 0.012 para poder ver el siguiente
+    // grupo de obstáculos. El problema es el otro efecto que tiene: la niebla
+    // mezcla TODO con el color del cielo, así que a media distancia los toldos,
+    // las cajas y las persianas llegaban ya teñidos de azul pálido. Esa era la
+    // mitad del aspecto lavado —lo que se veía como «poca luz» era en realidad
+    // «todo mezclado con el fondo»—.
+    //
+    // Con 0.005 el barrio conserva su color hasta bien lejos y sigue habiendo
+    // profundidad atmosférica en el último tramo, que es para lo que sirve.
+    this.densidadBase = 0.005;
     this.escena.fog = new THREE.FogExp2(this.colores.nieblaLejos, this.densidadBase);
     this.escena.background = new THREE.Color(this.colores.nieblaLejos);
   }

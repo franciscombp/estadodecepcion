@@ -27,6 +27,7 @@
 // ============================================================================
 
 import * as THREE from 'three';
+import { material } from '../utils/materiales.js';
 import { CAMARA, PERSEGUIDOR } from '../config/balance.js';
 import { crearMinistro } from '../models/characters.js';
 import { esGLB, poseEntrevistaGLB, poseMinistroGLB } from '../models/personajeGLB.js';
@@ -435,12 +436,12 @@ export class Intro {
       this._microfono = new THREE.Group();
       const mango = new THREE.Mesh(
         new THREE.CylinderGeometry(0.05, 0.055, 0.3, 7),
-        new THREE.MeshStandardMaterial({ color: 0x22283a, roughness: 0.6, flatShading: true }),
+        material({ color: 0x22283a, roughness: 0.6, flatShading: true }),
       );
       this._microfono.add(mango);
       const rejilla = new THREE.Mesh(
         new THREE.SphereGeometry(0.1, 8, 6),
-        new THREE.MeshStandardMaterial({
+        material({
           color: 0xb8c2d4, roughness: 0.35, metalness: 0.5, flatShading: true,
         }),
       );

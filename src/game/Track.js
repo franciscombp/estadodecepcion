@@ -15,6 +15,7 @@
 // ============================================================================
 
 import * as THREE from 'three';
+import { material } from '../utils/materiales.js';
 import { CARRILES, PALETA } from '../config/balance.js';
 
 const LARGO_BALDOSA = 40;
@@ -115,7 +116,7 @@ export class Track {
     this.geoBaldosa = new THREE.PlaneGeometry(ANCHO_PISTA, LARGO_BALDOSA, 1, 10);
     this.texturaAsfalto = crearTexturaAsfalto(this.colorCalle, this.colorLinea);
 
-    this.matBaldosa = new THREE.MeshStandardMaterial({
+    this.matBaldosa = material({
       map: this.texturaAsfalto,
       color: 0xffffff,
       roughness: 0.92,
@@ -133,8 +134,16 @@ export class Track {
     // Bordillos laterales: enmarcan la pista y refuerzan la sensación de
     // velocidad. También comparten geometría y material.
     // Mismos segmentos que la baldosa y por el mismo motivo: la curvatura.
+    //
+    // Y ESTA NO SE BISELA, aunque todo lo demás del mundo sí. La curvatura del
+    // mundo se hace doblando los VÉRTICES en el sombreador, así que una pieza
+    // larga necesita subdivisiones a lo largo de la Z o se dobla a trozos: de
+    // ahí los diez segmentos del último argumento. `RoundedBoxGeometry` no
+    // acepta segmentos por eje —solo los del bisel— así que biselar el
+    // bordillo sería cambiar diez tramos de curva por cuatro cantos brillantes,
+    // y el bordillo es justo la pieza donde la curva se ve.
     this.geoBordillo = new THREE.BoxGeometry(0.5, 0.4, LARGO_BALDOSA, 1, 1, 10);
-    this.matBordillo = new THREE.MeshStandardMaterial({
+    this.matBordillo = material({
       color: this.colorCalle,
       emissive: this.colorLinea,
       emissiveIntensity: 0.12,
@@ -164,7 +173,7 @@ export class Track {
     // no peleen por el mismo plano, y con los mismos diez segmentos a lo largo
     // que todo lo demás, porque la curvatura del mundo dobla por vértice.
     this.geoExplanada = new THREE.PlaneGeometry(ANCHO_EXPLANADA, LARGO_BALDOSA, 1, 10);
-    this.matExplanada = new THREE.MeshStandardMaterial({
+    this.matExplanada = material({
       color: this.colorSuelo,
       roughness: 0.95,
       metalness: 0,

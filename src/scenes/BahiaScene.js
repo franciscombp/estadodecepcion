@@ -12,6 +12,7 @@
 // ============================================================================
 
 import * as THREE from 'three';
+import { material } from '../utils/materiales.js';
 import { BaseScene } from './BaseScene.js';
 
 // La bóveda es un arco de circunferencia cuyo centro está BAJO EL SUELO. Con
@@ -50,7 +51,7 @@ export class BahiaScene extends BaseScene {
     const geoPanel = new THREE.CylinderGeometry(
       CUBIERTA.RADIO, CUBIERTA.RADIO, CUBIERTA.LARGO_TRAMO, 18, 1, true, 0, Math.PI,
     );
-    const matPanel = new THREE.MeshStandardMaterial({
+    const matPanel = material({
       color: 0xe8eeea,
       transparent: true,
       opacity: 0.26,
@@ -65,7 +66,7 @@ export class BahiaScene extends BaseScene {
     });
 
     const geoCercha = new THREE.TorusGeometry(CUBIERTA.RADIO + 0.06, 0.11, 4, 22, Math.PI);
-    const matCercha = new THREE.MeshStandardMaterial({
+    const matCercha = material({
       color: 0x8d939b, roughness: 0.55, metalness: 0.35, flatShading: true,
     });
 

@@ -49,6 +49,8 @@
 // ============================================================================
 
 import * as THREE from 'three';
+import { material } from '../utils/materiales.js';
+import { caja as cajaBiselada } from '../utils/geometria.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as clonarConEsqueleto } from 'three/examples/jsm/utils/SkeletonUtils.js';
 
@@ -464,7 +466,7 @@ function mat(color, emision = 0.06) {
   const clave = `${color}|${emision}`;
   let m = PIEZAS.get(clave);
   if (!m) {
-    m = new THREE.MeshStandardMaterial({
+    m = material({
       color, emissive: color, emissiveIntensity: emision,
       roughness: 0.7, metalness: 0.05, flatShading: true,
     });
@@ -473,7 +475,7 @@ function mat(color, emision = 0.06) {
   return m;
 }
 
-const caja = (a, al, f, color, em) => new THREE.Mesh(new THREE.BoxGeometry(a, al, f), mat(color, em));
+const caja = (a, al, f, color, em) => new THREE.Mesh(cajaBiselada(a, al, f), mat(color, em));
 const cilindro = (rs, ri, al, color, em) => new THREE.Mesh(
   new THREE.CylinderGeometry(rs, ri, al, 8), mat(color, em),
 );
@@ -917,7 +919,7 @@ async function cargarUno(id, base) {
   const paleta = PALETAS[id];
   crudos.set(id, { geometria: piel.geometry, huesos: piel.skeleton.bones });
   piel.geometry = pintar(piel.geometry, piel.skeleton.bones, paleta, ficha.quitar);
-  piel.material = new THREE.MeshStandardMaterial({
+  piel.material = material({
     vertexColors: true,
     roughness: 0.68,
     metalness: 0.0,

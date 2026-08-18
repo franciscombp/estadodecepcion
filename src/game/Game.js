@@ -47,6 +47,7 @@ import { Intro } from './Intro.js';
 import { Particulas } from './Particulas.js';
 
 import { crearEscenario } from '../scenes/index.js';
+import { cieloDe } from '../utils/entorno.js';
 import { obtenerEscenario } from '../config/escenarios.js';
 import { CATALOGO_POTENCIADORES } from '../config/balance.js';
 import { PERSONAJES } from '../config/personajes.js';
@@ -187,6 +188,20 @@ export class Game {
       // un buffer intermedio), así que solo lo pedimos cuando no hay bloom.
       antialias: !this.calidad.bloom && window.devicePixelRatio < 2,
       powerPreference: 'high-performance',
+      // SOLO CON ?foto=1: conservar el búfer para poder fotografiarlo.
+      //
+      // Sin esto, el navegador limpia el lienzo en cuanto lo presenta, y
+      // cualquier captura —la de Playwright incluida— devuelve el último
+      // fotograma compositado, que dentro de una misma sesión se queda
+      // congelado o sale partido por la mitad. Verificar un cambio de
+      // iluminación mirando capturas rotas es peor que no mirarlas.
+      //
+      // Va detrás de un parámetro de URL y no de `import.meta.env.DEV` por dos
+      // motivos: cuesta rendimiento —obliga a copiar el búfer en cada
+      // presentación— así que tampoco se quiere encendido mientras se
+      // desarrolla, y además permite fotografiar una compilación de producción
+      // si alguna vez hace falta comprobar algo que solo pasa ahí.
+      preserveDrawingBuffer: new URLSearchParams(location.search).has('foto'),
     });
     this.renderizador.setSize(window.innerWidth, window.innerHeight);
     this.renderizador.setPixelRatio(
@@ -196,23 +211,28 @@ export class Game {
     // aportan: el volumen lo da el flatShading y el contraste de la niebla.
     this.renderizador.shadowMap.enabled = false;
 
-    // CINEON Y NO ACES. Los dos comprimen los altos para que el neón se sature
-    // sin quemarse a blanco, que es lo que hacía falta; la diferencia está en el
-    // camino hasta ahí. ACES es una curva de cine: le quita saturación a todo el
-    // tramo medio a propósito, porque busca que la imagen parezca rodada. En una
-    // paleta de colores planos eso se traduce en que un toldo naranja llega a
-    // pantalla como un naranja terroso y un cielo azul como un gris azulado, y
-    // el escenario entero se apaga.
+    // NEUTRAL, QUE ES LA TERCERA OPCIÓN Y LA QUE ESTE JUEGO NECESITA.
     //
-    // Cineon comprime bastante menos el medio, así que los colores llegan a
-    // pantalla parecidos a como están escritos en la paleta. La exposición baja
-    // un poco para compensar que ahora los medios pesan más.
-    this.renderizador.toneMapping = THREE.CineonToneMapping;
-    // 1.28 y no 1.05. Cineon ya devolvía los colores de la paleta, pero la
-    // escena seguía saliendo apagada porque el conjunto está iluminado para
-    // no quemar y luego se expone por debajo: dos frenos seguidos. Con 1.28
-    // los amarillos del mercado son amarillos y el asfalto deja de ser barro.
-    this.renderizador.toneMappingExposure = 1.28;
+    // Aquí estaba Cineon, y estaba por un buen motivo: ACES es una curva de
+    // cine que le quita saturación a todo el tramo medio a propósito, y en una
+    // paleta de colores planos eso deja un toldo naranja en naranja terroso y
+    // un cielo azul en gris azulado. Todo eso sigue siendo verdad.
+    //
+    // Lo que pasa es que Cineon tampoco es de aquí: es la curva de la película
+    // Kodak escaneada, y también apaga —menos, pero apaga—. Y encima levanta
+    // los negros, que es de donde venía esa neblina lechosa en las sombras.
+    //
+    // `NeutralToneMapping` es el mapeo PBR Neutral de Khronos, y lo hicieron
+    // exactamente para este problema: mantener el TONO y la SATURACIÓN clavados
+    // hasta bien arriba, y comprimir solo lo que de verdad se iba a quemar. Un
+    // color de la paleta sale a pantalla siendo ese color, no una versión
+    // cansada. Es el que usan los configuradores de producto, que es el mismo
+    // requisito que tiene un juego de colores planos: que el rojo sea el rojo.
+    this.renderizador.toneMapping = THREE.NeutralToneMapping;
+    // 1.45. Con Neutral ya no hay que compensar el apagado del medio, así que
+    // la exposición pasa de arreglar un problema a hacer lo suyo: dar la hora
+    // del día. Un mediodía guayaquileño en un mundo de caramelo es este.
+    this.renderizador.toneMappingExposure = 1.2;
 
     this._configurarPostproceso();
   }
@@ -456,6 +476,23 @@ export class Game {
 
     const config = obtenerEscenario(id);
     const colores = this.escenario.obtenerColores();
+
+    // EL CIELO DEL BARRIO, para que las cosas tengan algo que reflejar.
+    //
+    // Sin `environment`, la mitad especular de cada material vale cero y el
+    // mundo sale mate por muchos focos que se le pongan: un cubo con cinco
+    // luces sigue siendo un cubo mate. Con el cielo puesto, cada canto
+    // biselado recoge un reflejo alargado y eso es lo que se lee como volumen.
+    //
+    // Se genera una vez por barrio y se guarda, así que cruzar la bifurcación
+    // de ida y vuelta no vuelve a pagarlo. Ver utils/entorno.js.
+    this.escenaThree.environment = cieloDe(this.renderizador, id, colores);
+    // La intensidad la lleva el propio escenario: el Apagón es de noche y su
+    // cielo tiene que reflejar poco, o los contenedores brillan a oscuras.
+    // 0.3 de base. El cielo procedural es más brillante de lo que parece —es un
+    // degradado a pantalla completa— y al uno lavaba la escena entera. Cada
+    // barrio puede pedir el suyo: el Apagón es de noche y refleja casi nada.
+    this.escenaThree.environmentIntensity = colores.brilloEntorno ?? 0.3;
 
     this.pista.aplicarTema(colores);
     this.obstaculos.aplicarTema(colores, id);

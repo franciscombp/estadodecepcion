@@ -27,6 +27,8 @@
 // ============================================================================
 
 import * as THREE from 'three';
+import { material } from '../utils/materiales.js';
+import { caja, cajaViva } from '../utils/geometria.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { CARRILES, OBSTACULOS, PALETA, TUNEL, ELEVADO } from '../config/balance.js';
 import { COLOR3D } from '../config/estilo.js';
@@ -51,7 +53,7 @@ import { clonarEdificioDelCruce } from './hitos.js';
  * flatShading, no por los brillos.
  */
 function mat(color, emision = 0.25, rugosidad = 0.94) {
-  return new THREE.MeshStandardMaterial({
+  return material({
     color,
     roughness: rugosidad,
     metalness: 0,
@@ -97,7 +99,7 @@ export function pulsarPeligro(dt) {
 }
 
 function neon(color, fuerza = 1.5) {
-  return new THREE.MeshStandardMaterial({
+  return material({
     color,
     emissive: color,
     emissiveIntensity: Math.min(fuerza, 2),
@@ -335,8 +337,8 @@ export function crearObstaculoSaltar(colores) {
 
   // Panel principal con franjas diagonales.
   const panel = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho, alto * 0.66, 0.22),
-    new THREE.MeshStandardMaterial({
+    caja(ancho, alto * 0.66, 0.22),
+    material({
       map: texturaChevron(),
       roughness: 0.75,
       flatShading: true,
@@ -348,7 +350,7 @@ export function crearObstaculoSaltar(colores) {
   // Franja roja de peligro en el borde superior: la línea que no se cruza.
   // Más gruesa que antes y con el rojo compartido que late (ver matPeligro).
   const franja = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho * 1.05, 0.18, 0.3),
+    caja(ancho * 1.05, 0.18, 0.3),
     matPeligro(),
   );
   franja.position.y = alto;
@@ -357,14 +359,14 @@ export function crearObstaculoSaltar(colores) {
   // Pies en A, como una valla de obra real.
   for (const s of [-1, 1]) {
     const pata = new THREE.Mesh(
-      new THREE.BoxGeometry(0.11, alto, 0.11),
+      caja(0.11, alto, 0.11),
       mat(COLOR3D.metal, 0.06),
     );
     pata.position.set(s * (ancho / 2 - 0.12), alto / 2, 0);
     g.add(pata);
 
     const base = new THREE.Mesh(
-      new THREE.BoxGeometry(0.16, 0.09, 0.7),
+      caja(0.16, 0.09, 0.7),
       mat(COLOR3D.metal, 0.06),
     );
     base.position.set(s * (ancho / 2 - 0.12), 0.045, 0);
@@ -396,8 +398,8 @@ export function crearObstaculoAgachar(colores) {
 
   // Barra suspendida con chevrones.
   const barra = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho, altoBarra, 0.4),
-    new THREE.MeshStandardMaterial({
+    caja(ancho, altoBarra, 0.4),
+    material({
       map: texturaChevron(),
       roughness: 0.7,
       flatShading: true,
@@ -409,7 +411,7 @@ export function crearObstaculoAgachar(colores) {
   // Franja roja en el BORDE INFERIOR: marca la altura límite. El rojo es el
   // compartido que late: es el borde contra el que se choca.
   const franja = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho * 1.05, 0.16, 0.48),
+    caja(ancho * 1.05, 0.16, 0.48),
     matPeligro(),
   );
   franja.position.y = base;
@@ -427,7 +429,7 @@ export function crearObstaculoAgachar(colores) {
   // Postes FUERA del ancho del carril, para no estorbar el paso.
   for (const s of [-1, 1]) {
     const poste = new THREE.Mesh(
-      new THREE.BoxGeometry(0.13, base + altoBarra, 0.13),
+      caja(0.13, base + altoBarra, 0.13),
       mat(COLOR3D.metal, 0.08),
     );
     poste.position.set(s * (ancho / 2 + 0.08), (base + altoBarra) / 2, 0);
@@ -449,8 +451,8 @@ export function crearObstaculoEsquivar(colores) {
   const fondo = OBSTACULOS.PROFUNDIDAD * 0.7;
 
   const cuerpo = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho, alto, fondo),
-    new THREE.MeshStandardMaterial({
+    caja(ancho, alto, fondo),
+    material({
       map: texturaMadera(),
       roughness: 0.9,
       flatShading: true,
@@ -467,7 +469,7 @@ export function crearObstaculoEsquivar(colores) {
   const matMarco = mat(0x4a3220, 0.04, 0.95);
   for (const y of [0.14, alto - 0.14]) {
     const listón = new THREE.Mesh(
-      new THREE.BoxGeometry(ancho * 1.02, 0.16, fondo * 1.02),
+      caja(ancho * 1.02, 0.16, fondo * 1.02),
       matMarco,
     );
     listón.position.y = y;
@@ -478,7 +480,7 @@ export function crearObstaculoEsquivar(colores) {
   const matX = matPeligro();
   for (const rot of [Math.PI / 4, -Math.PI / 4]) {
     const aspa = new THREE.Mesh(
-      new THREE.BoxGeometry(ancho * 1.18, 0.13, 0.07),
+      caja(ancho * 1.18, 0.13, 0.07),
       matX,
     );
     aspa.position.set(0, alto * 0.52, fondo / 2 + 0.04);
@@ -501,7 +503,7 @@ export function crearObstaculoDoble(colores) {
   const fondo = OBSTACULOS.PROFUNDIDAD * 1.6;
 
   const carroceria = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho, alto, fondo),
+    caja(ancho, alto, fondo),
     mat(colores.props ?? COLOR3D.metal, 0.14, 0.6),
   );
   carroceria.position.y = alto / 2 + 0.24;
@@ -509,7 +511,7 @@ export function crearObstaculoDoble(colores) {
 
   // Franja de color a media altura: rompe la masa y da carácter de vehículo.
   const franja = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho * 1.01, 0.28, fondo * 1.01),
+    caja(ancho * 1.01, 0.28, fondo * 1.01),
     neon(colores.acento ?? COLOR3D.dorado, 1.4),
   );
   franja.position.y = alto * 0.52;
@@ -519,7 +521,7 @@ export function crearObstaculoDoble(colores) {
   const matVentana = neon(0x9fe8ff, 1.3);
   for (let i = -1; i <= 1; i++) {
     const ventana = new THREE.Mesh(
-      new THREE.BoxGeometry(ancho * 0.23, 0.46, 0.05),
+      caja(ancho * 0.23, 0.46, 0.05),
       matVentana,
     );
     ventana.position.set(i * ancho * 0.29, alto * 0.82, fondo / 2 + 0.02);
@@ -536,7 +538,7 @@ export function crearObstaculoDoble(colores) {
 
   // Parachoques.
   const parachoques = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho * 1.02, 0.22, fondo * 1.03),
+    caja(ancho * 1.02, 0.22, fondo * 1.03),
     mat(0x22262f, 0.03),
   );
   parachoques.position.y = 0.34;
@@ -592,7 +594,7 @@ function _ropaTendida(g, altura, ancho) {
   const colores = [0xd94f6a, 0x4fd1ff, 0xffd94f, 0x7cffb2];
   for (let i = 0; i < 4; i++) {
     const prenda = new THREE.Mesh(
-      new THREE.BoxGeometry(0.3, 0.42, 0.05),
+      caja(0.3, 0.42, 0.05),
       mat(colores[i % colores.length], 0.22, 0.85),
     );
     prenda.position.set(-ancho * 0.32 + i * (ancho * 0.21), altura - 0.24, 0.28);
@@ -616,8 +618,8 @@ export function vestirObstaculo(g, tipo, esc, colores) {
     if (tipo === 'saltar') {
       // Mesa de tablones con su percha y la ropa colgada.
       const tablero = new THREE.Mesh(
-        new THREE.BoxGeometry(ancho * 1.04, 0.12, 0.8),
-        new THREE.MeshStandardMaterial({ map: texturaMadera(), roughness: 0.85, flatShading: true }),
+        caja(ancho * 1.04, 0.12, 0.8),
+        material({ map: texturaMadera(), roughness: 0.85, flatShading: true }),
       );
       tablero.position.y = OBSTACULOS.ALTURA_SALTAR * 0.92;
       g.add(tablero);
@@ -627,7 +629,7 @@ export function vestirObstaculo(g, tipo, esc, colores) {
     if (tipo === 'agachar') {
       // Toldo con electrodomésticos colgando del travesaño.
       const toldo = new THREE.Mesh(
-        new THREE.BoxGeometry(ancho * 1.15, 0.1, 1.5),
+        caja(ancho * 1.15, 0.1, 1.5),
         mat(0xd94f6a, 0.2, 0.85),
       );
       toldo.position.y = OBSTACULOS.ALTURA_AGACHAR_DESDE + 1.15;
@@ -635,7 +637,7 @@ export function vestirObstaculo(g, tipo, esc, colores) {
 
       for (let i = -1; i <= 1; i++) {
         const aparato = new THREE.Mesh(
-          new THREE.BoxGeometry(0.34, 0.3, 0.26),
+          caja(0.34, 0.3, 0.26),
           mat(0xb9c6d4, 0.16, 0.5),
         );
         aparato.position.set(i * 0.7, OBSTACULOS.ALTURA_AGACHAR_DESDE + 0.42, 0.35);
@@ -703,7 +705,7 @@ export function vestirObstaculo(g, tipo, esc, colores) {
 
       for (let i = 0; i < 5; i++) {
         const rejilla = new THREE.Mesh(
-          new THREE.BoxGeometry(ancho * 0.72, 0.09, 0.07),
+          caja(ancho * 0.72, 0.09, 0.07),
           mat(0x2a3040, 0.03, 0.9),
         );
         rejilla.position.set(0, 0.5 + i * 0.24, zf);
@@ -725,7 +727,7 @@ export function vestirObstaculo(g, tipo, esc, colores) {
       const matReja = mat(0x8a94a6, 0.1, 0.6);
       for (let i = 0; i < 7; i++) {
         const barrote = new THREE.Mesh(
-          new THREE.BoxGeometry(0.07, OBSTACULOS.ALTURA_SALTAR * 0.9, 0.07),
+          caja(0.07, OBSTACULOS.ALTURA_SALTAR * 0.9, 0.07),
           matReja,
         );
         barrote.position.set(-ancho * 0.45 + i * (ancho * 0.15), OBSTACULOS.ALTURA_SALTAR * 0.5, 0.12);
@@ -733,7 +735,7 @@ export function vestirObstaculo(g, tipo, esc, colores) {
       }
       for (const y of [0.35, 0.95]) {
         const travesano = new THREE.Mesh(
-          new THREE.BoxGeometry(ancho * 1.0, 0.08, 0.08),
+          caja(ancho * 1.0, 0.08, 0.08),
           matReja,
         );
         travesano.position.set(0, y, 0.12);
@@ -767,7 +769,7 @@ export function vestirObstaculo(g, tipo, esc, colores) {
     if (tipo === 'saltar') {
       // Valla de campaña: panel liso con la franja del partido.
       const panel = new THREE.Mesh(
-        new THREE.BoxGeometry(ancho * 1.02, OBSTACULOS.ALTURA_SALTAR * 0.7, 0.08),
+        caja(ancho * 1.02, OBSTACULOS.ALTURA_SALTAR * 0.7, 0.08),
         mat(colores.acento ?? 0xff5fa2, 0.3, 0.6),
       );
       panel.position.set(0, OBSTACULOS.ALTURA_SALTAR * 0.6, 0.16);
@@ -775,7 +777,7 @@ export function vestirObstaculo(g, tipo, esc, colores) {
 
       for (let i = 0; i < 3; i++) {
         const franja = new THREE.Mesh(
-          new THREE.BoxGeometry(ancho * 0.7, 0.08, 0.04),
+          caja(ancho * 0.7, 0.08, 0.04),
           mat(0xf2f2f2, 0.3, 0.5),
         );
         franja.position.set(0, OBSTACULOS.ALTURA_SALTAR * 0.42 + i * 0.18, 0.21);
@@ -786,7 +788,7 @@ export function vestirObstaculo(g, tipo, esc, colores) {
     if (tipo === 'agachar') {
       // Pancarta colgante, con sus cuerdas.
       const tela = new THREE.Mesh(
-        new THREE.BoxGeometry(ancho * 1.05, 0.9, 0.05),
+        caja(ancho * 1.05, 0.9, 0.05),
         mat(colores.acento ?? 0xff5fa2, 0.28, 0.75),
       );
       tela.position.y = OBSTACULOS.ALTURA_AGACHAR_DESDE + 0.6;
@@ -811,7 +813,7 @@ export function vestirObstaculo(g, tipo, esc, colores) {
       }
 
       const carton = new THREE.Mesh(
-        new THREE.BoxGeometry(ancho * 0.78, 2.4, 0.08),
+        caja(ancho * 0.78, 2.4, 0.08),
         mat(0xe8e2d4, 0.24, 0.7),
       );
       carton.position.set(0, 1.32, zc);
@@ -822,7 +824,7 @@ export function vestirObstaculo(g, tipo, esc, colores) {
       g.add(cabeza);
 
       const traje = new THREE.Mesh(
-        new THREE.BoxGeometry(ancho * 0.54, 1.15, 0.06),
+        caja(ancho * 0.54, 1.15, 0.06),
         mat(0x2a3550, 0.16, 0.6),
       );
       traje.position.set(0, 1.3, zc + 0.08);
@@ -859,11 +861,11 @@ function _figuraDeUniforme(g, colorRopa, colorOscuro, conEscudo = false) {
     g.userData.cuerpo.material = mat(colorOscuro, 0.03, 0.9);
   }
 
-  const cuerpo = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.95, 0.42), mat(colorRopa, 0.12, 0.75));
+  const cuerpo = new THREE.Mesh(caja(0.72, 0.95, 0.42), mat(colorRopa, 0.12, 0.75));
   cuerpo.position.set(0, 1.32, z);
   g.add(cuerpo);
 
-  const piernas = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.9, 0.36), mat(colorOscuro, 0.06, 0.8));
+  const piernas = new THREE.Mesh(caja(0.54, 0.9, 0.36), mat(colorOscuro, 0.06, 0.8));
   piernas.position.set(0, 0.44, z);
   g.add(piernas);
 
@@ -871,14 +873,14 @@ function _figuraDeUniforme(g, colorRopa, colorOscuro, conEscudo = false) {
   casco.position.set(0, 2.0, z);
   g.add(casco);
 
-  const visera = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.14, 0.06), neon(0x6fd8ff, 1.4));
+  const visera = new THREE.Mesh(caja(0.44, 0.14, 0.06), neon(0x6fd8ff, 1.4));
   visera.position.set(0, 1.98, z + 0.26);
   g.add(visera);
 
   if (conEscudo) {
     const escudo = new THREE.Mesh(
-      new THREE.BoxGeometry(0.78, 1.3, 0.07),
-      new THREE.MeshStandardMaterial({
+      caja(0.78, 1.3, 0.07),
+      material({
         color: 0x8fa6c4, transparent: true, opacity: 0.45, roughness: 0.25, metalness: 0.2,
       }),
     );
@@ -886,7 +888,7 @@ function _figuraDeUniforme(g, colorRopa, colorOscuro, conEscudo = false) {
     g.add(escudo);
   } else {
     // Fusil cruzado al pecho.
-    const fusil = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.1, 0.1), mat(0x16181f, 0.04, 0.85));
+    const fusil = new THREE.Mesh(caja(0.78, 0.1, 0.1), mat(0x16181f, 0.04, 0.85));
     fusil.position.set(0, 1.24, z + 0.26);
     fusil.rotation.z = -0.5;
     g.add(fusil);
@@ -950,7 +952,13 @@ export function crearEvidencia() {
     // taco de papeles grapado, se ve de perfil, y de paso justifica que valga
     // algo. Un poco más ancho que alto, que es como se ve un documento
     // apaisado en una mesa.
-    _geoEvidencia = new THREE.BoxGeometry(0.84, 0.94, 0.12);
+    // CAJA VIVA A PROPÓSITO, la única de todo el fichero.
+    // El legajo reparte SEIS materiales entre sus caras —el borde de las hojas
+    // en los cuatro cantos y el documento en las dos caras— y eso solo lo
+    // admite `BoxGeometry`, que trae un grupo por cara. Una caja biselada es
+    // un solo grupo: con el array puesto saldría el primer material por todas
+    // partes, o sea un legajo con canto de papel también por delante.
+    _geoEvidencia = cajaViva(0.84, 0.94, 0.12);
 
     const tex = textura('papel', (ctx, w, h) => {
       ctx.fillStyle = '#ffd94f';
@@ -983,7 +991,7 @@ export function crearEvidencia() {
     // El canto del legajo: crema pálido, sin textura y con más rugosidad. Es
     // el borde de las hojas apiladas, y es lo que hace que de perfil se siga
     // viendo un objeto en vez de una raya.
-    _matCanto = new THREE.MeshStandardMaterial({
+    _matCanto = material({
       color: 0xf2e6c2,
       emissive: COLOR3D.dorado,
       emissiveIntensity: 0.38,
@@ -991,7 +999,7 @@ export function crearEvidencia() {
       flatShading: true,
     });
 
-    _matCara = new THREE.MeshStandardMaterial({
+    _matCara = material({
       map: tex,
       emissive: COLOR3D.dorado,
       // 0.55 de base. Estuvo en 0.85 para que el reguero le ganase el ojo al
@@ -1086,20 +1094,20 @@ export function crearPrueba() {
   const g = new THREE.Group();
 
   const cuerpo = new THREE.Mesh(
-    new THREE.BoxGeometry(0.26, 0.42, 0.13),
+    caja(0.26, 0.42, 0.13),
     mat(0x1c2230, 0.04, 0.55),
   );
   g.add(cuerpo);
 
   const etiqueta = new THREE.Mesh(
-    new THREE.BoxGeometry(0.2, 0.18, 0.15),
+    caja(0.2, 0.18, 0.15),
     neon(COLOR3D.naranja, 1.7),
   );
   etiqueta.position.y = -0.04;
   g.add(etiqueta);
 
   const conector = new THREE.Mesh(
-    new THREE.BoxGeometry(0.15, 0.2, 0.07),
+    caja(0.15, 0.2, 0.07),
     mat(0xb9c6d4, 0.25, 0.35),
   );
   conector.position.y = 0.28;
@@ -1203,7 +1211,7 @@ function capsulaPotenciador(color) {
 
   const cristal = new THREE.Mesh(
     new THREE.OctahedronGeometry(0.72, 0),
-    new THREE.MeshStandardMaterial({
+    material({
       color,
       emissive: color,
       // Subido de 0.35 a 1.2 y de 0.24 a 0.42 de opacidad: la jaula tiene que
@@ -1310,12 +1318,12 @@ function insigniaIman(color) {
   g.add(arco);
 
   for (const s of [-1, 1]) {
-    const pata = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.16, 0.14), matCuerpo);
+    const pata = new THREE.Mesh(caja(0.15, 0.16, 0.14), matCuerpo);
     pata.position.set(s * 0.2, 0.08, 0);
     g.add(pata);
 
     const punta = new THREE.Mesh(
-      new THREE.BoxGeometry(0.15, 0.09, 0.15),
+      caja(0.15, 0.09, 0.15),
       neon(s < 0 ? NEON.rojo : NEON.blanco, 1.9),
     );
     punta.position.set(s * 0.2, 0.2, 0);
@@ -1342,8 +1350,8 @@ function insigniaPortada(color) {
   }, 96, 96);
 
   const placa = new THREE.Mesh(
-    new THREE.BoxGeometry(0.5, 0.5, 0.08),
-    new THREE.MeshStandardMaterial({
+    caja(0.5, 0.5, 0.08),
+    material({
       map: tex,
       emissive: 0xffffff,
       emissiveMap: tex,
@@ -1369,21 +1377,21 @@ function insigniaPortada(color) {
 function insigniaBotas(color) {
   const g = new THREE.Group();
 
-  const cana = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.4, 0.2), mat(0x3f3222, 0.14, 0.7));
+  const cana = new THREE.Mesh(caja(0.22, 0.4, 0.2), mat(0x3f3222, 0.14, 0.7));
   cana.position.y = 0.06;
   g.add(cana);
 
-  const pie = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.16, 0.42), mat(0x3f3222, 0.14, 0.7));
+  const pie = new THREE.Mesh(caja(0.22, 0.16, 0.42), mat(0x3f3222, 0.14, 0.7));
   pie.position.set(0, -0.2, 0.1);
   g.add(pie);
 
-  const suela = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.08, 0.46), neon(color, 1.8));
+  const suela = new THREE.Mesh(caja(0.25, 0.08, 0.46), neon(color, 1.8));
   suela.position.set(0, -0.3, 0.1);
   g.add(suela);
 
   // Cordones: dos trazos claros que rompen el marrón sobre marrón.
   for (let i = 0; i < 3; i++) {
-    const cordon = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.03, 0.03), mat(0xe8e0cc, 0.3, 0.5));
+    const cordon = new THREE.Mesh(caja(0.24, 0.03, 0.03), mat(0xe8e0cc, 0.3, 0.5));
     cordon.position.set(0, 0.16 - i * 0.11, 0.11);
     g.add(cordon);
   }
@@ -1396,7 +1404,7 @@ function insigniaSalvoconducto(color) {
   const g = new THREE.Group();
 
   const hoja = new THREE.Mesh(
-    new THREE.BoxGeometry(0.42, 0.54, 0.05),
+    caja(0.42, 0.54, 0.05),
     mat(0xf0ead8, 0.32, 0.5),
   );
   g.add(hoja);
@@ -1410,7 +1418,7 @@ function insigniaSalvoconducto(color) {
 
   for (let i = 0; i < 3; i++) {
     const renglon = new THREE.Mesh(
-      new THREE.BoxGeometry(0.26, 0.035, 0.02),
+      caja(0.26, 0.035, 0.02),
       mat(0x8a8270, 0.1, 0.6),
     );
     renglon.position.set(-0.02, 0.17 - i * 0.1, 0.04);
@@ -1425,7 +1433,7 @@ function insigniaCobertura(color) {
   const g = new THREE.Group();
 
   const cuerpo = new THREE.Mesh(
-    new THREE.BoxGeometry(0.28, 0.12, 0.28),
+    caja(0.28, 0.12, 0.28),
     mat(0x2a3242, 0.1, 0.5),
   );
   g.add(cuerpo);
@@ -1440,14 +1448,14 @@ function insigniaCobertura(color) {
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
       const brazo = new THREE.Mesh(
-        new THREE.BoxGeometry(0.24, 0.035, 0.035),
+        caja(0.24, 0.035, 0.035),
         mat(0x5a6274, 0.06, 0.7),
       );
       brazo.position.set(sx * 0.16, 0.02, sz * 0.16);
       brazo.rotation.y = sx * sz * 0.78;
       g.add(brazo);
 
-      const pala = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.02, 0.06), matHelice);
+      const pala = new THREE.Mesh(caja(0.24, 0.02, 0.06), matHelice);
       pala.position.set(sx * 0.26, 0.06, sz * 0.26);
       g.add(pala);
     }
@@ -1590,14 +1598,14 @@ function crearFarola(color = 0xffd28a) {
   g.add(poste);
 
   const brazo = new THREE.Mesh(
-    new THREE.BoxGeometry(1.5, 0.1, 0.1),
+    caja(1.5, 0.1, 0.1),
     mat(0x2a2f3d, 0.03),
   );
   brazo.position.set(-0.7, 6.9, 0);
   g.add(brazo);
 
   const lampara = new THREE.Mesh(
-    new THREE.BoxGeometry(0.5, 0.16, 0.28),
+    caja(0.5, 0.16, 0.28),
     neon(color, 1.8),
   );
   lampara.position.set(-1.4, 6.8, 0);
@@ -1626,7 +1634,7 @@ function crearValla(colorAcento, aleatorio) {
 
   for (const s of [-1, 1]) {
     const poste = new THREE.Mesh(
-      new THREE.BoxGeometry(0.18, altoPoste, 0.18),
+      caja(0.18, altoPoste, 0.18),
       mat(0x2a2f3d, 0.03, 0.9),
     );
     poste.position.set(s * 1.3, altoPoste / 2, 0);
@@ -1635,7 +1643,7 @@ function crearValla(colorAcento, aleatorio) {
 
   // Panel oscuro de fondo.
   const panel = new THREE.Mesh(
-    new THREE.BoxGeometry(3.6, 2.1, 0.14),
+    caja(3.6, 2.1, 0.14),
     mat(0x14161f, 0.02, 0.9),
   );
   panel.position.y = altoPoste + 0.9;
@@ -1647,12 +1655,12 @@ function crearValla(colorAcento, aleatorio) {
     [3.6, 0.09, 1.05], [3.6, 0.09, -1.05],
   ];
   for (const [w, h, dy] of marco) {
-    const barra = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.17), matNeon);
+    const barra = new THREE.Mesh(caja(w, h, 0.17), matNeon);
     barra.position.set(0, altoPoste + 0.9 + dy, 0);
     g.add(barra);
   }
   for (const s of [-1, 1]) {
-    const barra = new THREE.Mesh(new THREE.BoxGeometry(0.09, 2.1, 0.17), matNeon);
+    const barra = new THREE.Mesh(caja(0.09, 2.1, 0.17), matNeon);
     barra.position.set(s * 1.78, altoPoste + 0.9, 0);
     g.add(barra);
   }
@@ -1663,7 +1671,7 @@ function crearValla(colorAcento, aleatorio) {
   for (let i = 0; i < 3; i++) {
     const largo = 2.6 - i * 0.6;
     const linea = new THREE.Mesh(
-      new THREE.BoxGeometry(largo, 0.24, 0.05),
+      caja(largo, 0.24, 0.05),
       i === 0 ? matNeon : matTexto,
     );
     linea.position.set(0, altoPoste + 1.4 - i * 0.5, 0.1);
@@ -1678,32 +1686,32 @@ function crearPatrulla() {
   const g = new THREE.Group();
 
   const cuerpo = new THREE.Mesh(
-    new THREE.BoxGeometry(1.9, 0.85, 4.2),
+    caja(1.9, 0.85, 4.2),
     mat(0x2b3a2b, 0.05, 0.7),
   );
   cuerpo.position.y = 0.85;
   g.add(cuerpo);
 
   const cabina = new THREE.Mesh(
-    new THREE.BoxGeometry(1.75, 0.75, 2),
+    caja(1.75, 0.75, 2),
     mat(0x22301f, 0.04, 0.7),
   );
   cabina.position.set(0, 1.6, 0.3);
   g.add(cabina);
 
   const parabrisas = new THREE.Mesh(
-    new THREE.BoxGeometry(1.6, 0.55, 0.08),
+    caja(1.6, 0.55, 0.08),
     mat(0x0d1a22, 0.2, 0.25),
   );
   parabrisas.position.set(0, 1.62, 1.32);
   g.add(parabrisas);
 
   // Barra de luces: azul y roja, animadas por la escena.
-  const azul = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.16, 0.28), neon(0x2050ff, 1.9));
+  const azul = new THREE.Mesh(caja(0.75, 0.16, 0.28), neon(0x2050ff, 1.9));
   azul.position.set(-0.42, 2.06, 0.3);
   g.add(azul);
 
-  const rojo = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.16, 0.28), neon(NEON.rojo, 1.9));
+  const rojo = new THREE.Mesh(caja(0.75, 0.16, 0.28), neon(NEON.rojo, 1.9));
   rojo.position.set(0.42, 2.06, 0.3);
   g.add(rojo);
 
@@ -1829,7 +1837,7 @@ function matBahia(color, emision = 0.03, rugosidad = 0.9) {
 
 /** Caja rápida: la mitad de este archivo es poner cajas en su sitio. */
 function _caja(ancho, alto, fondo, material, x, y, z) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, fondo), material);
+  const m = new THREE.Mesh(caja(ancho, alto, fondo), material);
   m.position.set(x, y, z);
   return m;
 }
@@ -2007,7 +2015,7 @@ function _cajonesBahia(g, rnd, cuantos) {
 
 // El tubo fluorescente: un único material para los dieciocho locales, emisivo
 // y sin niebla, para que se vea el local encendido desde el fondo de la calle.
-const LUZ_BAHIA = new THREE.MeshStandardMaterial({
+const LUZ_BAHIA = material({
   color: 0xfdfbf0,
   emissive: 0xfdfbf0,
   emissiveIntensity: 1.6,
@@ -2050,7 +2058,7 @@ function crearLocalBahia(rnd, indiceRotulo = null) {
   ];
   const rotulo = new THREE.Mesh(
     new THREE.PlaneGeometry(LOCAL.ROTULO_ANCHO, LOCAL.ROTULO_ALTO),
-    new THREE.MeshStandardMaterial({
+    material({
       map: texturaRotulo(texto, rnd() > 0.5 ? '#c25b4a' : '#3f5f86'),
       roughness: 0.85,
       emissive: 0xffffff,
@@ -2239,7 +2247,7 @@ function crearBanderaCampana(rnd) {
 
   // El asta sale HACIA LA CALLE, en diagonal, como los mástiles de un balcón.
   const asta = new THREE.Mesh(
-    new THREE.BoxGeometry(0.06, 1.1, 0.06), matGye(0xd8d4cc, 0.04, 0.7),
+    caja(0.06, 1.1, 0.06), matGye(0xd8d4cc, 0.04, 0.7),
   );
   asta.position.set(0, 0.45, 0.32);
   asta.rotation.x = 0.85;
@@ -2247,7 +2255,7 @@ function crearBanderaCampana(rnd) {
 
   const claro = rnd() > 0.5;
   const pano = new THREE.Mesh(
-    new THREE.BoxGeometry(0.04, 0.82, largo),
+    caja(0.04, 0.82, largo),
     matGye(claro ? GYE.partidoClaro : GYE.partido, 0.16, 0.9),
   );
   // Cuelga del asta hacia fuera, con una torcedura: una bandera recta se lee
@@ -2389,7 +2397,7 @@ function crearPuestoBahia(colores, aleatorio, ancho = 4.6) {
   // escenario: en la Bahía cada dueño pintó el suyo del color que tenía.
   const revoques = [0xc9a06a, 0xd8c9a8, 0xa8bcc4, 0xcf8f6a, 0xbfc4a8];
   const cuerpo = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho, alto, fondo),
+    caja(ancho, alto, fondo),
     mat(revoques[Math.floor(aleatorio() * revoques.length)], 0.04, 0.94),
   );
   cuerpo.position.y = alto / 2;
@@ -2403,7 +2411,7 @@ function crearPuestoBahia(colores, aleatorio, ancho = 4.6) {
     // Persiana a medio subir, arriba del todo.
     const persiana = new THREE.Mesh(
       new THREE.PlaneGeometry(ancho * 0.92, alto * 0.2),
-      new THREE.MeshStandardMaterial({ map: texturaPersiana(), roughness: 0.6, metalness: 0.3 }),
+      material({ map: texturaPersiana(), roughness: 0.6, metalness: 0.3 }),
     );
     persiana.position.set(0, alto * 0.86, zFrente);
     g.add(persiana);
@@ -2419,7 +2427,7 @@ function crearPuestoBahia(colores, aleatorio, ancho = 4.6) {
     const variante = Math.floor(aleatorio() * 3);
     const genero = new THREE.Mesh(
       new THREE.PlaneGeometry(ancho * 0.92, alto * 0.72),
-      new THREE.MeshStandardMaterial({
+      material({
         map: esRopa
           ? texturaRopaColgada(variante, ROPA_BAHIA[variante % ROPA_BAHIA.length])
           : texturaMercaderia(variante),
@@ -2431,7 +2439,7 @@ function crearPuestoBahia(colores, aleatorio, ancho = 4.6) {
   } else {
     const persiana = new THREE.Mesh(
       new THREE.PlaneGeometry(ancho * 0.92, alto * 0.78),
-      new THREE.MeshStandardMaterial({ map: texturaPersiana(), roughness: 0.6, metalness: 0.3 }),
+      material({ map: texturaPersiana(), roughness: 0.6, metalness: 0.3 }),
     );
     persiana.position.set(0, alto * 0.42, zFrente);
     g.add(persiana);
@@ -2439,8 +2447,8 @@ function crearPuestoBahia(colores, aleatorio, ancho = 4.6) {
 
   // Toldo de lona a rayas, volando sobre la vereda.
   const toldo = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho * 0.98, 0.1, 1.8),
-    new THREE.MeshStandardMaterial({
+    caja(ancho * 0.98, 0.1, 1.8),
+    material({
       map: texturaToldo(aleatorio() > 0.5 ? '#d94a3d' : '#2f6fd0'),
       roughness: 0.85,
     }),
@@ -2454,7 +2462,7 @@ function crearPuestoBahia(colores, aleatorio, ancho = 4.6) {
     const texto = ROTULOS_BAHIA[Math.floor(aleatorio() * ROTULOS_BAHIA.length)];
     const rotulo = new THREE.Mesh(
       new THREE.PlaneGeometry(ancho * 0.8, 0.52),
-      new THREE.MeshStandardMaterial({
+      material({
         map: texturaRotulo(texto, aleatorio() > 0.5 ? '#e8342a' : '#1b4fa8'),
         roughness: 0.8,
         emissive: 0xffffff,
@@ -2577,13 +2585,13 @@ function crearCasaColonial(ancho, rnd = Math.random) {
   const alta = 2.5 + rnd() * 0.4;
   const alto = baja + alta;
 
-  const muro = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, fondo), matColonial(revoque, 0.02, 0.96));
+  const muro = new THREE.Mesh(caja(ancho, alto, fondo), matColonial(revoque, 0.02, 0.96));
   muro.position.set(0, alto / 2, -fondo / 2 + 0.1);
   g.add(muro);
 
   // Zócalo de piedra. Protege el revoque de las salpicaduras, y por eso existe.
   const zocalo = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho + 0.12, 1.25, fondo + 0.1), matColonial(PIEDRA_OSCURA, 0.02, 0.97),
+    caja(ancho + 0.12, 1.25, fondo + 0.1), matColonial(PIEDRA_OSCURA, 0.02, 0.97),
   );
   zocalo.position.set(0, 0.625, -fondo / 2 + 0.1);
   g.add(zocalo);
@@ -2592,7 +2600,7 @@ function crearCasaColonial(ancho, rnd = Math.random) {
   // ritmo horizontal de la cuadra cuando pasas corriendo.
   for (const [y, sobresale, grosor] of [[baja, 0.18, 0.18], [alto, 0.34, 0.26]]) {
     const c = new THREE.Mesh(
-      new THREE.BoxGeometry(ancho + sobresale, grosor, fondo + sobresale),
+      caja(ancho + sobresale, grosor, fondo + sobresale),
       matColonial(0xf3f1eb, 0.02, 0.94),
     );
     c.position.set(0, y, -fondo / 2 + 0.1);
@@ -2614,14 +2622,14 @@ function crearCasaColonial(ancho, rnd = Math.random) {
   for (let i = 0; i < portales; i++) {
     const x = -ancho / 2 + pasoP * (i + 0.5);
 
-    const marco = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.5, 0.16), matColonial(PIEDRA, 0.02, 0.95));
+    const marco = new THREE.Mesh(caja(1.5, 2.5, 0.16), matColonial(PIEDRA, 0.02, 0.95));
     marco.position.set(x, 1.25, 0.42);
     g.add(marco);
 
     // La puerta: madera casi siempre, y de vez en cuando pintada de verde,
     // que es el otro color de puerta que se ve por ahí.
     const puerta = new THREE.Mesh(
-      new THREE.BoxGeometry(1.25, 2.3, 0.1),
+      caja(1.25, 2.3, 0.1),
       matColonial(rnd() < 0.25 ? 0x507941 : MADERA, 0.02, 0.9),
     );
     puerta.position.set(x, 1.15, 0.48);
@@ -2643,11 +2651,11 @@ function crearCasaColonial(ancho, rnd = Math.random) {
     const x = -ancho / 2 + pasoV * (i + 0.5);
     const yV = baja + 1.25;
 
-    const marco = new THREE.Mesh(new THREE.BoxGeometry(1.15, 1.9, 0.14), matColonial(0xf3f1eb, 0.02, 0.94));
+    const marco = new THREE.Mesh(caja(1.15, 1.9, 0.14), matColonial(0xf3f1eb, 0.02, 0.94));
     marco.position.set(x, yV, 0.4);
     g.add(marco);
 
-    const vidrio = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.6, 0.08), matColonial(VIDRIO_COLONIAL, 0.06, 0.3));
+    const vidrio = new THREE.Mesh(caja(0.9, 1.6, 0.08), matColonial(VIDRIO_COLONIAL, 0.06, 0.3));
     vidrio.position.set(x, yV, 0.45);
     g.add(vidrio);
 
@@ -2661,28 +2669,28 @@ function crearCasaColonial(ancho, rnd = Math.random) {
 function _balcon(ancho, x, y, saliente) {
   const b = new THREE.Group();
 
-  const losa = new THREE.Mesh(new THREE.BoxGeometry(ancho, 0.12, saliente + 0.35), matColonial(PIEDRA, 0.02, 0.95));
+  const losa = new THREE.Mesh(caja(ancho, 0.12, saliente + 0.35), matColonial(PIEDRA, 0.02, 0.95));
   losa.position.set(0, 0, saliente / 2 + 0.3);
   b.add(losa);
 
   // Ménsulas: sostienen la losa. Sin ellas el balcón flota, y flotando se lee
   // como un error de modelado antes que como un balcón.
   for (const s of [-1, 1]) {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.22, 0.9), matColonial(PIEDRA, 0.02, 0.95));
+    const m = new THREE.Mesh(caja(0.16, 0.22, 0.9), matColonial(PIEDRA, 0.02, 0.95));
     m.position.set(s * (ancho / 2 - 0.18), -0.16, saliente / 2 + 0.25);
     b.add(m);
   }
 
   const barandaMat = matColonial(0xf3f1eb, 0.02, 0.94);
   for (const [dy, alto] of [[0.06, 0.06], [0.5, 0.08]]) {
-    const barra = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, 0.1), barandaMat);
+    const barra = new THREE.Mesh(caja(ancho, alto, 0.1), barandaMat);
     barra.position.set(0, dy, saliente + 0.4);
     b.add(barra);
   }
 
   const cuantos = Math.max(3, Math.round(ancho / 0.32));
   for (let i = 0; i < cuantos; i++) {
-    const bal = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.44, 0.1), barandaMat);
+    const bal = new THREE.Mesh(caja(0.09, 0.44, 0.1), barandaMat);
     bal.position.set(-ancho / 2 + (ancho / (cuantos - 1)) * i, 0.28, saliente + 0.4);
     b.add(bal);
   }
@@ -2746,7 +2754,7 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
       // hilera: sin ellos la acera es una línea recta perfecta.
       for (let i = 0; i < 3; i++) {
         const bulto = new THREE.Mesh(
-          new THREE.BoxGeometry(0.5 + aleatorio() * 0.3, 0.42, 0.44),
+          caja(0.5 + aleatorio() * 0.3, 0.42, 0.44),
           matBahia(BAHIA.carton, 0.03, 0.95),
         );
         bulto.position.set(
@@ -2770,7 +2778,7 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
       // La columna del techo. Va a la altura de las del archivo (3,90) y
       // apoyada en el borde del andén, no flotando delante de los puestos.
       const columna = new THREE.Mesh(
-        new THREE.BoxGeometry(0.19, 3.9, 0.19),
+        caja(0.19, 3.9, 0.19),
         matBahia(BAHIA.aceroClaro, 0.02, 0.55),
       );
       columna.position.set(largo / 2 - 0.4, 1.95, LOCAL.FONDO / 2 + 0.9);
@@ -2957,7 +2965,7 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
     default: {
       const alto = 3 + aleatorio() * 4;
       const bloque = new THREE.Mesh(
-        new THREE.BoxGeometry(3, alto, 3),
+        caja(3, alto, 3),
         mat(colores.props, 0.05, 0.9),
       );
       bloque.position.y = alto / 2;
@@ -3014,8 +3022,8 @@ function crearCartelDestino(texto, colorAcento, esPeligro = false) {
   }, 512, 160);
 
   const panel = new THREE.Mesh(
-    new THREE.BoxGeometry(2.05, 0.64, 0.09),
-    new THREE.MeshStandardMaterial({
+    caja(2.05, 0.64, 0.09),
+    material({
       map: tex,
       emissive: 0xffffff,
       emissiveMap: tex,
@@ -3113,14 +3121,14 @@ export function crearCruceDeEdificios(nombre, colores, centroEsPeligro = false,
   // un vano oscuro con su marco, que a esta velocidad se lee igual.
   if (!centroEsPeligro) {
     const vano = new THREE.Mesh(
-      new THREE.BoxGeometry(hueco, 4.6, 0.5),
+      caja(hueco, 4.6, 0.5),
       mat(0x05070c, 0.0, 1),
     );
     vano.position.set(0, 2.3, 0.2);
     g.add(vano);
 
     const marco = new THREE.Mesh(
-      new THREE.BoxGeometry(hueco + 0.7, 5.3, 0.35),
+      caja(hueco + 0.7, 5.3, 0.35),
       neon(acento, 1.35),
     );
     marco.position.set(0, 2.65, 0.05);
@@ -3135,7 +3143,7 @@ export function crearCruceDeEdificios(nombre, colores, centroEsPeligro = false,
   // estrechan, que es lo que hace una esquina.
   for (const lado of [-1, 1]) {
     const medianera = new THREE.Mesh(
-      new THREE.BoxGeometry(3.2, 7.5, 4),
+      caja(3.2, 7.5, 4),
       mat(colores.props ?? 0x8a7f6d, 0.03, 0.95),
     );
     medianera.position.set(lado * (CARRILES.ANCHO * 1.5 + 1.6), 3.75, -2);
@@ -3144,7 +3152,7 @@ export function crearCruceDeEdificios(nombre, colores, centroEsPeligro = false,
     // Rótulo de esquina con el nombre de la calle: es lo que convierte un
     // bloque en una esquina de verdad.
     const chapa = new THREE.Mesh(
-      new THREE.BoxGeometry(2.2, 0.5, 0.12),
+      caja(2.2, 0.5, 0.12),
       neon(acento, 0.9),
     );
     chapa.position.set(lado * (CARRILES.ANCHO * 1.5 + 1.6), 5.4, 0.1);
@@ -3177,7 +3185,7 @@ export function crearPasoLateral(largo, colores) {
   // error de encaje. Ver utils/curvatura.js.
   const segmentos = Math.max(2, Math.round(largo / 4));
   const techo = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho + 1.2, 0.5, largo, 1, 1, segmentos),
+    caja(ancho + 1.2, 0.5, largo, 1, 1, segmentos),
     mat(colores.props ?? 0x6b5f4d, 0.03, 0.95),
   );
   techo.position.set(0, alto, -largo / 2);
@@ -3187,7 +3195,7 @@ export function crearPasoLateral(largo, colores) {
   // fondo se lea como salida.
   for (const lado of [-1, 1]) {
     const muro = new THREE.Mesh(
-      new THREE.BoxGeometry(0.7, alto, largo, 1, 1, segmentos),
+      caja(0.7, alto, largo, 1, 1, segmentos),
       mat(0x2c2b30, 0.02, 0.97),
     );
     muro.position.set(lado * (ancho / 2), alto / 2, -largo / 2);
@@ -3198,13 +3206,13 @@ export function crearPasoLateral(largo, colores) {
     const cuantas = Math.max(2, Math.round(largo / 6));
     for (let i = 0; i < cuantas; i++) {
       const col = new THREE.Mesh(
-        new THREE.BoxGeometry(0.85, alto, 0.85),
+        caja(0.85, alto, 0.85),
         mat(colores.props ?? 0x8a7f6d, 0.03, 0.95),
       );
       col.position.set(lado * (ancho / 2 - 0.4), alto / 2, -(largo / cuantas) * i);
       g.add(col);
 
-      const farol = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), neon(acento, 1.6));
+      const farol = new THREE.Mesh(caja(0.3, 0.3, 0.3), neon(acento, 1.6));
       farol.position.set(lado * (ancho / 2 - 1), alto - 1.2, -(largo / cuantas) * i);
       g.add(farol);
     }
@@ -3235,7 +3243,7 @@ export function crearTunelesBifurcacion(destinos, colores, centroEsPeligro = fal
   // y además deja los bordes exactamente donde interesa.
   const altoDintel = TUNEL.ALTO_FACHADA - TUNEL.ALTO_BOCA;
   const dintel = new THREE.Mesh(
-    new THREE.BoxGeometry(TUNEL.ANCHO_FACHADA, altoDintel, 1.8),
+    caja(TUNEL.ANCHO_FACHADA, altoDintel, 1.8),
     matMuro,
   );
   dintel.position.y = TUNEL.ALTO_BOCA + altoDintel / 2;
@@ -3244,7 +3252,7 @@ export function crearTunelesBifurcacion(destinos, colores, centroEsPeligro = fal
   // Pilares interiores, entre boca y boca.
   for (const x of [-CARRILES.ANCHO / 2, CARRILES.ANCHO / 2]) {
     const pilar = new THREE.Mesh(
-      new THREE.BoxGeometry(grosorPilar, TUNEL.ALTO_BOCA, 1.8),
+      caja(grosorPilar, TUNEL.ALTO_BOCA, 1.8),
       matMuro,
     );
     pilar.position.set(x, TUNEL.ALTO_BOCA / 2, 0);
@@ -3257,7 +3265,7 @@ export function crearTunelesBifurcacion(destinos, colores, centroEsPeligro = fal
   const anchoMachon = TUNEL.ANCHO_FACHADA / 2 - bordeExterior;
   for (const s of [-1, 1]) {
     const machon = new THREE.Mesh(
-      new THREE.BoxGeometry(anchoMachon, TUNEL.ALTO_BOCA, 1.8),
+      caja(anchoMachon, TUNEL.ALTO_BOCA, 1.8),
       matMuro,
     );
     machon.position.set(s * (bordeExterior + anchoMachon / 2), TUNEL.ALTO_BOCA / 2, 0);
@@ -3273,7 +3281,7 @@ export function crearTunelesBifurcacion(destinos, colores, centroEsPeligro = fal
     // la boca se lea como un hueco y no como un panel pintado.
     for (const s of [-1, 1]) {
       const pared = new THREE.Mesh(
-        new THREE.BoxGeometry(0.25, TUNEL.ALTO_BOCA, TUNEL.LARGO),
+        caja(0.25, TUNEL.ALTO_BOCA, TUNEL.LARGO),
         matInterior,
       );
       pared.position.set(x + s * medioAncho, TUNEL.ALTO_BOCA / 2, -TUNEL.LARGO / 2);
@@ -3281,7 +3289,7 @@ export function crearTunelesBifurcacion(destinos, colores, centroEsPeligro = fal
     }
 
     const techo = new THREE.Mesh(
-      new THREE.BoxGeometry(TUNEL.ANCHO_BOCA, 0.25, TUNEL.LARGO),
+      caja(TUNEL.ANCHO_BOCA, 0.25, TUNEL.LARGO),
       matInterior,
     );
     techo.position.set(x, TUNEL.ALTO_BOCA, -TUNEL.LARGO / 2);
@@ -3289,7 +3297,7 @@ export function crearTunelesBifurcacion(destinos, colores, centroEsPeligro = fal
 
     const calzada = new THREE.Mesh(
       new THREE.PlaneGeometry(TUNEL.ANCHO_BOCA, TUNEL.LARGO),
-      new THREE.MeshStandardMaterial({
+      material({
         color: colores.calle ?? COLOR3D.asfalto,
         roughness: 0.94,
         metalness: 0.04,
@@ -3302,8 +3310,8 @@ export function crearTunelesBifurcacion(destinos, colores, centroEsPeligro = fal
     // Marco de neón alrededor del hueco. Es lo que hace que la boca se
     // distinga de lejos: un rectángulo de luz sobre una fachada apagada.
     const matMarco = neon(color, 1.9);
-    const marcoH = new THREE.BoxGeometry(TUNEL.ANCHO_BOCA + 0.3, 0.16, 0.16);
-    const marcoV = new THREE.BoxGeometry(0.16, TUNEL.ALTO_BOCA, 0.16);
+    const marcoH = caja(TUNEL.ANCHO_BOCA + 0.3, 0.16, 0.16);
+    const marcoV = caja(0.16, TUNEL.ALTO_BOCA, 0.16);
     for (const y of [0.1, TUNEL.ALTO_BOCA - 0.08]) {
       const barra = new THREE.Mesh(marcoH, matMarco);
       barra.position.set(x, y, 0.95);
@@ -3320,7 +3328,7 @@ export function crearTunelesBifurcacion(destinos, colores, centroEsPeligro = fal
     // pegado a la pared.
     const matLuz = neon(b.peligro ? NEON.rojo : NEON.blanco, 1.5);
     for (let i = 1; i <= 9; i++) {
-      const luz = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.1, 0.28), matLuz);
+      const luz = new THREE.Mesh(caja(1.1, 0.1, 0.28), matLuz);
       luz.position.set(x, TUNEL.ALTO_BOCA - 0.22, -i * (TUNEL.LARGO / 10));
       g.add(luz);
     }
@@ -3367,7 +3375,7 @@ export function crearTunelesBifurcacion(destinos, colores, centroEsPeligro = fal
   // Una línea de luz que recorre el dintel de lado a lado. Ata las tres bocas
   // en una sola pieza y remata la silueta contra la niebla.
   const cornisa = new THREE.Mesh(
-    new THREE.BoxGeometry(TUNEL.ANCHO_FACHADA, 0.2, 0.24),
+    caja(TUNEL.ANCHO_FACHADA, 0.2, 0.24),
     neon(acento, 1.5),
   );
   cornisa.position.set(0, TUNEL.ALTO_FACHADA - 0.5, 0.95);
@@ -3395,7 +3403,7 @@ export function crearAvisoBifurcacion(destinos, colores, centroEsPeligro = false
 
   for (const s of [-1, 1]) {
     const poste = new THREE.Mesh(
-      new THREE.BoxGeometry(0.3, alto, 0.3),
+      caja(0.3, alto, 0.3),
       mat(COLOR3D.metal, 0.06, 0.85),
     );
     poste.position.set(s * (ancho / 2), alto / 2, 0);
@@ -3403,7 +3411,7 @@ export function crearAvisoBifurcacion(destinos, colores, centroEsPeligro = false
   }
 
   const viga = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho + 0.3, 0.32, 0.34),
+    caja(ancho + 0.3, 0.32, 0.34),
     mat(COLOR3D.metal, 0.06, 0.85),
   );
   viga.position.y = alto;
@@ -3480,7 +3488,7 @@ function _busesBajoTarima(g, largo, ancho, alto) {
   for (let i = 0; i < cuantos; i++) {
     const z = -i * paso - paso / 2;
     const carroceria = new THREE.Mesh(
-      new THREE.BoxGeometry(ancho * 0.94, alto * 0.86, paso * 0.94),
+      caja(ancho * 0.94, alto * 0.86, paso * 0.94),
       mat(i % 2 ? 0xd9d2c4 : 0xe8e2d6, 0.03, 0.9),
     );
     carroceria.position.set(0, alto * 0.43, z);
@@ -3489,7 +3497,7 @@ function _busesBajoTarima(g, largo, ancho, alto) {
     // Franja de color a media altura: es lo que hace que un cajón blanco se
     // lea como un bus urbano y no como un contenedor.
     const franja = new THREE.Mesh(
-      new THREE.BoxGeometry(ancho * 0.96, 0.26, paso * 0.9),
+      caja(ancho * 0.96, 0.26, paso * 0.9),
       mat(0x2f6fb0, 0.14, 0.8),
     );
     franja.position.set(0, alto * 0.52, z);
@@ -3498,7 +3506,7 @@ function _busesBajoTarima(g, largo, ancho, alto) {
     // Ventanillas corridas por los dos costados.
     for (const lado of [-1, 1]) {
       const cristal = new THREE.Mesh(
-        new THREE.BoxGeometry(0.06, 0.44, paso * 0.78),
+        caja(0.06, 0.44, paso * 0.78),
         mat(0x1d2735, 0.05, 0.35),
       );
       cristal.position.set(lado * ancho * 0.47, alto * 0.7, z);
@@ -3530,7 +3538,7 @@ function _contenedoresBajoTarima(g, largo, ancho, alto) {
   for (let i = 0; i < cuantos; i++) {
     const z = -i * paso - paso / 2;
     const caja = new THREE.Mesh(
-      new THREE.BoxGeometry(ancho * 0.96, alto * 0.94, paso * 0.96),
+      caja(ancho * 0.96, alto * 0.94, paso * 0.96),
       mat(COLORES[i % COLORES.length], 0.05, 0.92),
     );
     caja.position.set(0, alto * 0.47, z);
@@ -3541,7 +3549,7 @@ function _contenedoresBajoTarima(g, largo, ancho, alto) {
     for (const lado of [-1, 1]) {
       for (let k = 0; k < 4; k++) {
         const nervio = new THREE.Mesh(
-          new THREE.BoxGeometry(0.06, alto * 0.8, 0.12),
+          caja(0.06, alto * 0.8, 0.12),
           mat(COLORES[i % COLORES.length], 0.02, 0.95),
         );
         nervio.position.set(
@@ -3567,7 +3575,7 @@ export function crearTarima(largo, colores, idEscenario = 'bahia') {
   const largoInclinado = Math.hypot(h, ELEVADO.LARGO_RAMPA);
 
   const rampa = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho, 0.22, largoInclinado),
+    caja(ancho, 0.22, largoInclinado),
     mat(colores.props ?? COLOR3D.madera, 0.16, 0.72),
   );
   rampa.rotation.x = anguloRampa;
@@ -3577,7 +3585,7 @@ export function crearTarima(largo, colores, idEscenario = 'bahia') {
   // Chevrones en la rampa: es la señal universal de "por aquí se sube".
   const banda = new THREE.Mesh(
     new THREE.PlaneGeometry(ancho * 0.9, largoInclinado * 0.9),
-    new THREE.MeshStandardMaterial({
+    material({
       map: texturaChevron(),
       emissive: 0xffffff,
       emissiveMap: texturaChevron(),
@@ -3596,8 +3604,8 @@ export function crearTarima(largo, colores, idEscenario = 'bahia') {
   // mundo dobla por vértice — sin ellos quedaría tendido recto sobre una calle
   // que se curva por debajo. Ver utils/curvatura.js.
   const tablero = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho, 0.26, largo, 1, 1, Math.max(2, Math.round(largo / 4))),
-    new THREE.MeshStandardMaterial({
+    caja(ancho, 0.26, largo, 1, 1, Math.max(2, Math.round(largo / 4))),
+    material({
       map: texturaMadera(),
       roughness: 0.8,
       metalness: 0.05,
@@ -3630,7 +3638,7 @@ export function crearTarima(largo, colores, idEscenario = 'bahia') {
     const borde = new THREE.Mesh(
       // Segmentado a lo largo, como el tablero: es la línea que marca el filo
       // y la que más cantaría si quedara recta sobre la calle curvada.
-      new THREE.BoxGeometry(0.1, 0.12, largo + ELEVADO.LARGO_RAMPA,
+      caja(0.1, 0.12, largo + ELEVADO.LARGO_RAMPA,
         1, 1, Math.max(2, Math.round(largo / 4))),
       matBorde,
     );
@@ -3646,7 +3654,7 @@ export function crearTarima(largo, colores, idEscenario = 'bahia') {
   const matPata = mat(COLOR3D.metal, 0.05, 0.85);
   for (let z = zInicio - 1.5; z > zInicio - largo; z -= 6) {
     for (const s of [-1, 1]) {
-      const pata = new THREE.Mesh(new THREE.BoxGeometry(0.16, h, 0.16), matPata);
+      const pata = new THREE.Mesh(caja(0.16, h, 0.16), matPata);
       pata.position.set(s * (ancho / 2 - 0.16), h / 2, z);
       g.add(pata);
     }
@@ -3655,14 +3663,14 @@ export function crearTarima(largo, colores, idEscenario = 'bahia') {
   // Faldón del fondo, para que el tablado tenga final visible y el jugador
   // sepa cuándo se acaba el piso.
   const faldon = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho, h, 0.2),
+    caja(ancho, h, 0.2),
     mat(0x2a3040, 0.05, 0.9),
   );
   faldon.position.set(0, h / 2, zInicio - largo);
   g.add(faldon);
 
   const remate = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho, 0.14, 0.26),
+    caja(ancho, 0.14, 0.26),
     neon(NEON.ambar, 1.8),
   );
   remate.position.set(0, h + 0.06, zInicio - largo);
@@ -3702,7 +3710,7 @@ export function crearGaleriaTramite(largo, colores, nombre) {
 
   for (const s of [-1, 1]) {
     const pared = new THREE.Mesh(
-      new THREE.BoxGeometry(0.4, alto, largo, 1, 1, segmentosLargo),
+      caja(0.4, alto, largo, 1, 1, segmentosLargo),
       matMuro,
     );
     pared.position.set(s * (ancho / 2), alto / 2, -largo / 2);
@@ -3710,13 +3718,13 @@ export function crearGaleriaTramite(largo, colores, nombre) {
   }
 
   const techo = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho, 0.4, largo, 1, 1, segmentosLargo), matMuro);
+    caja(ancho, 0.4, largo, 1, 1, segmentosLargo), matMuro);
   techo.position.set(0, alto, -largo / 2);
   g.add(techo);
 
   const suelo = new THREE.Mesh(
     new THREE.PlaneGeometry(ancho, largo, 1, segmentosLargo),
-    new THREE.MeshStandardMaterial({
+    material({
       color: colores.calle ?? COLOR3D.asfalto,
       roughness: 0.9,
       metalness: 0.05,
@@ -3731,8 +3739,8 @@ export function crearGaleriaTramite(largo, colores, nombre) {
   // techo tapa la luz direccional de la escena, son además casi toda la
   // iluminación del tramo, así que van generosos.
   const matArco = neon(acento, 1.35);
-  const geoArcoH = new THREE.BoxGeometry(ancho - 0.6, 0.18, 0.34);
-  const geoArcoV = new THREE.BoxGeometry(0.18, alto, 0.34);
+  const geoArcoH = caja(ancho - 0.6, 0.18, 0.34);
+  const geoArcoV = caja(0.18, alto, 0.34);
 
   for (let z = -6; z > -largo; z -= 9) {
     const barra = new THREE.Mesh(geoArcoH, matArco);
@@ -3752,7 +3760,7 @@ export function crearGaleriaTramite(largo, colores, nombre) {
   const matZocalo = neon(acento, 1.0);
   for (const s of [-1, 1]) {
     const zocalo = new THREE.Mesh(
-      new THREE.BoxGeometry(0.14, 0.12, largo, 1, 1, segmentosLargo),
+      caja(0.14, 0.12, largo, 1, 1, segmentosLargo),
       matZocalo,
     );
     zocalo.position.set(s * (CARRILES.ANCHO * 1.6), 0.06, -largo / 2);
@@ -3763,7 +3771,7 @@ export function crearGaleriaTramite(largo, colores, nombre) {
   const matArchivo = mat(0x39404f, 0.05, 0.88);
   for (let z = -14; z > -largo + 20; z -= 17) {
     for (const s of [-1, 1]) {
-      const mueble = new THREE.Mesh(new THREE.BoxGeometry(0.7, 2.2, 3.4), matArchivo);
+      const mueble = new THREE.Mesh(caja(0.7, 2.2, 3.4), matArchivo);
       mueble.position.set(s * (ancho / 2 - 0.55), 1.1, z);
       g.add(mueble);
     }
@@ -3787,11 +3795,11 @@ export function crearPolicia() {
   const matUniforme = mat(0x39415a, 0.16, 0.8);
   const matChaleco = mat(0x4a5470, 0.18, 0.75);
 
-  const piernas = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.85, 0.34), matUniforme);
+  const piernas = new THREE.Mesh(caja(0.46, 0.85, 0.34), matUniforme);
   piernas.position.y = 0.42;
   g.add(piernas);
 
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.7, 0.4), matChaleco);
+  const torso = new THREE.Mesh(caja(0.62, 0.7, 0.4), matChaleco);
   torso.position.y = 1.2;
   g.add(torso);
 
@@ -3799,7 +3807,7 @@ export function crearPolicia() {
   // asfalto casi negro, y sin ellas cinco figuras azul oscuro sencillamente no
   // se ven. Son lo que convierte el corro en una imagen legible.
   const matBanda = neon(0xd8e4a0, 0.9);
-  const banda = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.11, 0.42), matBanda);
+  const banda = new THREE.Mesh(caja(0.64, 0.11, 0.42), matBanda);
   banda.position.y = 1.2;
   g.add(banda);
 
@@ -3809,15 +3817,15 @@ export function crearPolicia() {
 
   // Visera: el único punto brillante del modelo. Es lo que lo identifica.
   const visera = new THREE.Mesh(
-    new THREE.BoxGeometry(0.4, 0.13, 0.06),
+    caja(0.4, 0.13, 0.06),
     neon(0x6fd8ff, 1.4),
   );
   visera.position.set(0, 1.7, 0.24);
   g.add(visera);
 
   const escudo = new THREE.Mesh(
-    new THREE.BoxGeometry(0.62, 1.1, 0.07),
-    new THREE.MeshStandardMaterial({
+    caja(0.62, 1.1, 0.07),
+    material({
       color: 0x8fa6c4,
       transparent: true,
       opacity: 0.42,
@@ -3844,7 +3852,7 @@ export function crearFachadaInstitucion(nombre, colores, esCerco) {
   const alto = esCerco ? 4.5 : 11;
 
   const cuerpo = new THREE.Mesh(
-    new THREE.BoxGeometry(ancho, alto, 4),
+    caja(ancho, alto, 4),
     mat(esCerco ? 0x2a2228 : 0x3b3f4d, 0.04, 0.92),
   );
   cuerpo.position.y = alto / 2;
@@ -3863,7 +3871,7 @@ export function crearFachadaInstitucion(nombre, colores, esCerco) {
     }
     for (const s of [-1, 1]) {
       const luz = new THREE.Mesh(
-        new THREE.BoxGeometry(1.1, 0.22, 0.3),
+        caja(1.1, 0.22, 0.3),
         neon(NEON.rojo, 1.9),
       );
       luz.position.set(s * 5, alto * 0.7, 2.05);
@@ -3882,7 +3890,7 @@ export function crearFachadaInstitucion(nombre, colores, esCerco) {
 
     // Frontón.
     const fronton = new THREE.Mesh(
-      new THREE.BoxGeometry(ancho * 0.92, 1.1, 1.4),
+      caja(ancho * 0.92, 1.1, 1.4),
       mat(0xd8d2c4, 0.1, 0.85),
     );
     fronton.position.set(0, alto * 0.68, 2.1);
@@ -3891,7 +3899,7 @@ export function crearFachadaInstitucion(nombre, colores, esCerco) {
     // Escalinata.
     for (let i = 0; i < 3; i++) {
       const peldano = new THREE.Mesh(
-        new THREE.BoxGeometry(ancho * 0.8 - i * 0.6, 0.18, 1.2 - i * 0.3),
+        caja(ancho * 0.8 - i * 0.6, 0.18, 1.2 - i * 0.3),
         mat(0xc4bfb2, 0.08, 0.9),
       );
       peldano.position.set(0, 0.09 + i * 0.18, 3.4 - i * 0.35);
@@ -3915,8 +3923,8 @@ export function crearFachadaInstitucion(nombre, colores, esCerco) {
     }, 640, 140);
 
     const rotulo = new THREE.Mesh(
-      new THREE.BoxGeometry(ancho * 0.78, 1.5, 0.12),
-      new THREE.MeshStandardMaterial({
+      caja(ancho * 0.78, 1.5, 0.12),
+      material({
         map: tex,
         emissive: 0xffffff,
         emissiveMap: tex,
@@ -3934,7 +3942,7 @@ export function crearFachadaInstitucion(nombre, colores, esCerco) {
     for (let fila = 0; fila < 2; fila++) {
       for (let col = -3; col <= 3; col++) {
         if (Math.random() > 0.55) continue;
-        const v = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.9, 0.06), matVentana);
+        const v = new THREE.Mesh(caja(0.7, 0.9, 0.06), matVentana);
         v.position.set(col * 2.2, alto * 0.42 + fila * 1.5, 2.02);
         g.add(v);
       }
@@ -3951,7 +3959,7 @@ export function crearFachadaInstitucion(nombre, colores, esCerco) {
 export function crearFlechaAsfalto(direccion, color) {
   const g = new THREE.Group();
 
-  const matFlecha = new THREE.MeshStandardMaterial({
+  const matFlecha = material({
     color,
     emissive: color,
     emissiveIntensity: 1.2,
@@ -3995,7 +4003,7 @@ export function crearDron() {
 
   // Brazos y hélices.
   const matBrazo = mat(0x6b5a48, 0.05, 0.7);
-  const matHelice = new THREE.MeshStandardMaterial({
+  const matHelice = material({
     color: 0xa8d4e0,
     roughness: 0.4,
     transparent: true,
@@ -4007,7 +4015,7 @@ export function crearDron() {
 
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
-      const brazo = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 0.05), matBrazo);
+      const brazo = new THREE.Mesh(caja(0.5, 0.05, 0.05), matBrazo);
       brazo.position.set(sx * 0.3, 0, sz * 0.3);
       brazo.rotation.y = sx * sz * 0.7;
       g.add(brazo);
@@ -4015,7 +4023,7 @@ export function crearDron() {
       const rotor = new THREE.Group();
       rotor.position.set(sx * 0.52, 0.06, sz * 0.52);
       for (let i = 0; i < 2; i++) {
-        const pala = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.02, 0.09), matHelice);
+        const pala = new THREE.Mesh(caja(0.44, 0.02, 0.09), matHelice);
         pala.rotation.y = (i * Math.PI) / 2;
         rotor.add(pala);
       }

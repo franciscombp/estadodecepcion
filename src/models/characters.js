@@ -32,6 +32,8 @@
 // ============================================================================
 
 import * as THREE from 'three';
+import { material as materialMundo } from '../utils/materiales.js';
+import { caja as cajaBiselada } from '../utils/geometria.js';
 import { piezaEditada } from './hitos.js';
 import { crearPersonajeGLB, animarCarreraGLB, poseMontadoGLB } from './personajeGLB.js';
 
@@ -131,7 +133,7 @@ function material(color, emision = 0.25) {
   const clave = `${color}|${emision}`;
   let mat = MATERIALES.get(clave);
   if (!mat) {
-    mat = new THREE.MeshStandardMaterial({
+    mat = materialMundo({
       color,
       roughness: 0.6,
       metalness: 0.1,
@@ -144,9 +146,9 @@ function material(color, emision = 0.25) {
   return mat;
 }
 
-/** Caja posicionada por su centro. */
+/** Caja posicionada por su centro, con los cantos biselados. */
 function caja(ancho, alto, profundo, color, emision) {
-  return new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, profundo), material(color, emision));
+  return new THREE.Mesh(cajaBiselada(ancho, alto, profundo), material(color, emision));
 }
 
 /** Esfera de pocos segmentos (low-poly a propósito). */
