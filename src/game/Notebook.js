@@ -331,6 +331,69 @@ export class Notebook {
     }));
   }
 
+  /**
+   * EL SUMARIO DE UN CASO — lo que la página publica de verdad.
+   *
+   * Una página abierta enseñaba únicamente los huecos de los reportajes que El
+   * Mercio todavía no ha publicado. O sea: reunías las pruebas del caso, se
+   * abría la página, y dentro no había nada. El objetivo del juego entero
+   * terminaba en un sello de «EN PREPARACIÓN».
+   *
+   * Lo que sí existe —escrito, contrastado y ya en el repositorio— es el
+   * expediente: el sumario que la redacción usa para documentarse. Eso es lo
+   * que llena la página. No es la pieza publicada y no se presenta como tal:
+   * va con su propio rótulo, sin firma y sin fecha, porque un expediente no
+   * las lleva. El reportaje sigue pendiente debajo, con su hueco.
+   *
+   * Y se llena SEGÚN SE RECOGE: la lista de documentos marca cuáles llevas y
+   * cuáles siguen en la calle, así que el sumario crece corrida a corrida en
+   * vez de aparecer entero de golpe.
+   *
+   * @param {string} caso Id de escenario ('bahia', 'apagon', …)
+   * @returns {object|null} null si el caso no existe o no tiene expediente
+   */
+  sumarioDelCaso(caso) {
+    const esc = ESCENARIOS[caso];
+    if (!esc?.expediente) return null;
+
+    const tengo = new Set(this.estado.pruebasEncontradas ?? []);
+    // Las plantadas NO entran. Aparecen en «Lo que dice el gobierno», que es
+    // donde su presencia significa algo; metidas aquí ensuciarían el único
+    // sitio del Archivo donde todo lo listado está documentado.
+    const documentos = (esc.evidencia ?? []).map((nombre) => ({
+      nombre, tengo: tengo.has(nombre), redes: false,
+    }));
+    const redes = (esc.pistasSinConfirmar ?? []).map((nombre) => ({
+      nombre, tengo: tengo.has(nombre), redes: true,
+    }));
+    const papeles = [...documentos, ...redes];
+
+    return {
+      caso,
+      rotulo: esc.caso,
+      lugar: esc.nombre,
+      titulo: esc.expediente.titulo,
+      escena: esc.expediente.escena,
+      estado: esc.expediente.estado,
+      papeles,
+      reunidos: papeles.filter((d) => d.tengo).length,
+      total: papeles.length,
+    };
+  }
+
+  /**
+   * El sumario de la última página, que no es de un caso: los cruza todos.
+   *
+   * Devuelve una línea por caso con su estado y cuánto llevas documentado. Es
+   * el «qué pasó con lo que abrimos» de la página cinco, y es la única de las
+   * cinco que se lee entera solo al final.
+   */
+  sumarioGeneral() {
+    return Object.keys(ESCENARIOS)
+      .map((id) => this.sumarioDelCaso(id))
+      .filter(Boolean);
+  }
+
   /** Cuántas páginas lleva abiertas, para el resumen del ejemplar. */
   get paginasAbiertas() {
     return this.estado.paginasDesbloqueadas.length;

@@ -44,9 +44,21 @@ function el(etiqueta, clase, texto) {
  * porque el HUD los pinta así; en un pie de foto o en un cuerpo de texto, las
  * versales se leen como un grito.
  */
+// Las palabras que en español NO llevan mayúscula dentro de un titular. Sin
+// esta lista «ESTADO DE EXCEPCIÓN» salía «Estado De Excepción», que es cómo
+// escribe los títulos el inglés y no cómo se escriben aquí.
+const ATONAS = new Set([
+  'a', 'al', 'ante', 'bajo', 'con', 'contra', 'de', 'del', 'desde', 'e', 'el',
+  'en', 'entre', 'hacia', 'hasta', 'la', 'las', 'lo', 'los', 'o', 'para',
+  'por', 'según', 'sin', 'sobre', 'tras', 'u', 'un', 'una', 'y',
+]);
+
 function cajaDeTitular(texto) {
   return texto.toLocaleLowerCase('es')
-    .replace(/(^|\s)(\p{Ll})/gu, (entero, espacio, letra) => espacio + letra.toLocaleUpperCase('es'));
+    .replace(/(^|\s)(\p{L}+)/gu, (entero, espacio, palabra) =>
+      espacio + (espacio && ATONAS.has(palabra)
+        ? palabra
+        : palabra[0].toLocaleUpperCase('es') + palabra.slice(1)));
 }
 
 function boton(texto, clase, alPulsar) {
@@ -1788,7 +1800,14 @@ export class Pantallas {
     // aquí no pintaba nada y empujaba los botones doce píxeles por encima de
     // donde caen en las otras nueve pantallas.
     const diario = el('div', 'diario se-estira');
-    const hoja = el('div', 'diario__hoja');
+    // LA HOJA SÍ LLEVA EL AVISO DE «HAY MÁS ABAJO».
+    //
+    // El que se desplaza es la hoja —no el ejemplar—, y desde que las páginas
+    // publican el sumario del caso hay páginas que no caben en un teléfono de
+    // 667. Sin la máscara, el último renglón visible se corta a media altura
+    // contra un borde duro y se lee como un fallo de dibujado, no como una
+    // página larga. `marcarDesplazables()` la enciende y la apaga sola.
+    const hoja = el('div', 'diario__hoja se-estira--desplazable');
     const pie = el('div', 'diario__pie');
     diario.appendChild(hoja);
     diario.appendChild(pie);
@@ -1830,6 +1849,34 @@ export class Pantallas {
       hoja.appendChild(
         pagina.desbloqueada ? this._paginaAbierta(pagina) : this._paginaCerrada(pagina, () => pintar()),
       );
+
+      // «LO QUE DICE EL GOBIERNO» ES UNA SECCIÓN, NO UN PIE.
+      //
+      // Estaba en el pie del ejemplar, o sea impresa en las cinco páginas y
+      // fuera de lo que se desplaza. Con el pie llevando además el paginador y
+      // dos botones, ocupaba 587 px de un teléfono de 852: a la hoja —donde
+      // está el periódico— le quedaban 217. Medido, no estimado.
+      //
+      // Va donde le corresponde: al final de LA ÚLTIMA, que es la página de
+      // seguimiento. Ahí deja de repetirse cinco veces y además cae en el
+      // único sitio donde significa algo —la página que resume en qué quedó
+      // cada caso, seguida de lo que se publicó con lo que te plantaron—.
+      if (pagina.numero === paginas.length) {
+        const contra = this._pintarVersionOficial();
+        if (contra) hoja.appendChild(contra);
+
+        // EL RECADO A LA REDACCIÓN NO SE LE ENSEÑA AL JUGADOR: dice
+        // literalmente «se rellenan en src/config/publicaciones.js». Es para
+        // quien monta el juego, y quien monta el juego trabaja en desarrollo.
+        if (import.meta.env?.DEV && hayPendientes()) {
+          hoja.appendChild(el('div', 'diario__nota',
+            T('archivo.progreso', {
+              listos: cuantosListos(),
+              total: paginas.reduce((n, p) => n + p.articulos.length, 0),
+            })));
+          hoja.appendChild(el('div', 'diario__nota', T('archivo.explicacion')));
+        }
+      }
 
       // Marcar la página activa en el paginador, que ahora vive fuera de la
       // hoja y por tanto sobrevive a este vaciado.
@@ -1942,32 +1989,6 @@ export class Pantallas {
       });
       botones.appendChild(btn);
     }
-    // LO QUE DICE EL GOBIERNO, antes de los botones. Puesta después quedaba
-    // debajo de «Volver», o sea después del final de la página: se leía como
-    // un pie de página y no como una sección del ejemplar.
-    const contra = this._pintarVersionOficial();
-    if (contra) pie.appendChild(contra);
-
-    // EL RECADO A LA REDACCIÓN NO SE LE ENSEÑA AL JUGADOR.
-    //
-    // Estas dos notas salían siempre que quedara un reportaje por cargar, o
-    // sea SIEMPRE mientras el archivo real no esté completo, y la segunda dice
-    // literalmente «los huecos se rellenan en src/config/publicaciones.js».
-    // Una ruta de código, en la interfaz, debajo del botón de Volver. Es un
-    // recordatorio para quien monta el juego, y quien monta el juego trabaja
-    // en desarrollo: ahí se queda.
-    //
-    // No se borran —hacen falta, y son la razón de que nadie se olvide de que
-    // el periódico está a medio llenar— pero dejan de ser parte de la página.
-    if (import.meta.env?.DEV && hayPendientes()) {
-      pie.appendChild(el('div', 'diario__nota',
-        T('archivo.progreso', {
-          listos: cuantosListos(),
-          total: paginas.reduce((n, p) => n + p.articulos.length, 0),
-        })));
-      pie.appendChild(el('div', 'diario__nota', T('archivo.explicacion')));
-    }
-
     if (!this.cuaderno.almacenamientoDisponible) {
       pie.appendChild(el('div', 'diario__nota',
         T('archivo.sinAlmacenamiento')));
@@ -2016,6 +2037,24 @@ export class Pantallas {
   _paginaAbierta(pagina) {
     const cuerpo = el('div', 'diario__cuerpo');
 
+    // EL SUMARIO PRIMERO, Y ESTE ES EL ARREGLO DE FONDO DEL ARCHIVO.
+    //
+    // Reunías las pruebas de un caso, se abría su página, y dentro no había
+    // nada: dos huecos de «ESPACIO RESERVADO» y un sello. El objetivo de toda
+    // la corrida —correr, recoger, publicar— terminaba en una página en
+    // blanco, y eso vacía de sentido lo que la mecánica pide.
+    //
+    // Lo que la página publica ahora es el EXPEDIENTE: el sumario con el que
+    // la redacción se documenta, que existe, está escrito y está contrastado
+    // (config/escenarios.js). No es el reportaje y no se presenta como tal:
+    // va con su rótulo propio, sin firma y sin fecha —un expediente no las
+    // lleva— y el hueco del reportaje sigue ahí debajo. La regla de la casa
+    // no se toca: lo que no está publicado, no se firma.
+    const sumario = pagina.caso
+      ? this._sumarioCaso(pagina.caso)
+      : this._sumarioSeguimiento();
+    if (sumario) cuerpo.appendChild(sumario);
+
     const destacado = pagina.articulos.find((a) => a.destacado) ?? pagina.articulos[0];
     const resto = pagina.articulos.filter((a) => a !== destacado);
 
@@ -2028,6 +2067,89 @@ export class Pantallas {
     }
 
     return cuerpo;
+  }
+
+  /**
+   * El sumario de un caso: qué pasó, cómo está y qué llevas documentado.
+   *
+   * La lista de papeles es lo que hace que la página SE LLENE SEGÚN SE RECOGE
+   * en vez de aparecer entera de golpe: los que tienes salen enteros, los que
+   * te faltan salen tachados y con su nombre —que es el nombre del documento
+   * real, no un adjetivo—, así que la página abierta sigue siendo una lista de
+   * tareas y no un premio ya cobrado.
+   */
+  _sumarioCaso(caso) {
+    const s = this.cuaderno.sumarioDelCaso(caso);
+    if (!s) return null;
+
+    const nodo = el('section', 'sumario');
+    nodo.appendChild(el('div', 'sumario__rotulo',
+      T('archivo.sumarioRotulo', { caso: cajaDeTitular(s.rotulo) })));
+    nodo.appendChild(el('h3', 'sumario__titulo', s.titulo));
+    nodo.appendChild(el('p', 'sumario__escena', s.escena));
+
+    const estado = el('div', 'sumario__estado');
+    estado.appendChild(el('span', 'sumario__etiqueta', T('archivo.sumarioEstado')));
+    estado.appendChild(el('span', 'sumario__estado-texto', s.estado));
+    nodo.appendChild(estado);
+
+    if (s.total) {
+      nodo.appendChild(el('div', 'sumario__etiqueta',
+        T('archivo.sumarioPapeles', { n: s.reunidos, total: s.total })));
+
+      const lista = el('ul', 'sumario__papeles');
+      for (const papel of s.papeles) {
+        const fila = el('li', `sumario__papel${papel.tengo ? ' sumario__papel--tengo' : ''}`);
+        fila.appendChild(el('span', 'sumario__papel-nombre', papel.nombre));
+        // La marca de «solo en redes» va SIEMPRE, la tengas o no. Es la regla
+        // de la casa dicha en la propia lista: esta pieza no cierra el
+        // reportaje aunque la hayas recogido.
+        if (papel.redes) {
+          fila.appendChild(el('span', 'sumario__papel-marca', T('archivo.sumarioRedes')));
+        }
+        lista.appendChild(fila);
+      }
+      nodo.appendChild(lista);
+
+      if (s.reunidos < s.total) {
+        nodo.appendChild(el('p', 'sumario__pie',
+          T('archivo.sumarioFaltan', { lugar: cajaDeTitular(s.lugar) })));
+      }
+    }
+
+    nodo.appendChild(el('p', 'sumario__aviso', T('archivo.sumarioAviso')));
+    return nodo;
+  }
+
+  /**
+   * El sumario de la última página, que no es de un caso: los cruza todos.
+   *
+   * Una línea por caso con en qué quedó y cuánto llegó a documentarse. Es la
+   * única página del ejemplar que solo se lee entera al final, y por eso es la
+   * que resume: aquí el jugador ve de una vez que abrió cuatro casos y que
+   * ninguno se cerró.
+   */
+  _sumarioSeguimiento() {
+    const casos = this.cuaderno.sumarioGeneral();
+    if (!casos.length) return null;
+
+    const nodo = el('section', 'sumario');
+    nodo.appendChild(el('div', 'sumario__rotulo', T('archivo.sumarioSeguimiento')));
+    nodo.appendChild(el('p', 'sumario__escena', T('archivo.sumarioSeguimientoAviso')));
+
+    const lista = el('ul', 'sumario__casos');
+    for (const c of casos) {
+      const fila = el('li', 'sumario__caso');
+      fila.appendChild(el('div', 'sumario__caso-rotulo', cajaDeTitular(c.rotulo)));
+      fila.appendChild(el('div', 'sumario__caso-estado', c.estado));
+      fila.appendChild(el('div', 'sumario__caso-cuenta',
+        T('archivo.sumarioPapeles', { n: c.reunidos, total: c.total })));
+      lista.appendChild(fila);
+    }
+    nodo.appendChild(lista);
+
+    nodo.appendChild(el('p', 'sumario__aviso', T('archivo.sumarioAviso')));
+    return nodo;
   }
 
   /**

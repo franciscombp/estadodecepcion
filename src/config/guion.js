@@ -326,6 +326,38 @@ export const GUION = {
       ayuda: 'Cuando hay pruebas de sobra para abrirla.',
       largo: true,
     },
+    sumarioRotulo: {
+      t: 'Expediente · {caso}',
+      ayuda: 'Rótulo del sumario, arriba de la página abierta. Es lo que evita que el expediente se confunda con la pieza publicada. Hueco: {caso}.',
+    },
+    sumarioAviso: {
+      t: 'Esto es el expediente: lo que está documentado hasta ahora. No es el reportaje; el reportaje va debajo, cuando se publique.',
+      ayuda: 'La aclaración del sumario. Ojo antes de tocarla: es lo que separa el expediente del reportaje firmado.',
+      largo: true,
+    },
+    sumarioEstado: { t: 'Cómo está', ayuda: 'Etiqueta de la línea de estado del caso.' },
+    sumarioPapeles: {
+      t: 'Lo que recuperaste · {n} de {total}',
+      ayuda: 'Encabeza la lista de documentos del caso. Huecos: {n}, {total}.',
+    },
+    sumarioFaltan: {
+      t: 'Lo tachado sigue en la calle. Sale en {lugar}.',
+      ayuda: 'Debajo de la lista, cuando queda algo por recoger. Hueco: {lugar}.',
+      largo: true,
+    },
+    sumarioRedes: {
+      t: 'solo en redes',
+      ayuda: 'Marca de una pista sin documento detrás. No cierra reportaje.',
+    },
+    sumarioSeguimiento: {
+      t: 'La última',
+      ayuda: 'Rótulo del sumario de la página 5, que cruza los cuatro casos.',
+    },
+    sumarioSeguimientoAviso: {
+      t: 'En qué quedó cada caso que abrimos, y cuánto llegó a documentarse.',
+      ayuda: 'La entradilla de la página de seguimiento.',
+      largo: true,
+    },
     comoAbrir: {
       t: 'Cada caso tiene sus propias pruebas y solo salen en su barrio. Recógelas aunque te capturen: lo recogido se queda.',
       ayuda: 'Cómo se abren las páginas.',

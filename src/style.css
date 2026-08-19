@@ -2154,6 +2154,183 @@ html, body {
   }
 }
 
+/* --- El sumario del caso --------------------------------------------------
+   EL EXPEDIENTE NO PUEDE PARECER UN REPORTAJE.
+   Es la razón de que este bloque no use nada de `.articulo`: sin serif de
+   titular, sin capitular, sin firma y sin enlace. Lleva la retícula de un
+   papel de archivo —regla arriba, rótulo en versalitas, cuerpo compacto— para
+   que a un golpe de vista se lea como material de trabajo y no como una pieza
+   publicada. Si algún día se pareciesen, bastaría una captura para que el
+   sumario circulara como si El Mercio lo hubiera firmado, que es exactamente
+   lo que el juego critica. */
+.sumario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-8);
+  padding: var(--e-12);
+  /* Papel blanco sobre el gris de la página: el expediente es una hoja
+     distinta metida dentro del ejemplar, no una columna más del ejemplar. */
+  background: var(--papel-blanco);
+  border: 1px solid var(--papel-sombra);
+  border-left: 3px solid var(--rojo-diario);
+  border-radius: var(--r-sm);
+}
+
+.sumario__rotulo {
+  font-family: var(--sans);
+  font-size: clamp(.5rem, 2vw, .6rem);
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--rojo-diario);
+}
+
+.sumario__titulo {
+  font-family: var(--serif);
+  font-size: clamp(1.05rem, 4.6vw, 1.3rem);
+  font-weight: 700;
+  line-height: 1.18;
+}
+
+.sumario__escena {
+  font-size: clamp(.84rem, 3.4vw, .96rem);
+  line-height: 1.52;
+  color: var(--tinta-media);
+}
+
+.sumario__etiqueta {
+  font-family: var(--sans);
+  font-size: clamp(.54rem, 2.2vw, .64rem);
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--tinta-tenue);
+}
+
+.sumario__estado {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sumario__estado-texto {
+  font-size: clamp(.8rem, 3.2vw, .9rem);
+  line-height: 1.45;
+  color: var(--tinta);
+}
+
+/* --- Lo que llevas recogido ----------------------------------------------
+   La lista es el motivo de que la página crezca partida a partida. Lo que
+   tienes va en tinta plena y con su marca; lo que falta, tachado y en gris.
+   Tachado y no escondido: saber QUÉ falta es lo que manda al jugador de vuelta
+   al barrio correcto, y esconderlo convertiría la página en una sorpresa en
+   vez de en una lista de tareas. */
+.sumario__papeles {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  list-style: none;
+}
+
+.sumario__papel {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e-8);
+  font-family: var(--sans);
+  font-size: clamp(.72rem, 2.9vw, .82rem);
+  line-height: 1.35;
+  color: var(--tinta-tenue);
+}
+
+.sumario__papel-nombre {
+  text-decoration: line-through;
+  text-decoration-color: var(--tinta-tenue);
+}
+
+.sumario__papel--tengo { color: var(--tinta); font-weight: 700; }
+.sumario__papel--tengo .sumario__papel-nombre { text-decoration: none; }
+
+/* Marca del papel recuperado: una casilla llena delante del nombre. En un
+   listado de documentos el estado tiene que verse antes de leer el nombre. */
+.sumario__papel::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--tinta-tenue);
+  border-radius: 2px;
+}
+
+.sumario__papel--tengo::before {
+  background: var(--verde-listo);
+  border-color: var(--verde-listo);
+}
+
+/* «solo en redes»: la regla de la casa dicha en la propia lista. Va siempre,
+   la tengas o no, porque lo que dice no es si la recogiste sino que con una
+   captura de pantalla no se cierra una pieza. */
+.sumario__papel-marca {
+  font-size: clamp(.5rem, 2vw, .58rem);
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--rojo-diario);
+  white-space: nowrap;
+}
+
+.sumario__pie,
+.sumario__aviso {
+  font-family: var(--sans);
+  font-size: clamp(.6rem, 2.4vw, .68rem);
+  line-height: 1.45;
+  color: var(--tinta-tenue);
+}
+
+.sumario__aviso {
+  padding-top: var(--e-8);
+  border-top: 1px solid var(--papel-sombra);
+}
+
+/* --- La última página: los cuatro casos de un vistazo --------------------- */
+.sumario__casos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-12);
+  list-style: none;
+}
+
+.sumario__caso {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-left: var(--e-12);
+  border-left: 2px solid var(--papel-sombra);
+}
+
+.sumario__caso-rotulo {
+  font-family: var(--sans);
+  font-size: clamp(.54rem, 2.2vw, .64rem);
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--rojo-diario);
+}
+
+.sumario__caso-estado {
+  font-size: clamp(.8rem, 3.2vw, .9rem);
+  line-height: 1.45;
+  color: var(--tinta-media);
+}
+
+.sumario__caso-cuenta {
+  font-family: var(--sans);
+  font-size: clamp(.6rem, 2.4vw, .68rem);
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--tinta-tenue);
+}
+
 .articulo__antetitulo {
   font-family: var(--sans);
   font-size: clamp(.5rem, 2vw, .6rem);
