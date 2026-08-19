@@ -909,8 +909,12 @@ export class Pantallas {
     };
     requestAnimationFrame(avanzar);
 
+    // El botón se crea aquí porque `parar()` lo necesita, pero NO se cuelga
+    // todavía: va el último de la página, después de la columna de opinión.
+    // Colgado aquí quedaba a media altura —con `margin-top: auto` empujando
+    // hasta la opinión y no hasta el borde— y en un teléfono corto la caja del
+    // veredicto se dibujaba encima de él.
     const botones = el('div', 'botones');
-    contenido.appendChild(botones);
 
     const parar = () => {
       if (!corriendo) return;
@@ -957,6 +961,16 @@ export class Pantallas {
         : T('sorteo.pierde')));
       zonaResultado.appendChild(caja);
 
+      // LA REGLA SE RETIRA CUANDO YA NO HAY NADA QUE DECIDIR.
+      //
+      // «Cinco son del gobierno y salen en morado. Para la ventana en el
+      // verde» es una instrucción, y una instrucción sobra en cuanto se ha
+      // ejecutado. Dejándola puesta, en un iPhone de 667 le robaba al veredicto
+      // los cuarenta y cuatro píxeles que necesitaba y el remate salía cortado
+      // a media línea: se leía «MEDIDAS SUSTITUTIVAS» y de la explicación,
+      // nada. Y lo que hay que leer al final es justo eso.
+      plana.querySelector('.plana__epigrafe')?.remove();
+
       this.audio.resultadoRuleta(acerto);
 
       // Un respiro para leer el resultado antes de que cambie la pantalla.
@@ -972,6 +986,8 @@ export class Pantallas {
     // LA COLUMNA DE OPINIÓN, como maqueta el Figma la página del sorteo: el
     // filete, la etiqueta roja, la cita en negra y el busto del columnista.
     // La cita es la misma sátira que ya cuenta la bajada, dicha por alguien.
+    // Y AHORA SÍ, EN ORDEN: primero la columna de opinión, que es contenido de
+    // la página, y debajo el botón, que es la acción.
     const opinion = el('div', 'opinion');
     const opTexto = el('div', 'opinion__texto');
     opTexto.appendChild(el('div', 'opinion__etiqueta', T('sorteo.opinion')));
@@ -982,6 +998,7 @@ export class Pantallas {
     opBusto.innerHTML = Icono.juez(44, true);
     opinion.appendChild(opBusto);
     contenido.appendChild(opinion);
+    contenido.appendChild(botones);
 
     const porTecla = (e) => {
       if (e.code === 'Space' || e.code === 'Enter') {
@@ -1137,10 +1154,25 @@ export class Pantallas {
     encabezado.appendChild(pestanas);
     hoja.appendChild(encabezado);
 
+    // EL PODIO Y LA TABLA VAN EN UN CUERPO QUE SE DESPLAZA.
+    //
+    // Colgados directamente de la página, en un teléfono corto no había sitio
+    // para todo y `.ranking__filas` se quedaba en CERO de alto: sus tres filas
+    // se salían por abajo y se dibujaban encima de los botones. Medido a
+    // 393 × 667: el botón «Volver a investigar» impreso sobre la fila #9.
+    //
+    // Sumado sin engaños, esa pantalla pide 590 px de contenido —mancheta 61,
+    // encabezado 112, podio 120, tres filas 124 y tres botones 173— más los
+    // huecos, en una ventana de 526. No caben, y ninguna cantidad de afinar
+    // márgenes los va a meter. Lo que corresponde es que la parte que ES una
+    // lista se comporte como una lista: la mancheta y las pestañas se quedan
+    // arriba, los botones abajo, y el podio con la tabla se desplazan en medio.
+    const cuerpo = el('div', 'pruebas__cuerpo');
     const podio = el('div', 'ranking__podio');
     const filas = el('div', 'ranking__filas');
-    hoja.appendChild(podio);
-    hoja.appendChild(filas);
+    cuerpo.appendChild(podio);
+    cuerpo.appendChild(filas);
+    hoja.appendChild(cuerpo);
 
     // ══ PINTAR UNA CLASIFICACIÓN ════════════════════════════════════════
     const pintar = (id) => {
@@ -1718,6 +1750,21 @@ export class Pantallas {
     diario.appendChild(pie);
     contenido.appendChild(diario);
 
+    // EL PAGINADOR VIVE EN EL PIE, NO DENTRO DE LA HOJA.
+    //
+    // Estaba colgado de la hoja, y la hoja es lo que se desplaza: en un iPhone
+    // de 667 los números de página se iban por debajo del corte junto con el
+    // texto, así que para cambiar de página había que desplazar hasta el final
+    // de la que estabas leyendo. Un paginador que hay que ir a buscar deja de
+    // ser un paginador.
+    //
+    // Además va aquí porque se pinta UNA sola vez: `pintar()` vacía y rehace la
+    // hoja en cada cambio de página, así que dentro había que reconstruirlo
+    // entero cada vez solo para marcar cuál está activa.
+    const paginador = this._navegadorPaginas(paginas, actual, (n) =>
+      cambiarPagina(n, Math.sign(n - actual)));
+    pie.appendChild(paginador);
+
     /**
      * @param {number} n       Página destino
      * @param {number} sentido +1 avanza, -1 retrocede, 0 sin animación
@@ -1737,8 +1784,12 @@ export class Pantallas {
       hoja.appendChild(
         pagina.desbloqueada ? this._paginaAbierta(pagina) : this._paginaCerrada(pagina, () => pintar()),
       );
-      hoja.appendChild(this._navegadorPaginas(paginas, actual, (n) =>
-        cambiarPagina(n, Math.sign(n - actual))));
+
+      // Marcar la página activa en el paginador, que ahora vive fuera de la
+      // hoja y por tanto sobrevive a este vaciado.
+      for (const b of paginador.children) {
+        b.classList.toggle('paginador__pag--actual', Number(b.textContent) === actual);
+      }
 
       // La hoja entra por el lado del que viene. Quitar la clase, forzar el
       // reflujo y volver a ponerla es la única forma de reiniciar una animación
@@ -1802,7 +1853,15 @@ export class Pantallas {
       }
       actual = previa;
       pintar();
-      hoja.style.minHeight = `${Math.ceil(mayor)}px`;
+      // Y NUNCA MÁS ALTO QUE EL HUECO QUE HAY.
+      //
+      // Esto clavaba el alto de la página más larga sin mirar la ventana. En un
+      // iPhone de 667 salían 585 px de hoja dentro de un ejemplar de 526, y el
+      // pie —con el botón de Volver— se iba fuera de la pantalla. El alto fijo
+      // sirve para que el papel no encoja al pasar de hoja; cuando no cabe, lo
+      // que toca es que la hoja se desplace por dentro, no que empuje al pie.
+      const hueco = diario.clientHeight - (pie.offsetHeight || 0);
+      hoja.style.minHeight = `${Math.ceil(Math.min(mayor, Math.max(120, hueco)))}px`;
     };
     // Hasta que `mostrar()` no lo cuelga del documento no hay nada que medir.
     requestAnimationFrame(fijarAlto);

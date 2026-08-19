@@ -38,7 +38,18 @@
        pero se vuelve transparente y la página pasa por debajo. Lo que se ve en
        esa franja es el fondo del documento, y por eso html/body van en papel.
        Requiere viewport-fit=cover, que está arriba. -->
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <!-- `default` Y NO `black-translucent`.
+       Con `black-translucent` la página se mete debajo de la barra de estado y
+       iOS pinta la hora en BLANCO. Como esta aplicación es un periódico —papel
+       gris claro—, el sistema oscurece la franja para que su texto blanco se
+       lea encima: de ahí la barra gris que salía arriba, que no la dibujaba la
+       página y por eso no había forma de quitarla desde el CSS.
+       Con `default` la barra es la del sistema, con la hora en negro sobre el
+       color declarado en `theme-color` (#f3f3f3, el mismo papel), y la página
+       empieza justo debajo. Se pierde poder pintar debajo del reloj, que en un
+       juego a pantalla completa sería una pena y aquí no: lo que hay ahí arriba
+       es el margen de la página. -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Estado Decepción" />
 
   <title>EL MERCIO — Estado de Excepción</title>

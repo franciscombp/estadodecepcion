@@ -1843,6 +1843,32 @@ html, body {
   --e-24: 24px;
 }
 
+/* ══ PANTALLAS CORTAS ═══════════════════════════════════════════════════════
+   Sumada sin engaños, la página del sorteo pide unos 664 px —cabecera 222,
+   bombo 181, veredicto 72, botón 48 y columna de opinión 141— y un iPhone de
+   667 de alto deja 526 útiles después de las zonas seguras y los márgenes.
+   No caben, y afinar espaciados no los va a meter.
+
+   Así que en pantallas cortas cede lo que es adorno y no mecánica: la columna
+   de opinión, que además dice con otras palabras lo mismo que la bajada de
+   arriba —«cinco de los seis ya están repartidos»—. El bombo, el veredicto y
+   el botón, que son el minijuego, se quedan enteros.
+
+   Va por ALTO de ventana y no por ancho: lo que falta es alto.
+
+   Y EL CORTE ESTÁ MEDIDO, no elegido a ojo. Se probó a 740, 780, 800, 820,
+   852 y 900 comprobando cuánto del remate del veredicto queda visible:
+
+       740  entero        780  nada         800  la mitad
+       820  entero        852  entero       900  entero
+
+   O sea que la franja mala va de 741 a 819 —justo los iPhone de 812 y los
+   Android de 760—, y por debajo de 741 salía bien solo porque el corte
+   anterior, puesto a ojo en 740, ya escondía la columna. El corte va en 820. */
+@media (max-height: 820px) {
+  .pantalla--cerco .opinion { display: none; }
+}
+
 /* Sobre el fondo oscuro, el papel se lee como un objeto físico encima. */
 .pantalla--periodico {
   background: rgba(243, 243, 243, 0.97);
@@ -1866,26 +1892,42 @@ html, body {
      estable la hoja se queda quieta y lo único que cambia es lo impreso.
      Es `min-height`, no `height`: una página con muchos artículos sigue
      pudiendo crecer. */
+  /* EL ALTO MÍNIMO NO PUEDE GANARLE A LA VENTANA.
+     `min(58vh, 430px)` da 430 en cualquier teléfono de más de 740 de alto, y a
+     eso se le suma el alto que `fijarAlto()` le clava a la hoja —el de la
+     página más larga del ejemplar—. En un iPhone de 667 eso son 585 px de hoja
+     dentro de una ventana de 526: el pie, con el botón de Volver, acababa en
+     y=697. Fuera de la pantalla y sin forma de llegar a él. */
   min-height: min(58vh, 430px);
   display: flex;
   flex-direction: column;
-  /* El paginador se queda pegado abajo aunque la página traiga poco texto. */
+  /* `hidden` y no `auto`: lo que se desplaza es la HOJA, no el ejemplar entero,
+     porque el pie tiene que quedarse quieto y visible. */
   overflow: hidden;
 }
 
-/* El cuerpo de la hoja: lo único que se rehace al pasar de página. */
+/* El cuerpo de la hoja: lo único que se rehace al pasar de página, y lo único
+   que se desplaza. Así se puede leer una página larga sin perder de vista los
+   botones del pie, que es exactamente lo que pasaba: el «Volver» acababa
+   dibujado en y=697 dentro de una ventana de 609. */
 .diario__hoja {
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
+
+/* Y el pie no cede: mide lo que mide y se queda abajo. */
+.diario__pie { flex: 0 0 auto; }
 
 /* El cuerpo de una página ABIERTA sí se estira: sus artículos rellenan la
    hoja. La cerrada no —ver más abajo, junto a su bloque—: estirarla dejaba
    media caja rayada vacía debajo del último renglón. */
 .diario__cuerpo { flex: 1 1 auto; }
 
-.diario .paginador { margin-top: auto; }
+/* Ya no hace falta empujarlo contra el fondo: el paginador está en el pie. */
 
 /* --- Pie del ejemplar -----------------------------------------------------
    Las acciones van impresas dentro del papel, bajo un filete, como el pie de
@@ -1893,14 +1935,21 @@ html, body {
    aplicación pegados debajo de un dibujo de periódico, que es justo lo que la
    maqueta lleva evitando en todas las demás pantallas. */
 .diario__pie {
-  margin-top: 14px;
-  padding-top: 12px;
+  margin-top: var(--e-12);
+  padding-top: var(--e-12);
   border-top: 1px solid var(--papel-sombra);
+  /* En columna y con aire entre pieza y pieza: paginador, botones y, en
+     desarrollo, las notas para la redacción. Antes eran bloques pegados con el
+     margen que cada uno traía de su casa, y el paginador acababa tocando el
+     botón de Volver. */
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-12);
 }
 
 .diario__acciones {
   display: flex;
-  gap: 8px;
+  gap: var(--e-8);
   align-items: stretch;
 }
 
@@ -2399,13 +2448,15 @@ html, body {
 
 /* --- Paginador ------------------------------------------------------------ */
 
+/* El paginador vive ahora en el PIE del ejemplar, junto a los botones, y no
+   dentro de la hoja: ahí se desplazaba con el texto y para cambiar de página
+   había que ir a buscarlo al final de la que estabas leyendo. En su sitio
+   nuevo sobran el filete y el margen de arriba —el pie ya trae los suyos— y el
+   aire de abajo lo pone el `gap` del pie. */
 .paginador {
   display: flex;
   justify-content: center;
   gap: var(--e-8);
-  margin-top: 20px;
-  padding-top: 14px;
-  border-top: 1px solid var(--papel-sombra);
 }
 
 /* EL PAGINADOR ES UN CONTROL, Y LOS CONTROLES VAN EN MONTSERRAT.
@@ -3046,8 +3097,20 @@ html, body {
    los que decían «esto es un papel encima del juego»; ahora la pantalla
    entera ES la página. */
 .plana {
-  flex: 1 1 auto;
+  /* CRECE Y ENCOGE. Iba en `flex: 1 1 auto`, y ese `auto` es el que rompía
+     media interfaz en teléfonos cortos: la base del elemento es su contenido,
+     así que cuando el contenido no cabía, el cuerpo seguía midiendo lo que
+     medía y EMPUJABA los botones del pie fuera de sitio. Medido en un iPhone
+     de 760 de alto: en el sorteo la caja del veredicto salía impresa encima
+     del botón, y en el Archivo el «Volver» acababa en y=710 dentro de una
+     ventana de 667, o sea recortado y sin forma de llegar a él.
+
+     Con base 0 el reparto lo manda el contenedor: el pie se queda con lo suyo,
+     el cuerpo con el resto, y si el resto no da, se desplaza. */
+  flex: 1 1 0;
   min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -3574,6 +3637,7 @@ html, body {
 /* Alineado ABAJO, que es lo que hace que el primero se lea como más alto y no
    como una tarjeta que se salió de sitio. */
 .ranking__podio {
+  flex: 0 0 auto;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -3673,8 +3737,16 @@ html, body {
 .ranking__puesto--tu { box-shadow: inset 0 0 0 1.5px var(--tinta); }
 
 /* ── La ventana de puestos ──────────────────────────────────────────────── */
+/* `1 1 0` y no `1 0 0`. El segundo número es el de ENCOGER, e iba a cero: la
+   tabla de puestos crecía para llenar el hueco pero se negaba a ceder cuando
+   no lo había, así que en un teléfono corto empujaba los tres botones del pie
+   por encima de las últimas filas. Medido a 393 × 667: el botón «Volver a
+   investigar» salía impreso sobre la fila #9. */
+/* Dentro del cuerpo desplazable, la tabla mide LO QUE MIDE: son tres filas de
+   cuarenta y no hay nada que repartir. El que se estira —y el que se desplaza
+   cuando no cabe— es el cuerpo que la contiene. */
 .ranking__filas {
-  flex: 1 0 0;
+  flex: 0 0 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -4191,7 +4263,11 @@ html, body {
   flex: 0 0 auto;
   width: 100%;
   max-width: 480px;
-  height: clamp(180px, 46vw, 232px);
+  /* El alto va contra el ANCHO y contra el ALTO de la ventana, y manda el más
+     pequeño de los dos. Solo contra el ancho, un teléfono estrecho y corto
+     —un iPhone SE— pedía 181 px de bombo dentro de una página que no tenía
+     sitio ni para el veredicto. */
+  height: min(clamp(180px, 46vw, 232px), 26vh);
   /* EL BOMBO SE CENTRA EN EL HUECO QUE LE QUEDA.
      Con la altura ya domada, la página del sorteo se quedaba con el bombo
      pegado a la bajada y trescientos píxeles de papel en blanco antes del
@@ -4682,13 +4758,40 @@ html, body {
 .pruebas {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  /* EL HUECO ENCOGE EN PANTALLA CORTA. Veinticuatro fijos entre cinco bloques
+     son 96 px de aire, y en un iPhone de 667 esos 96 son justo los que faltan
+     para que quepan los botones. Entre 16 y 24 según el alto de la ventana. */
+  gap: clamp(14px, 3.2vh, 24px);
   width: 100%;
   height: 100%;
+  min-height: 0;
   /* La página no se desplaza: la mesa es lo único elástico y lo que no cabe
      se resuelve encogiendo la pieza, no metiendo una barra de scroll en una
      maqueta que no la tiene. */
   overflow: hidden;
+}
+
+/* El cuerpo desplazable del ranking: lo que hay entre las pestañas y los
+   botones. Se lleva el hueco que sobre y, cuando no sobra, se desplaza él en
+   vez de empujar a nadie. */
+.pruebas__cuerpo {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(14px, 3.2vh, 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Y LOS BOTONES NO SE ENCOGEN NI SE VAN.
+   Iban sin declarar, o sea `flex: 0 1 auto`: podían encogerse, y de hecho el
+   bloque entero se salía por abajo de la página —medido a 393 × 667: los tres
+   botones del ranking acababan en y=649 dentro de una ventana de 609, con el
+   primero impreso encima de la fila #9—. Con `0 0 auto` reservan su sitio y lo
+   que cede es lo de arriba, que para eso es elástico. */
+.pruebas__botones {
+  flex: 0 0 auto;
 }
 
 /* ── La mancheta ────────────────────────────────────────────────────────── */
@@ -4777,8 +4880,10 @@ html, body {
 /* ── La mesa ────────────────────────────────────────────────────────────── */
 /* Envoltorio elástico y con filete abajo, como en la maqueta: es lo que separa
    el expediente de los botones sin meter otro bloque. */
+/* Mismo caso que la tabla del ranking: crecía sin poder encoger, y en pantalla
+   corta las casillas del expediente se metían debajo de los botones. */
 .pruebas__mesa {
-  flex: 1 0 0;
+  flex: 1 1 0;
   min-height: 0;
   display: flex;
   align-items: center;
@@ -4928,7 +5033,9 @@ html, body {
 .pruebas__botones {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  /* El mismo compás elástico que la página: en un teléfono corto, tres botones
+     con 16 de separación son 32 px que no están. */
+  gap: clamp(10px, 2.2vh, 16px);
 }
 
 /* --- La investigación, en la portada --------------------------------------
@@ -4990,6 +5097,41 @@ html, body {
   margin-inline: calc(50% - 50vw);
   padding-inline: max(24px, calc(50vw - 230px));
   background: var(--papel);
+}
+
+/* Y LOS BLOQUES TAPAN TAMBIÉN LAS ZONAS SEGURAS.
+   La portada deja transparente el fondo de la pantalla a propósito, para que
+   por el hueco de en medio se vea la calle. El efecto secundario era que la
+   calle se veía TAMBIÉN por la franja del indicador de inicio: debajo de los
+   botones quedaba un dedo de escenario —morado en Elecciones— que no se lee
+   como «aquí sigue el juego» sino como una barra de color pegada al borde.
+   El bloque de arriba se estira hasta el borde superior y el de abajo hasta el
+   inferior, así que las franjas son papel, como en el resto de la aplicación. */
+/* Y LA PORTADA NO SE DESPLAZA, o los bloques no pueden sangrar.
+   `.plana` pasó a `overflow-y: auto` para que ninguna página empuje sus
+   botones fuera de la ventana, y eso está bien en las nueve pantallas que son
+   páginas. En la portada no: un contenedor que se desplaza RECORTA lo que se
+   sale, así que los márgenes negativos con los que los bloques tapan las zonas
+   seguras se quedaban cortados justo en el borde del contenedor y volvía a
+   asomar la calle —cielo azul arriba, asfalto abajo—, que es la banda que se
+   quería quitar. La portada tiene alto fijo por diseño y no lo necesita. */
+.pantalla--portada .plana {
+  overflow: visible;
+}
+
+/* OJO CON CUÁNTO SE TIRA. La portada NO lleva el relleno de página de las
+   demás pantallas: `.pantalla--plana.pantalla--portada` lo sustituye por las
+   zonas seguras a secas. Así que el bloque hay que subirlo exactamente eso —la
+   zona segura— y no eso más el margen, que era lo que le hacía asomar
+   veinticuatro píxeles por encima del borde. */
+.pantalla--portada .plana__bloque:first-child {
+  margin-top: calc(var(--seg-arriba) * -1);
+  padding-top: calc(var(--seg-arriba) + 14px);
+}
+
+.pantalla--portada .portada__abajo {
+  margin-bottom: calc(var(--seg-abajo) * -1);
+  padding-bottom: calc(var(--seg-abajo) + 10px);
 }
 
 .pantalla--portada .plana__bloque { padding-top: clamp(24px, 7vh, 64px); }
