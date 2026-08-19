@@ -58,6 +58,11 @@ export class HUD {
     // puesto. Ver _actualizarExpediente() — deliberadamente FUERA de la caché,
     // porque invalidar() la vacía y dejaba el panel colgado toda la partida.
     this.expedientePuesto = false;
+
+    // HASTA CUÁNDO SE QUEDA EL PANEL DESPUÉS DE QUE SE ACABE EL PASILLO.
+    //
+    // Ver cerrarExpediente(). Cero mientras no haya un cierre en curso.
+    this.cierreExpedienteHasta = 0;
   }
 
   _cacheVacia() {
@@ -376,6 +381,18 @@ export class HUD {
     // quedaba puesto el resto de la partida, y con él el modo de prioridad, así
     // que la ruta y la racha tampoco volvían. Esta marca refleja el DOM, y el
     // DOM no lo vacía `invalidar()`.
+    // EL PORTAZO TARDA UN SEGUNDO EN LEERSE. Ver cerrarExpediente().
+    //
+    // El congelado va ANTES de mirar si hay pasillo, y no dentro de la rama de
+    // «ya no hay»: al salir, el trámite tarda uno o dos fotogramas en darse por
+    // terminado, así que durante esos fotogramas seguía llegando aquí con datos
+    // y reescribía el remate con la cuenta de siempre. Mientras dure el cierre
+    // no se toca nada: el panel se queda exactamente como lo dejó el portazo.
+    if (this.cierreExpedienteHasta) {
+      if (performance.now() < this.cierreExpedienteHasta) return;
+      this.cierreExpedienteHasta = 0;
+    }
+
     if (!tramite) {
       if (this.expedientePuesto) {
         this.ref.expediente.classList.add('expediente--oculto');
@@ -425,6 +442,48 @@ export class HUD {
     }
 
     this.ref.expedienteProgreso.style.width = `${Math.round(tramite.progreso * 100)}%`;
+  }
+
+  /**
+   * EL PORTAZO, CONTADO DONDE SE CONTÓ EL PASILLO.
+   *
+   * A partir de la SEGUNDA visita a un ente de control el juego no para: se
+   * entra directo y se sale directo. Eso está bien —tres párrafos que ya
+   * leíste dejan de ser un respiro y pasan a ser un peaje— pero dejaba la
+   * salida completamente muda: el marcador del expediente se apagaba en el
+   * mismo fotograma en que se acababa el pasillo y el jugador volvía a la
+   * calle sin saber ni cuántos papeles rescató ni —peor— que acababa de salir
+   * con la pieza del caso, que es LO ÚNICO que compensa haber entrado.
+   *
+   * Y como a partir de la segunda vez es casi siempre, el trámite se estaba
+   * jugando a ciegas casi siempre.
+   *
+   * El remate va en el propio panel del expediente y no en una tarjeta nueva:
+   * es donde el jugador ha tenido los ojos los trescientos cuarenta metros
+   * anteriores, y este HUD no tiene avisos flotantes a propósito.
+   *
+   * La prioridad se suelta YA —el resto del HUD deja de estar atenuado en el
+   * acto— porque al salir del pasillo empieza otro tramo con obstáculos: lo
+   * que se queda un momento más es el panel, no la penumbra.
+   *
+   * @param {{devueltos?:number, hallazgo?:string}} resumen
+   */
+  cerrarExpediente(resumen = {}) {
+    if (!this.expedientePuesto || !this.ref?.expediente) return;
+
+    const devueltos = resumen.devueltos ?? 0;
+    const hallazgo = resumen.hallazgo ?? null;
+
+    this.ref.expedienteAviso.textContent = hallazgo
+      ? `SALES CON +${devueltos} · ${hallazgo.toLocaleUpperCase('es')}`
+      : `SALES CON +${devueltos}`;
+    // En verde aunque hayas salido perdiendo: lo que dice esta línea ya no es
+    // si el pasillo te pagó —eso lo dijo durante los 340 metros— sino con qué
+    // sales, y con la pieza del caso siempre sales ganando algo.
+    this.ref.expediente.classList.remove('expediente--perdido');
+
+    this._prioridad('tramite', false);
+    this.cierreExpedienteHasta = performance.now() + 2000;
   }
 
   /**

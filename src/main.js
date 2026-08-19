@@ -337,6 +337,7 @@ async function arrancar() {
   };
 
   juego.alActualizarHUD = (datos) => hud.actualizar(datos);
+  juego.alCerrarExpediente = (resumen) => hud.cerrarExpediente(resumen);
   juego.alSeñalizar = (destinos, peligro) => hud.mostrarRotulo(destinos, peligro);
   juego.alQuitarSenal = () => hud.ocultarRotulo();
 

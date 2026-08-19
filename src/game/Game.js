@@ -150,6 +150,8 @@ export class Game {
     this.alActualizarHUD = () => {};
     /** Baja el cartel de salida con los tres destinos. */
     this.alSeñalizar = () => {};
+    /** Remata el panel del expediente al salir del pasillo. */
+    this.alCerrarExpediente = () => {};
     // ¿Ya se quitó el cartel de esta bifurcación? Se retira solo al acercarse
     // (ver la actualización), no al cruzar.
     this.senalRetirada = false;
@@ -956,13 +958,21 @@ export class Game {
       return;
     }
 
-    // El ×2 se anuncia siempre, también en la versión corta. Es la única cifra
-    // del trámite que cambia si vale la pena entrar, y esta es la variante que
-    // se ve a partir de la segunda visita: o sea, casi todas las veces.
-    if (extra.devueltos) {
-    }
-    if (extra.hallazgo) {
-    }
+    // EL ×2 Y EL HALLAZGO SE ANUNCIAN SIEMPRE, también en la versión corta.
+    //
+    // Aquí no había nada: dos condicionales vacías, restos de los avisos
+    // flotantes que se quitaron del HUD. O sea que de la segunda visita en
+    // adelante —que es casi siempre— salías del pasillo sin que nada dijera
+    // cuánto rescataste ni que acababas de llevarte la pieza del caso, que es
+    // lo único por lo que merece la pena entrar. El tramo con más historia
+    // detrás se jugaba a ciegas.
+    //
+    // Lo cuenta el propio panel del expediente, que se queda dos segundos más
+    // con el resultado. Ver HUD.cerrarExpediente().
+    this.alCerrarExpediente({
+      devueltos: extra.devueltos ?? 0,
+      hallazgo: extra.hallazgo ?? null,
+    });
 
     const destino = this.rutas.resolverRuta(this.escenarioActual, 'derecha');
     this._entrarEnTramo(destino);
