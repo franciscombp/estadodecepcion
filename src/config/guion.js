@@ -112,6 +112,15 @@ export const GUION = {
       ayuda: 'La línea de datos bajo la cifra. Huecos: {distancia}, {evidencia}.',
     },
     altFoto: { t: 'Momento de la detención', ayuda: 'Texto alternativo de la foto, para lectores de pantalla.' },
+    sinFoto: {
+      t: 'Sin fotografía',
+      ayuda: 'Sello del hueco cuando la captura del arresto no se pudo tomar. Ocupa el sitio de la foto para que la portada no se quede a medias.',
+    },
+    sinFotoPie: {
+      t: 'No se autorizó el registro gráfico de la detención.',
+      ayuda: 'Pie del hueco sin foto.',
+      largo: true,
+    },
     pieFoto: {
       t: 'Momento de la detención en *{lugar}*.',
       ayuda: 'Pie de la foto del arresto. Hueco: {lugar}.',

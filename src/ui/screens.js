@@ -1385,7 +1385,23 @@ export class Pantallas {
     // Y DESPUÉS la foto, como en el marco: primero la cifra que resume la
     // corrida, luego su línea de datos, y al final la imagen con su pie. Es
     // además el bloque elástico de esta página.
-    if (datos.foto) plana.appendChild(this._fotoArresto(datos));
+    // Y SI NO HAY FOTO, SE RESERVA EL ESPACIO. No se deja el hueco.
+    //
+    // La foto la saca Game.js del propio lienzo en el instante del arresto, y
+    // puede no salir: si el canvas está «contaminado» el navegador no deja
+    // leerlo, y la portada se quedaba sin ella. Medido: 274 px de papel en
+    // blanco, el 39 % de la página, entre la línea de datos y el botón. Una
+    // portada con un agujero de ese tamaño no parece una portada, parece que
+    // algo no cargó.
+    //
+    // Lo que hace un periódico cuando no tiene la foto es reservar el hueco y
+    // decirlo, y este juego ya tiene ese gesto: es el mismo sello de ESPACIO
+    // RESERVADO con el que el Archivo guarda sitio a un reportaje que aún no
+    // cierra. Así que la portada se completa sola y encima con una broma que
+    // es de la casa.
+    plana.appendChild(datos.foto
+      ? this._fotoArresto(datos)
+      : this._huecoSinFoto());
 
     // LO QUE SÍ SACASTE, EL REPORTAJE COMPLETO, LO QUE VIENE Y EL REMATE:
     // fuera los cuatro. Debajo de la foto había una lista con viñetas de las
@@ -1649,6 +1665,20 @@ export class Pantallas {
    * procesar una imagen de pantalla completa en el momento en que el jugador
    * acaba de perder es medio segundo de bloqueo justo donde más se nota.
    */
+  /**
+   * El hueco de la foto cuando no hay foto.
+   *
+   * Mismo lenguaje que el espacio reservado del Archivo —filete discontinuo y
+   * sello— y mismo comportamiento elástico que la figura de verdad, así que la
+   * página mide lo mismo haya imagen o no.
+   */
+  _huecoSinFoto() {
+    const hueco = el('figure', 'plana__foto plana__foto--vacia se-estira');
+    hueco.appendChild(el('div', 'plana__foto-sello', T('captura.sinFoto')));
+    hueco.appendChild(el('figcaption', 'plana__pie', T('captura.sinFotoPie')));
+    return hueco;
+  }
+
   _fotoArresto(datos) {
     const figura = el('figure', 'plana__foto se-estira');
 

@@ -3475,10 +3475,50 @@ html, body {
 
 .plana__foto {
   position: relative;
-  margin: 10px 0 8px;
+  /* Sin margen propio: el hueco lo pone el compás de la página. */
   overflow: hidden;
   background: #1a1610;
   border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+/* EL HUECO CUANDO NO HAY FOTO.
+   Va aquí, DESPUÉS de `.plana__foto`, y no más arriba: declarado antes le
+   ganaba el marco de la foto —fondo #1a1610— y el sello salía gris sobre casi
+   negro. Mismo lenguaje que el ESPACIO RESERVADO del Archivo: papel rayado,
+   filete discontinuo y sello. Y el mismo comportamiento elástico que la figura
+   de verdad, así que la portada mide lo mismo con foto y sin ella. */
+.plana__foto--vacia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-12);
+  min-height: 140px;
+  border: 2px dashed var(--tinta-tenue);
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 9px,
+    rgba(133, 123, 108, 0.07) 9px 18px
+  );
+}
+
+.plana__foto-sello {
+  padding: 5px 13px;
+  border: 2px solid var(--tinta-tenue);
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tinta-tenue);
+}
+
+.plana__foto--vacia .plana__pie {
+  position: static;
+  text-align: center;
+  padding: 0 var(--e-16);
+  background: none;
+  color: var(--tinta-tenue);
 }
 
 .plana__foto img {
