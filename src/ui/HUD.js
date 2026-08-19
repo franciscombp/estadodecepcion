@@ -429,12 +429,30 @@ export class HUD {
       // papeles y por encima te pagó, que es LA pregunta del tramo.
       const bajoLaMitad = tramite.recogidos * 2 < (tramite.pasados ?? 0);
       this.ref.expediente.classList.toggle('expediente--perdido', bajoLaMitad);
+
+      // EL ÚNICO FINAL DEL JUEGO NO SE ANUNCIABA EN NINGUNA PARTE.
+      //
+      // Se gana recuperando el reguero ENTERO, y esta línea solo hablaba de la
+      // mitad —el punto en el que el pasillo deja de costarte papeles—. O sea
+      // que el jugador podía llegar al 95 % sin que nada le dijera que había
+      // algo ahí arriba, y sin saberlo no lo va a intentar nunca: quien va
+      // salvando el expediente se relaja justo cuando debería apretar.
+      //
+      // A partir del noventa por ciento la línea cambia y lo dice. No antes:
+      // prometer el final a mitad de pasillo sería prometer algo que casi
+      // nunca se cumple, y eso desgasta más de lo que empuja.
+      const quedan = (tramite.total ?? 0) - tramite.recogidos;
+      const casi = tramite.total > 0 && tramite.recogidos >= tramite.total * 0.9;
+
       // El ×2 va en el rótulo permanente del expediente, no en un aviso que se
       // va solo: es la regla del tramo, y hay que poder consultarla en
       // cualquier momento de los trescientos cuarenta metros que dura.
-      this.ref.expedienteAviso.textContent = bajoLaMitad
-        ? 'VAS POR DEBAJO DE LA MITAD · VALEN ×2'
-        : 'VAS SALVANDO EL EXPEDIENTE · VALEN ×2';
+      this.ref.expedienteAviso.textContent = casi
+        ? (quedan > 0 ? `TE FALTAN ${quedan} PARA SALVARLO ENTERO` : 'LO TIENES ENTERO')
+        : bajoLaMitad
+          ? 'VAS POR DEBAJO DE LA MITAD · VALEN ×2'
+          : 'VAS SALVANDO EL EXPEDIENTE · VALEN ×2';
+      this.ref.expediente.classList.toggle('expediente--casi', casi);
       this.cache.tramite = tramite.recogidos;
 
       // Animación de progreso: pulse visual cuando se actualiza

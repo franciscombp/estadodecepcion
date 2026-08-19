@@ -714,8 +714,11 @@ export const ELEVADO = {
 // META-PROGRESO
 // ---------------------------------------------------------------------------
 export const PROGRESO = {
-  // Cada cuántos papeles acumulados se desbloquea una evidencia del cuaderno.
-  PAPELES_POR_EVIDENCIA: 100,
+  // Aquí vivía PAPELES_POR_EVIDENCIA: cada cuántos papeles acumulados se
+  // desbloqueaba una pieza del cuaderno. No lo leía nadie desde que el Archivo
+  // dejó de comprarse —una página se completa con las PRUEBAS de su caso, no
+  // con puntuación— y una constante de balance que no se consulta es peor que
+  // no tenerla: la próxima persona que la lea creerá que manda algo.
   CLAVE_ALMACENAMIENTO: 'elmercio.estadodecepcion.v1',
 };
 

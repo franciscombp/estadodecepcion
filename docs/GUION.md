@@ -187,14 +187,18 @@ Así que las otras tres suben, y cada una a su hora del día:
 
 | Escena | Hora | Ambiente |
 |---|---|---|
-| **La Bahía** | Mediodía nublado | 1.35 |
-| **Las Elecciones** | Tarde de cierre de campaña | 1.30 |
-| **Centro histórico** | Amanecer con el cerco puesto | 1.15 |
-| **El Apagón** | Sin red eléctrica | **0.24** |
+| **La Bahía** | Mediodía nublado | 1.50 |
+| **Las Elecciones** | Tarde de cierre de campaña | 1.45 |
+| **Centro histórico** | Amanecer con el cerco puesto | 1.30 |
+| **El Apagón** | Sin red eléctrica | **0.30** |
 
 Entrar al Apagón divide la luz por cinco de golpe. Antes se pasaba de 0.75 a
 0.28 —menos de la mitad— y no bastaba: el apagón se nota **contra la luz**, no
 contra otra penumbra.
+
+Lo que manda es la PROPORCIÓN, no las cifras. Las cuatro subieron juntas al
+iluminar el mundo (eran 1.35 / 1.30 / 1.15 / 0.24); mientras el salto siga
+siendo de cinco veces, el apagón sigue contando lo mismo.
 
 Que la Bahía sea la más clara tiene además su propio motivo: un mercado
 popular es un sitio diurno. Se abre a las siete y se cierra al caer el sol.
@@ -744,6 +748,15 @@ El botón de comprobar dispara la búsqueda y espera un rato acotado. Si en ese
 rato no aparece nada dice «sin novedades por ahora» y no «ya tienes la última»,
 porque no es lo mismo: la comprobación puede tardar más que la espera, y si
 llega después el panel se enciende igual.
+
+---
+
+## La prueba de escritorio
+
+El recorrido entero del juego —qué pasa, en qué orden y con qué números, desde
+que se abre la pestaña— está en [PRUEBA-DE-ESCRITORIO.md](PRUEBA-DE-ESCRITORIO.md).
+Este documento dice por qué existe cada pieza; aquel dice qué ocurre al jugarlas
+seguidas, y termina con lo que solo se ve leyéndolas en orden.
 
 ---
 

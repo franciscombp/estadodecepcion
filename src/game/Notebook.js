@@ -20,7 +20,10 @@ import { ESCENARIOS } from '../config/escenarios.js';
 
 const ESTADO_INICIAL = {
   version: 1,
-  totalEvidencia: 0,        // Papeles disponibles para gastar
+  // Papeles acumulados. NO SON UNA MONEDA: no se gastan en nada. Alimentan las
+  // tres clasificaciones y la cifra grande de la portada del final, y eso es
+  // todo. Lo que abre páginas del Archivo son las pruebas del caso.
+  totalEvidencia: 0,
   evidenciaHistorica: 0,   // Total acumulado de siempre (nunca baja)
   paginasDesbloqueadas: [],
   pruebasEncontradas: [],
@@ -368,6 +371,20 @@ export class Notebook {
     }));
     const papeles = [...documentos, ...redes];
 
+    // COMPLETO NO ES «ABIERTO».
+    //
+    // Una página se abre con DOS pruebas del caso, y los barrios sueltan entre
+    // cuatro y seis: con dos corridas decentes por barrio se abrían las cinco
+    // páginas y no quedaba ninguna razón para volver a ninguna parte. Un
+    // expediente tiene un segundo estado —el de estar entero— y esa es la meta
+    // que faltaba.
+    //
+    // Cuenta solo lo que tiene documento detrás. Las pistas que únicamente
+    // están en redes se recogen y se enseñan, pero exigirlas para dar un caso
+    // por completo sería justo lo contrario de la regla de la casa: convertiría
+    // una captura de pantalla en un requisito de publicación.
+    const conDocumento = papeles.filter((d) => !d.redes);
+
     return {
       caso,
       rotulo: esc.caso,
@@ -378,6 +395,9 @@ export class Notebook {
       papeles,
       reunidos: papeles.filter((d) => d.tengo).length,
       total: papeles.length,
+      documentados: conDocumento.filter((d) => d.tengo).length,
+      documentos: conDocumento.length,
+      completo: conDocumento.length > 0 && conDocumento.every((d) => d.tengo),
     };
   }
 

@@ -2082,9 +2082,17 @@ export class Pantallas {
     const s = this.cuaderno.sumarioDelCaso(caso);
     if (!s) return null;
 
-    const nodo = el('section', 'sumario');
+    const nodo = el('section', `sumario${s.completo ? ' sumario--completo' : ''}`);
     nodo.appendChild(el('div', 'sumario__rotulo',
       T('archivo.sumarioRotulo', { caso: cajaDeTitular(s.rotulo) })));
+    // EL SELLO DE COMPLETO ES LA SEGUNDA META DE LA PÁGINA.
+    //
+    // Abrirla cuesta dos pruebas del caso y los barrios sueltan entre cuatro y
+    // seis: sin un segundo estado, dos corridas por barrio abrían las cinco
+    // páginas y ya no había ninguna razón para volver a ninguna parte.
+    if (s.completo) {
+      nodo.appendChild(el('div', 'sumario__sello', T('archivo.sumarioCompleto')));
+    }
     nodo.appendChild(el('h3', 'sumario__titulo', s.titulo));
     nodo.appendChild(el('p', 'sumario__escena', s.escena));
 
@@ -2111,10 +2119,9 @@ export class Pantallas {
       }
       nodo.appendChild(lista);
 
-      if (s.reunidos < s.total) {
-        nodo.appendChild(el('p', 'sumario__pie',
-          T('archivo.sumarioFaltan', { lugar: cajaDeTitular(s.lugar) })));
-      }
+      nodo.appendChild(el('p', 'sumario__pie', s.completo
+        ? T('archivo.sumarioCompletoPie', { lugar: cajaDeTitular(s.lugar) })
+        : T('archivo.sumarioFaltan', { lugar: cajaDeTitular(s.lugar) })));
     }
 
     nodo.appendChild(el('p', 'sumario__aviso', T('archivo.sumarioAviso')));
@@ -2139,14 +2146,23 @@ export class Pantallas {
 
     const lista = el('ul', 'sumario__casos');
     for (const c of casos) {
-      const fila = el('li', 'sumario__caso');
+      const fila = el('li', `sumario__caso${c.completo ? ' sumario__caso--completo' : ''}`);
       fila.appendChild(el('div', 'sumario__caso-rotulo', cajaDeTitular(c.rotulo)));
       fila.appendChild(el('div', 'sumario__caso-estado', c.estado));
-      fila.appendChild(el('div', 'sumario__caso-cuenta',
-        T('archivo.sumarioPapeles', { n: c.reunidos, total: c.total })));
+      fila.appendChild(el('div', 'sumario__caso-cuenta', c.completo
+        ? T('archivo.sumarioCompleto')
+        : T('archivo.sumarioPapeles', { n: c.reunidos, total: c.total })));
       lista.appendChild(fila);
     }
     nodo.appendChild(lista);
+
+    // La cuenta de arriba: cuántos casos están enteros. Es la única cifra del
+    // Archivo que mide la investigación completa y no una página suelta.
+    nodo.appendChild(el('div', 'sumario__etiqueta',
+      T('archivo.sumarioCasosCompletos', {
+        n: casos.filter((c) => c.completo).length,
+        total: casos.length,
+      })));
 
     nodo.appendChild(el('p', 'sumario__aviso', T('archivo.sumarioAviso')));
     return nodo;
@@ -2308,7 +2324,12 @@ export class Pantallas {
         `${p.desbloqueada ? '' : 'paginador__pag--cerrada'}`.trim());
       b.type = 'button';
       b.textContent = String(p.numero);
-      b.title = p.desbloqueada ? p.nombre : `${p.nombre} · ${p.costo} papeles`;
+      // NO CUESTAN PAPELES, y esto lo decía. Las páginas se completan con las
+      // pruebas de su caso desde que se quitó la compra; el título seguía
+      // prometiendo un precio en papeles que no cobra nadie.
+      b.title = p.desbloqueada
+        ? p.nombre
+        : `${p.nombre} · ${p.pruebasReunidas} de ${p.pruebasPedidas} pruebas`;
       b.addEventListener('click', () => alElegir(p.numero));
       nav.appendChild(b);
     }

@@ -2291,6 +2291,25 @@ html, body {
   border-top: 1px solid var(--papel-sombra);
 }
 
+/* --- El sello de expediente completo --------------------------------------
+   La segunda meta de cada página. Va en verde y no en el rojo de la casa
+   porque el rojo lo lleva todo lo demás del sumario —el rótulo, el filete del
+   borde— y un sello en el mismo color no se distingue de un rótulo más. */
+.sumario__sello {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border: 1.5px solid var(--verde-listo);
+  border-radius: var(--r-sm);
+  font-family: var(--sans);
+  font-size: clamp(.54rem, 2.2vw, .64rem);
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--verde-listo);
+}
+
+.sumario--completo { border-left-color: var(--verde-listo); }
+
 /* --- La última página: los cuatro casos de un vistazo --------------------- */
 .sumario__casos {
   display: flex;
@@ -2330,6 +2349,9 @@ html, body {
   text-transform: uppercase;
   color: var(--tinta-tenue);
 }
+
+.sumario__caso--completo { border-left-color: var(--verde-listo); }
+.sumario__caso--completo .sumario__caso-cuenta { color: var(--verde-listo); }
 
 .articulo__antetitulo {
   font-family: var(--sans);
@@ -2828,6 +2850,30 @@ html, body {
 
 .expediente--perdido {
   border-color: var(--rojo-diario);
+}
+
+/* A UN PALMO DEL ÚNICO FINAL DEL JUEGO.
+   Del noventa por ciento en adelante el aviso deja de hablar de la mitad y
+   dice cuántos faltan para salvar el expediente entero, que es lo que gana la
+   partida. El realce va en el borde y en el propio texto porque el panel ya
+   usa el rojo para lo contrario —vas perdiendo—: aquí hace falta que se lea
+   como una meta y no como una alarma. */
+.expediente--casi {
+  border-color: var(--verde-listo);
+}
+
+.expediente--casi .expediente__aviso {
+  color: var(--verde-listo);
+  animation: expediente-casi 0.9s ease-in-out infinite;
+}
+
+@keyframes expediente-casi {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expediente--casi .expediente__aviso { animation: none; }
 }
 
 .expediente--perdido .expediente__aviso { color: var(--rojo-diario); }

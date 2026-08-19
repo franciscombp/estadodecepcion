@@ -2,8 +2,10 @@
 // PUBLICACIONES — El periódico que vas armando
 // ============================================================================
 // El Archivo no es una lista de premios: es un ejemplar de El Mercio que el
-// jugador monta página a página. Cada página cuesta papeles y trae reportajes
-// REALES, publicados de verdad, con su firma y su enlace.
+// jugador monta página a página. Cada página se completa con las PRUEBAS de su
+// caso y trae dos cosas: el expediente —lo documentado hasta ahora, que es lo
+// que el juego ya sabe— y el hueco del reportaje de El Mercio, que solo se
+// llena con una pieza REAL, publicada de verdad, con su firma y su enlace.
 //
 // El juego es sátira. El periódico que desbloqueas, no. Ese contraste es el
 // remate de todo el proyecto.
@@ -51,6 +53,13 @@ export const CABECERA = {
   sitio: 'elmercio.com',
 };
 
+// LAS PÁGINAS NO CUESTAN PAPELES.
+//
+// Cada una traía un `costo` en papeles de cuando el Archivo se compraba. Desde
+// que una página se COMPLETA —con las pruebas de su caso, no con puntuación—
+// ese número no lo cobraba nadie: solo sobrevivía en el título emergente del
+// paginador, prometiéndole al jugador un precio que no existe. Lo que pide cada
+// página es `pruebas`, y está justo debajo.
 export const PAGINAS = [
   // -------------------------------------------------------------------------
   {
@@ -68,7 +77,6 @@ export const PAGINAS = [
     // una casilla que se marca sola: el jugador ve un objetivo cumplido sin
     // haber hecho nada y deja de fiarse del resto de la cuenta.
     pruebas: 2,
-    costo: 0,
     articulos: [
       {
         id: 'a01',
@@ -101,7 +109,6 @@ export const PAGINAS = [
     // El Apagón suelta cuatro tipos distintos; con dos ya hay reportaje.
     caso: 'apagon',
     pruebas: 2,
-    costo: 150,
     articulos: [
       {
         id: 'a04',
@@ -126,7 +133,6 @@ export const PAGINAS = [
     seccion: 'Las elecciones',
     caso: 'elecciones',
     pruebas: 2,
-    costo: 300,
     articulos: [
       {
         id: 'a06',
@@ -152,7 +158,6 @@ export const PAGINAS = [
     // Carondelet solo suelta dos tipos de prueba: hacen falta los dos.
     caso: 'carondelet',
     pruebas: 2,
-    costo: 500,
     articulos: [
       {
         id: 'a08',
@@ -179,7 +184,6 @@ export const PAGINAS = [
     // cualquiera de ellos, que es media investigación completa.
     caso: null,
     pruebas: 6,
-    costo: 800,
     articulos: [
       {
         id: 'a10',

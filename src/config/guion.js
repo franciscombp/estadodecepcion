@@ -340,6 +340,19 @@ export const GUION = {
       t: 'Lo que recuperaste · {n} de {total}',
       ayuda: 'Encabeza la lista de documentos del caso. Huecos: {n}, {total}.',
     },
+    sumarioCompleto: {
+      t: 'EXPEDIENTE COMPLETO',
+      ayuda: 'Sello del caso con todos sus documentos recuperados. Es la segunda meta de cada página: abrirla cuesta dos pruebas, completarla cuesta todas.',
+    },
+    sumarioCompletoPie: {
+      t: 'Están todos. Este caso ya no te debe nada en {lugar}.',
+      ayuda: 'Sustituye a «lo tachado sigue en la calle» cuando no falta ninguno. Hueco: {lugar}.',
+      largo: true,
+    },
+    sumarioCasosCompletos: {
+      t: '{n} de {total} expedientes completos',
+      ayuda: 'En la página de seguimiento, cuántos casos están enteros. Huecos: {n}, {total}.',
+    },
     sumarioFaltan: {
       t: 'Lo tachado sigue en la calle. Sale en {lugar}.',
       ayuda: 'Debajo de la lista, cuando queda algo por recoger. Hueco: {lugar}.',

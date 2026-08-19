@@ -33,12 +33,13 @@
 // se los quita de encima. Es la misma regla de siempre —se satiriza el trámite,
 // nunca una cara—, y ninguna de estas dos caras es la satirizada.
 //
-// POR QUÉ SE DESBLOQUEAN POR TRAMOS Y NO POR EVIDENCIA
-// Los papeles son la moneda del Archivo, y el Archivo es la meta del juego:
-// meterle un segundo sumidero le quita fuerza al primero, y encima obligaría a
-// elegir entre un reportaje y un sombrero. Los tramos recorridos, en cambio,
-// no se gastan en nada —solo se acumulan— así que ahí sí cabe otra recompensa
-// sin quitarle nada a ninguna.
+// POR QUÉ SE DESBLOQUEAN POR TRAMOS Y NO POR PAPELES
+// Porque los papeles no se gastan: son puntuación, alimentan las tres
+// clasificaciones y nada más. (Este comentario decía que eran «la moneda del
+// Archivo»; dejaron de serlo cuando las páginas pasaron a completarse con las
+// pruebas del caso en vez de comprarse.) Los tramos recorridos tampoco se
+// gastan —solo se acumulan— así que ahí cabe una recompensa que no le quita
+// nada a ninguna otra, y encima ninguna corrida se pierde del todo.
 //
 // LOS UMBRALES SE INTERCALAN CON LOS DE LOS POTENCIADORES (3, 6, 10, 15, 22).
 // A los 8 y a los 18 no se abre ningún potenciador, así que cada hito reparte
