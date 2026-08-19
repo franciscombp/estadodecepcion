@@ -68,6 +68,20 @@
     .previa__nota { font-family: var(--sans); font-size: var(--t-micro); color: var(--tinta-tenue);
                     margin-top: 8px; }
 
+    /* --- Los dos selectores: qué pantalla y en qué teléfono --- */
+    .fichas { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+    .ficha { font-family: var(--sans); font-size: 11px; font-weight: 700; letter-spacing: .04em;
+             padding: 6px 9px; border: 1px solid var(--papel-sombra); border-radius: var(--r-sm);
+             background: var(--papel-blanco); color: var(--tinta-tenue); cursor: pointer;
+             transition: background 160ms, color 160ms, border-color 160ms; }
+    .ficha:hover { border-color: var(--tinta-media); color: var(--tinta); }
+    .ficha--activa { background: var(--rojo-diario); border-color: var(--rojo-diario);
+                     color: var(--papel-blanco); }
+    .ficha:focus-visible { outline: 3px solid var(--tinta); outline-offset: 2px; }
+    .fichas__rotulo { font-family: var(--sans); font-size: 10px; letter-spacing: .1em;
+                      text-transform: uppercase; color: var(--tinta-tenue);
+                      align-self: center; margin-right: 4px; }
+
     .buscador { width: 100%; font-family: var(--sans); font-size: 14px; padding: 9px 11px;
                 border: 1px solid var(--papel-sombra); background: var(--papel-blanco);
                 margin-bottom: 14px; }
@@ -104,12 +118,30 @@
 
         <div class="previa panel">
           <h2>Vista previa</h2>
+
+          <!-- QUÉ PANTALLA. Se rellena sola con el catálogo que publica el
+               juego (window.__catalogo), así que si mañana hay una pantalla
+               más, aparece aquí sin tocar esta herramienta. -->
+          <div class="fichas" id="fichasPantalla">
+            <span class="fichas__rotulo">Pantalla</span>
+          </div>
+
+          <!-- EN QUÉ TELÉFONO. Los tres tamaños donde se rompen las cosas: el
+               SE es el más corto que sigue en circulación y es donde no cabe
+               nada; el 15 es el que más se usa; y el ancho sirve para ver la
+               página cuando le sobra sitio. La casilla de zonas seguras
+               simula la aplicación instalada, que es donde salían las barras. -->
+          <div class="fichas" id="fichasTamano">
+            <span class="fichas__rotulo">Teléfono</span>
+          </div>
+
           <div class="telefono"><iframe id="marco" title="El juego con el guion editado"></iframe></div>
           <p class="previa__nota" id="notaPrevia">
             «Probar en el juego» guarda el guion en este navegador y recarga el
             teléfono. Es una prueba local: no toca el repositorio ni lo que ven
             los demás. Para publicarlo hay que bajar el JSON y commitearlo.
           </p>
+          <p class="previa__nota" id="diagnostico"></p>
         </div>
       </div>
     </div>
@@ -246,10 +278,161 @@
     // El juego lee el guion de localStorage al arrancar, y la herramienta y el
     // juego están en el mismo origen: guardar y recargar el iframe basta. No
     // hace falta mensajería entre ventanas.
+
+    // LOS TRES TELÉFONOS QUE IMPORTAN.
+    //
+    // No son «tamaños bonitos»: son los tres sitios donde esta interfaz se ha
+    // roto de verdad. El SE de 667 es el más corto que sigue en la calle y es
+    // donde los botones se subían encima del contenido; el 15 de 852 es el que
+    // más se usa; y el ancho sirve para ver qué hace una página cuando le
+    // SOBRA sitio, que es el otro modo de quedar mal.
+    const TELEFONOS = [
+      { id: 'se', nombre: 'SE · 375×667', ancho: 375, alto: 667 },
+      { id: '15', nombre: 'iPhone 15 · 393×852', ancho: 393, alto: 852 },
+      { id: 'ancho', nombre: 'Ancho · 430×932', ancho: 430, alto: 932 },
+    ];
+
+    let telefono = TELEFONOS[1];
+    let pantallaElegida = 'menu';
+    let zonasSeguras = false;
+
+    /** La ventana del juego, o null si el iframe todavía no ha arrancado. */
+    function juego() {
+      try { return marco.contentWindow; } catch { return null; }
+    }
+
     function recargarPrevia() {
       const base = new URL('../../', location.href).pathname;
-      marco.src = `${base}?previa=${Date.now()}`;
+      // `?debug=1` es lo que hace que el juego publique `window.__catalogo`.
+      // Sin él la herramienta no puede abrir ninguna pantalla, y era lo que
+      // pasaba: el teléfono solo sabía enseñar la portada.
+      marco.src = `${base}?debug=1&previa=${Date.now()}`;
+      marco.addEventListener('load', () => esperarYAbrir(pantallaElegida), { once: true });
     }
+
+    /**
+     * Abre una pantalla en cuanto el juego esté listo.
+     *
+     * El arranque carga modelos y mide el equipo, así que `__catalogo` tarda un
+     * par de segundos en existir. Se sondea en vez de esperar un tiempo fijo:
+     * un `setTimeout` generoso hace perder el tiempo en un portátil rápido y se
+     * queda corto en un teléfono, y las dos cosas se notan.
+     */
+    function esperarYAbrir(id, intentos = 0) {
+      const w = juego();
+      if (w?.__catalogo) {
+        pintarFichasPantalla(w.__catalogo.pantallas);
+        if (!w.__catalogo.abrir(id)) {
+          $('#diagnostico').textContent = `No existe una pantalla con el id «${id}».`;
+        } else {
+          $('#diagnostico').textContent = '';
+        }
+        return;
+      }
+      if (intentos > 120) {   // ~20 s
+        $('#diagnostico').textContent =
+          'El juego no terminó de arrancar en el teléfono. Mira la consola del iframe.';
+        return;
+      }
+      setTimeout(() => esperarYAbrir(id, intentos + 1), 160);
+    }
+
+    /** Abre una pantalla sin recargar, si el juego ya está en marcha. */
+    function abrirPantalla(id) {
+      pantallaElegida = id;
+      marcarActiva('#fichasPantalla', id);
+      const w = juego();
+      if (w?.__catalogo) {
+        if (!w.__catalogo.abrir(id)) $('#diagnostico').textContent = `No existe «${id}».`;
+        aplicarZonasSeguras();
+      } else {
+        recargarPrevia();
+      }
+    }
+
+    function marcarActiva(contenedor, id) {
+      for (const b of document.querySelectorAll(`${contenedor} .ficha`)) {
+        b.classList.toggle('ficha--activa', b.dataset.id === id);
+      }
+    }
+
+    let fichasPintadas = false;
+    function pintarFichasPantalla(lista) {
+      if (fichasPintadas) return;
+      fichasPintadas = true;
+      const caja = $('#fichasPantalla');
+      for (const p of lista) {
+        const b = document.createElement('button');
+        b.className = 'ficha';
+        b.type = 'button';
+        b.dataset.id = p.id;
+        b.textContent = p.nombre;
+        b.addEventListener('click', () => abrirPantalla(p.id));
+        caja.appendChild(b);
+      }
+      marcarActiva('#fichasPantalla', pantallaElegida);
+    }
+
+    /** El teléfono: cambia el tamaño del iframe y lo escala para que quepa. */
+    function aplicarTelefono() {
+      const caja = document.querySelector('.telefono');
+      marco.style.width = `${telefono.ancho}px`;
+      marco.style.height = `${telefono.alto}px`;
+      caja.style.aspectRatio = `${telefono.ancho} / ${telefono.alto}`;
+      const escala = Math.min(1, caja.clientWidth / telefono.ancho);
+      marco.style.transform = `scale(${escala})`;
+      marcarActiva('#fichasTamano', telefono.id);
+    }
+
+    /**
+     * Simula las zonas seguras de un iPhone instalado.
+     *
+     * `env(safe-area-inset-*)` vale cero en un navegador de escritorio, así que
+     * sin esto la herramienta enseña una página que en la aplicación instalada
+     * se ve distinta: son 59 px arriba y 34 abajo que no están. Se inyectan los
+     * mismos tokens que usa el CSS.
+     */
+    function aplicarZonasSeguras() {
+      const doc = marco.contentDocument;
+      if (!doc) return;
+      let regla = doc.getElementById('zonas-seguras-previa');
+      if (!regla) {
+        regla = doc.createElement('style');
+        regla.id = 'zonas-seguras-previa';
+        doc.head.appendChild(regla);
+      }
+      regla.textContent = zonasSeguras
+        ? ':root{--seg-arriba:59px!important;--seg-abajo:34px!important}'
+        : '';
+    }
+
+    // Las fichas de tamaño y la casilla de zonas seguras.
+    (function montarTamanos() {
+      const caja = $('#fichasTamano');
+      for (const t of TELEFONOS) {
+        const b = document.createElement('button');
+        b.className = 'ficha';
+        b.type = 'button';
+        b.dataset.id = t.id;
+        b.textContent = t.nombre;
+        b.addEventListener('click', () => { telefono = t; aplicarTelefono(); });
+        caja.appendChild(b);
+      }
+      const seguras = document.createElement('button');
+      seguras.className = 'ficha';
+      seguras.type = 'button';
+      seguras.textContent = 'Zonas seguras';
+      seguras.title = 'Simula el notch y la barra de inicio de un iPhone instalado';
+      seguras.addEventListener('click', () => {
+        zonasSeguras = !zonasSeguras;
+        seguras.classList.toggle('ficha--activa', zonasSeguras);
+        aplicarZonasSeguras();
+      });
+      caja.appendChild(seguras);
+      aplicarTelefono();
+    })();
+
+    window.addEventListener('resize', aplicarTelefono);
 
     $('#probar').addEventListener('click', () => {
       try {

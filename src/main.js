@@ -428,6 +428,58 @@ async function arrancar() {
     // jugando. Probar la maqueta de la victoria de otro modo obliga a
     // completar un expediente entero, que es casi imposible a propósito.
     window.__pantallas = pantallas;
+
+    // ── EL CATÁLOGO DE PANTALLAS, para el constructor ──────────────────────
+    //
+    // El constructor de textos (creador/pantallas/) tiene un teléfono con el
+    // juego dentro, y hasta ahora solo se podía mirar la portada: para ver
+    // cómo queda un texto en la pantalla de victoria había que ganarse una
+    // victoria. Con esto, el constructor abre cualquiera de las diez.
+    //
+    // El catálogo vive AQUÍ y no allí a propósito: la lista de pantallas, sus
+    // nombres y los datos de ejemplo que necesita cada una son cosa del juego.
+    // Duplicados en la herramienta, se quedarían viejos en cuanto alguien
+    // añadiera una pantalla, que es exactamente lo que le pasó al catálogo de
+    // textos antes de importarlo del código.
+    const runDeEjemplo = {
+      papeles: 1345,
+      papelesEntregados: 12,
+      distancia: 984,
+      puntaje: 8800,
+      texto: 'Nadie vio nada.',
+      pruebas: ['Video del Nissan huyendo', 'Video del Cayenne llegando', 'Audio editado'],
+      escenario: 'bahia',
+      motivo: 'captura',
+      jueces: 6,
+      velocidad: 7,
+      marcasPrevias: { evidenciaHistorica: 0, distanciaHistorica: 0, mejorEvidencia: 500 },
+    };
+
+    window.__catalogo = {
+      ejemplo: runDeEjemplo,
+      pantallas: [
+        { id: 'menu', nombre: 'Portada', abrir: () => pantallas.menu() },
+        { id: 'ajustes', nombre: 'Redacción', abrir: () => pantallas.ajustes() },
+        { id: 'archivo', nombre: 'Archivo', abrir: () => pantallas.notebook() },
+        { id: 'relato', nombre: 'Bifurcación', abrir: (d) => pantallas.relato(d) },
+        { id: 'sorteo', nombre: 'Sorteo del juez', abrir: (d) => pantallas.escape(d) },
+        { id: 'pruebas', nombre: 'Expediente', abrir: (d) => pantallas.botin(d) },
+        { id: 'ranking', nombre: 'Ranking', abrir: (d) => pantallas.deportes(d) },
+        { id: 'victoria', nombre: 'Victoria', abrir: (d) => pantallas.victoria(d) },
+        { id: 'gameover', nombre: 'Derrota', abrir: (d) => pantallas.gameOver(d) },
+        { id: 'pausa', nombre: 'Pausa', abrir: () => pantallas.pausa() },
+      ],
+      /**
+       * Abre una pantalla por su id. Devuelve false si no existe, para que la
+       * herramienta pueda avisar en vez de quedarse callada.
+       */
+      abrir(id, datos) {
+        const ficha = this.pantallas.find((p) => p.id === id);
+        if (!ficha) return false;
+        pantallas.mostrar(ficha.abrir({ ...runDeEjemplo, ...datos }));
+        return true;
+      },
+    };
     // Las páginas del periódico, para poder probar un titular en caliente
     // antes de escribirlo en config/publicaciones.js. Por ejemplo:
     //   Object.assign(__paginas[0].articulos[0],
