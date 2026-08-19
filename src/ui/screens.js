@@ -486,8 +486,15 @@ export class Pantallas {
       });
       botones.appendChild(btn);
     }
-    contenido.appendChild(botones);
-
+    // EL BLOQUE DE ACCIONES ES SIEMPRE LO ÚLTIMO DE LA PÁGINA.
+    //
+    // Aquí el pie del periódico —«elmercio.com · El Mercio»— iba DESPUÉS de los
+    // botones, así que el borde inferior de las acciones caía en 734 mientras
+    // en las otras ocho pantallas cae en 794. Sesenta píxeles de diferencia en
+    // el sitio donde está la mano.
+    //
+    // La regla, para todo el juego: lo que se lee va arriba, lo que se pulsa va
+    // abajo, y debajo del botón no hay nada.
     const pie = el('div', 'pie');
     pie.appendChild(document.createTextNode('elmercio.com · '));
     const enlace = el('a', '', T('marca.lema'));
@@ -496,6 +503,8 @@ export class Pantallas {
     enlace.rel = 'noopener noreferrer';
     pie.appendChild(enlace);
     contenido.appendChild(pie);
+
+    contenido.appendChild(botones);
 
     escalonar(plana);
     return pantalla;
@@ -1743,7 +1752,12 @@ export class Pantallas {
     // La separación en dos también hace falta para el alto fijo: `pintar()`
     // vacía y rehace el CUERPO en cada cambio de página, así que los botones
     // tienen que vivir fuera de ese vaciado o desaparecerían al pasar la hoja.
-    const diario = el('div', 'diario se-estira se-estira--desplazable');
+    // SIN `--desplazable`: el que se desplaza es la HOJA, no el ejemplar.
+    // La clase traía además un `::after` de doce píxeles —el respiro para que
+    // la última línea de un cuerpo desplazable no quede a ras del borde— que
+    // aquí no pintaba nada y empujaba los botones doce píxeles por encima de
+    // donde caen en las otras nueve pantallas.
+    const diario = el('div', 'diario se-estira');
     const hoja = el('div', 'diario__hoja');
     const pie = el('div', 'diario__pie');
     diario.appendChild(hoja);
@@ -1780,7 +1794,9 @@ export class Pantallas {
       hoja.innerHTML = '';
       const pagina = paginas.find((p) => p.numero === actual) ?? paginas[0];
 
-      hoja.appendChild(this._cabeceraDiario(pagina));
+      const { cab, franja } = this._cabeceraDiario(pagina);
+      hoja.appendChild(cab);
+      hoja.appendChild(franja);
       hoja.appendChild(
         pagina.desbloqueada ? this._paginaAbierta(pagina) : this._paginaCerrada(pagina, () => pintar()),
       );
@@ -1902,8 +1918,6 @@ export class Pantallas {
     const contra = this._pintarVersionOficial();
     if (contra) pie.appendChild(contra);
 
-    pie.appendChild(botones);
-
     // EL RECADO A LA REDACCIÓN NO SE LE ENSEÑA AL JUGADOR.
     //
     // Estas dos notas salían siempre que quedara un reportaje por cargar, o
@@ -1928,6 +1942,11 @@ export class Pantallas {
       pie.appendChild(el('div', 'diario__nota',
         T('archivo.sinAlmacenamiento')));
     }
+
+    // Y los botones, LOS ÚLTIMOS, como en todas las demás páginas. Estaban
+    // antes de las notas, así que en desarrollo quedaban a media altura con
+    // dos párrafos debajo.
+    pie.appendChild(botones);
 
     return pantalla;
   }
@@ -1956,9 +1975,11 @@ export class Pantallas {
       franja.appendChild(el('span', '', pagina.nombre));
       franja.appendChild(el('span', '', T('archivo.pagina', { n: pagina.numero })));
     }
-    cab.appendChild(franja);
-
-    return cab;
+    // La franja va FUERA del bloque de cabecera —se devuelve aparte— para que
+    // la cabecera del Archivo mida exactamente lo mismo que la de las otras
+    // nueve pantallas. Dentro, la estiraba de 61 a 95 px y bajaba la mancheta
+    // quince píxeles respecto al resto del juego.
+    return { cab, franja };
   }
 
   /** Contenido de una página abierta, maquetado a columnas. */

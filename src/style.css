@@ -881,7 +881,7 @@ html, body {
   /* DEL FIGMA: los menús son PÁGINA, no velo. Superficie gris editorial casi
      opaca; el desenfoque de detrás apenas se intuye, como el fantasma de la
      tinta de la página anterior. */
-  background: rgba(243, 243, 243, 0.96);
+  background: var(--velo-pagina);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   color: var(--tinta);
@@ -1020,9 +1020,12 @@ html, body {
    La regla es que cada pantalla quepa entera, y el Archivo es la que anda más
    justa: cabecera, artículos y navegador de páginas. Estos cuatro píxeles son
    los que faltaban en un móvil de 760 de alto. */
-/* El Archivo medía 520 de caja y las demás 460: la misma página con dos
-   anchos según la sección. Ahora es una sola medida para todo el ejemplar. */
-.pantalla--periodico .diario { padding: clamp(12px, 3.6vw, 20px); }
+/* SIN RELLENO PROPIO. Este era el último resto de cuando el Archivo se
+   dibujaba como una tarjeta blanca: catorce píxeles por los cuatro costados
+   que metían su mancheta hacia dentro y hacia abajo respecto a las otras nueve
+   pantallas —cabecera en 97 en vez de 83, columna en 38..355 en vez de
+   24..369—. El margen de la página ya lo pone `.pantalla`, una sola vez y para
+   todas. */
 .pantalla--periodico .diario__cuerpo { gap: 10px; }
 
 /* ==========================================================================
@@ -1357,7 +1360,6 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin: 6px 0 4px;
   text-align: left;
 }
 
@@ -1415,7 +1417,6 @@ html, body {
   border-left: 3px solid var(--dorado);
   background: rgba(var(--dorado-rgb), 0.055);
   text-align: left;
-  margin: 18px 0;
   border-radius: 0 var(--r-chico) var(--r-chico) 0;
 }
 
@@ -1446,7 +1447,6 @@ html, body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
   gap: 8px;
-  margin: 16px 0;
 }
 
 .estadistica {
@@ -1600,7 +1600,6 @@ html, body {
 /* --- Pie ------------------------------------------------------------------ */
 
 .pie {
-  margin-top: 18px;
   font-size: var(--t-micro);
   color: var(--texto-debil);
   line-height: 1.5;
@@ -1746,6 +1745,14 @@ html, body {
      fondo de caja— y no de la del `--verde-senal`, que es tinta de letrero. */
   --verde-diario: #cdeac4;
 
+  /* EL VELO DE PÁGINA. El fondo sobre el que se imprime cualquier menú: papel
+     casi opaco, con la calle intuyéndose detrás a través del desenfoque.
+     Estaba escrito a mano en cinco reglas y con DOS valores —0.96 en la base y
+     0.97 en `.pantalla--plana`—, así que el Archivo, que no lleva `--plana`,
+     salía un punto más transparente que las otras nueve. Un punto no se ve;
+     que existan dos valores para lo mismo sí se acaba viendo. */
+  --velo-pagina: rgba(243, 243, 243, 0.97);
+
   /* LOS TRES DERIVADOS DEL ROJO Y DEL VERDE, que estaban escritos a mano en
      seis reglas repartidas por la hoja. No son colores nuevos: son el mismo
      rojo y el mismo verde ajustados para el sitio donde tienen que leerse, y
@@ -1869,20 +1876,33 @@ html, body {
   .pantalla--cerco .opinion { display: none; }
 }
 
-/* Sobre el fondo oscuro, el papel se lee como un objeto físico encima. */
-.pantalla--periodico {
-  background: rgba(243, 243, 243, 0.97);
-}
+/* El Archivo usa el mismo fondo de página que el resto: lo pone `.pantalla`.
+   Tenerlo declarado aquí otra vez era la puerta abierta a que un día los dos
+   valores dejaran de coincidir, que es justo lo que había pasado con el
+   ranking y el expediente —opacos, mientras las otras ocho iban al 97 %—. */
 
+/* EL ARCHIVO ES UNA PÁGINA, NO UNA TARJETA.
+ *
+ * Era lo único del juego que se dibujaba como un objeto encima de la mesa: un
+ * rectángulo blanco con filete y relleno propio, flotando sobre el gris.
+ * Medido contra las otras nueve pantallas, esa tarjeta le costaba:
+ *
+ *     cabecera    98..193   frente a  83..144 en las demás
+ *     columna     39..354   frente a  24..369 en las demás
+ *
+ * O sea que la mancheta caía quince píxeles más abajo y el texto quince más
+ * adentro por cada lado. Es poco, y es exactamente la clase de poco que hace
+ * que al pasar del ranking al archivo se note que algo se mueve sin poder
+ * decir qué.
+ *
+ * La idea de que el Archivo se lea como papel no se pierde: la sigue dando la
+ * tipografía con remates, la mancheta, la franja de datos y el paginador. Lo
+ * que se va es el marco, que era lo que lo sacaba de la retícula.
+ */
 .diario {
-  background: var(--papel-blanco);
   color: var(--tinta);
   font-family: var(--serif);
-  padding: clamp(14px, 4.4vw, 24px);
-  border-radius: 0;
   text-align: left;
-  border: 1px solid var(--papel-sombra);
-  box-shadow: none;
   animation: papel-entra var(--t-medio) var(--rebote);
 
   /* EL EJEMPLAR NO CAMBIA DE TAMAÑO AL PASAR DE PÁGINA.
@@ -1897,8 +1917,11 @@ html, body {
      eso se le suma el alto que `fijarAlto()` le clava a la hoja —el de la
      página más larga del ejemplar—. En un iPhone de 667 eso son 585 px de hoja
      dentro de una ventana de 526: el pie, con el botón de Volver, acababa en
-     y=697. Fuera de la pantalla y sin forma de llegar a él. */
-  min-height: min(58vh, 430px);
+     y=697. Fuera de la pantalla y sin forma de llegar a él.
+
+     Y sin `min-height`: ahora que no hay tarjeta que sostener, el ejemplar
+     ocupa la página entera como cualquier otra pantalla, y el alto estable lo
+     sigue dando `fijarAlto()` sobre la hoja. */
   display: flex;
   flex-direction: column;
   /* `hidden` y no `auto`: lo que se desplaza es la HOJA, no el ejemplar entero,
@@ -1913,6 +1936,10 @@ html, body {
 .diario__hoja {
   display: flex;
   flex-direction: column;
+  /* El mismo compás que cualquier otra página: los bloques de la hoja iban
+     pegados, y la franja de datos —que en un móvil estrecho ocupa dos
+     renglones— acababa tocando el borde de la caja rayada de abajo. */
+  gap: var(--e-12);
   flex: 1 1 0;
   min-height: 0;
   overflow-y: auto;
@@ -2069,7 +2096,15 @@ html, body {
   font-size: var(--t-insignia);
   font-weight: 700;
   line-height: 1.4;
-  letter-spacing: 0.5px;
+  /* SIN TRACKING, y es un desvío consciente del estilo «Badge» del Figma, que
+     lleva 0,5. Medido en la columna de 345 px de un iPhone: las tres piezas de
+     la franja —sitio, páginas recuperadas y precio— piden 355 px con el
+     tracking puesto y 329 sin él. O sea que con 0,5 la franja parte en dos
+     renglones, y parte MAL: la primera pieza cabe en uno y las otras dos no,
+     con lo que la mancheta queda coronada por un escalón.
+     Entre respetar medio píxel de tracking y que la franja entre en una línea,
+     entra en una línea. */
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--tinta-tenue);
 }
@@ -3113,6 +3148,15 @@ html, body {
   overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
+  /* EL RITMO LO LLEVA LA PÁGINA, NO CADA BLOQUE.
+     Medido antes de esto, los huecos entre bloques de una misma página iban
+     así: ajustes 16·3·5·0·43·24, sorteo 16·4·6·36·59·24, victoria
+     15·4·20·14·1·24. Cada pieza traía el margen que le pareció a quien la
+     escribió, y el resultado es que ninguna página respiraba igual que otra.
+     Con un `gap` en el contenedor y los márgenes de los hijos a cero, el
+     compás es uno: doce dentro de un grupo —antetítulo, titular, bajada— y
+     veinticuatro entre bandas, que es lo que mide el Figma. */
+  gap: var(--e-12);
   width: 100%;
   padding: 0;
   margin: 0;
@@ -3123,9 +3167,8 @@ html, body {
   text-align: left;
 }
 
-.pantalla--plana {
-  background: rgba(243, 243, 243, 0.97);
-}
+/* Ya lo pone `.pantalla`; se queda la regla vacía de fondo para no repetir el
+   valor. Si alguna vez el plano necesita otro velo, se declara aquí. */
 
 /* Las tres pantallas con tinte propio también van impresas ahora, y
    `.pantalla--plana` está declarada DESPUÉS que ellas: con la misma
@@ -3135,17 +3178,21 @@ html, body {
 .pantalla--plana.pantalla--cerco {
   background:
     radial-gradient(ellipse at 50% 30%, rgba(197, 59, 43, 0.07), transparent 62%),
-    rgba(243, 243, 243, 0.97);
+    var(--velo-pagina);
 }
 
 .pantalla--plana.pantalla--victoria {
   background:
     radial-gradient(ellipse at 50% 30%, rgba(103, 184, 87, 0.09), transparent 62%),
-    rgba(243, 243, 243, 0.97);
+    var(--velo-pagina);
 }
 
+/* El relato no tiñe, pero SÍ hay que declararlo: quitando esta regla ganaba
+   `.pantalla--relato` —del diseño de neón, con su `rgba(5, 7, 12, 0.95)`— y la
+   bifurcación volvía a salir sobre fondo negro. Comprobado en el navegador
+   nada más quitarla. */
 .pantalla--plana.pantalla--relato {
-  background: rgba(243, 243, 243, 0.97);
+  background: var(--velo-pagina);
 }
 
 /* El aire de arriba lo pone ya el relleno de .pantalla (los 64 de la
@@ -3179,7 +3226,9 @@ html, body {
   justify-content: center;
   align-items: baseline;
   padding: var(--e-16) 0;
-  margin-bottom: var(--e-16);
+  /* Doce del compás más doce de aquí: los veinticuatro que separan la cabecera
+     del antetítulo en la maqueta. */
+  margin-bottom: var(--e-12);
   border-bottom: 1px solid var(--tinta-tenue);
   text-align: center;
 }
@@ -3220,7 +3269,6 @@ html, body {
   letter-spacing: 0.086em;
   text-transform: uppercase;
   color: var(--rojo-diario);
-  margin-bottom: 4px;
 }
 
 /* LA CIRCULAR DE BÚSQUEDA. La pestaña de acumulado no es una tabla de méritos
@@ -3238,9 +3286,7 @@ html, body {
 .plana--circular /* El titular de la tabla es un titular: mismo cuerpo que los demás. Estaba
    encogido a mano para que cupiera «MEJOR CORRIDA» en versalitas, y en caja
    baja ya no hace falta. */
-.plana__titular--tabla {
-  margin-bottom: 4px;
-}
+/* El compás de la página ya pone el hueco; este margen lo sumaba encima. */
 
 .plana--circular .plana__epigrafe {
   border-bottom: 1px solid var(--papel-sombra);
@@ -3258,7 +3304,6 @@ html, body {
   font-weight: 700;
   line-height: 1.22;
   letter-spacing: -0.01em;
-  margin-bottom: 6px;
 }
 
 /* En deportes el titular cambia con la pestaña, así que va más contenido: si
@@ -3271,7 +3316,6 @@ html, body {
   font-size: clamp(0.95rem, 4vw, 1.125rem);
   line-height: 1.5;
   color: var(--tinta);
-  margin-bottom: 8px;
 }
 
 .plana__cuerpo {
@@ -3481,7 +3525,6 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  margin: 10px 0 4px;
   padding: 12px 12px 16px;
   border-top: 1px solid var(--papel-sombra);
   border-bottom: 1px solid var(--papel-sombra);
@@ -3953,7 +3996,7 @@ html, body {
   border-radius: 0;
   font-family: var(--serif);
   color: var(--tinta);
-  margin: 14px 0;
+  /* Sin margen propio: el hueco lo pone el compás de la página. */
   padding: 4px 0 4px 14px;
 }
 
@@ -4753,7 +4796,10 @@ html, body {
    de aire abajo, y los dos botones de 48 con 16 entre ellos.
    ========================================================================== */
 
-.pantalla--pruebas { background: var(--papel); }
+/* El ranking y el expediente iban con el papel OPACO mientras las otras ocho
+   pantallas van al 97 % —el velo que deja intuir la calle detrás—. Es la clase
+   de diferencia que no se sabe nombrar y se nota al pasar de una a la
+   siguiente. El fondo lo pone `.pantalla`, una vez y para las diez. */
 
 .pruebas {
   display: flex;
@@ -5091,6 +5137,12 @@ html, body {
 
 /* La sangría: el bloque ocupa el ancho de la ventana y recompone por dentro
    el margen de 24 (y el aire de 64 arriba y abajo) contra la caja legible. */
+/* Y su cabecera mide LO MISMO que la de las otras nueve: 83..144. La franja de
+   datos —sitio, páginas, precio— sale del bloque de cabecera y pasa a ser una
+   línea debajo, como el antetítulo de cualquier página. Dentro, estiraba la
+   cabecera a 95 px de alto y desalineaba la mancheta con el resto del juego. */
+/* El hueco lo pone el compás de la hoja. */
+
 .pantalla--portada .plana__bloque,
 .pantalla--portada .portada__abajo {
   width: 100vw;
@@ -5147,7 +5199,7 @@ html, body {
 }
 
 .plana__bloque {
-  background: rgba(243, 243, 243, 0.97);
+  background: var(--velo-pagina);
   padding: clamp(12px, 4vw, 20px) clamp(14px, 4.5vw, 24px);
   border-radius: 0;
   box-shadow: none;
