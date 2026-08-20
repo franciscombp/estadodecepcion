@@ -697,7 +697,38 @@ mantiene los huecos con su sello. Es lo correcto y hay que decirlo en voz alta
 para que nadie lo lea como una tarea a medias: **el hueco es la pieza**, no la
 falta de ella.
 
-### 6.10 · Los personajes no se llaman como dice el guion — **abierto, y es una decisión editorial**
+### 6.10 · El juego se congelaba a golpes, y eran tres relojes distintos — **resuelto**
+
+El reporte era «se queda congelado en ciertos momentos», y los momentos
+resultaron ser tres, cada uno con su causa. Se encontraron con un vigilante de
+fotogramas largos (>300 ms) corriendo el juego entero en el navegador:
+
+**En cada esquina.** `crearEscenario` costaba **380–680 ms en un solo
+fotograma** (medido: la Bahía 530, Elecciones 460, Carondelet 380; solo el
+Apagón es barato porque es escaso), y se pagaba en el fotograma del cruce —
+justo cuando arranca el giro. Antes lo disimulaba el fogonazo blanco; al
+quitarlo quedó desnudo. Arreglo: **los barrios ya no se destruyen al salir**:
+se descuelgan del grafo y se aparcan (`BaseScene.suspender/reanudar`), y volver
+a uno visitado cuesta 1–5 ms. La primera visita se paga **preconstruyendo los
+dos destinos en el corredor vacío** de la bifurcación —donde no hay nada que
+esquivar—, uno al vaciarse y el otro 60 m después. La niebla y el fondo son
+globales de la escena y el constructor del barrio nuevo los pisa: se guardan y
+reponen alrededor de cada preconstrucción.
+
+**Al salir de cada trámite.** El early-return del pasillo se saltaba
+`bifurcacion.actualizar`, así que el viraje de entrar de frente quedaba
+congelado en su primer instante los 340 metros… y al salir se descongelaba y
+disparaba entero su fogonazo: un velo blanco de un segundo en plena calle
+nueva. Ahora el reloj del viraje corre también dentro del pasillo (con avance
+cero: la fachada ya no existe) y el fogonazo se dispara donde se diseñó, al
+entrar.
+
+**Al ser capturado.** La foto del arresto se codificaba a resolución completa
+con `toDataURL` síncrono: 300–400 ms clavados en mitad del cerco. La portada
+la imprime a ~350 px y en blanco y negro con trama: ahora pasa por un lienzo
+intermedio de 640 px de ancho y el JPEG cuesta una fracción.
+
+### 6.11 · Los personajes no se llaman como dice el guion — **abierto, y es una decisión editorial**
 
 `docs/GUION.md` y la cabecera de `src/config/personajes.js` dicen lo mismo: los
 cuatro se llaman **Chochólogo, Alondra, Buscán y Blanki**, y dos de esos nombres
@@ -714,7 +745,7 @@ o se cambia el código para que diga lo que dice el guion, o se cambia el guion
 para que deje de prometer un guiño que el juego no hace. Las dos son
 defendibles; ninguna es mecánica.
 
-### 6.11 · Del guion, sigue sin implementarse — **abierto**
+### 6.12 · Del guion, sigue sin implementarse — **abierto**
 
 Cuatro cosas listadas en `docs/GUION.md` y todavía no en el juego:
 

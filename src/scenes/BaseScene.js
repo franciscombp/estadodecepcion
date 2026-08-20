@@ -304,10 +304,51 @@ export class BaseScene {
   /** Gancho del potenciador linterna. Solo lo implementa el Apagón. */
   encenderLinterna() {}
 
+  /**
+   * APARCA el escenario sin tirarlo. Es la mitad barata del cambio de barrio.
+   *
+   * Construir una de estas escenas cuesta entre 380 y 680 ms EN UN SOLO
+   * FOTOGRAMA (medido con el juego corriendo: la Bahía 530, Elecciones 460,
+   * Carondelet 380; solo el Apagón es barato porque es escaso). Con
+   * destruir/crear en cada cruce, ese medio segundo caía justo al doblar la
+   * esquina y el juego se CONGELABA a la vista —antes lo disimulaba el
+   * fogonazo blanco del cruce; al quitarlo, quedó desnudo—.
+   *
+   * Así que los barrios no se destruyen al salir: se descuelgan del grafo y
+   * esperan. Volver a un barrio ya visitado es re-colgar su grupo: menos de un
+   * milisegundo. La memoria de tener los cuatro montados es asumible porque
+   * las geometrías ya se comparten (utils/geometria.js) y lo que queda vivo
+   * son mallas y materiales.
+   */
+  suspender() {
+    this.escena.remove(this.grupo);
+    // La niebla y el fondo son GLOBALES de la escena Three: se guardan los de
+    // este barrio y se sueltan, y quien entre después pone los suyos.
+    this.nieblaGuardada = this.escena.fog;
+    this.fondoGuardado = this.escena.background;
+    this.escena.fog = null;
+  }
+
+  /** Vuelve a colgar un escenario aparcado. El espejo exacto de suspender(). */
+  reanudar() {
+    this.escena.add(this.grupo);
+    if (this.nieblaGuardada) this.escena.fog = this.nieblaGuardada;
+    if (this.fondoGuardado) this.escena.background = this.fondoGuardado;
+    // El despeje del cruce anterior no debe heredarse: se vuelve con la
+    // niebla puesta y el juego ya la retirará al acercarse al próximo cruce.
+    this.despeje = 0;
+    this.despejeObjetivo = 0;
+  }
+
   /** Desmonta el escenario y libera memoria. */
   destruir() {
     this.escena.remove(this.grupo);
     this.grupo.traverse((obj) => {
+      // Lo compartido (clones del GLB, materiales de catálogo) no se libera:
+      // otras escenas y los cruces siguen usándolo, y liberarlo aquí evicta
+      // los buffers del modelo entero para todos. Mismo criterio que
+      // Bifurcacion._destruir().
+      if (obj.userData.compartido) return;
       if (obj.geometry) obj.geometry.dispose();
       if (obj.material) {
         if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose());

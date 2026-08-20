@@ -139,6 +139,14 @@ export class Game {
     // Rotación en curso del mundo al doblar una esquina. Ver _girarMundo().
     this.giroMundo = null;
 
+    // BARRIOS YA CONSTRUIDOS, aparcados fuera del grafo. Construir un
+    // escenario cuesta 380-680 ms en un solo fotograma (medido); con esta
+    // caché solo se paga la primera visita, y esa se adelanta al corredor
+    // vacío de la bifurcación. Ver _cambiarEscenario y _prepararBarrio.
+    this.escenariosVivos = new Map();
+    // Segundo destino pendiente de preconstruir durante la aproximación.
+    this.barrioPorPreparar = null;
+
     // Callbacks hacia la UI. Los rellena main.js.
     this.alCambiarEstado = () => {};
     this.alActualizarHUD = () => {};
@@ -307,6 +315,20 @@ export class Game {
    */
   _aplicarCalidad(nivel) {
     this.calidad = { nivel, ...CALIDAD[nivel] };
+
+    // Los barrios aparcados se construyeron con el detalle de ANTES: se
+    // tiran, y la próxima visita los reconstruye al nivel nuevo. El activo se
+    // queda como está —igual que siempre: la calidad aplica a lo que se
+    // construya a partir de ahora—.
+    if (this.escenariosVivos) {
+      for (const [clave, esc] of this.escenariosVivos) {
+        if (esc !== this.escenario) {
+          esc.destruir();
+          this.escenariosVivos.delete(clave);
+        }
+      }
+    }
+    this.barrioPorPreparar = null;
 
     this.renderizador.setPixelRatio(
       Math.min(window.devicePixelRatio, this.calidad.pixelRatioMaximo),
@@ -484,10 +506,23 @@ export class Game {
    * @param {boolean} anunciar ¿Mostrar el cartel del escenario?
    */
   _cambiarEscenario(id, anunciar = true) {
-    if (this.escenario) this.escenario.destruir();
+    // EL BARRIO VIEJO SE APARCA, NO SE TIRA. Y el nuevo, si ya se visitó —o
+    // se preconstruyó en la aproximación—, se descuelga de la caché en menos
+    // de un milisegundo. Es el arreglo del congelón de las esquinas: el
+    // destruir/crear de antes costaba medio segundo EN EL FOTOGRAMA DEL
+    // CRUCE, o sea justo cuando arranca el giro. Ver BaseScene.suspender().
+    if (this.escenario) this.escenario.suspender();
 
     this.escenarioActual = id;
-    this.escenario = crearEscenario(id, this.escenaThree, this.calidad);
+    const clave = `${id}|${this.calidad.nivel}`;
+    const guardado = this.escenariosVivos.get(clave);
+    if (guardado) {
+      this.escenario = guardado;
+      guardado.reanudar();
+    } else {
+      this.escenario = crearEscenario(id, this.escenaThree, this.calidad);
+      this.escenariosVivos.set(clave, this.escenario);
+    }
 
     const config = obtenerEscenario(id);
     const colores = this.escenario.obtenerColores();
@@ -759,6 +794,35 @@ export class Game {
     this.obstaculos.limpiarAdelante(-40);
     this.elevado.limpiar();
     this.potenciadores.limpiar();
+
+    // Y SE PRECONSTRUYEN LOS DOS DESTINOS LATERALES, uno ahora y el otro unos
+    // metros después (ver la aproximación en _actualizarJuego). Construir un
+    // barrio cuesta hasta medio segundo de fotograma: pagado aquí —corredor
+    // vacío, nada que esquivar— es un tirón que apenas se nota UNA vez por
+    // barrio y sesión; pagado en el cruce era el congelón de cada esquina.
+    const esc = obtenerEscenario(this.escenarioActual);
+    this._prepararBarrio(esc.rutas.izquierda);
+    this.barrioPorPreparar = esc.rutas.derecha;
+  }
+
+  /**
+   * Construye un barrio y lo deja aparcado en la caché, listo para el cruce.
+   * Si ya está construido no hace nada, así que llamarlo de más es gratis.
+   */
+  _prepararBarrio(id) {
+    if (!id) return;
+    const clave = `${id}|${this.calidad.nivel}`;
+    if (this.escenariosVivos.has(clave)) return;
+    // El constructor del barrio escribe la niebla GLOBAL de la escena (es lo
+    // que hace al montarse), así que construir uno en segundo plano pisaría la
+    // del barrio que se está corriendo. Se guarda y se repone.
+    const nieblaActiva = this.escenaThree.fog;
+    const fondoActivo = this.escenaThree.background;
+    const escena = crearEscenario(id, this.escenaThree, this.calidad);
+    escena.suspender();
+    this.escenaThree.fog = nieblaActiva;
+    this.escenaThree.background = fondoActivo;
+    this.escenariosVivos.set(clave, escena);
   }
 
   /**
@@ -1009,6 +1073,9 @@ export class Game {
     this.elevado.generacionPausada = false;
     this.enAproximacion = false;
     this.corredorLimpio = false;
+    // Si quedó un destino pendiente de preconstruir (captura en pleno
+    // corredor, por ejemplo), ya no corresponde a este tramo.
+    this.barrioPorPreparar = null;
 
     this._cambiarEscenario(destino, true);
     // Lo recién levantado trae materiales nuevos: se compilan ahora, con el
@@ -1613,7 +1680,20 @@ export class Game {
     if (this._pedidoDeFoto) {
       this._pedidoDeFoto = false;
       try {
-        this.fotoArresto = this.lienzo.toDataURL('image/jpeg', 0.72);
+        // A MEDIA RESOLUCIÓN, pasando por un lienzo 2D. Codificar el JPEG del
+        // lienzo entero (a ratio de píxel alto son millones de píxeles) tardaba
+        // 300-400 ms SÍNCRONOS en pleno cerco: el círculo se congelaba un
+        // instante justo en el momento más coreografiado del juego. La portada
+        // imprime la foto a unos 350 px de ancho y en blanco y negro con trama:
+        // 640 de ancho van sobrados, y el drawImage desde WebGL es barato.
+        const ancho = Math.min(640, this.lienzo.width);
+        const alto = Math.round(this.lienzo.height * (ancho / this.lienzo.width));
+        this._lienzoFoto = this._lienzoFoto ?? document.createElement('canvas');
+        this._lienzoFoto.width = ancho;
+        this._lienzoFoto.height = alto;
+        this._lienzoFoto.getContext('2d')
+          .drawImage(this.lienzo, 0, 0, ancho, alto);
+        this.fotoArresto = this._lienzoFoto.toDataURL('image/jpeg', 0.72);
       } catch (error) {
         // Un canvas "contaminado" no se puede leer. No pasa nada: la portada
         // sale sin foto.
@@ -1813,6 +1893,14 @@ export class Game {
     // Es un tramo aparte: sin obstáculos, sin bifurcación y sin captura. Se
     // resuelve entero aquí y se sale antes de tocar nada de lo demás.
     if (this.tramite.activo) {
+      // EL VIRAJE DEL CENTRO SIGUE SU CURSO AQUÍ DENTRO. Este early-return se
+      // saltaba bifurcacion.actualizar, así que el viraje de entrar de frente
+      // quedaba CONGELADO en su primer instante durante los 340 metros del
+      // pasillo… y al salir se descongelaba y disparaba entero su fogonazo
+      // blanco —un velo de un segundo en plena calle nueva, que en un teléfono
+      // se leía como «el juego se congela al salir del trámite»—. Con avance 0:
+      // la fachada ya no existe y el soportal no viaja, solo corre el reloj.
+      this.bifurcacion.actualizar(dt, 0);
       if (this.tramite.actualizar(avance)) {
         this._salirDelTramite();
         return;
@@ -1877,6 +1965,14 @@ export class Game {
     if (this.enAproximacion && !this.corredorLimpio
         && restante <= TRAMO.DISTANCIA_LIMPIEZA) {
       this._limpiarCorredor();
+    }
+
+    // El segundo destino se preconstruye unos metros después del primero:
+    // dos barrios en el mismo fotograma serían un segundo entero de tirón.
+    if (this.barrioPorPreparar && restante <= TRAMO.DISTANCIA_LIMPIEZA - 60) {
+      const pendiente = this.barrioPorPreparar;
+      this.barrioPorPreparar = null;
+      this._prepararBarrio(pendiente);
     }
 
     if (this.bifurcacion.actualizar(dt, avance)) {
