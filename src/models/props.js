@@ -3191,12 +3191,24 @@ export function crearPasoLateral(largo, colores) {
   techo.position.set(0, alto, -largo / 2);
   g.add(techo);
 
-  // Los dos muros, con sus arcos. El interior va oscuro para que la salida al
-  // fondo se lea como salida.
+  // Los dos muros. Van oscuros para que la salida al fondo se lea como salida,
+  // PERO NO NEGROS.
+  //
+  // Estaban en 0x2c2b30 con rugosidad 0.97: sin nada que los ilumine dentro del
+  // pasaje, eso se dibuja como un rectángulo negro liso. Y justo ahí es donde
+  // mira la cámara en el pico del giro, así que el momento más vistoso del
+  // tramo —doblar la esquina— se pasaba enseñando un vacío. Un muro tiene que
+  // parecer un muro.
+  //
+  // Ahora sale del color de los props del barrio, oscurecido a un tercio:
+  // sigue siendo lo más oscuro del pasaje —la salida gana igual— pero tiene
+  // tono, coge el reflejo del cielo del barrio y se lee como pared.
+  const tonoMuro = new THREE.Color(colores.props ?? 0x6b5f4d)
+    .multiplyScalar(0.34).getHex();
   for (const lado of [-1, 1]) {
     const muro = new THREE.Mesh(
       caja(0.7, alto, largo, 1, 1, segmentos),
-      mat(0x2c2b30, 0.02, 0.97),
+      mat(tonoMuro, 0.02, 0.82),
     );
     muro.position.set(lado * (ancho / 2), alto / 2, -largo / 2);
     g.add(muro);

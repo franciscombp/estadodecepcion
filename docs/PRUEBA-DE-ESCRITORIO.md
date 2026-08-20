@@ -125,6 +125,30 @@ hilera de papeles en el mismo carril libre; que la tarima se lea como algo a lo
 que subirse y no como un obstáculo; que la racha se note sin que nadie explique
 qué es.
 
+**Los controles.** Deslizar en cualquier parte de la pantalla: 28 px de
+recorrido mínimo y 600 ms como máximo —más lento que eso no cuenta como
+deslizar, es un arrastre—. Con teclado: flechas o WASD, espacio para saltar,
+Escape o P para pausar. No hay botones de dirección en pantalla; el hint de
+deslizar se enseña las tres primeras partidas y luego desaparece.
+
+**Lo que hay en pantalla mientras corres**, y son cuatro cosas:
+
+| Dónde | Qué |
+|---|---|
+| Arriba izquierda | El botón de pausa, y nada más |
+| Arriba derecha | Papeles · metros · MEJOR · los tres puntos de intento |
+| Abajo | Las píldoras de lo que esté activo, con su cuenta atrás |
+| **El centro** | **Nada. Nunca.** Por ahí se corre |
+
+Se le suman dos piezas que salen solo cuando toca: el **cartel de salida**, que
+baja del techo en la bifurcación, y el **panel del expediente**, que aparece
+dentro del pasillo del ente de control. Cuando cualquiera de las dos está
+puesta, el resto del HUD se atenúa: en cada momento manda una sola cosa.
+
+**El sonido** es sintetizado, sin ficheros: cambio de carril, salto, agacharse,
+papel (afinado según la racha), prueba, golpe, captura, clic del selector,
+veredicto y cambio de escenario. Se puede silenciar desde la Redacción.
+
 ### §5 · La bifurcación
 
 A 260 m del final **baja el cartel de salida** desde el techo de la pantalla:
@@ -149,12 +173,42 @@ que el viraje de la cámara al entrar por un lado se sienta como un viraje y no
 como un tirón; y —esto es lo que se olvida— que a la vuelta de un barrio ya
 visitado el cartel siga diciendo la verdad.
 
-### §6a · Si eliges un lado: otro barrio
+### §6a · Si eliges un lado: el giro, y luego otro barrio
+
+Doblar la esquina dura **2,1 s** y es la cinemática más vistosa del juego. Lo
+que pasa, por orden:
+
+1. El personaje **rota hasta 66°** hacia el lado elegido.
+2. La cámara **recorre un arco alrededor de él**, hasta 24°, y se queda a su
+   espalda respecto de la nueva dirección: al doblar a la derecha, la cámara se
+   va hacia la izquierda. El personaje no se mueve del centro del cuadro; lo
+   que rota es el mundo.
+3. La cámara **se banquea 9°**, como quien se inclina en una curva.
+4. Se levanta **polvo** de la esquina, y un destello corto acompaña el cambio
+   de barrio entre el 20 % y el 46 % del giro.
+5. Se cruza un **soportal** de 30 metros mientras el barrio de detrás se
+   sustituye por el nuevo.
+
+El arco es asimétrico: **se abre en el 32 % y se cierra en el 68 % restante**.
+Se asoma a la esquina y vuelve enseguida a mirar la calle, porque la calle no
+dobla de verdad —la pista sigue yendo a −Z y se sustituye entera— así que
+sostener la mirada de lado sería sostenerla contra una pared.
+
+Y el primer obstáculo del barrio nuevo se coloca contando **lo que queda de
+giro**: el margen no son metros fijos, son los segundos que el jugador va a
+tardar en poder ver. A velocidad de crucero eso pone el primer grupo a unos
+**87 metros**, y cuando la cámara se endereza todavía quedan **1,5 s** de calle
+limpia por delante.
 
 Cambia la piel, la luz, los cuatro obstáculos y el caso que se documenta. La
 velocidad, los papeles y la distancia **no se reinician**: la corrida sigue.
 
 Los cuatro barrios y su hora del día están en la tabla de la sección 3.
+
+**A comprobar:** que el personaje no se salga del cuadro en ningún fotograma
+del giro (medido: nunca pasa del 21 % del ancho desde el centro); que el giro a
+la derecha se sienta a la derecha; y que al enderezarse haya calle limpia y no
+un obstáculo encima.
 
 ### §6b · Si eliges el centro: el ente de control
 
@@ -535,20 +589,72 @@ Lo remata el propio panel del expediente, que se queda dos segundos con
 **«SALES CON +150 · EXPEDIENTE DEL CASO PORSCHE»**. Ahí y no en una tarjeta
 nueva: es donde el jugador ha tenido los ojos los 340 metros anteriores.
 
-### 6.5 · El Centro histórico es el único barrio sin ente de control — **cerrado, es intencionado**
+### 6.5 · El giro de la esquina se leía al revés, y mareaba — **resuelto**
+
+Tres fallos encadenados, y los tres salieron de leer §6a con el juego delante.
+
+**El primero: la cámara hacía dos cosas contradictorias.** Se DESPLAZABA hacia
+el lado elegido —2,4 unidades hacia la derecha al doblar a la derecha— y además
+giraba la mirada hacia ese mismo lado. Moverse de lado y girar producen
+paralajes opuestos: lo cercano se va hacia un lado y lo lejano hacia el otro.
+Eso no es una manera de hablar, es el conflicto que provoca el mareo de
+movimiento en cualquier cámara.
+
+**El segundo: el giro se leía invertido.** La cámara rotaba 42° hacia la
+esquina y el personaje solo 38°, así que él se salía del cuadro por el lado
+contrario. Y lo primero que lee el ojo no es hacia dónde apunta la cámara, es
+hacia dónde se va el personaje: al irse a la izquierda en un giro a la derecha,
+el giro entero se leía a la izquierda.
+
+Doblar una esquina es UNA sola cosa: la cámara recorre un arco **alrededor** del
+personaje y se queda detrás de su nueva dirección. Ahora la posición y la mira
+salen del mismo ángulo, así que no pueden decir cosas distintas, y el personaje
+se queda clavado en el centro —medido: nunca se aparta más del 21 % del ancho
+del cuadro, contra el salirse entero de antes—.
+
+**El tercero: 42° era demasiado.** El semiángulo horizontal de esta cámara es de
+16°, así que a 42° el punto de fuga de la calle se sale del cuadro. Y la calle
+no dobla: la pista sigue yendo a −Z. Medio giro se pasaba enseñando la fila de
+casas de canto. Ahora son **24°**, con el arco asimétrico —pico al 32 %, vuelta
+en el 68 % restante—, el balanceo bajado de 15° a 9° y el destello movido al
+pico, que es donde el mundo cambia.
+
+Dos cosas más, de las que se ven al mirar el fotograma congelado: el polvo de la
+esquina llevaba el color del asfalto, y una nube del mismo tono que el suelo
+dibujada encima del suelo sale **más oscura** que él —eran manchas negras
+flotando sobre la calzada mientras la cámara giraba—; y los muros del soportal
+eran casi negros sin nada que los iluminara, o sea un rectángulo vacío justo
+donde mira la cámara en el pico del giro.
+
+### 6.6 · Se chocaba con el primer obstáculo de cada tramo nuevo — **resuelto**
+
+El primer grupo de obstáculos de un tramo estaba clavado en **45 metros**. Y 45
+metros son tres segundos a la velocidad de salida y **uno y cuarto** a velocidad
+tope: el tramo que más margen necesita —el que se entra a toda velocidad
+después de doblar una esquina— era justo el que menos daba. Encima el giro dura
+2,1 s con la cámara rotando, el polvo levantado y el destello por encima, así
+que el obstáculo no es que llegara pronto: llegaba **antes de que se pudiera
+ver**.
+
+El margen pasa a medirse en segundos y a contar la ceguera del giro. Medido a
+26 u/s: el primer grupo cae a 87 metros y, cuando la cámara termina de
+enderezarse, quedan 1,5 s de calle limpia —casi el doble del tiempo de reacción
+que el generador garantiza entre grupos—.
+
+### 6.7 · El Centro histórico es el único barrio sin ente de control — **cerrado, es intencionado**
 
 Carondelet está cercado: ir de frente te estrella. Es coherente y es el punto de
 la escena. Pero conviene decirlo aquí para que nadie lo «arregle» por simetría:
 el carril del centro rojo con SIN SALIDA no es un hueco, es la escena.
 
-### 6.6 · Los perseguidores no se acercan por tiempo — **cerrado, y conviene que siga así**
+### 6.8 · Los perseguidores no se acercan por tiempo — **cerrado, y conviene que siga así**
 
 Solo se acercan por golpes recibidos (8 m) y por exhausto (2,2 u/s). Sin golpes,
 la persecución no aprieta nunca por sí sola. Podría parecer un fallo de tensión;
 no lo es, porque quien aprieta es el mundo: la velocidad sube sin parar y los
 obstáculos llegan cada vez más rápido con la misma separación en metros.
 
-### 6.7 · La reserva de material real está desigual — **abierto, y es lo único que bloquea de verdad**
+### 6.9 · La reserva de material real está desigual — **abierto, y es lo único que bloquea de verdad**
 
 `docs/CASOS/` tiene **un** expediente escrito con sus fuentes: el caso Porsche.
 Los otros tres viven solo en el bloque `expediente` de `escenarios.js` —tres o
@@ -560,7 +666,7 @@ mantiene los huecos con su sello. Es lo correcto y hay que decirlo en voz alta
 para que nadie lo lea como una tarea a medias: **el hueco es la pieza**, no la
 falta de ella.
 
-### 6.8 · Los personajes no se llaman como dice el guion — **abierto, y es una decisión editorial**
+### 6.10 · Los personajes no se llaman como dice el guion — **abierto, y es una decisión editorial**
 
 `docs/GUION.md` y la cabecera de `src/config/personajes.js` dicen lo mismo: los
 cuatro se llaman **Chochólogo, Alondra, Buscán y Blanki**, y dos de esos nombres
@@ -577,7 +683,7 @@ o se cambia el código para que diga lo que dice el guion, o se cambia el guion
 para que deje de prometer un guiño que el juego no hace. Las dos son
 defendibles; ninguna es mecánica.
 
-### 6.9 · Del guion, sigue sin implementarse — **abierto**
+### 6.11 · Del guion, sigue sin implementarse — **abierto**
 
 Cuatro cosas listadas en `docs/GUION.md` y todavía no en el juego:
 
@@ -602,3 +708,23 @@ carga con `?debug=1`.
 Es lo que hace que revisar la pantalla de sorteo o la de victoria cueste un clic
 en vez de una partida entera, y por eso las pantallas raras dejaron de ser las
 que nadie revisa.
+
+### Y cómo se fotografía el mundo, que tiene más trampa
+
+Para comprobar el 3D —el giro de la esquina, la luz de un barrio, un obstáculo—
+hay tres trampas, las tres aprendidas por las malas:
+
+- **`page.screenshot()` devuelve el lienzo WebGL en negro** en un navegador sin
+  pantalla. Hay que leerlo con `canvas.toDataURL()` y arrancar el juego con
+  `?foto=1`, que enciende `preserveDrawingBuffer`.
+- **Con bloom, `toDataURL()` pilla el lienzo a medio escribir.** Medido: leyendo
+  ocho fotogramas seguidos en el mismo instante, cinco salen enteros en negro y
+  tres bien. El compositor escribe el framebuffer por defecto en su último
+  pase y la lectura se cuela antes. Se lee en bucle hasta que salga un
+  fotograma con contenido —o se apaga el bloom con `?calidad=baja`—. Media
+  tarde se fue persiguiendo un «rectángulo negro gigante en mitad del giro» que
+  no existía.
+- **El reloj de pared no sirve para sincronizar.** Sin GPU el juego corre a
+  cuatro fotogramas por segundo, así que un giro de 2,1 s tarda diez segundos
+  de reloj. Hay que esperar al reloj DEL JUEGO
+  (`bifurcacion.tiempoViraje / duracionActual`), no a un `setTimeout`.

@@ -71,19 +71,20 @@ const DT_MAXIMO = 1 / 20;
 // edificio entero y un instante después se le quita el cartel de encima.
 const DISTANCIA_RETIRAR_SENAL = 50;
 
-// Cuánto gira la cámara al doblar por un costado. Noventa grados: la calle
-// nueva sale de verdad por donde el jugador la eligió.
-// CUÁNTO GIRA LA CÁMARA AL DOBLAR.
+// CUÁNTO SE ABRE LA CÁMARA AL DOBLAR LA ESQUINA.
 //
-// Estuvo en un cuarto de vuelta (90°) y era demasiado: a esa amplitud la
-// cámara deja de mirar el pasillo y apunta al COSTADO, donde no hay nada
-// construido —el interior de las fachadas—, así que en mitad del giro se veía
-// una pared negra. El giro se notaba, sí, pero se notaba como un fallo.
+// 24° y no 42°. El comentario del cuarto de vuelta hablaba de noventa grados y
+// el número decía cuarenta y dos, y ni uno ni otro caben aquí: LA CALLE NO
+// DOBLA. La pista sigue yendo a −Z y se sustituye entera al cruzar, así que
+// mirar de lado es mirar la fila de casas de canto. A 42° el punto de fuga de
+// la calle se sale del cuadro —el semiángulo horizontal de esta cámara es de
+// 16°— y medio giro se pasaba enseñando una pared: no se leía como una esquina,
+// se leía como que el corredor se había metido en un portal.
 //
-// A 42° el mundo rota lo suficiente para que se lea «estoy doblando» —la
-// fachada sale por un lado y la calle nueva entra por el otro— sin que el
-// encuadre llegue nunca a salirse de lo que está montado.
-const GIRO_CAMARA_DESVIO = Math.PI * 42 / 180;
+// A 24° la calle se escora fuerte pero no desaparece: la acera exterior barre
+// el cuadro, el barrio nuevo entra por un lado y el asfalto sigue estando
+// donde hay que mirar. Es un volantazo, no un cambio de plano.
+const GIRO_CAMARA_DESVIO = Math.PI * 24 / 180;
 
 export class Game {
   /**
@@ -430,10 +431,29 @@ export class Game {
    * correr. Sin esto la pista arrancaría vacía y habría que esperar a que los
    * primeros objetos, generados a 220 unidades, llegaran hasta el jugador.
    */
-  _precargarPista() {
+  /**
+   * @param {number} [segundosCiegos] Lo que el jugador va a tardar en poder
+   *   VER esta pista: lo que le queda de cinemática de giro, con su polvo y su
+   *   destello. Ver Obstacle.precargar().
+   */
+  _precargarPista(segundosCiegos = 0) {
     this.obstaculos.precargar(this.velocidad, (carrilesLibres, z, gap) => {
       this.evidencia.generarHilera(carrilesLibres, z, gap, Math.random() < 0.33);
-    });
+    }, segundosCiegos);
+  }
+
+  /**
+   * Cuánto le queda al jugador de no ver nada.
+   *
+   * Es lo que resta de la cinemática del giro. Al doblar por un costado la
+   * cámara rota, el polvo se levanta y el destello pasa por encima: durante
+   * esos dos segundos largos la calle nueva está delante pero no se lee. Poner
+   * ahí el primer obstáculo es ponerlo donde nadie puede verlo.
+   */
+  _cegueraRestante() {
+    if (!this.bifurcacion?.virando) return 0;
+    const total = this.bifurcacion.duracionActual ?? 0;
+    return Math.max(0, total - this.bifurcacion.tiempoViraje);
   }
 
   /**
@@ -506,7 +526,13 @@ export class Game {
 
     // aplicarTema() vació la pista (los obstáculos tenían los colores viejos),
     // así que hay que volver a llenarla con la paleta nueva.
-    this._precargarPista();
+    //
+    // Y CONTANDO LO QUE FALTA DE GIRO. A este método se llega desde la
+    // bifurcación con la cinemática recién arrancada: el primer grupo caía a
+    // 45 metros —un segundo y cuarto a velocidad alta— mientras la cámara
+    // seguía doblando la esquina entre polvo y destello. El jugador se comía el
+    // primer obstáculo de cada tramo nuevo sin haberlo visto nunca.
+    this._precargarPista(this._cegueraRestante());
 
     // Qué potenciadores pueden salir aquí. La linterna es del Apagón y en las
     // otras tres no significaría nada, porque hay luz.
@@ -745,17 +771,38 @@ export class Game {
    * @param {number} carril 0 izquierda, 1 centro, 2 derecha
    */
   /**
-   * LA CORTINA DE POLVO del cuarto de vuelta.
+   * LA CORTINA DE POLVO de la esquina.
    *
-   * El giro de noventa grados deja a la cámara mirando de lado, y de lado lo
-   * que hay es la fila de casas de la acera: durante medio segundo se ve una
-   * pared a un palmo del objetivo. La cortina la tapa.
+   * Aunque la cámara ya no se abre más de 24°, el pico del giro sigue dejando
+   * a la vista el canto de la acera y el muro del soportal. El polvo lo
+   * disimula y, sobre todo, hace que la esquina se sienta esquina.
    *
    * Se emite CADA FOTOGRAMA mientras dura el pico del giro, y delante de la
    * cámara —no bajo los pies del corredor—, porque lo que hay que cubrir es el
    * cuadro entero. Un estallido suelto al empezar se disuelve antes de que la
    * cámara llegue a donde estorba.
    */
+  /**
+   * De qué color es el polvo de la esquina.
+   *
+   * ERA EL COLOR DE LA CALLE, Y ESO LO CONVERTÍA EN AGUJEROS. El asfalto de
+   * cada barrio es un tono medio-oscuro; una nube pintada de ese mismo tono,
+   * dibujada ENCIMA del asfalto y con transparencia, sale más oscura que el
+   * suelo. Lo que se veía en pleno giro no era polvo: eran manchas negras
+   * flotando sobre la calzada, y una mancha oscura que se mueve por delante de
+   * la cámara mientras la cámara gira es de las cosas que peor sienta.
+   *
+   * El polvo de una calle es lo que la calle refleja cuando se levanta, o sea
+   * algo más claro que ella. Un tercio hacia el blanco: conserva el tinte del
+   * barrio —el polvo del Apagón sigue siendo azulado y el de Elecciones
+   * morado— y ya no se lee como un agujero. Se probó a la mitad y era peor por
+   * el otro lado: nubes blancas opacas sobre la calzada, bolas de nieve.
+   */
+  _colorDePolvo() {
+    const calle = this.escenario?.obtenerColores?.().calle ?? 0x9a938a;
+    return new THREE.Color(calle).lerp(new THREE.Color(0xffffff), 0.32).getHex();
+  }
+
   _cortinaDePolvo(dt, fuerza, direccion) {
     if (!this.particulas || fuerza < 0.28) return;
 
@@ -768,12 +815,12 @@ export class Game {
     // que se veía era una pantalla de polvo y, al abrirse, otra calle —o sea,
     // exactamente el corte que se quería evitar, con niebla—. Con setenta el
     // polvo acompaña la esquina en vez de sustituirla.
-    this._restoPolvo = (this._restoPolvo ?? 0) + dt * 70 * fuerza;
+    this._restoPolvo = (this._restoPolvo ?? 0) + dt * 46 * fuerza;
     const cuantas = Math.floor(this._restoPolvo);
     this._restoPolvo -= cuantas;
     if (cuantas <= 0) return;
 
-    const polvo = this.escenario.obtenerColores().calle ?? 0x9a938a;
+    const polvo = this._colorDePolvo();
     const delante = new THREE.Vector3();
     this.camara.getWorldDirection(delante);
 
@@ -789,7 +836,9 @@ export class Game {
           color: polvo,
           cantidad: 1,
           fuerza: 1.4,
-          tam: 1.4 + Math.random() * 1.2,
+          // Más chico desde que el polvo dejó de ser oscuro: a 1.4-2.6 y en
+          // claro, cada mota tapaba media calzada.
+          tam: 0.9 + Math.random() * 0.8,
           vida: 0.5 + Math.random() * 0.3,
           gravedad: 0.4,
           roce: 1.4,
@@ -809,16 +858,15 @@ export class Game {
    * corte, y encima explica por qué se tapa.
    *
    * Se levanta A LO ANCHO del corredor, no solo bajo los pies: una nubecilla
-   * junto al zapato no cubre nada, y lo que hay que cubrir es la pantalla
-   * entera durante el cuarto de vuelta.
+   * junto al zapato no cubre nada, y lo que hay que acompañar es el barrido
+   * entero del giro.
    */
   _polvoDeEsquina(carril) {
     if (!this.particulas) return;
     const direccion = carril - 1;
     if (direccion === 0) return;   // De frente no se dobla: no hay derrape.
 
-    const colores = this.escenario.obtenerColores();
-    const polvo = colores.calle ?? 0x9a938a;
+    const polvo = this._colorDePolvo();
 
     for (let i = 0; i < 5; i++) {
       const t = i / 4;
@@ -1832,11 +1880,41 @@ export class Game {
     // negativo porque rotation.y = π mira a −Z y restarle gira hacia +X.
     this.jugador.giroCinematico = -dirCine * 1.15 * fCine;
 
+    // LA CÁMARA ORBITA AL JUGADOR, NO GIRA EN SU SITIO. Y esto era el fallo.
+    //
+    // Antes la cámara hacía dos cosas a la vez que se contradecían: se
+    // DESPLAZABA hacia el lado elegido (+2.4 en X hacia la derecha al doblar a
+    // la derecha) y además giraba la mirada hacia ese mismo lado. Una cosa es
+    // moverse de lado y la otra es girar, y las dos juntas producen paralajes
+    // opuestos: lo cercano se va hacia un lado y lo lejano hacia el otro. Eso
+    // es exactamente lo que marea, y no es una metáfora —es el conflicto que
+    // provoca el mareo de movimiento en cualquier cámara—.
+    //
+    // Y encima el giro se leía AL REVÉS. La cámara rotaba 42° hacia la esquina
+    // mientras el personaje solo rotaba 38°, así que él se salía del cuadro por
+    // el lado contrario. Lo que el ojo lee primero no es hacia dónde apunta la
+    // cámara, es hacia dónde se va el personaje: al irse a la izquierda en un
+    // giro a la derecha, el giro entero se leía a la izquierda.
+    //
+    // Doblar una esquina es UNA sola cosa: la cámara recorre un arco ALREDEDOR
+    // del personaje. Al girar a la derecha se queda a su izquierda —detrás de
+    // su nueva dirección— y lo mira desde ahí. El personaje se queda clavado en
+    // el centro del cuadro y lo que rota es el mundo, que es lo que pasa de
+    // verdad cuando se doblan noventa grados de calle.
+    //
+    // Con la órbita ya no hace falta el rotateY de después del lookAt: la
+    // posición y la mira salen del mismo ángulo, así que no pueden decir cosas
+    // distintas.
+    const anguloOrbita = -dirCine * GIRO_CAMARA_DESVIO * fCine;
+    const senOrbita = Math.sin(anguloOrbita);
+    const cosOrbita = Math.cos(anguloOrbita);
+    // El eje de la órbita es el jugador —donde mira la cámara en reposo—, no el
+    // centro de la calle: si el pivote fuera fijo, girar con el jugador en un
+    // carril exterior lo barrería fuera de cuadro.
+    const pivoteX = this.jugador.x * CAMARA.SEGUIMIENTO_LATERAL;
+
     // Sigue al jugador lateralmente con retraso: da peso sin marear.
-    const xObjetivo = this.jugador.x * CAMARA.SEGUIMIENTO_LATERAL
-      + dirCine * 2.4 * fCine;
     const t = 1 - Math.exp(-CAMARA.AMORTIGUACION * dt);
-    this.camara.position.x += (xObjetivo - this.camara.position.x) * t;
 
     // CORRIENDO POR ARRIBA la cámara se abre. Ver CAMARA.ARRIBA_*: sobre la
     // plataforma hay que ver el borde —que es de donde te caes— y el final del
@@ -1879,9 +1957,14 @@ export class Game {
       + CAMARA.ARRIBA_ALTURA_EXTRA * m;
     this.camara.position.y += (yObjetivo - this.camara.position.y) * t;
 
-    // Vuelta a la profundidad de siempre. Solo se mueve tras un cerco, pero
-    // sin esta línea el encuadre se quedaría descolocado al reanudar.
-    const zObjetivo = CAMARA.POSICION.z + CAMARA.ARRIBA_DISTANCIA_EXTRA * m;
+    // EL ARCO. En reposo (anguloOrbita = 0) esto es exactamente lo de siempre:
+    // la cámara detrás del jugador a POSICION.z y mirando a MIRA.z. Al doblar,
+    // los dos puntos giran el mismo ángulo alrededor del pivote, así que el
+    // encuadre no se deforma: se traslada por un arco.
+    const radioCamara = CAMARA.POSICION.z + CAMARA.ARRIBA_DISTANCIA_EXTRA * m;
+    const xObjetivo = pivoteX + radioCamara * senOrbita;
+    const zObjetivo = radioCamara * cosOrbita;
+    this.camara.position.x += (xObjetivo - this.camara.position.x) * t;
     this.camara.position.z += (zObjetivo - this.camara.position.z) * t;
 
     // Sacudida por golpe, con decaimiento exponencial.
@@ -1898,25 +1981,17 @@ export class Game {
     // fuera y la calle se vería de lado; si lo siguiera más, la cámara
     // orbitaría alrededor del personaje. Van juntas.
     this.camara.lookAt(
-      this.jugador.x * CAMARA.SEGUIMIENTO_LATERAL,
+      pivoteX + CAMARA.MIRA.z * senOrbita,
       CAMARA.MIRA.y + alturaSuelo * 0.55 + alturaSalto * 0.12
         - CAMARA.ARRIBA_MIRA_BAJA * m,
-      CAMARA.MIRA.z,
+      CAMARA.MIRA.z * cosOrbita,
     );
 
-    // EL CUARTO DE VUELTA. Al doblar por un costado la cámara gira NOVENTA
-    // GRADOS hacia el carril elegido y vuelve. Antes solo se desviaba la mira
-    // unos metros, y el resultado era que se veía venir la fachada de frente y
-    // crecer hasta llenar la pantalla: parecía que el corredor se estrellaba
-    // contra el edificio en vez de doblar la esquina.
-    //
-    // Con el cuarto de vuelta, lo que se ve es lo que pasa: el mundo rota, la
-    // fachada sale por un lado del cuadro y la calle nueva entra por el otro
-    // ya montada. Va DESPUÉS del lookAt, que reescribe la orientación entera.
-    if (fCine > 0.001) {
-      this.camara.rotateY(-dirCine * GIRO_CAMARA_DESVIO * fCine);
-      this._cortinaDePolvo(dt, fCine, dirCine);
-    }
+    // El polvo de la esquina. La rotación ya no se aplica aquí —la hace el
+    // arco de arriba, posición y mira a la vez— y por eso desapareció el
+    // rotateY que había en este sitio: era el que peleaba con el desplazamiento
+    // lateral y el que sacaba al personaje del cuadro.
+    if (fCine > 0.001) this._cortinaDePolvo(dt, fCine, dirCine);
 
     // Banqueo al tomar un desvío. Por el mismo motivo, después del lookAt.
     const banqueo = this.bifurcacion.banqueoCamara() + this._ladeoEspecial(dt);

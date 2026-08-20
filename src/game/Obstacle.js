@@ -274,10 +274,21 @@ export class ObstacleManager {
    *
    * @param {number} velocidad
    * @param {(carrilesLibres:number[], z:number, gap:number)=>void} [alGenerarGrupo]
+   * @param {number} [segundosCiegos] Cuánto tiempo va a estar el jugador SIN
+   *   PODER VER cuando esta pista arranque: el giro de la bifurcación, el
+   *   polvo, el destello. Se suma al margen de lectura, porque un obstáculo
+   *   que aparece mientras la cámara todavía está doblando la esquina no se
+   *   esquiva —no se ve—.
    */
-  precargar(velocidad, alGenerarGrupo = null) {
-    // El primer grupo va con margen suficiente para reaccionar al arrancar.
-    this.proximaZ = -OBSTACULOS.DISTANCIA_PRIMER_GRUPO;
+  precargar(velocidad, alGenerarGrupo = null, segundosCiegos = 0) {
+    // EL MARGEN ES TIEMPO, NO METROS. Ver OBSTACULOS.SEGUNDOS_PRIMER_GRUPO:
+    // con una distancia fija, el tramo que se entra a toda velocidad —el de
+    // después de la esquina— era el que menos margen daba.
+    const segundos = OBSTACULOS.SEGUNDOS_PRIMER_GRUPO + Math.max(0, segundosCiegos);
+    this.proximaZ = -Math.max(
+      OBSTACULOS.DISTANCIA_PRIMER_GRUPO,
+      Math.max(1, velocidad) * segundos,
+    );
 
     while (this.proximaZ > -OBSTACULOS.DISTANCIA_APARICION) {
       const zGrupo = this.proximaZ;

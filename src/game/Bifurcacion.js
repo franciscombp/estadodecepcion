@@ -246,7 +246,12 @@ export class Bifurcacion {
   banqueoCamara() {
     if (!this.virando || this.direccionViraje === 0) return 0;
     const t = this.tiempoViraje / this.duracionActual;
-    return -this.direccionViraje * Math.sin(t * Math.PI) * 0.26;
+    // 0.15 rad —unos nueve grados— y no 0.26. Quince grados de balanceo encima
+    // del arco de la cámara dejaban el horizonte cruzando el cuadro en
+    // diagonal, y dos rotaciones grandes a la vez en ejes distintos es la
+    // receta exacta del mareo. El balanceo tiene que ACOMPAÑAR al giro, no
+    // competir con él.
+    return -this.direccionViraje * Math.sin(t * Math.PI) * 0.15;
   }
 
   /**
@@ -257,16 +262,17 @@ export class Bifurcacion {
    * girar y el camino elegido aparecer delante de él) y luego, ya dentro del
    * soportal, los dos se enderezan mirando la calle nueva.
    *
-   * La curva es una campana ESTRECHA: sube en dos décimas, y a las seis ya ha
-   * vuelto a cero. El último 40% del pasaje se hace mirando al frente.
+   * La cámara ORBITA al personaje: no gira en su sitio, se desplaza por un
+   * arco alrededor de él y acaba a su espalda respecto de la nueva dirección.
+   * Por eso el corredor no se mueve del centro del cuadro y lo que rota es el
+   * mundo, que es lo que pasa de verdad al doblar una calle. Ver
+   * Game._actualizarCamara.
    *
-   * Esa estrechez no es un gusto, es una obligación. La cámara gira noventa
-   * grados de verdad (ver Game._actualizarCamara), y noventa grados en este
-   * mundo apuntan a la acera: el mundo no dobla la esquina —la pista sigue
-   * yendo a −Z— así que mirar de lado es mirar la fila de casas de canto. Con
-   * la cola larga de antes, medio pasaje se pasaba enseñando una pared. Ahora
-   * el pico lo tapa el polvo y, cuando el polvo se abre, la cámara ya está de
-   * nuevo mirando la calle nueva.
+   * La curva es ASIMÉTRICA: se abre en el 32 % y se cierra en el 68 % que
+   * queda. No es un gusto, es una obligación: el mundo NO dobla la esquina
+   * —la pista sigue yendo a −Z y se sustituye entera al cruzar— así que
+   * sostener la mirada de lado es sostenerla contra la fila de casas. Se asoma
+   * a la esquina y vuelve enseguida a la calle.
    *
    * De frente no hay cinemática: al trámite se entra recto.
    *
@@ -295,11 +301,21 @@ export class Bifurcacion {
     // con el instante de máxima rotación, que es cuando el pasillo viejo está
     // más escorado.
     //
-    // El arco es un seno elevado: sube y baja suave, y pasa más tiempo cerca
-    // del máximo que en los extremos, que es como se dobla una esquina de
-    // verdad —se entra frenando y se sale acelerando—.
-    const arco = Math.sin(t * Math.PI);
-    return { dir: this.direccionViraje, fuerza: arco * arco * (3 - 2 * arco) };
+    // EL ARCO ES ASIMÉTRICO: SE ABRE RÁPIDO Y SE CIERRA DESPACIO.
+    //
+    // Era un seno simétrico suavizado, que pasa MÁS tiempo cerca del máximo que
+    // en los extremos. Con la cámara mirando al costado —donde no hay calle,
+    // porque la pista no dobla— eso significaba pasar la mitad del giro
+    // enseñando una fachada. Justo al revés de lo que hace falta.
+    //
+    // Ahora el pico cae al 32 % y el 68 % restante se emplea en volver a mirar
+    // la calle nueva. Sale un volantazo: se abre en seis décimas, se asoma a la
+    // esquina, y el resto del pasaje ya se corre mirando adelante. Las dos
+    // mitades son suavizados —derivada nula en el pico— así que no hay ángulo
+    // en el empalme: si lo hubiera se sentiría como un tirón.
+    const PICO = 0.32;
+    const u = t < PICO ? t / PICO : (1 - t) / (1 - PICO);
+    return { dir: this.direccionViraje, fuerza: u * u * (3 - 2 * u) };
   }
 
   /** Fracción 0..1 del destello de transición. */
@@ -312,7 +328,7 @@ export class Bifurcacion {
     // Subía en el primer cuarto y tardaba tres cuartos en irse: un velón
     // blanco encima de tres cuartos del giro. Un fogonazo es lo que se usa
     // cuando NO se puede enseñar la transición, y aquí sí se puede —para eso
-    // está el cuarto de vuelta—, así que tapar con luz lo que ya se está
+    // está el arco de la cámara—, así que tapar con luz lo que ya se está
     // enseñando solo consigue que el giro se vea sucio.
     //
     // Ahora vive dentro de la meseta del giro (40-58 %), que es cuando el
@@ -324,9 +340,12 @@ export class Bifurcacion {
     if (this.direccionViraje === 0) {
       return t < 0.25 ? t / 0.25 : Math.max(0, 1 - (t - 0.25) / 0.75);
     }
-    if (t < 0.38 || t > 0.66) return 0;
-    const u = (t - 0.38) / 0.28;
-    return Math.sin(u * Math.PI) * 0.40;
+    // Y el destello acompaña AL PICO, que ahora cae al 32 %. Se quedó donde
+    // estaba (38-66 %) cuando el arco era simétrico; con el pico adelantado
+    // llegaba tarde y blanqueaba la vuelta a la calle en vez del cambio.
+    if (t < 0.20 || t > 0.46) return 0;
+    const u = (t - 0.20) / 0.26;
+    return Math.sin(u * Math.PI) * 0.34;
   }
 
   // -------------------------------------------------------------------------

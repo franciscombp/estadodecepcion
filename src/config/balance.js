@@ -148,10 +148,22 @@ export const OBSTACULOS = {
   // A 6.5, cuando desaparecen ya solo se les ve el techo por el borde inferior
   // del cuadro, así que se van sin que se note.
   DISTANCIA_RECICLADO: 5.5,
-  // Dónde va el PRIMER grupo al arrancar una partida o un tramo nuevo.
-  // A velocidad inicial (18 u/s) son ~2.5 s para leer el primer obstáculo:
-  // suficiente para colocarse, sin que se sienta que no pasa nada.
+  // SUELO de distancia para el primer grupo de un tramo. A velocidad inicial
+  // son tres segundos; lo que manda de verdad es el tiempo, aquí debajo.
   DISTANCIA_PRIMER_GRUPO: 45,
+
+  // EL PRIMER OBSTÁCULO SE MIDE EN SEGUNDOS, NO EN METROS.
+  //
+  // Estaba clavado en 45 metros, y cuarenta y cinco metros son tres segundos a
+  // la velocidad de salida y UNO Y CUARTO a velocidad tope. O sea que el tramo
+  // que más margen necesita —el que se entra a toda velocidad después de
+  // doblar una esquina— era justo el que menos daba. Es la causa de que al
+  // cruzar la bifurcación uno se estrelle contra lo primero que aparece: no
+  // llega antes de tiempo, llega antes de que se pueda ver.
+  //
+  // 1.6 s es el doble del tiempo de reacción garantizado entre grupos, que es
+  // lo que pide entrar en una calle que no se ha visto nunca.
+  SEGUNDOS_PRIMER_GRUPO: 1.6,
 
   // Separación entre grupos de obstáculos. Se escala con la velocidad para que
   // el tiempo de reacción se mantenga constante aunque el juego acelere.
