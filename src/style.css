@@ -2154,6 +2154,20 @@ html, body {
   }
 }
 
+/* Rótulo de zona del ejemplar: separa el expediente (material de trabajo) de
+   los reportajes (lo publicable). Filete arriba, versalitas, como los rótulos
+   de sección de un diario. */
+.diario__zona {
+  padding-top: var(--e-12);
+  border-top: 2px solid var(--tinta);
+  font-family: var(--sans);
+  font-size: clamp(.54rem, 2.2vw, .64rem);
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--tinta);
+}
+
 /* --- El sumario del caso --------------------------------------------------
    EL EXPEDIENTE NO PUEDE PARECER UN REPORTAJE.
    Es la razón de que este bloque no use nada de `.articulo`: sin serif de
@@ -5181,6 +5195,12 @@ html, body {
    filete punteado: se ve que está, y se ve que no está cerrada. */
 .pruebas__pieza--sin-confirmar .pruebas__cara { opacity: 0.72; }
 
+.pruebas__pieza--ficha.pruebas__pieza--falsa {
+  background: var(--papel);
+  border-style: dashed;
+}
+.pruebas__pieza--ficha.pruebas__pieza--falsa .pruebas__nombre { color: var(--tinta-tenue); }
+
 .pruebas__filete {
   height: 1px;
   border-bottom: 1px solid var(--papel-sombra);
@@ -5191,12 +5211,47 @@ html, body {
    el expediente de los botones sin meter otro bloque. */
 /* Mismo caso que la tabla del ranking: crecía sin poder encoger, y en pantalla
    corta las casillas del expediente se metían debajo de los botones. */
+/* La línea que dice a dónde va lo recogido: qué página del Archivo alimenta
+   este caso y en qué estado queda. Es la bisagra narrativa de la pantalla. */
+.pruebas__cierre {
+  font-family: var(--sans);
+  font-size: clamp(.72rem, 2.9vw, .82rem);
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--rojo-diario);
+}
+
+/* La cuenta de la mesa, con el mismo trazo que los rótulos del sumario. */
+.pruebas__cuenta {
+  font-family: var(--sans);
+  font-size: clamp(.54rem, 2.2vw, .64rem);
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--tinta-tenue);
+}
+
+/* En un teléfono corto, la escena del caso cede su sitio a la mesa. La línea
+   de cierre —qué le hace esto al Archivo— y los documentos son lo accionable;
+   el relato del caso ya se leyó al entrar al barrio y vive entero en el
+   Archivo. Mismo criterio que la opinión del cerco a poca altura. */
+@media (max-height: 700px) {
+  .pruebas__sumario { display: none; }
+}
+
 .pruebas__mesa {
   flex: 1 1 0;
   min-height: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  /* La mesa DESPLAZA por dentro cuando el caso no cabe. Con las fichas
+     llevando nombre y sello, seis casillas ya no entran en un teléfono de 667:
+     centradas con align-items se recortaban por arriba y por abajo A LA VEZ
+     —los botones tapaban la última fila— y con esto la rejilla se centra
+     cuando cabe (margin: auto en el tablero) y se desplaza desde arriba
+     cuando no. Una ficha cortada por el borde, con su filete a la vista, ya
+     dice sola que hay más abajo. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding-bottom: 24px;
   border-bottom: 1px solid var(--papel-sombra);
 }
@@ -5215,12 +5270,19 @@ html, body {
      que es 354×402 entre tres— y el tablero solo ocupa las columnas que hace
      falta, centrado. Estirando las columnas al ancho completo, un caso de dos
      pruebas dejaba las dos piezas en los extremos opuestos de la página. */
-  grid-auto-rows: minmax(0, 134px);
+  /* Alto natural: la ficha mide lo que midan su icono, su sello y su nombre.
+     El tope fijo de antes (134) era para casillas de solo icono; con nombre
+     dentro recortaba la tercera línea. Cuando el total no cabe, desplaza la
+     mesa (arriba). */
+  grid-auto-rows: minmax(0, auto);
+  row-gap: 8px;
+  /* Centrada cuando cabe, arrancando desde arriba cuando no: es lo que hace
+     margin:auto dentro de un contenedor con desplazamiento. */
+  margin: auto;
   align-content: center;
   justify-content: center;
   column-gap: 8px;
   width: min(100%, calc(var(--columnas, 3) * 118px));
-  max-height: 100%;
 }
 
 /* En el detalle no hay rejilla: una sola pieza a toda la caja. */
@@ -5255,6 +5317,60 @@ html, body {
 }
 
 .pruebas__pieza:disabled { cursor: default; }
+
+/* --- La ficha de la rejilla ------------------------------------------------
+   Cada casilla es una HOJA DE ARCHIVO: papel blanco, borde, y el nombre del
+   documento impreso debajo del icono. Es el mismo lenguaje que la hoja del
+   sumario en el Archivo —y el contrario del álbum de cromos: aquí cada hueco
+   tiene dueño y lo dice—. */
+.pruebas__pieza--ficha {
+  justify-content: flex-start;
+  gap: 5px;
+  padding: 10px 6px 8px;
+  background: var(--papel-blanco);
+  border: 1px solid var(--papel-sombra);
+  border-radius: var(--r-sm);
+  min-height: 0;
+}
+
+.pruebas__pieza--ficha .pruebas__nombre {
+  font-size: clamp(.56rem, 2.3vw, .64rem);
+  letter-spacing: .04em;
+  line-height: 1.3;
+}
+
+/* La casilla reservada: el documento SE SABE cuál es —el sumario lo lista—
+   pero sigue en la calle. Filete discontinuo, icono en fantasma y sello,
+   como el espacio reservado de un reportaje en el Archivo. */
+.pruebas__pieza--reservada {
+  background: none;
+  border-style: dashed;
+  border-color: var(--tinta-tenue);
+}
+
+.pruebas__pieza--reservada .pruebas__cara { opacity: 0.22; }
+.pruebas__pieza--reservada .pruebas__nombre { color: var(--tinta-tenue); }
+
+/* Sellos de estado: SIN RECUPERAR en gris, NUEVO en el rojo de la casa. */
+.pruebas__sello {
+  padding: 2px 7px;
+  border: 1px solid var(--tinta-tenue);
+  border-radius: var(--r-sm);
+  font-family: var(--sans);
+  font-size: clamp(.46rem, 1.9vw, .54rem);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--tinta-tenue);
+}
+
+.pruebas__sello--nuevo {
+  border-color: var(--rojo-diario);
+  color: var(--papel-blanco);
+  background: var(--rojo-diario);
+}
+
+.pruebas__marca--falsa { color: var(--tinta-tenue); }
 
 /* La cara de la pieza. El tamaño va en una variable porque es lo único que
    cambia entre los dos estados del marco: 184 en el detalle, 72 en la rejilla. */

@@ -146,6 +146,39 @@ export const GUION = {
       t: 'Sin confirmar',
       ayuda: 'Marca de las pistas que solo están en redes: se guardan pero no cierran un reportaje.',
     },
+    documentos: {
+      t: 'Documentos del caso · {n} de {total}',
+      ayuda: 'Encabeza la mesa: cuántos documentos del caso están recuperados. Huecos: {n}, {total}.',
+    },
+    nuevo: { t: 'NUEVO', ayuda: 'Sello de lo recogido en esta corrida.' },
+    sinRecuperar: {
+      t: 'Sin recuperar',
+      ayuda: 'Sello de la casilla reservada: el documento existe y se sabe cuál es, pero sigue en la calle.',
+    },
+    plantada: {
+      t: 'Plantada',
+      ayuda: 'Marca de la pieza que te colaron. En el detalle además se dice qué medio la publica.',
+    },
+    cierreNueva: {
+      t: 'Con esto se abrió la página {pagina} del Archivo.',
+      ayuda: 'Cuando las pruebas de esta corrida abrieron una página. Hueco: {pagina}.',
+      largo: true,
+    },
+    cierreAbierta: {
+      t: 'La página {pagina} del Archivo ya está abierta; cada documento nuevo la completa.',
+      ayuda: 'Cuando la página del caso está abierta y aún no completa. Hueco: {pagina}.',
+      largo: true,
+    },
+    cierreFaltan: {
+      t: 'La página {pagina} del Archivo se abre con {pedidas} pruebas del caso. Llevas {n}.',
+      ayuda: 'Cuando aún no se abre. Huecos: {pagina}, {pedidas}, {n}.',
+      largo: true,
+    },
+    cierreCompleto: {
+      t: 'Expediente completo: la página {pagina} publica todo lo que este caso tenía en la calle.',
+      ayuda: 'Cuando no queda documento por recuperar. Hueco: {pagina}.',
+      largo: true,
+    },
   },
 
   victoria: {
@@ -301,6 +334,10 @@ export const GUION = {
     paginasAbiertas: { t: '{n} pág. recuperadas', ayuda: 'Hueco: {n}.' },
     pagina: { t: 'Pág. {n}', ayuda: 'Hueco: {n}.' },
     reservado: { t: 'ESPACIO RESERVADO', ayuda: 'Artículo aún no publicado.' },
+    zonaReportajes: {
+      t: 'Lo que publicará El Mercio',
+      ayuda: 'Rótulo que separa el expediente (arriba) de los huecos de reportaje (abajo): el material de trabajo alimenta las piezas, no las sustituye.',
+    },
     enPreparacion: {
       t: 'Reportaje en preparación. Cuando se publique aparecerá aquí, con su firma y su enlace.',
       ayuda: 'Debajo del espacio reservado.',

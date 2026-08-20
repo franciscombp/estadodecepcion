@@ -21,7 +21,7 @@
 import { obtenerEscenario, ORDEN_ESCENARIOS, ESCENARIOS } from '../config/escenarios.js';
 import { publicacionDe } from '../config/versionOficial.js';
 import { T, Trico } from '../config/guion.js';
-import { CABECERA, hayPendientes, cuantosListos } from '../config/publicaciones.js';
+import { CABECERA, PAGINAS, hayPendientes, cuantosListos } from '../config/publicaciones.js';
 import { CATALOGO_POTENCIADORES } from '../config/balance.js';
 import { CLASIFICACIONES, clasificacion, tablaCompleta, hayAscenso, YO } from '../config/tabla.js';
 import { PERSONAJES } from '../config/personajes.js';
@@ -1494,8 +1494,41 @@ export class Pantallas {
     if (esc.expediente) {
       encabezado.appendChild(el('p', 'pruebas__sumario', esc.expediente.escena));
     }
+
+    // A DÓNDE VA ESTO. La línea que faltaba para que la pantalla contara lo
+    // que es: la redacción armando una página del periódico con lo que traes.
+    // Sin ella, la mesa era un álbum de cromos —se recogía sin saber para
+    // qué—; con ella, cada corrida termina diciendo qué le hizo al Archivo.
+    const idEsc = datos.escenario ?? this.juego.escenarioActual;
+    const pagina = PAGINAS.find((p) => p.caso === idEsc);
+    const sumarioCaso = this.cuaderno?.sumarioDelCaso?.(idEsc);
+    if (pagina) {
+      const recienAbierta = (datos.paginasNuevas ?? [])
+        .some((p) => p.numero === pagina.numero);
+      const abierta = this.cuaderno?.estaDesbloqueada?.(pagina.numero);
+      const texto = sumarioCaso?.completo
+        ? T('botin.cierreCompleto', { pagina: pagina.nombre })
+        : recienAbierta
+          ? T('botin.cierreNueva', { pagina: pagina.nombre })
+          : abierta
+            ? T('botin.cierreAbierta', { pagina: pagina.nombre })
+            : T('botin.cierreFaltan', {
+              pagina: pagina.nombre,
+              pedidas: pagina.pruebas ?? 0,
+              n: this.cuaderno?.pruebasDelCaso?.(idEsc) ?? 0,
+            });
+      encabezado.appendChild(el('p', 'pruebas__cierre', texto));
+    }
     hoja.appendChild(encabezado);
     hoja.appendChild(el('div', 'pruebas__filete'));
+
+    // La cuenta de la mesa: cuántos documentos del caso están recuperados.
+    // Solo los que tienen documento detrás —igual que el sello de completo—.
+    if (sumarioCaso?.documentos) {
+      hoja.appendChild(el('div', 'pruebas__cuenta', T('botin.documentos', {
+        n: sumarioCaso.documentados, total: sumarioCaso.documentos,
+      })));
+    }
 
     // ══ LA MESA ═════════════════════════════════════════════════════════
     const mesa = el('div', 'pruebas__mesa');
@@ -1585,38 +1618,57 @@ export class Pantallas {
       tablero.appendChild(pieza(casilla, 184, () => pintarRejilla()));
     };
 
+    // CADA CASILLA ES UNA FICHA DE DOCUMENTO, CON SU NOMBRE. La rejilla
+    // enseñaba solo iconos —y cuatro de cinco documentos comparten icono, así
+    // que la mesa era una fila de cromos repetidos— y lo no recogido era un
+    // interrogante, o sea un misterio. Pero aquí no hay misterio: el sumario
+    // del caso sabe exactamente qué documento falta y el Archivo ya lo lista
+    // por su nombre. Una redacción no colecciona cromos: mantiene una lista de
+    // lo que tiene y de lo que le falta conseguir, con cada papel rotulado.
     const pieza = (casilla, tamano, alPulsar) => {
+      const esFicha = tamano <= 100;
       const nodo = el('button', ['pruebas__pieza',
+        esFicha ? 'pruebas__pieza--ficha' : '',
+        casilla?.tengo === false ? 'pruebas__pieza--reservada' : '',
         casilla?.falsa ? 'pruebas__pieza--falsa' : '',
         casilla?.sinConfirmar ? 'pruebas__pieza--sin-confirmar' : '',
       ].filter(Boolean).join(' '));
       nodo.type = 'button';
       nodo.style.setProperty('--cara', `${tamano}px`);
 
-      const cara = el('div', `pruebas__cara${casilla ? '' : ' pruebas__cara--vacia'}`);
-      if (casilla) cara.innerHTML = casilla.icono(Math.round(tamano * 0.76));
-      else cara.textContent = '?';
+      const cara = el('div', 'pruebas__cara');
+      cara.innerHTML = casilla.icono(Math.round(tamano * 0.76));
       nodo.appendChild(cara);
 
-      if (casilla && tamano > 100) {
-        nodo.appendChild(el('div', 'pruebas__nombre', casilla.nombre));
-        if (casilla.sinConfirmar) {
-          nodo.appendChild(el('div', 'pruebas__marca', T('botin.sinConfirmar')));
-        }
+      // El sello de estado va ANTES del nombre, como en una carpeta de
+      // archivo: primero si está o no está, después qué es.
+      if (casilla.tengo === false) {
+        nodo.appendChild(el('div', 'pruebas__sello', T('botin.sinRecuperar')));
+      } else if (casilla.nueva && !casilla.falsa) {
+        nodo.appendChild(el('div', 'pruebas__sello pruebas__sello--nuevo', T('botin.nuevo')));
+      }
+
+      nodo.appendChild(el('div', 'pruebas__nombre', casilla.nombre));
+
+      if (casilla.sinConfirmar) {
+        nodo.appendChild(el('div', 'pruebas__marca', T('botin.sinConfirmar')));
+      }
+      if (casilla.falsa) {
+        // En la rejilla basta la marca; el remate —qué medio la publica— se
+        // guarda para el detalle, que es donde hay sitio para leerlo.
+        const pub = !esFicha && publicacionDe(casilla.nombre);
+        nodo.appendChild(el('div', 'pruebas__marca pruebas__marca--falsa', T('botin.plantada')));
         // AQUÍ SE ENTIENDE EL CHISTE, y no dos pantallas después. Al abrir una
         // pieza plantada, lo primero que se lee es quién la va a publicar: no
         // te la colaron para que perdieras una casilla, te la colaron para que
         // mañana salga en otro sitio contando otra cosa.
-        if (casilla.falsa) {
-          const pub = publicacionDe(casilla.nombre);
-          if (pub) {
-            nodo.appendChild(el('div', 'pruebas__destino',
-              T('botin.destinoPlantada', { medio: pub.medio.nombre })));
-          }
+        if (pub) {
+          nodo.appendChild(el('div', 'pruebas__destino',
+            T('botin.destinoPlantada', { medio: pub.medio.nombre })));
         }
       }
 
-      if (casilla && alPulsar) nodo.addEventListener('click', alPulsar);
+      if (alPulsar) nodo.addEventListener('click', alPulsar);
       else nodo.disabled = true;
 
       return nodo;
@@ -1633,7 +1685,7 @@ export class Pantallas {
       // en un trámite.
       let turno = 0;
       casillas.forEach((casilla) => {
-        const nodo = pieza(casilla.tengo ? casilla : null, 72,
+        const nodo = pieza(casilla, 56,
           casilla.tengo ? () => verDetalle(casilla) : null);
         if (animar && casilla.nueva) {
           nodo.classList.add('pruebas__pieza--entra');
@@ -2057,6 +2109,15 @@ export class Pantallas {
 
     const destacado = pagina.articulos.find((a) => a.destacado) ?? pagina.articulos[0];
     const resto = pagina.articulos.filter((a) => a !== destacado);
+
+    // El rótulo que separa las dos mitades de la página: arriba el material de
+    // trabajo (el expediente), abajo lo que la redacción va a publicar con él.
+    // Sin este filete, los huecos de «ESPACIO RESERVADO» parecían sobras
+    // debajo del sumario; con él se lee la cadena entera del juego: recoges →
+    // el expediente crece → la pieza se escribe con eso.
+    if (pagina.articulos.length) {
+      cuerpo.appendChild(el('div', 'diario__zona', T('archivo.zonaReportajes')));
+    }
 
     if (destacado) cuerpo.appendChild(this._articulo(destacado, true));
 

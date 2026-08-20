@@ -311,12 +311,25 @@ casillas del caso, una por documento, que **se llenan entre partidas**. Lo que
 acabas de recoger cae con animación, una pieza cada 0,3 s; lo de antes ya está
 puesto.
 
+La mesa es **la lista de documentos de la redacción, no un álbum de cromos**:
+cada casilla es una ficha con el nombre del documento impreso —también las que
+faltan, que salen en fantasma con su sello de SIN RECUPERAR, porque el sumario
+sabe exactamente qué es lo que sigue en la calle—. Lo recogido en esta corrida
+cae con su sello de NUEVO, y arriba una cuenta dice cuántos documentos del caso
+van.
+
+Y la pantalla dice **a dónde va todo esto**: una línea bajo el titular conecta
+la corrida con el Archivo según el estado de la página del caso — «se abre con
+2 pruebas: llevas 1», «con esto se abrió la página Política», «ya está abierta;
+cada documento nuevo la completa», o «expediente completo». Es la bisagra que
+faltaba entre correr y publicar.
+
 Aquí, y no antes, pasan dos cosas:
 
 - Las pistas que **solo están en redes** salen marcadas: existen, ocupan su
   casilla, y no cierran ningún reportaje.
 - **El material plantado se revela.** No ocupa casilla del caso —no es de este
-  caso, es de quien te lo dejó ahí—, va en gris al final y, al abrirlo, lo
+  caso, es de quien te lo dejó ahí—, va marcado como PLANTADA y, al abrirlo, lo
   primero que se lee es **qué medio lo va a publicar**. Se detecta al
   contrastarlo, nunca al encontrarlo: esa es la broma entera.
 
@@ -364,7 +377,10 @@ falta. La última página cuenta cuántos casos van enteros. Las pistas que solo
 están en redes no cuentan para completar —con una captura de pantalla no se
 publica—.
 
-Debajo, el hueco del reportaje de El Mercio, con su sello de EN PREPARACIÓN.
+Debajo, tras el rótulo **«Lo que publicará El Mercio»**, los huecos de
+reportaje con su sello de EN PREPARACIÓN: el filete separa el material de
+trabajo (arriba) de lo publicable (abajo), y así se lee la cadena entera —
+recoges → el expediente crece → la pieza se escribe con eso.
 
 Y en la última página, **«Lo que dice el gobierno»**: cada pieza plantada que
 recogiste, con el titular que salió publicado con ella. Esos titulares son
