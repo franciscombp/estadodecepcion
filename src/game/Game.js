@@ -71,20 +71,10 @@ const DT_MAXIMO = 1 / 20;
 // edificio entero y un instante después se le quita el cartel de encima.
 const DISTANCIA_RETIRAR_SENAL = 50;
 
-// CUÁNTO SE ABRE LA CÁMARA AL DOBLAR LA ESQUINA.
-//
-// 24° y no 42°. El comentario del cuarto de vuelta hablaba de noventa grados y
-// el número decía cuarenta y dos, y ni uno ni otro caben aquí: LA CALLE NO
-// DOBLA. La pista sigue yendo a −Z y se sustituye entera al cruzar, así que
-// mirar de lado es mirar la fila de casas de canto. A 42° el punto de fuga de
-// la calle se sale del cuadro —el semiángulo horizontal de esta cámara es de
-// 16°— y medio giro se pasaba enseñando una pared: no se leía como una esquina,
-// se leía como que el corredor se había metido en un portal.
-//
-// A 24° la calle se escora fuerte pero no desaparece: la acera exterior barre
-// el cuadro, el barrio nuevo entra por un lado y el asfalto sigue estando
-// donde hay que mirar. Es un volantazo, no un cambio de plano.
-const GIRO_CAMARA_DESVIO = Math.PI * 24 / 180;
+// EN QUÉ PUNTO DEL VIRAJE TERMINA DE GIRAR EL MUNDO. Ver _girarMundo(): el
+// resto del viraje se corre ya recto por la calle nueva, que es lo que separa
+// «doblé una esquina» de «el escenario no termina de asentarse».
+const FIN_GIRO_MUNDO = 0.62;
 
 export class Game {
   /**
@@ -145,6 +135,9 @@ export class Game {
     // Datos del fin de partida, que se calculan al ser capturado pero solo se
     // consumen si el jugador falla el escape.
     this.finPendiente = null;
+
+    // Rotación en curso del mundo al doblar una esquina. Ver _girarMundo().
+    this.giroMundo = null;
 
     // Callbacks hacia la UI. Los rellena main.js.
     this.alCambiarEstado = () => {};
@@ -579,6 +572,7 @@ export class Game {
 
     this.jugador.reiniciar();
     this.bifurcacion.reiniciar();
+    this._asentarGiroMundo();
     this.obstaculos.reiniciar();
     this.evidencia.reiniciar();
     this.perseguidor.reiniciar();
@@ -647,6 +641,7 @@ export class Game {
     // avanza jugando, así que quedaba congelado y su destello reaparecía de la
     // nada al reanudar tras el escape. El giro del personaje, igual.
     this.bifurcacion.abortarViraje();
+    this._asentarGiroMundo();
     this.jugador.giroCinematico = 0;
 
     this.jugador.caer();
@@ -915,6 +910,87 @@ export class Game {
     const direccion = carril === CARRILES.IZQUIERDA ? 'izquierda' : 'derecha';
     const destino = this.rutas.resolverRuta(this.escenarioActual, direccion);
     this._entrarEnTramo(destino);
+    // Y la calle nueva NACE EN LA TRANSVERSAL: cruzada delante del jugador,
+    // como está una bocacalle de verdad cuando llegas a la esquina. El viraje
+    // la irá girando hasta ponerla de frente. Ver _girarMundo().
+    this._prepararGiroMundo(carril === CARRILES.IZQUIERDA ? -1 : 1);
+  }
+
+  // -------------------------------------------------------------------------
+  // EL GIRO DEL MUNDO — la esquina, como la hace Temple Run
+  // -------------------------------------------------------------------------
+  //
+  // EL MUNDO GIRA; EL JUGADOR Y LA CÁMARA, NO.
+  //
+  // Éste es el tercer enfoque de la esquina, y el bueno. El primero giraba la
+  // cámara en su sitio mientras la desplazaba al lado contrario: paralajes
+  // opuestos, mareo, y el giro leído al revés. El segundo la hacía orbitar
+  // alrededor del personaje: correcto sobre el papel, pero el encuadre entero
+  // se trasladaba y el suelo barría el cuadro en diagonal — seguía sintiéndose
+  // torpe, porque una cámara de runner NO se mueve de detrás del corredor.
+  //
+  // Lo que hace el género es lo contrario: el camino ya está generado doblando
+  // la esquina, y al girar es EL MUNDO el que se reorienta alrededor del
+  // jugador mientras la cámara se queda donde estaba. Aquí la pista no dobla
+  // —se sustituye entera al cruzar— así que se consigue lo mismo por el otro
+  // lado: el tramo nuevo se construye normal (a lo largo de −Z) y se PRE-ROTA
+  // ±90° alrededor del jugador, con lo que queda tendido en la transversal,
+  // exactamente donde está una bocacalle cuando llegas a la esquina. Durante
+  // el viraje esa rotación vuelve a cero: la calle nueva gira hasta quedar de
+  // frente, el barrio viejo ya quedó atrás, y el soportal —que viaja con el
+  // jugador y no gira— hace de esquina cubierta.
+  //
+  // Dos propiedades hacen esto barato:
+  // · Todos los subsistemas del mundo cuelgan de un `grupo` propio asentado en
+  //   el origen, así que girar el mundo son seis escrituras de rotation.y.
+  // · El movimiento interno (obstáculos, papeles) es en coordenadas del grupo:
+  //   con el grupo girado, «acercarse por la calle» se convierte solo en
+  //   acercarse por la calle GIRADA. Las distancias no cambian —una rotación
+  //   es isometría— así que colisiones y tiempos quedan intactos.
+
+  /** Los grupos que forman el mundo por el que se corre. */
+  _gruposMundo() {
+    return [
+      this.pista?.grupo,
+      this.escenario?.grupo,
+      this.obstaculos?.grupo,
+      this.evidencia?.grupo,
+      this.elevado?.grupo,
+      this.potenciadores?.grupo,
+    ].filter(Boolean);
+  }
+
+  /**
+   * Tiende el tramo recién construido en la transversal.
+   * @param {number} dir -1 izquierda, 1 derecha
+   */
+  _prepararGiroMundo(dir) {
+    // Pre-rotación: −dir·90°. Construida a lo largo de −Z, con −90° la calle
+    // queda hacia +X (la bocacalle de la derecha); con +90°, hacia −X.
+    this.giroMundo = { angulo: -dir * Math.PI / 2 };
+    for (const g of this._gruposMundo()) g.rotation.y = this.giroMundo.angulo;
+  }
+
+  /** Adelanta el giro del mundo al ritmo del viraje. */
+  _girarMundo() {
+    if (!this.giroMundo) return;
+    const b = this.bifurcacion;
+    const t = b.virando ? b.tiempoViraje / (b.duracionActual || 1) : 1;
+    // El giro termina ANTES que el viraje (ver FIN_GIRO_MUNDO): lo que queda
+    // de soportal se corre ya con la calle de frente, que es el «salir de la
+    // esquina acelerando» del género.
+    const p = Math.min(1, t / FIN_GIRO_MUNDO);
+    const suave = p * p * (3 - 2 * p);
+    const rot = this.giroMundo.angulo * (1 - suave);
+    for (const g of this._gruposMundo()) g.rotation.y = rot;
+    if (p >= 1) this._asentarGiroMundo();
+  }
+
+  /** Deja el mundo derecho. Al terminar el giro y ante cualquier corte. */
+  _asentarGiroMundo() {
+    if (!this.giroMundo) return;
+    for (const g of this._gruposMundo()) g.rotation.y = 0;
+    this.giroMundo = null;
   }
 
   /** Limpia la pista y arranca un tramo nuevo en el escenario indicado. */
@@ -1807,6 +1883,7 @@ export class Game {
       this._cruzarBifurcacion(this.jugador.carril);
       return;
     }
+    this._girarMundo();
 
     this._publicarHUD(velocidadEfectiva);
   }
@@ -1867,18 +1944,28 @@ export class Game {
       return;
     }
 
-    // LA CINEMÁTICA DEL DESVÍO. Al doblar por un costado el personaje rota
-    // hacia la esquina y la cámara lo sigue con la vista: se desplaza hacia el
-    // lado elegido y gira la mira hacia allá, con lo que se ve al corredor
-    // girar Y el camino que eligió abrirse delante de él. La curva de fuerza
-    // la da la bifurcación (pico al doblar, cola al enderezarse en el
-    // soportal); aquí solo se aplica.
+    // LA CINEMÁTICA DEL DESVÍO, TERCERA VERSIÓN, Y ESTA VEZ COMO LA HACE EL
+    // GÉNERO. Ni la cámara gira en su sitio (v1: paralajes opuestos, mareo) ni
+    // orbita al personaje (v2: correcto en papel, torpe en pantalla —el
+    // encuadre entero se trasladaba y el suelo barría en diagonal—).
+    //
+    // Lo que gira es EL MUNDO: ver _girarMundo(). La calle nueva ya está
+    // generada en la transversal, cruzada delante del jugador, y durante el
+    // viraje rota 90° alrededor de la esquina hasta quedar de frente. Es
+    // exactamente lo que hace Temple Run: el personaje dobla, el escenario se
+    // reorienta a su alrededor, y la cámara NUNCA deja de estar a su espalda.
+    //
+    // A la cámara le queda lo que le toca en ese esquema: el PESO. El
+    // personaje se ladea hacia el giro y la cámara lo acompaña con una deriva
+    // corta hacia ese lado —posición y mira juntas, sin rotar el encuadre—,
+    // que es la parte de «el cuerpo se va para allá» sin ninguna de las dos
+    // fuentes de mareo.
     const cine = this.bifurcacion.cinematicaGiro();
     const fCine = cine ? cine.fuerza : 0;
     const dirCine = cine ? cine.dir : 0;
-    // El personaje: hasta ~66° de giro sobre su media vuelta. El signo es
+    // El personaje se ladea hacia la esquina: ~46° en el pico. El signo es
     // negativo porque rotation.y = π mira a −Z y restarle gira hacia +X.
-    this.jugador.giroCinematico = -dirCine * 1.15 * fCine;
+    this.jugador.giroCinematico = -dirCine * 0.8 * fCine;
 
     // LA CÁMARA ORBITA AL JUGADOR, NO GIRA EN SU SITIO. Y esto era el fallo.
     //
@@ -1905,13 +1992,18 @@ export class Game {
     // Con la órbita ya no hace falta el rotateY de después del lookAt: la
     // posición y la mira salen del mismo ángulo, así que no pueden decir cosas
     // distintas.
-    const anguloOrbita = -dirCine * GIRO_CAMARA_DESVIO * fCine;
-    const senOrbita = Math.sin(anguloOrbita);
-    const cosOrbita = Math.cos(anguloOrbita);
-    // El eje de la órbita es el jugador —donde mira la cámara en reposo—, no el
-    // centro de la calle: si el pivote fuera fijo, girar con el jugador en un
-    // carril exterior lo barrería fuera de cuadro.
-    const pivoteX = this.jugador.x * CAMARA.SEGUIMIENTO_LATERAL;
+    // La deriva del peso: corta, y la MISMA para posición y mira, así que el
+    // encuadre se traslada sin girar y no puede fabricar paralajes opuestos.
+    //
+    // Y HACIA FUERA DEL GIRO, no hacia dentro. Derivar hacia dentro parece lo
+    // natural («la cámara acompaña») y hace lo contrario: trasladar el cuadro
+    // hacia la derecha empuja al personaje hacia la IZQUIERDA de la pantalla,
+    // y el giro vuelve a leerse al revés. La cámara se queda rezagada hacia el
+    // lado de fuera —como un cámara que corre detrás y toma la curva abierta—
+    // y así el personaje cae hacia el lado al que dobla, que es donde el ojo
+    // lo espera.
+    const derivaGiro = -dirCine * 0.7 * fCine;
+    const pivoteX = this.jugador.x * CAMARA.SEGUIMIENTO_LATERAL + derivaGiro;
 
     // Sigue al jugador lateralmente con retraso: da peso sin marear.
     const t = 1 - Math.exp(-CAMARA.AMORTIGUACION * dt);
@@ -1957,14 +2049,12 @@ export class Game {
       + CAMARA.ARRIBA_ALTURA_EXTRA * m;
     this.camara.position.y += (yObjetivo - this.camara.position.y) * t;
 
-    // EL ARCO. En reposo (anguloOrbita = 0) esto es exactamente lo de siempre:
-    // la cámara detrás del jugador a POSICION.z y mirando a MIRA.z. Al doblar,
-    // los dos puntos giran el mismo ángulo alrededor del pivote, así que el
-    // encuadre no se deforma: se traslada por un arco.
-    const radioCamara = CAMARA.POSICION.z + CAMARA.ARRIBA_DISTANCIA_EXTRA * m;
-    const xObjetivo = pivoteX + radioCamara * senOrbita;
-    const zObjetivo = radioCamara * cosOrbita;
+    const xObjetivo = pivoteX;
     this.camara.position.x += (xObjetivo - this.camara.position.x) * t;
+
+    // Vuelta a la profundidad de siempre. Solo se mueve tras un cerco, pero
+    // sin esta línea el encuadre se quedaría descolocado al reanudar.
+    const zObjetivo = CAMARA.POSICION.z + CAMARA.ARRIBA_DISTANCIA_EXTRA * m;
     this.camara.position.z += (zObjetivo - this.camara.position.z) * t;
 
     // Sacudida por golpe, con decaimiento exponencial.
@@ -1981,10 +2071,10 @@ export class Game {
     // fuera y la calle se vería de lado; si lo siguiera más, la cámara
     // orbitaría alrededor del personaje. Van juntas.
     this.camara.lookAt(
-      pivoteX + CAMARA.MIRA.z * senOrbita,
+      pivoteX,
       CAMARA.MIRA.y + alturaSuelo * 0.55 + alturaSalto * 0.12
         - CAMARA.ARRIBA_MIRA_BAJA * m,
-      CAMARA.MIRA.z * cosOrbita,
+      CAMARA.MIRA.z,
     );
 
     // El polvo de la esquina. La rotación ya no se aplica aquí —la hace el
@@ -2075,6 +2165,7 @@ export class Game {
     this.evidencia.reiniciar();
     this.perseguidor.reiniciar();
     this.bifurcacion.reiniciar();
+    this._asentarGiroMundo();
     this.elevado.reiniciar();
     this.tramite.limpiar();
     this.cerco.limpiar();

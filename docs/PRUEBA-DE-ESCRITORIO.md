@@ -173,42 +173,46 @@ que el viraje de la cámara al entrar por un lado se sienta como un viraje y no
 como un tirón; y —esto es lo que se olvida— que a la vuelta de un barrio ya
 visitado el cartel siga diciendo la verdad.
 
-### §6a · Si eliges un lado: el giro, y luego otro barrio
+### §6a · Si eliges un lado: la esquina, y luego otro barrio
 
-Doblar la esquina dura **2,1 s** y es la cinemática más vistosa del juego. Lo
-que pasa, por orden:
+Doblar la esquina dura **1,2 s** —lo que se tarda en cruzar el soportal de 30
+metros a velocidad de crucero— y funciona como en Temple Run: **el camino ya
+está ahí, y lo que gira es el mundo.**
 
-1. El personaje **rota hasta 66°** hacia el lado elegido.
-2. La cámara **recorre un arco alrededor de él**, hasta 24°, y se queda a su
-   espalda respecto de la nueva dirección: al doblar a la derecha, la cámara se
-   va hacia la izquierda. El personaje no se mueve del centro del cuadro; lo
-   que rota es el mundo.
-3. La cámara **se banquea 9°**, como quien se inclina en una curva.
-4. Se levanta **polvo** de la esquina, y un destello corto acompaña el cambio
-   de barrio entre el 20 % y el 46 % del giro.
-5. Se cruza un **soportal** de 30 metros mientras el barrio de detrás se
-   sustituye por el nuevo.
+1. El tramo nuevo se construye entero y nace **tendido en la transversal**,
+   cruzado delante del jugador: exactamente donde está una bocacalle cuando
+   llegas a la esquina.
+2. Durante el viraje, esa calle **rota 90° alrededor del jugador** hasta quedar
+   de frente. El giro del mundo termina en el **62 %** del viraje; el resto se
+   corre ya derecho, saliendo de la esquina.
+3. La cámara **no gira ni orbita**: se queda a la espalda del corredor. Lo que
+   pone es el **peso** — el personaje se ladea hasta 46° hacia el giro, la
+   cámara deriva corta hacia el lado de FUERA (como un cámara que toma la curva
+   abierta, y así el personaje cae hacia el lado al que dobla) y se banquea 7°.
+4. Se levanta **polvo** de la esquina. Por los costados ya no hay destello:
+   la transición se enseña entera, y blanquearla sería tapar justo eso.
+5. El **soportal** viaja con el jugador y hace de esquina cubierta mientras la
+   bocacalle se alinea.
 
-El arco es asimétrico: **se abre en el 32 % y se cierra en el 68 % restante**.
-Se asoma a la esquina y vuelve enseguida a mirar la calle, porque la calle no
-dobla de verdad —la pista sigue yendo a −Z y se sustituye entera— así que
-sostener la mirada de lado sería sostenerla contra una pared.
+Como todos los subsistemas del mundo cuelgan de un grupo asentado en el origen
+y su movimiento es en coordenadas del grupo, girar el mundo son seis escrituras
+de `rotation.y` y ninguna distancia cambia: colisiones y tiempos quedan
+intactos mientras la calle gira.
 
 Y el primer obstáculo del barrio nuevo se coloca contando **lo que queda de
 giro**: el margen no son metros fijos, son los segundos que el jugador va a
 tardar en poder ver. A velocidad de crucero eso pone el primer grupo a unos
-**87 metros**, y cuando la cámara se endereza todavía quedan **1,5 s** de calle
-limpia por delante.
+**87 metros**, con más de 1,5 s de calle limpia tras enderezarse.
 
 Cambia la piel, la luz, los cuatro obstáculos y el caso que se documenta. La
 velocidad, los papeles y la distancia **no se reinician**: la corrida sigue.
 
 Los cuatro barrios y su hora del día están en la tabla de la sección 3.
 
-**A comprobar:** que el personaje no se salga del cuadro en ningún fotograma
-del giro (medido: nunca pasa del 21 % del ancho desde el centro); que el giro a
-la derecha se sienta a la derecha; y que al enderezarse haya calle limpia y no
-un obstáculo encima.
+**A comprobar:** que al llegar a la esquina la bocacalle se vea cruzada y gire
+hasta quedar de frente (no un corte con destello); que el personaje caiga hacia
+el lado al que dobla (medido: hasta el 43 % del semiancho hacia el lado del
+giro, nunca fuera del cuadro); y que al enderezarse haya calle limpia.
 
 ### §6b · Si eliges el centro: el ente de control
 
@@ -625,6 +629,17 @@ dibujada encima del suelo sale **más oscura** que él —eran manchas negras
 flotando sobre la calzada mientras la cámara giraba—; y los muros del soportal
 eran casi negros sin nada que los iluminara, o sea un rectángulo vacío justo
 donde mira la cámara en el pico del giro.
+
+**Y la órbita tampoco bastó.** Corregía los paralajes, pero el encuadre entero
+se trasladaba y el suelo barría el cuadro en diagonal: seguía torpe, porque una
+cámara de runner no se mueve de detrás del corredor. La versión definitiva es
+la del género: **el mundo gira, la cámara no** (§6a). El tramo nuevo nace
+tendido en la transversal y rota 90° hasta quedar de frente; la cámara solo
+acompaña el peso. Y la deriva del peso va hacia FUERA del giro: derivar hacia
+dentro —lo que parece natural— traslada el cuadro hacia el lado del giro y
+empuja al personaje justo al lado contrario, con lo que el giro vuelve a
+leerse al revés. Medido en las dos direcciones: el personaje cae hacia el lado
+al que dobla, hasta el 43 % del semiancho, sin salirse nunca.
 
 ### 6.6 · Se chocaba con el primer obstáculo de cada tramo nuevo — **resuelto**
 

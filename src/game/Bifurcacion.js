@@ -30,8 +30,11 @@
 //                  último tramo convertiría la decisión en un accidente:
 //                  acabarías eligiendo el carril que te tocó esquivar.
 //   3. ENTRADA     Al llegar a la fachada se lee el carril y se compromete.
-//   4. TRÁNSITO    La pantalla se va a blanco mientras se cambia de escenario.
-//                  Ese destello es lo que tapa el corte.
+//   4. TRÁNSITO    Por los costados, la ESQUINA: el tramo nuevo nace tendido
+//                  en la transversal y gira 90° hasta quedar de frente
+//                  mientras se cruza el soportal (ver Game._girarMundo).
+//                  De frente (al trámite) no hay esquina: ahí sí tapa un
+//                  destello, porque no hay nada que enseñar.
 // ============================================================================
 
 import * as THREE from 'three';
@@ -64,12 +67,13 @@ export class Bifurcacion {
     // cinematicaGiro): el personaje rota hacia la esquina, la cámara lo sigue
     // y se endereza ya dentro del soportal.
     this.DURACION_VIRAJE = 0.75;
-    // Segundo y tres cuartos. El giro es lo que más se recuerda de un tramo y
-    // en un segundo escaso no daba tiempo ni a verlo: se entraba en el polvo y
-    // se salía en otra calle sin haber visto la esquina.
-    // 2.1 y no 1.75. Con el giro repartido en tres tiempos —entrar, mirar de
-    // lado, salir— hay más que enseñar, y a 1.75 los tres se atropellaban.
-    this.DURACION_VIRAJE_LATERAL = 2.1;
+    // BAJÓ DE 2.1 A 1.2 al pasar el giro al mundo (ver Game._girarMundo).
+    // Los dos segundos largos eran para que a la CÁMARA le diera tiempo de
+    // irse y volver sin tirones; una esquina de las de verdad —el escenario
+    // rota, tú sigues corriendo— se dobla en un suspiro, y estirarla es
+    // navegar. A 26 u/s esto es casi exactamente lo que se tarda en cruzar el
+    // soportal de 30 metros: se entra doblando y se sale derecho.
+    this.DURACION_VIRAJE_LATERAL = 1.2;
 
     // El soportal que se cruza al doblar la esquina.
     this.paso = null;
@@ -246,12 +250,10 @@ export class Bifurcacion {
   banqueoCamara() {
     if (!this.virando || this.direccionViraje === 0) return 0;
     const t = this.tiempoViraje / this.duracionActual;
-    // 0.15 rad —unos nueve grados— y no 0.26. Quince grados de balanceo encima
-    // del arco de la cámara dejaban el horizonte cruzando el cuadro en
-    // diagonal, y dos rotaciones grandes a la vez en ejes distintos es la
-    // receta exacta del mareo. El balanceo tiene que ACOMPAÑAR al giro, no
-    // competir con él.
-    return -this.direccionViraje * Math.sin(t * Math.PI) * 0.15;
+    // Siete grados. Es el ÚNICO giro que hace la cámara en toda la esquina
+    // —el resto lo pone el mundo al rotar— y va de banqueo, como quien se
+    // inclina en una curva: acompaña al peso del personaje, no compite con él.
+    return -this.direccionViraje * Math.sin(t * Math.PI) * 0.12;
   }
 
   /**
@@ -262,17 +264,11 @@ export class Bifurcacion {
    * girar y el camino elegido aparecer delante de él) y luego, ya dentro del
    * soportal, los dos se enderezan mirando la calle nueva.
    *
-   * La cámara ORBITA al personaje: no gira en su sitio, se desplaza por un
-   * arco alrededor de él y acaba a su espalda respecto de la nueva dirección.
-   * Por eso el corredor no se mueve del centro del cuadro y lo que rota es el
-   * mundo, que es lo que pasa de verdad al doblar una calle. Ver
-   * Game._actualizarCamara.
-   *
-   * La curva es ASIMÉTRICA: se abre en el 32 % y se cierra en el 68 % que
-   * queda. No es un gusto, es una obligación: el mundo NO dobla la esquina
-   * —la pista sigue yendo a −Z y se sustituye entera al cruzar— así que
-   * sostener la mirada de lado es sostenerla contra la fila de casas. Se asoma
-   * a la esquina y vuelve enseguida a la calle.
+   * Desde que la esquina la hace EL MUNDO al rotar (Game._girarMundo), esta
+   * curva ya no mueve la cámara: alimenta el PESO —el ladeo del personaje, el
+   * banqueo, la deriva corta de cámara y el polvo—. Sigue siendo asimétrica
+   * (pico al 32 %, vuelta en el resto) para que el cuerpo se incline mientras
+   * el mundo gira y se enderece cuando la calle nueva ya está de frente.
    *
    * De frente no hay cinemática: al trámite se entra recto.
    *
@@ -340,12 +336,11 @@ export class Bifurcacion {
     if (this.direccionViraje === 0) {
       return t < 0.25 ? t / 0.25 : Math.max(0, 1 - (t - 0.25) / 0.75);
     }
-    // Y el destello acompaña AL PICO, que ahora cae al 32 %. Se quedó donde
-    // estaba (38-66 %) cuando el arco era simétrico; con el pico adelantado
-    // llegaba tarde y blanqueaba la vuelta a la calle en vez del cambio.
-    if (t < 0.20 || t > 0.46) return 0;
-    const u = (t - 0.20) / 0.26;
-    return Math.sin(u * Math.PI) * 0.34;
+    // POR LOS COSTADOS YA NO HAY DESTELLO NINGUNO. Un fogonazo es el recurso
+    // para cuando NO se puede enseñar la transición, y ahora la transición se
+    // enseña entera: la bocacalle gira hasta quedar de frente, a la vista.
+    // Blanquearla sería tapar exactamente lo que este giro por fin enseña.
+    return 0;
   }
 
   // -------------------------------------------------------------------------
