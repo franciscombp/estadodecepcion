@@ -139,6 +139,20 @@ export class Game {
     // Rotación en curso del mundo al doblar una esquina. Ver _girarMundo().
     this.giroMundo = null;
 
+    // LA MIRA DE LA CÁMARA, SUAVIZADA. Los dos encuadres del juego —carrera y
+    // cerco— hacían lookAt directo a objetivos distintos, así que cada cambio
+    // de estado giraba la vista EN UN FOTOGRAMA aunque la posición viajara
+    // suave: al capturarte y al zafarte, la cámara daba un latigazo. La mira
+    // vive aquí y persigue su objetivo con retraso; los saltos de objetivo se
+    // convierten en paneos. Ver _mirar().
+    this.miraActual = null;
+    this._miraObjetivo = new THREE.Vector3();
+    // Ventana de recuperación tras zafarse del cerco: la cámara vuelve a su
+    // encuadre de carrera despacio en vez de al ritmo de juego.
+    this.recuperacionCamara = 0;
+    // Fogonazo del portazo al salir del trámite. Ver _resumirInstitucion.
+    this.destelloPortazo = 0;
+
     // BARRIOS YA CONSTRUIDOS, aparcados fuera del grafo. Construir un
     // escenario cuesta 380-680 ms en un solo fotograma (medido); con esta
     // caché solo se paga la primera visita, y esa se adelanta al corredor
@@ -635,6 +649,10 @@ export class Game {
   arrancarCorrida() {
     if (this.estado !== 'intro') return;
 
+    // La mira suavizada arranca de cero: viene de donde la dejó la intro y no
+    // debe arrastrar un paneo desde el encuadre del menú.
+    this.miraActual = null;
+
     this.intro.saltar();
     this.jugador.reiniciar();
     this.intro.soltarPose(this.jugador);
@@ -676,8 +694,12 @@ export class Game {
     // avanza jugando, así que quedaba congelado y su destello reaparecía de la
     // nada al reanudar tras el escape. El giro del personaje, igual.
     this.bifurcacion.abortarViraje();
-    this._asentarGiroMundo();
     this.jugador.giroCinematico = 0;
+    // El giro del mundo NO se asienta de golpe: si te capturan en plena
+    // esquina, enderezar la calle en un fotograma es un teletransporte del
+    // decorado justo cuando la cámara se está abriendo al corro. Se desvanece
+    // durante el cerco (ver _actualizarCerco) y, si algo quedara, el arranque
+    // del tramo siguiente lo asienta igual que siempre.
 
     this.jugador.caer();
     this._limpiarEfectos();
@@ -1165,6 +1187,15 @@ export class Game {
       hallazgo: extra.hallazgo ?? null,
     });
 
+    // EL PORTAZO SE VE. En la variante corta el pasillo se cambia por la calle
+    // nueva EN UN FOTOGRAMA, sin pantalla ni soportal que lo tape: un corte a
+    // pelo. (Lo tapaba, por accidente, el fogonazo diferido del viraje; al
+    // arreglar aquel bug el corte quedó desnudo.) Un golpe de blanco corto es
+    // además la metáfora exacta del tramo: te dan con la puerta en las
+    // narices. La primera visita no lo necesita: la pantalla del relato cubre
+    // el cambio.
+    this.destelloPortazo = 1;
+
     const destino = this.rutas.resolverRuta(this.escenarioActual, 'derecha');
     this._entrarEnTramo(destino);
   }
@@ -1519,6 +1550,9 @@ export class Game {
     this.audio.evidencia();
     this.cerco.limpiar();
     this.finPendiente = null;
+    // La cámara vuelve del picado del cerco al encuadre de carrera DESPACIO:
+    // al ritmo normal de juego era un latigazo de posición y de mira a la vez.
+    this.recuperacionCamara = 0.9;
 
     this.jugador.reiniciarTrasEscape();
     this.perseguidor.soltar(CERCO.DISTANCIA_TRAS_ESCAPE);
@@ -1709,6 +1743,15 @@ export class Game {
    * o directamente el fin de partida.
    */
   _actualizarCerco(dt) {
+    // Si la captura pilló el mundo a medio girar, se endereza aquí, suave:
+    // exponencial rápida, imperceptible en un par de fotogramas si el ángulo
+    // era chico y un asentamiento visible y limpio si era grande.
+    if (this.giroMundo) {
+      const actual = this.pista.grupo.rotation.y * Math.exp(-5 * dt);
+      if (Math.abs(actual) < 0.01) this._asentarGiroMundo();
+      else for (const g of this._gruposMundo()) g.rotation.y = actual;
+    }
+
     const t = this.cerco.actualizar(dt);
     // Los perseguidores se abalanzan al mismo ritmo que el cerco se cierra.
     this.perseguidor.cercar(t, dt);
@@ -1889,6 +1932,11 @@ export class Game {
 
     this._emitirEstela(dt, velocidadEfectiva);
 
+    // El fogonazo del portazo se apaga solo, en poco más de medio segundo.
+    if (this.destelloPortazo > 0) {
+      this.destelloPortazo = Math.max(0, this.destelloPortazo - dt * 1.8);
+    }
+
     // ---- Trámite ----------------------------------------------------------
     // Es un tramo aparte: sin obstáculos, sin bifurcación y sin captura. Se
     // resuelve entero aquí y se sale antes de tocar nada de lo demás.
@@ -2006,7 +2054,7 @@ export class Game {
       // El HUD pinta una ficha por tipo de evidencia con su contador.
       pruebas: this.pruebasPartida,
       // Destello blanco que tapa el corte de escenario al tomar un desvío.
-      destello: this.bifurcacion.destello(),
+      destello: Math.max(this.bifurcacion.destello(), this.destelloPortazo),
       // Marcador del expediente mientras se está dentro del túnel del centro.
       tramite: this.tramite.activo
         ? {
@@ -2102,7 +2150,13 @@ export class Game {
     const pivoteX = this.jugador.x * CAMARA.SEGUIMIENTO_LATERAL + derivaGiro;
 
     // Sigue al jugador lateralmente con retraso: da peso sin marear.
-    const t = 1 - Math.exp(-CAMARA.AMORTIGUACION * dt);
+    //
+    // Y MÁS DESPACIO justo después de zafarse del cerco: la cámara viene del
+    // picado, y volver al encuadre de carrera al ritmo de juego era un
+    // latigazo. Durante la ventana de recuperación amortigua a un tercio.
+    this.recuperacionCamara = Math.max(0, this.recuperacionCamara - dt);
+    const amortiguacion = this.recuperacionCamara > 0 ? 3 : CAMARA.AMORTIGUACION;
+    const t = 1 - Math.exp(-amortiguacion * dt);
 
     // CORRIENDO POR ARRIBA la cámara se abre. Ver CAMARA.ARRIBA_*: sobre la
     // plataforma hay que ver el borde —que es de donde te caes— y el final del
@@ -2166,11 +2220,13 @@ export class Game {
     // MENOS que la cámara, cada cambio de carril giraría el encuadre hacia
     // fuera y la calle se vería de lado; si lo siguiera más, la cámara
     // orbitaría alrededor del personaje. Van juntas.
-    this.camara.lookAt(
+    this._mirar(
       pivoteX,
       CAMARA.MIRA.y + alturaSuelo * 0.55 + alturaSalto * 0.12
         - CAMARA.ARRIBA_MIRA_BAJA * m,
       CAMARA.MIRA.z,
+      this.recuperacionCamara > 0 ? 3 : 14,
+      dt,
     );
 
     // El polvo de la esquina. La rotación ya no se aplica aquí —la hace el
@@ -2217,6 +2273,19 @@ export class Game {
    * entiende —los perseguidores lo tapan y los policías caen fuera de cuadro—,
    * y el sentido de la secuencia es precisamente que se vea.
    */
+  /**
+   * Apunta la cámara con retraso: la mira persigue el objetivo en vez de
+   * clavarse en él. A velocidad alta (14/s) el juego normal se siente igual
+   * —el retraso es de milésimas— pero un cambio de encuadre grande (entrar o
+   * salir del cerco) se recorre en unos fotogramas en vez de en uno.
+   */
+  _mirar(x, y, z, velocidad, dt) {
+    this._miraObjetivo.set(x, y, z);
+    if (!this.miraActual) this.miraActual = this._miraObjetivo.clone();
+    else this.miraActual.lerp(this._miraObjetivo, 1 - Math.exp(-velocidad * dt));
+    this.camara.lookAt(this.miraActual);
+  }
+
   _encuadrarCerco(dt) {
     const t = 1 - Math.exp(-2.4 * dt);
 
@@ -2224,7 +2293,9 @@ export class Game {
     this.camara.position.y += (CERCO.CAMARA.y - this.camara.position.y) * t;
     this.camara.position.z += (CERCO.CAMARA.z - this.camara.position.z) * t;
 
-    this.camara.lookAt(this.jugador.x, CERCO.CAMARA_MIRA_Y, -0.6);
+    // Al mismo ritmo que la posición: el paneo de bajar la vista al corro es
+    // parte de la escena, no un corte.
+    this._mirar(this.jugador.x, CERCO.CAMARA_MIRA_Y, -0.6, 2.4, dt);
   }
 
   // -------------------------------------------------------------------------

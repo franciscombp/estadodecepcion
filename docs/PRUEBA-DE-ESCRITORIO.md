@@ -745,7 +745,35 @@ o se cambia el código para que diga lo que dice el guion, o se cambia el guion
 para que deje de prometer un guiño que el juego no hace. Las dos son
 defendibles; ninguna es mecánica.
 
-### 6.12 · Del guion, sigue sin implementarse — **abierto**
+### 6.12 · Las costuras entre estados saltaban — **resuelto**
+
+Las cinemáticas eran fluidas por dentro y bruscas por los BORDES: cada cambio
+de estado tenía algún teletransporte.
+
+- **La mira de la cámara.** Los dos encuadres (carrera y cerco) hacían `lookAt`
+  directo a objetivos distintos: la posición viajaba suave pero la vista
+  giraba EN UN FOTOGRAMA al capturarte y al zafarte. Ahora la mira es un punto
+  suavizado que persigue su objetivo (`_mirar`): a 14/s el juego normal se
+  siente igual, y los cambios de encuadre se vuelven paneos. Medido: el giro
+  máximo por fotograma al entrar al cerco bajó de un corte seco a 3,3°.
+- **Levantarse tras el escape.** `reiniciarTrasEscape` ponía al personaje de
+  tumbado a de pie en un fotograma. Ahora el tronco rueda de −90° a 0 en media
+  zancada (0,55 s con suavizado), con una pizca de altura para que los pies no
+  asomen bajo el asfalto.
+- **La cámara tras el escape** vuelve del picado con amortiguación a un tercio
+  durante 0,9 s, en vez de al ritmo de juego (que era un latigazo).
+- **El portazo del trámite.** Al arreglar el fogonazo diferido (6.10) quedó a
+  la vista que la variante corta cambia el pasillo por la calle nueva EN UN
+  FOTOGRAMA. Ahora el portazo lleva su propio golpe de blanco corto —la
+  metáfora exacta del tramo— que muere en medio segundo. La primera visita no
+  lo necesita: la pantalla del relato cubre el cambio.
+- **Capturado en plena esquina**, el mundo se enderezaba de golpe. Ahora se
+  desvanece durante el cerco (medido: 1,49 rad → 0,66 a los 0,3 s → 0).
+- **Pulsar JUGAR** teletransportaba la cámara del encuadre del menú al de la
+  entrevista (y al reintentar, desde el picado del cerco). La fase 1 de la
+  cinemática ahora funde desde donde venga la cámara durante su primera mitad.
+
+### 6.13 · Del guion, sigue sin implementarse — **abierto**
 
 Cuatro cosas listadas en `docs/GUION.md` y todavía no en el juego:
 

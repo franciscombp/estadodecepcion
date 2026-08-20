@@ -194,6 +194,13 @@ export class Intro {
     this.duracion = Object.values(this.guion).reduce((a, b) => a + b, 0);
     this.tiempo = 0;
     this.activa = true;
+    // De dónde viene la cámara. Se captura en el primer fotograma de la
+    // cinemática (ver actualizar) para fundir hasta el plano de la entrevista
+    // en vez de teletransportarse: desde el menú es un paso corto —el vaivén
+    // de la portada la deja a medio metro— pero al reintentar desde la primera
+    // plana la cámara viene del picado del cerco, y ahí el salto era de
+    // cuadro entero.
+    this.desdeCamara = null;
   }
 
   /**
@@ -247,7 +254,13 @@ export class Intro {
     // --- Fase 1: la entrevista ---------------------------------------------
     let t = this.tiempo;
     if (t < g.entrevista) {
+      // El primer fotograma apunta de dónde viene la cámara; los siguientes
+      // funden hacia el plano de la entrevista durante la primera mitad de la
+      // fase. Sin este fundido, pulsar JUGAR daba un corte seco de cámara.
+      if (!this.desdeCamara) this.desdeCamara = camara.position.clone();
       this._colocarCamara(camara, CAMARA_ENTREVISTA, jugador, 1);
+      const f = this._suave(Math.min(1, t / (g.entrevista * 0.5)));
+      if (f < 1) camara.position.lerpVectors(this.desdeCamara, camara.position, f);
       this._poseEntrevista(jugador, this.tiempo);
       this._colocarMinistro(1, this.tiempo);
       this._perseguidoresLejos(perseguidor);

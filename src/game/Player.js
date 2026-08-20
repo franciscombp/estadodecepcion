@@ -47,6 +47,10 @@ export class Player {
     // cada fotograma desde Bifurcacion.cinematicaGiro). Se SUMA a la media
     // vuelta del modelo: negativo mira a la derecha, positivo a la izquierda.
     this.giroCinematico = 0;
+    // Segundos que quedan de LEVANTARSE tras zafarse del cerco. Mientras
+    // corre, el cuerpo rueda de la pose de derrota a la de carrera en vez de
+    // teletransportarse de tumbado a de pie. Ver reiniciarTrasEscape().
+    this.recuperacion = 0;
 
     // ---- Estado vertical --------------------------------------------------
     this.y = 0;
@@ -290,6 +294,20 @@ export class Player {
       const desvio = this.xObjetivo - this.x;
       this.modelo.rotation.y = Math.PI + this.giroCinematico;
       this.modelo.rotation.z = -THREE.MathUtils.clamp(desvio * 0.22, -0.3, 0.3);
+    }
+
+    // El levantarse tras el escape: el tronco rueda de −90° a 0 con un
+    // suavizado, y una pizca de altura extra evita que los pies asomen bajo el
+    // asfalto a mitad de la rodada. Escribe rotation.x, que la carrera normal
+    // no toca, así que no pisa a nadie.
+    if (this.recuperacion > 0) {
+      this.recuperacion = Math.max(0, this.recuperacion - dt);
+      const f = 1 - this.recuperacion / 0.55;
+      const suave = f * f * (3 - 2 * f);
+      this.modelo.rotation.x = -Math.PI / 2 * (1 - suave);
+      this.modelo.position.y = this.y + 0.26 * (1 - suave);
+    } else if (this.modelo.rotation.x !== 0 && this.vivo) {
+      this.modelo.rotation.x = 0;
     }
 
     // Animación de carrera: la cadencia sube con la velocidad.
@@ -549,9 +567,14 @@ export class Player {
 
     this.aplaston = 0;
     this.modelo.visible = true;
-    this.modelo.rotation.set(0, Math.PI, 0);
+    // NO se pone de pie de golpe: la pose de derrota (tumbado, −90° en X) se
+    // deshace rodando hacia delante durante la primera media vuelta de
+    // zancada. Antes era un teletransporte de cuerpo entero en un fotograma,
+    // y era el salto más visible de toda la reanudación.
+    this.modelo.rotation.set(-Math.PI / 2, Math.PI, 0);
     this.modelo.scale.set(1, 1, 1);
     this._enderezarMiembros();
+    this.recuperacion = 0.55;
   }
 
   /**
