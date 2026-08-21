@@ -282,6 +282,22 @@ export class Game {
     // no toca nada; en escritorio es el que manda.
     fov = Math.min(fov, verticalPara(CAMARA.SEMIANGULO_HORIZONTAL_MAXIMO));
 
+    // Y UN SUELO AL PROPIO VERTICAL, que es el que faltaba y por eso en
+    // apaisado el personaje corría sin pies.
+    //
+    // El techo de arriba cierra el vertical según lo ancha que sea la pantalla,
+    // y en un móvil tumbado —aspecto 2,16— lo cerraba a 45,18°: medido, los
+    // pies caían en 1,044, o sea por debajo del borde inferior. Es el mismo
+    // fallo que en escritorio, sólo que allí se arregló ensanchando el techo y
+    // aquí no basta, porque el aspecto es todavía más ancho.
+    //
+    // 52° es lo que hace falta: deja los pies en 0,971 a aspecto 2,16 y no
+    // toca nada en 16:9 (que pide 53,72) ni en vertical (56). Se paga con 93°
+    // horizontales en el formato más ancho —más de lo que a esta cámara le
+    // gusta— y es un precio que se paga sin discutir: ver por dónde corres es
+    // información de juego, que el borde del cuadro se estire no lo es.
+    fov = Math.max(fov, CAMARA.FOV_MINIMO);
+
     this.camara.fov = fov;
     this.camara.updateProjectionMatrix();
   }

@@ -62,7 +62,20 @@ export const ESCENARIOS = {
     colores: {
       nieblaLejos: 0x8fc4e8,   // Cielo abierto de mediodía guayaquileño
       nieblaCerca: 0xa9d6f2,
-      calle: 0x6b6a68,         // Asfalto caliente, no gris de sombra
+      // EL ASFALTO NO PUEDE SER GRIS NEUTRO. 0x6b6a68 tenía saturación 0,014
+      // —gris puro— y se comía el centro del cuadro: medido sobre la foto, la
+      // calzada de la Bahía daba 0,129 de saturación mientras el barrio andaba
+      // por 0,33, y ninguna exposición lo arreglaba porque a un gris no se le
+      // puede sacar color. Un mercado de Guayaquil a mediodía tiene el asfalto
+      // tostado, no gris de sombra: eso es lo que decía el comentario que había
+      // aquí, pero el número decía otra cosa.
+      //
+      // Se barrieron cuatro sobre el juego corriendo: 0x9c7a55 (arena) sube la
+      // saturación del cuadro a 0,461 pero se come la línea amarilla del
+      // carril, que es información de juego; 0x8f6047 (ladrillo) y 0x7a5a3e
+      // (tierra) quedan entre medias. 0x8a6b4a deja el cuadro en 0,411 y la
+      // calzada en 0,339 CON la línea legible, y eso manda.
+      calle: 0x8a6b4a,
       acento: 0xffc21f,        // Dorado mercado
       props: 0xe0913f,         // Madera / toldos
       luzAmbiente: 0xd9e9f7,
@@ -73,6 +86,12 @@ export const ESCENARIOS = {
       rebote: 0xc9a878,
       intensidadAmbiente: 1.5,
       intensidadDireccional: 1.95,
+      // LA EXPOSICIÓN, POR BARRIO. Ver scenes/Ambiente.js para el porqué de
+      // que no pueda ser una sola: arreglado el espacio de color de las
+      // texturas procedurales, la que devuelve el brillo a un mediodía deja
+      // de ser un apagón al Apagón. Aquí 1.6 —medido: claridad media 0,615 y
+      // saturación 0,411, con la calzada tostada—.
+      exposicion: 1.6,
     },
 
     // Etiquetas de los obstáculos, para el HUD y los mensajes de choque.
@@ -176,6 +195,12 @@ export const ESCENARIOS = {
       rebote: 0x2a2620,
       intensidadAmbiente: 0.3,
       intensidadDireccional: 0.3,
+      // 1.2, la de siempre, y es el barrio que impide que la exposición sea
+      // global: medido, a 1.8 —la que les va bien a los otros— el Apagón sube
+      // a 0,409 de claridad media y deja de ser un apagón. A 1.2 se queda en
+      // 0,224 con el 52 % del cuadro en la banda más oscura, que es lo que
+      // tiene que ser: aquí la oscuridad ES la mecánica.
+      exposicion: 1.2,
     },
 
     // El tramo arranca CON la linterna encendida. Entrar a oscuras y esperar
@@ -273,6 +298,11 @@ export const ESCENARIOS = {
       rebote: 0xd08a7a,
       intensidadAmbiente: 1.45,
       intensidadDireccional: 1.55,
+      // 1.8. Medido en el barrido: claridad media 0,458 y saturación 0,529,
+      // con el reparto de valores en [0.03, 0.46, 0.20, 0.24, 0.07] —cinco
+      // bandas ocupadas, que es lo que separa una imagen con rango de una
+      // mancha—. Justo la horquilla de saturación de la referencia (0,45-0,60).
+      exposicion: 1.8,
     },
 
 
@@ -364,6 +394,10 @@ export const ESCENARIOS = {
       rebote: 0xa8654f,
       intensidadAmbiente: 1.3,
       intensidadDireccional: 1.35,
+      // 1.8, como las Elecciones y por la misma medida: claridad 0,476 y
+      // saturación 0,513. A 2.1 la saturación baja a 0,496 sin ganar rango, o
+      // sea que a partir de ahí sólo se lava.
+      exposicion: 1.8,
     },
 
 

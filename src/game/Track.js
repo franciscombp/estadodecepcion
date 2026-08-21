@@ -81,6 +81,16 @@ function crearTexturaAsfalto(colorCalle, colorLinea) {
   const textura = new THREE.CanvasTexture(lienzo);
   textura.wrapS = THREE.ClampToEdgeWrapping;
   textura.wrapT = THREE.RepeatWrapping;
+  // EL ASFALTO SE PINTA EN VALORES DE PANTALLA, HAY QUE DECIRLO.
+  //
+  // Sin esto una CanvasTexture entra al motor como si sus valores YA fueran
+  // lineales, así que el #6b6a68 de la paleta —0,42 de claridad— salía a
+  // pantalla en 0,68. Medido sobre la foto: la calzada de la Bahía daba 0,664
+  // de luz y 0,213 de saturación, con el 78 % de los píxeles del cuadro
+  // apelotonados en una sola banda de valor. No era la iluminación —bajarle la
+  // mitad al ambiente movía la claridad del 0,674 al 0,666— era esta línea que
+  // faltaba. El cielo de utils/entorno.js ya la lleva, con el mismo comentario.
+  textura.colorSpace = THREE.SRGBColorSpace;
   textura.needsUpdate = true;
   return textura;
 }

@@ -383,10 +383,33 @@ export const PERSEGUIDOR = {
   // que era el problema— y son un tercio más grandes que el jugador, que es
   // lo que corresponde a dos personas una encima de otra. Si se toca uno de
   // los cuatro valores hay que rehacer la división.
-  Z_LEJOS: 2.8,
-  Z_CERCA: 1.0,
+  // LA CUENTA, REHECHA CONTRA LA CÁMARA DE VERDAD. La de arriba se escribió
+  // para una cámara en (0, 4, 7.4) que ya no existe, así que estaba caducada.
+  // Con la cámara en (0, 4.3, 5.5) y el centro visual del par en y ≈ 0,9-1,06:
+  //
+  //     lejos:  0.72 / 4.61  =  0.156
+  //     cerca:  0.86 / 5.46  =  0.158
+  //     jugador: 1.0 / 6.54  =  0.153
+  //
+  // Siguen ocupando lo mismo en los dos extremos (0,8 % de diferencia) y siguen
+  // siendo más grandes que el jugador. Si se toca uno de los cuatro valores hay
+  // que rehacer la división.
+  //
+  // Y HUBO QUE MOVER LA Z, no sólo la escala. Al acortar la cámara de 6.4 a 5.5
+  // el hueco por detrás del jugador se encogió de 3,6 a 2,7, y con eso el
+  // perseguidor lejano se caía del cuadro: medido, su cabeza pasaba a 1,006, o
+  // sea POR DEBAJO del borde inferior de la pantalla. Alejándolos de la cámara
+  // —Z más pequeña, más pegados al jugador— vuelven exactamente a donde estaban:
+  //
+  //     alto en pantalla   lejos 0,325 / cerca 0,335   (antes 0,270 / 0,276)
+  //     cabeza             0,906 → 0,670               (antes 0,909 → 0,668)
+  //
+  // O sea: el cuadro entero se cerró ×1,245 y ellos se cerraron con él. La
+  // lectura de amenaza —el hueco que sube por el cuadro— es la misma.
+  Z_LEJOS: 2.4,
+  Z_CERCA: 1.1,
   ESCALA_LEJOS: 0.72,
-  ESCALA_CERCA: 0.95,
+  ESCALA_CERCA: 0.86,
 
   // Corren PEGADOS A UN LADO del jugador, no exactamente detrás.
   //
@@ -814,13 +837,35 @@ export const CAMARA = {
   // estás encima del personaje, la vía se abre hacia ti y las paredes laterales
   // pasan de largo por el borde del cuadro. El problema de los perseguidores no
   // se resuelve con la focal, se resuelve con su rango de Z (ver PERSEGUIDOR).
-  FOV: 58,
-  POSICION: { x: 0, y: 4.7, z: 6.4 },
-  // La mira va ALTA —por encima de la cabeza del personaje— y eso es lo que lo
-  // baja al tercio inferior del cuadro, que es donde lo pone Subway Surfers.
-  // Con la mira a la altura del pecho, el personaje se planta en el centro y
-  // se come el sitio por donde hay que mirar.
-  MIRA: { x: 0, y: 2.00, z: -6 },
+  // MÁS CORTA Y MÁS CERRADA, PORQUE EL PERSONAJE SALÍA PEQUEÑO. Medido
+  // proyectando su caja envolvente —la del esqueleto, no la de reposo— contra
+  // la cámara en un móvil vertical de 393×852: ocupaba 0,165 del alto de la
+  // pantalla. En la referencia ocupa un cuarto. Estaba bien COLOCADO —cabeza en
+  // 0,698, pies en 0,863, o sea tercio inferior— pero medía dos tercios de lo
+  // que debía.
+  //
+  // El tamaño aparente es 1 / (2·d·tan(fov/2)), así que sólo hay dos mandos y
+  // los dos están aquí: distancia y focal. Con 56 a 6,54 de distancia sale
+  // 0,209, un 27 % más grande, y ahí se para la cosa por dos topes MEDIDOS:
+  //
+  //   · Por focal: a FOV 52 el borde del jugador en el carril exterior cae en
+  //     0,9815 de la pantalla, o sea rozando el corte. Cerrar más el angular
+  //     es dejar de ver por dónde se corre.
+  //   · Por distancia: a z = 4,6 ese mismo borde llega a 1,003 —se sale— y los
+  //     perseguidores, que van entre la cámara y el jugador, se van del cuadro
+  //     por abajo.
+  FOV: 56,
+  POSICION: { x: 0, y: 4.3, z: 5.5 },
+  // Y LA MIRA BAJA, que parece lo contrario de lo que decía el comentario
+  // viejo y es lo mismo. Lo que pone al personaje en el tercio inferior no es
+  // el número, es que la línea de visión le pase POR ENCIMA de la cabeza: con
+  // la cámara en 4,3 y la mira en 0,90 a z = −6, esa línea pasa a 2,68 sobre el
+  // asfalto a la altura del personaje, y él mide 1,60. Dejarla en 2,00 con la
+  // cámara acortada lo empujaba fuera del cuadro por abajo (pies en 1,013).
+  //
+  // Con esto: cabeza 0,666, pies 0,876, picado 16,47° contra los 12,28° de
+  // antes —el «picado claro» de la referencia— y horizonte en 0,222.
+  MIRA: { x: 0, y: 0.90, z: -6 },
 
   // Encuadre según la forma de la pantalla.
   //
@@ -832,11 +877,40 @@ export const CAMARA = {
   // carriles exteriores dejan de verse a tiempo. Es una red de seguridad: con
   // el gran angular actual ni siquiera se activa en un móvil normal (aspecto
   // ~0.46), solo en formatos extremos.
-  SEMIANGULO_HORIZONTAL: 16,
+  // 13.5 Y NO 16, Y ESTO ERA UN FALLO SILENCIOSO. El comentario de arriba dice
+  // que esta red de seguridad «ni siquiera se activa en un móvil normal
+  // (aspecto ~0.46)». Medido: SE ACTIVA SIEMPRE. A aspecto 0,461 el suelo pide
+  // un vertical de 63,74° y el juego lo aplicaba, así que la cámara nunca corrió
+  // con el FOV que dice la línea de arriba —y el personaje pagaba un 10 % de
+  // tamaño por una red que no hacía falta—.
+  //
+  // Peor: a aspecto 0,562 (un iPhone SE) el suelo pide 54,05 y NO se activa. O
+  // sea que dos móviles corrientes daban dos encuadres distintos.
+  //
+  // 13.5 es el semiángulo que a 0,461 pide 55,0°, justo por debajo del FOV de
+  // diseño: deja de mandar en un móvil normal y sigue mandando en formatos
+  // extremos, que es lo que se quería. Y el margen que protegía sigue ahí
+  // medido: el borde del jugador en el carril exterior queda en 0,872.
+  SEMIANGULO_HORIZONTAL: 13.5,
   // MÁXIMO — en pantallas anchas pasa lo contrario: un FOV vertical de 58 en
   // 16:9 da casi 90° horizontales, y eso ya no es gran angular, es ojo de pez.
   // Las líneas de la calle se curvan y los laterales se estiran.
-  SEMIANGULO_HORIZONTAL_MAXIMO: 34,
+  // 42 Y NO 34, porque 34 recortaba DEMASIADO y el recorte tenía un precio que
+  // no se había medido: cerrar el vertical a 41,55° agranda todo y empuja al
+  // personaje fuera del cuadro. Medido en 1280×720, con la cámara de ANTES los
+  // pies ya caían en 1,091 —fuera de pantalla— y el cielo se quedaba en el
+  // 21 % del cuadro. O sea que en un monitor el juego llevaba tiempo cortándole
+  // los pies al personaje y nadie lo había medido.
+  //
+  // Barrido en escritorio con la cámara nueva: 34 → pies 1,135; 38 → 1,054;
+  // 40 → 1,019; 42 → 0,974 con el horizonte en 0,297; 46 → 0,956 pero ya sin
+  // recortar nada (86,8° horizontales). 42 son 84° horizontales: es lo que hay
+  // que pagar para que en un monitor se le vean los pies al personaje.
+  SEMIANGULO_HORIZONTAL_MAXIMO: 42,
+  // Y EL SUELO DEL PROPIO VERTICAL. Sin él, en un móvil tumbado (aspecto 2,16)
+  // el techo de arriba cerraba el vertical a 45,18° y los pies del personaje
+  // caían en 1,044 de pantalla, o sea fuera. Ver Game._ajustarEncuadre().
+  FOV_MINIMO: 52,
   // La cámara sigue el desplazamiento lateral del jugador con retraso, lo que
   // da sensación de peso sin marear.
   //
@@ -845,7 +919,16 @@ export const CAMARA = {
   // se salía del borde de la pantalla en vertical. Siguiéndolo a la mitad se
   // queda a media distancia del centro, que es donde debe estar: dentro, pero
   // suficientemente descentrado como para que se note el cambio de carril.
-  SEGUIMIENTO_LATERAL: 0.7,
+  // 0.78 al acercar la cámara, y sale de la misma medida que lo fijó en 0.7:
+  // dónde queda el borde del jugador cuando está en el carril exterior. Medido
+  // con el encuadre nuevo: a 0,70 cae en 0,9385 de la pantalla —cinco
+  // centésimas del corte— y a 0,80 en 0,8557. Interpolando, 0,78 lo deja en
+  // 0,872, que es clavado el margen que había antes (0,869).
+  //
+  // O sea: no es que ahora se quiera un seguimiento más pegajoso, es que un
+  // cuadro un 24 % más cerrado necesita seguir un poco más para dejar el mismo
+  // hueco.
+  SEGUIMIENTO_LATERAL: 0.78,
   AMORTIGUACION: 8,
 
   // --- CORRIENDO POR ARRIBA -------------------------------------------------

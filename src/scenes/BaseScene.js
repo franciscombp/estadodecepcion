@@ -16,9 +16,11 @@
 // ============================================================================
 
 import * as THREE from 'three';
-import { crearDecorado, crearDron, BOCACALLE } from '../models/props.js';
+import { crearDecorado, crearDron, crearCruceAereo, CRUCE_AEREO, BOCACALLE }
+  from '../models/props.js';
 import { ANCHO_PISTA } from '../game/Track.js';
 import { CALIDAD } from '../config/estilo.js';
+import { fondoDe } from '../utils/entorno.js';
 
 const SEPARACION_DECORADO = 15;
 
@@ -47,6 +49,7 @@ export class BaseScene {
     escena.add(this.grupo);
 
     this.decorados = [];
+    this.cruces = [];
     this.tiempo = 0;
 
     // --- DESPEJE ANTE EL CRUCE ---------------------------------------------
@@ -82,6 +85,7 @@ export class BaseScene {
     this._crearLuces();
     this._crearNiebla();
     this._crearDecorado();
+    this._crearCrucesAereos();
     this._crearDron();
 
     // Las intensidades de reposo, para poder subirlas con el despeje y
@@ -149,7 +153,29 @@ export class BaseScene {
     this.luzDireccional = new THREE.DirectionalLight(
       c.luzDireccional, c.intensidadDireccional * 1.44,
     );
-    this.luzDireccional.position.set(6, 15, 4);
+    // EL SOL BAJA DE 64° A 44°, Y ESO ES LO QUE DA EL TERCER VALOR.
+    //
+    // Con la direccional en (6, 15, 4) —64° de elevación— cada caja tenía DOS
+    // valores, no tres: sondeando un cubo biselado con el material de la casa y
+    // leyendo un parche de 7×7 píxeles en el centro de cada cara, salía
+    // superior 0,655 · frontal 0,416 · lateral 0,411. O sea que las dos caras
+    // verticales eran INDISTINGUIBLES (razón 1,01), y sin diferencia entre la
+    // cara que mira y la que se va, una caja es una silueta plana.
+    //
+    // No hacía falta ni un material más ni colores por vértice —lo primero
+    // duplica llamadas de dibujo sobre un presupuesto de 1.165, lo segundo es
+    // una bandera del MATERIAL y los materiales van compartidos entre la
+    // geometría de la casa, planos, cilindros y el GLB—. Bastaba con bajar el
+    // sol, que cuesta cero:
+    //
+    //     (6, 15, 4)    64°   0,655 / 0,416 / 0,411   →  1,59 : 1,01 : 1,00
+    //     (7, 11, 4.5)  52°   0,629 / 0,444 / 0,393   →  1,60 : 1,13 : 1,00
+    //     (7.5, 9, 5)   44°   0,608 / 0,469 / 0,384   →  1,58 : 1,22 : 1,00
+    //
+    // A 44° la escalera es de tres peldaños de verdad, y además es la altura a
+    // la que está el sol en las fotos de las que sale cada barrio: ninguna es
+    // de mediodía clavado.
+    this.luzDireccional.position.set(7.5, 9, 5);
     this.grupo.add(this.luzDireccional);
 
     // 3. Relleno de color siguiendo al jugador. Garantiza que el personaje
@@ -188,7 +214,18 @@ export class BaseScene {
     // profundidad atmosférica en el último tramo, que es para lo que sirve.
     this.densidadBase = 0.005;
     this.escena.fog = new THREE.FogExp2(this.colores.nieblaLejos, this.densidadBase);
-    this.escena.background = new THREE.Color(this.colores.nieblaLejos);
+    // EL FONDO YA NO ES UN COLOR PLANO.
+    //
+    // Era `new THREE.Color(nieblaLejos)`: el cuarto superior del cuadro con un
+    // solo valor de punta a punta. Ahora es el mismo cielo pintado que alimenta
+    // los reflejos —degradado, sol y nubes—, que estaba generado y no se veía.
+    // Ver utils/entorno.js.
+    //
+    // La banda del ecuador de ese cielo ES `nieblaLejos`, o sea exactamente el
+    // color de la niebla, y eso no es casualidad sino la condición para que
+    // esto funcione: lo lejano tiene que seguir fundiéndose con el fondo sin
+    // costura. Comprobado con muestras a un lado y otro del horizonte.
+    this.escena.background = fondoDe(this.config.id, this.colores);
   }
 
   _crearDecorado() {
@@ -221,6 +258,32 @@ export class BaseScene {
     }
 
     this.totalDecorado = SEPARACION_DECORADO * porLado;
+  }
+
+  /**
+   * LO QUE CRUZA LA CALLE POR ENCIMA. Ver crearCruceAereo() en models/props.js
+   * para la medición que justifica que exista.
+   *
+   * Es una capa aparte y no un decorado más porque va en el eje —x = 0— y no
+   * al lado, así que ni se sortea su desviación lateral ni se le cambia la
+   * escala al reciclar: un tendido que cruza la calle la cruza entera, y uno
+   * al 85 % se quedaría a medio camino colgando de nada.
+   */
+  _crearCrucesAereos() {
+    // Cubre el mismo largo que el decorado, para que las dos capas reciclen
+    // sobre la misma vuelta y no se desincronicen nunca.
+    const cuantos = Math.max(2, Math.round(this.totalDecorado / CRUCE_AEREO.SEPARACION));
+    this.separacionCruce = this.totalDecorado / cuantos;
+
+    for (let i = 0; i < cuantos; i++) {
+      const pieza = crearCruceAereo(this.config.id, this.colores);
+      // La Bahía devuelve null: ya tiene bóveda de punta a punta, y colgarle
+      // un tendido por encima sería un techo sobre otro techo.
+      if (!pieza) return;
+      pieza.position.set(0, 0, -i * this.separacionCruce);
+      this.grupo.add(pieza);
+      this.cruces.push({ objeto: pieza });
+    }
   }
 
   /**
@@ -323,6 +386,25 @@ export class BaseScene {
       }
     }
 
+    // --- Los cruces aéreos -------------------------------------------------
+    // Mismo reciclado que el decorado y misma regla de la bocacalle: en la
+    // esquina no hay tendido, porque el tendido va de fachada a fachada y ahí
+    // no hay fachada. Sin esto, el cable cruzaría la calle transversal
+    // colgando del aire, que es la señal más clara de que algo está montado y
+    // no construido.
+    for (const c of this.cruces) {
+      c.objeto.position.z += avance;
+      if (c.objeto.position.z > this.separacionCruce) {
+        c.objeto.position.z -= this.totalDecorado;
+        c.oculto = false;
+      }
+      if (zBoca !== null) {
+        const relativa = c.objeto.position.z - zBoca;
+        if (relativa > bandaDesde && relativa < bandaHasta) c.oculto = true;
+      }
+      c.objeto.visible = !c.oculto;
+    }
+
     // --- Dron --------------------------------------------------------------
     if (this.dron) {
       // Vaivén lateral amplio y lento, y flotación vertical suave.
@@ -375,9 +457,10 @@ export class BaseScene {
         niebla: this.escena.fog
           ? this.escena.fog.color.clone()
           : new THREE.Color(c.nieblaLejos),
-        fondo: this.escena.background?.isColor
-          ? this.escena.background.clone()
-          : new THREE.Color(c.nieblaLejos),
+        // El fondo dejó de ser un color y pasó a ser el cielo pintado, así
+        // que lo que la transición necesita guardar ya no es un THREE.Color
+        // sino la PALETA de la que sale ese cielo. Ver Ambiente.actualizar().
+        fondo: new THREE.Color(c.nieblaLejos),
       },
       intensidad: {
         ambiente: this.luzAmbiente.intensity,
@@ -410,7 +493,9 @@ export class BaseScene {
     this.luzDireccional.color.set(c.luzDireccional);
     this.luzRelleno.color.set(c.acento);
     if (this.escena.fog) this.escena.fog.color.set(c.nieblaLejos);
-    if (this.escena.background?.isColor) this.escena.background.set(c.nieblaLejos);
+    // El fondo vuelve al cielo de ESTE barrio: si se salió a mitad de fundido,
+    // lo que hay colgado es el cielo de tránsito con la mezcla a medias.
+    this.escena.background = fondoDe(this.config.id, c);
     this.entrada = 1;
   }
 
@@ -474,6 +559,7 @@ export class BaseScene {
       }
     });
     this.decorados = [];
+    this.cruces = [];
     this.dron = null;
     this.escena.fog = null;
   }

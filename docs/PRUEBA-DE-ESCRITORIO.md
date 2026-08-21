@@ -819,7 +819,75 @@ se queda**, igual que al ser capturado: es la regla de la casa —«recógelas
 aunque te capturen»— y sin ella abandonar sería *peor* que caer preso. No hay
 atajo que explotar: quien abandona renuncia justo a lo que da el cerco.
 
-### 6.14 · Del guion, sigue sin implementarse — **abierto**
+### 6.14 · El cuadro estaba vacío por arriba y lavado por todas partes — **resuelto**
+
+Tres fallos distintos que se leían como uno solo («no se parece a la
+referencia»), y ninguno era el que parecía.
+
+**El primero: las texturas procedurales entraban en el espacio de color
+equivocado.** `new THREE.CanvasTexture(...)` sin declarar `colorSpace` entra al
+motor como si sus valores YA fueran lineales, así que el `#6b6a68` del asfalto
+—0,42 de claridad— salía a pantalla en 0,68. Afectaba al asfalto (`Track.js`) y
+a TODO lo procedural de `props.js` —chevrones, rótulos, persianas, el cartel del
+dron—, que es media textura del juego. Se descartó la iluminación por medición
+antes de encontrarlo: bajarle la mitad al ambiente movía la claridad media de la
+Bahía del 0,674 al 0,666, o sea nada. El cielo de `utils/entorno.js` ya llevaba
+la línea, con el mismo comentario, desde el día que se escribió.
+
+Consecuencia de arreglarlo: las paletas llevaban compensando en la dirección
+contraria, así que el mundo se quedó oscuro. De ahí la exposición por barrio
+(`escenarios.js`), que tampoco puede ser global: a 1.8 las Elecciones caen justo
+en la horquilla de la referencia y el Apagón sube a 0,409 de claridad, o sea
+deja de ser un apagón.
+
+**El segundo: el techo del cuadro no lo puede llenar nada que esté al lado.**
+Medido por rayos, el quinto superior estaba vacío de lado a lado en los tres
+barrios a cielo abierto. Subir las fachadas ayudó —el cielo de esa mitad bajó del
+57,8 % al 46,3 %— pero no llegó, y la medida dice por qué: **en vertical, a diez
+metros sólo se ven 4,2 m a cada lado del eje, y a veinte, 6,5**. La manzana está
+en |x| = 7,8, o sea que la fachada que pasa al lado —la única lo bastante cerca
+como para llegar arriba— cae fuera del cuadro. Lo que se ve arriba son las
+manzanas de cuarenta metros para allá, y ahí harían falta 16 m de altura para
+tocar y=0.10: cinco plantas, que en el centro histórico ya no es el centro
+histórico. Lo llena lo que CRUZA por encima, que es lo que hace la referencia con
+los pórticos de estación y lo que ya hacía aquí la bóveda de la Bahía. De ahí el
+cruce aéreo: maraña de cables en el Apagón, pancarta de campaña en las
+Elecciones, tendido con banderas en Carondelet.
+
+**El tercero: el encuadre no era el que decía la configuración.** `_ajustarEncuadre`
+abre el vertical para garantizar un ancho mínimo, y ese suelo —`SEMIANGULO_HORIZONTAL: 16`—
+**se activaba siempre** en un móvil vertical: el FOV efectivo era 63,74 y no 58,
+así que la cámara nunca corrió con la focal de diseño. Y a aspecto 0,562 —un
+iPhone SE— no se activaba: dos móviles corrientes, dos encuadres distintos. Por
+el otro lado, el techo (`SEMIANGULO_HORIZONTAL_MAXIMO: 34`) recortaba tanto en
+escritorio que **los pies del personaje caían en 1,091, fuera de pantalla**, y en
+un móvil tumbado hacía falta además un suelo al propio vertical (`FOV_MINIMO`).
+
+| medida | antes | ahora | referencia |
+|---|---|---|---|
+| cielo del cuadro — apagón / elecciones / carondelet | 30,0 / 24,6 / 28,1 % | **16,0 / 8,3 / 11,0 %** | 14-22 % |
+| cielo de la mitad superior | 57,8 / 50,3 / 56,5 % | **25,5 / 22,4 / 25,5 %** | — |
+| saturación — bahía / elecciones / carondelet | 0,307 / 0,416 / 0,409 | **0,373 / 0,533 / 0,439** | 0,45-0,60 |
+| saturación de la calzada — bahía | 0,213 | **0,319** | — |
+| reparto de valores de la Bahía | 78 % en una banda | 53 % | — |
+| alto del personaje en pantalla | 0,165-0,186 | **0,30** | ~0,25 |
+| FOV efectivo en móvil vertical | 63,74 (¡no 58!) | **56** | — |
+| pies del personaje, escritorio 16:9 | **1,091 (fuera)** | 0,954 | < 1 |
+| pies del personaje, móvil tumbado | **1,044 (fuera)** | 0,964 | < 1 |
+| valores por caja (superior : frontal : lateral) | 1,59 : **1,01** : 1,00 | 1,58 : **1,22** : 1,00 | tres |
+
+Lo de los valores por caja es el sol: en (6, 15, 4) estaba a 64° de elevación y
+las dos caras verticales eran indistinguibles, o sea que cada caja tenía DOS
+valores y no tres. Bajarlo a (7.5, 9, 5) —44°— cuesta cero y es además la altura
+a la que está el sol en las fotos de las que sale cada barrio.
+
+**A comprobar a mano:** que el cruce aéreo no se lea nunca como obstáculo que hay
+que agachar (va a 9 m, y el techo de lo alcanzable son 8,55: tablado a 3,15,
+salto con botas 3,60 y 1,80 de personaje).
+
+---
+
+### 6.15 · Del guion, sigue sin implementarse — **abierto**
 
 Cuatro cosas listadas en `docs/GUION.md` y todavía no en el juego:
 

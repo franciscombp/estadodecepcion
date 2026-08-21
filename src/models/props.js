@@ -134,6 +134,11 @@ function textura(clave, dibujar, ancho = 128, alto = 128) {
   dibujar(lienzo.getContext('2d'), ancho, alto);
 
   const t = new THREE.CanvasTexture(lienzo);
+  // Lo mismo que en el asfalto y en el cielo: lo que se pinta en un canvas son
+  // valores de pantalla, y sin declararlo el motor los toma por lineales y los
+  // devuelve lavados. Aquí afecta a todo lo procedural —chevrones, rótulos,
+  // persianas, el cartel del dron—, que es media textura del juego.
+  t.colorSpace = THREE.SRGBColorSpace;
   t.needsUpdate = true;
   _texturas.set(clave, t);
   return t;
@@ -2191,26 +2196,51 @@ function crearCasaGuayaquil(ancho, rnd) {
   // --- El forjado que vuela --------------------------------------------------
   g.add(_caja(ancho, 0.3, FONDO, matMuro, 0, PLANTA_BAJA + 0.15, 0));
 
-  // --- Planta alta: muro y banda corrida de ventanas -----------------------
+  // --- Plantas altas: muro y banda corrida de ventanas ---------------------
+  //
+  // DOS PLANTAS ALTAS EN LA MITAD DE LOS SOLARES, Y NO UNA SIEMPRE.
+  //
+  // Con una sola, la casa medía 7,16 m y su cornisa caía en y=0.245 de la
+  // pantalla a veinte metros: el quinto superior del cuadro quedaba vacío de
+  // lado a lado —medido por rayos, el cielo empezaba en y=0.02 y no encontraba
+  // nada hasta y=0.23—. La referencia tiene ahí construido desde y=0.05.
+  //
+  // Subir TODAS a tres plantas era la respuesta fácil y la equivocada: una
+  // cuadra con la misma altura de punta a punta se lee como un muro extruido,
+  // que es justo lo contrario de lo que hace reconocible a esa calle. En el
+  // centro de Guayaquil conviven la casa de dos plantas y la de tres en la
+  // misma manzana, y ESE diente de sierra es la mitad del retrato. Sorteando
+  // a la mitad, la cuadra alterna 7,16 y 10,16 y la cornisa alta cae en 0.146.
+  const PLANTAS_ALTAS = rnd() > 0.5 ? 2 : 1;
   const yAlta = PLANTA_BAJA + 0.3;
-  g.add(_caja(ancho, PLANTA_ALTA, FONDO, matMuro, 0, yAlta + PLANTA_ALTA / 2, 0));
+  for (let planta = 0; planta < PLANTAS_ALTAS; planta++) {
+    const yPie = yAlta + planta * PLANTA_ALTA;
+    g.add(_caja(ancho, PLANTA_ALTA, FONDO, matMuro, 0, yPie + PLANTA_ALTA / 2, 0));
 
-  // La banda de ventanas, de esquina a esquina.
-  const yVent = yAlta + PLANTA_ALTA * 0.55;
-  g.add(_caja(ancho - 0.5, 1.5, 0.1, matGye(GYE.ventana, 0.06, 0.5),
-    0, yVent, zFrente + 0.02));
-  // Montantes finos, que es lo que la hace una banda de ventanas y no un
-  // rectángulo negro.
-  const montantes = Math.max(3, Math.round(ancho / 0.9));
-  for (let i = 0; i < montantes; i++) {
-    const x = (i / (montantes - 1) - 0.5) * (ancho - 0.6);
-    g.add(_caja(0.08, 1.5, 0.14, matGye(GYE.marco, 0.05, 0.9), x, yVent, zFrente + 0.04));
+    // La banda de ventanas, de esquina a esquina.
+    const yVent = yPie + PLANTA_ALTA * 0.55;
+    g.add(_caja(ancho - 0.5, 1.5, 0.1, matGye(GYE.ventana, 0.06, 0.5),
+      0, yVent, zFrente + 0.02));
+    // Montantes finos, que es lo que la hace una banda de ventanas y no un
+    // rectángulo negro.
+    const montantes = Math.max(3, Math.round(ancho / 0.9));
+    for (let i = 0; i < montantes; i++) {
+      const x = (i / (montantes - 1) - 0.5) * (ancho - 0.6);
+      g.add(_caja(0.08, 1.5, 0.14, matGye(GYE.marco, 0.05, 0.9), x, yVent, zFrente + 0.04));
+    }
+    // Y su antepecho, la franja de color bajo la ventana.
+    g.add(_caja(ancho, 0.5, 0.12, matCol, 0, yVent - 1.05, zFrente + 0.03));
+
+    // El forjado entre plantas altas: la línea horizontal que impide que dos
+    // bandas de ventanas seguidas se lean como una sola cuadrícula.
+    if (planta < PLANTAS_ALTAS - 1) {
+      g.add(_caja(ancho + 0.08, 0.22, FONDO + 0.08, matCol,
+        0, yPie + PLANTA_ALTA, 0));
+    }
   }
-  // Y su antepecho, la franja de color bajo la ventana.
-  g.add(_caja(ancho, 0.5, 0.12, matCol, 0, yVent - 1.05, zFrente + 0.03));
 
   // --- Remate plano ---------------------------------------------------------
-  const yRemate = yAlta + PLANTA_ALTA;
+  const yRemate = yAlta + PLANTAS_ALTAS * PLANTA_ALTA;
   g.add(_caja(ancho, ANTEPECHO, FONDO + 0.15, matMuro, 0, yRemate + ANTEPECHO / 2, 0));
   g.add(_caja(ancho + 0.1, 0.12, FONDO + 0.25, matGye(GYE.marco, 0.05, 0.9),
     0, yRemate + ANTEPECHO, 0));
@@ -2588,7 +2618,18 @@ function crearCasaColonial(ancho, rnd = Math.random) {
   // portal, porque abajo hay comercio y arriba se vive.
   const baja = 3.1 + rnd() * 0.5;
   const alta = 2.5 + rnd() * 0.4;
-  const alto = baja + alta;
+  // Y UNA TERCERA EN PARTE DE LA CUADRA. Las calles anchas del centro —García
+  // Moreno, Chile, las que dan al palacio— no son de dos plantas de punta a
+  // punta: alternan dos y tres, y esa alternancia es lo que hace que la
+  // manzana tenga perfil en vez de canto. Con dos plantas fijas la cuadra
+  // medía 7,80 y su alero caía en y=0.223 de pantalla a veinte metros, con el
+  // quinto superior del cuadro vacío; con la tercera sube a 10,6 y cae en
+  // 0.135, que es donde la referencia pone el borde construido.
+  //
+  // Sorteada al 45 % y no siempre: si suben todas vuelve a haber una sola
+  // línea de cornisa, que es el problema de partida con otra altura.
+  const tercera = rnd() > 0.55 ? 2.5 + rnd() * 0.3 : 0;
+  const alto = baja + alta + tercera;
 
   const muro = new THREE.Mesh(caja(ancho, alto, fondo), matColonial(revoque, 0.02, 0.96));
   muro.position.set(0, alto / 2, -fondo / 2 + 0.1);
@@ -2602,8 +2643,12 @@ function crearCasaColonial(ancho, rnd = Math.random) {
   g.add(zocalo);
 
   // Cornisa entre plantas y alero, los dos en blanco: es lo que marca el
-  // ritmo horizontal de la cuadra cuando pasas corriendo.
-  for (const [y, sobresale, grosor] of [[baja, 0.18, 0.18], [alto, 0.34, 0.26]]) {
+  // ritmo horizontal de la cuadra cuando pasas corriendo. Con tercera planta
+  // hay una cornisa más, en el mismo blanco: sin ella el cuerpo de arriba se
+  // lee como un piso añadido a posteriori, que es un edificio distinto.
+  const cornisas = [[baja, 0.18, 0.18], [alto, 0.34, 0.26]];
+  if (tercera) cornisas.splice(1, 0, [baja + alta, 0.16, 0.16]);
+  for (const [y, sobresale, grosor] of cornisas) {
     const c = new THREE.Mesh(
       caja(ancho + sobresale, grosor, fondo + sobresale),
       matColonial(0xf3f1eb, 0.02, 0.94),
@@ -2667,6 +2712,27 @@ function crearCasaColonial(ancho, rnd = Math.random) {
     if (!corrido) g.add(_balcon(1.6, x, baja + 0.1, 0.75));
   }
 
+  // --- Tercera planta: ventanas menores y sin balcón -----------------------
+  // Cuando la hay, es siempre el piso pobre: ventanas más chicas, marco más
+  // fino y ningún balcón. Es así porque arriba del todo van los cuartos de
+  // servicio, y ponerle balcón corrido la convertiría en un palacio.
+  if (tercera) {
+    for (let i = 0; i < ventanas; i++) {
+      const x = -ancho / 2 + pasoV * (i + 0.5);
+      const yV = baja + alta + 1.1;
+      const marco = new THREE.Mesh(caja(0.95, 1.5, 0.12), matColonial(0xf3f1eb, 0.02, 0.94));
+      marco.position.set(x, yV, 0.38);
+      g.add(marco);
+      const vidrio = new THREE.Mesh(caja(0.72, 1.2, 0.07), matColonial(VIDRIO_COLONIAL, 0.06, 0.3));
+      vidrio.position.set(x, yV, 0.43);
+      g.add(vidrio);
+    }
+  }
+
+  // El alero, publicado: la concertina de la cuadra se cuelga de él, y ahora
+  // que la altura se sortea ya no vale la constante que había.
+  g.userData.alero = alto;
+
   return g;
 }
 
@@ -2702,6 +2768,210 @@ function _balcon(ancho, x, y, saliente) {
 
   b.position.set(x, y, 0);
   return b;
+}
+
+// ---------------------------------------------------------------------------
+// EL CRUCE AÉREO — lo que llena el techo del cuadro
+// ---------------------------------------------------------------------------
+// POR QUÉ ESTO EXISTE, que es una cuenta y no un gusto.
+//
+// Medido por rayos sobre la mitad superior de la pantalla, el quinto de arriba
+// del cuadro estaba vacío DE LADO A LADO en los tres barrios a cielo abierto:
+// el cielo empezaba en y=0.02 y no se encontraba nada construido hasta y=0.23.
+// En la referencia hay obra desde y=0.05.
+//
+// Lo primero que se probó fue subir las fachadas, y ayudó —el cielo de esa
+// mitad bajó del 57.8 % al 46.3 %— pero no llegó, y la medición dice por qué:
+// EN VERTICAL EL CUADRO ES ESTRECHÍSIMO. A diez metros sólo se ven 4,2 m a
+// cada lado del eje; a veinte, 6,5. La manzana está puesta en |x| = 7.8, o sea
+// que la fachada que pasa al lado —la única lo bastante cerca como para llegar
+// arriba del todo— cae FUERA del cuadro. Lo que se ve arriba son las manzanas
+// de cuarenta metros para allá, y a esa distancia harían falta 16 m de altura
+// para tocar y=0.10: cinco plantas, que en el centro histórico de Quito ya no
+// es el centro histórico.
+//
+// Así que el techo del cuadro no lo puede llenar nada que esté al lado. Lo
+// llena lo que CRUZA POR ENCIMA, que es exactamente lo que hace la referencia
+// con las marquesinas y los pórticos de la estación —y lo que ya hace aquí la
+// bóveda de la Bahía, que por eso mide 0 % de cielo—.
+//
+// Y cada barrio tiene el suyo sin que haya que inventarlo:
+//   · Apagón: la maraña de cables. No hay nada más de este país.
+//   · Elecciones: la pancarta cruzada de fachada a fachada.
+//   · Carondelet: el tendido con banderas, que es como se viste el centro.
+//
+// ALTURA. El punto más bajo de cualquiera de estas piezas va a 9 m, y no es
+// una cifra redonda: el techo de lo alcanzable son 8,55 m —tablado a 3,15,
+// salto con botas 3,60, y 1,80 de personaje—. Por debajo de eso, algo que
+// cruza la calle se lee como obstáculo que hay que agachar, y un decorado que
+// se lee como obstáculo está mal (ver la regla de arriba del archivo).
+export const CRUCE_AEREO = {
+  ALTURA: 9.0,
+  // Cada 45 m. Se probó cada 30 —la cadencia de la manzana— y a velocidad de
+  // salida pasaba uno cada 1,7 s: en vez de techo de calle parecía un túnel
+  // con costillas. A 45 son 2,5 s al empezar y 1,4 a velocidad tope, que es la
+  // cadencia a la que se cuelgan de verdad, una por cuadra y no una por casa.
+  SEPARACION: 45,
+};
+
+/**
+ * Lo que cruza la calle por encima. Devuelve `null` en los barrios que ya
+ * tienen su propio techo —la Bahía y su bóveda—, y el que llama se lo salta.
+ */
+export function crearCruceAereo(idEscenario, colores, aleatorio = Math.random) {
+  if (idEscenario === 'bahia') return null;
+
+  const g = new THREE.Group();
+  const H = CRUCE_AEREO.ALTURA;
+  // Los postes van al filo de la manzana, no al de la calzada: lo que sostiene
+  // un tendido en una calle es la fachada o el poste de la vereda, y ponerlos
+  // más adentro los metería en el carril exterior.
+  const X = 7.2;
+
+  switch (idEscenario) {
+    case 'apagon': {
+      // LA MARAÑA. Ocho cables cruzando a alturas distintas, ninguno tenso y
+      // ninguno paralelo a otro, más el nudo de empalmes colgando de un lado.
+      // El desorden es el retrato: un tendido ordenado sería el de otro país.
+      const matCable = mat(0x171b24, 0.02, 0.85);
+      const matPoste = mat(0x3b3327, 0.02, 0.95);
+
+      for (const s of [-1, 1]) {
+        const poste = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.16, 0.22, H + 1.6, 6), matPoste,
+        );
+        poste.position.set(s * X, (H + 1.6) / 2, 0);
+        g.add(poste);
+        // Las crucetas, que es de donde cuelgan los cables de verdad.
+        for (const dy of [0.4, 1.15]) {
+          const cruceta = new THREE.Mesh(caja(1.5, 0.13, 0.13), matPoste);
+          cruceta.position.set(s * (X - 0.4), H + dy, 0);
+          g.add(cruceta);
+        }
+      }
+
+      // Los cables: cajas largas y finísimas, cada una con su comba y su
+      // inclinación. Una catenaria de verdad costaría una curva por cable y a
+      // esta distancia no se distingue de una recta caída.
+      for (let i = 0; i < 8; i++) {
+        const y = H + 0.25 + aleatorio() * 1.3;
+        const caida = 0.25 + aleatorio() * 0.55;
+        const z = (aleatorio() - 0.5) * 1.6;
+        // Tres tramos por cable: baja, va casi plano y vuelve a subir. Con uno
+        // solo el tendido se lee como un peine de reglas.
+        const tramos = [[-X, y, -X / 3, y - caida], [-X / 3, y - caida, X / 3, y - caida],
+                        [X / 3, y - caida, X, y + (aleatorio() - 0.5) * 0.4]];
+        for (const [x0, y0, x1, y1] of tramos) {
+          const largo = Math.hypot(x1 - x0, y1 - y0);
+          const cable = new THREE.Mesh(caja(largo, 0.055, 0.055), matCable);
+          cable.position.set((x0 + x1) / 2, (y0 + y1) / 2, z);
+          cable.rotation.z = Math.atan2(y1 - y0, x1 - x0);
+          g.add(cable);
+        }
+      }
+
+      // El nudo de empalmes: el ovillo negro colgado del poste. Es la firma.
+      const nudo = new THREE.Mesh(
+        new THREE.TorusKnotGeometry(0.42, 0.11, 36, 5, 2, 3), matCable,
+      );
+      nudo.position.set((aleatorio() > 0.5 ? 1 : -1) * (X - 0.5), H + 0.5, 0.2);
+      g.add(nudo);
+
+      // Y una lámpara de sodio muerta colgando del centro. En el apagón NO
+      // enciende, y esa es la gracia: está y no sirve.
+      const farol = new THREE.Mesh(caja(0.62, 0.2, 0.34), mat(0x232833, 0.04, 0.8));
+      farol.position.set((aleatorio() - 0.5) * 2.4, H + 0.05, 0);
+      g.add(farol);
+      break;
+    }
+
+    case 'elecciones': {
+      // LA PANCARTA CRUZADA. Tensada de fachada a fachada con dos cables, y
+      // combada por su propio peso, que es lo que la distingue de un cartel.
+      const matCable = mat(0x2a2f3d, 0.02, 0.85);
+      const paño = 1.35;
+
+      for (const dy of [paño / 2 + 0.12, -paño / 2 - 0.12]) {
+        const cable = new THREE.Mesh(caja(X * 2, 0.05, 0.05), matCable);
+        cable.position.set(0, H + 0.75 + dy, 0);
+        g.add(cable);
+      }
+
+      // El paño, en el morado del partido. Va en tres tramos con la comba
+      // hecha a mano: una tela tensa se lee como valla publicitaria.
+      const matPaño = mat(colores.acento, 0.16, 0.88);
+      const anchoTramo = (X * 2) / 3;
+      for (let i = 0; i < 3; i++) {
+        const comba = i === 1 ? 0.3 : 0.1;
+        const t = new THREE.Mesh(caja(anchoTramo + 0.06, paño, 0.07), matPaño);
+        t.position.set(-X + anchoTramo * (i + 0.5), H + 0.75 - comba, 0);
+        t.rotation.z = (i - 1) * -0.09;
+        g.add(t);
+      }
+
+      // El «texto»: tres barras blancas de largos distintos. Un eslogan de
+      // verdad sería ilegible a esta velocidad —y además nos lo tendríamos que
+      // inventar, que es la otra razón por la que no va—. Misma solución que
+      // la valla de neón, y por el mismo motivo.
+      const matTexto = neon(NEON.blanco, 1.2);
+      for (let i = 0; i < 3; i++) {
+        const largo = 4.4 - i * 1.5;
+        const barra = new THREE.Mesh(caja(largo, 0.2, 0.05), matTexto);
+        barra.position.set((aleatorio() - 0.5) * 1.2, H + 1.05 - i * 0.42, 0.07);
+        g.add(barra);
+      }
+
+      // Banderines colgando del cable de abajo, que es como se remata.
+      for (let i = 0; i < 9; i++) {
+        const b = new THREE.Mesh(caja(0.28, 0.34, 0.03),
+          mat(i % 2 ? colores.acento : 0xf3f1eb, 0.1, 0.9));
+        b.position.set(-X + 0.9 + i * 1.6, H + 0.75 - paño / 2 - 0.3, 0);
+        b.rotation.z = (aleatorio() - 0.5) * 0.5;
+        g.add(b);
+      }
+      break;
+    }
+
+    default: {
+      // CARONDELET — el tendido con banderas. El centro histórico se viste así
+      // para cualquier cosa oficial, y aquí siempre hay algo oficial.
+      const matCable = mat(0x2a2f3d, 0.02, 0.85);
+      const cable = new THREE.Mesh(caja(X * 2, 0.05, 0.05), matCable);
+      cable.position.set(0, H + 0.9, 0);
+      g.add(cable);
+      // Segundo cable, más atrás y más bajo: dos líneas cruzando dan
+      // profundidad al techo de la calle; una sola es una raya.
+      const cable2 = new THREE.Mesh(caja(X * 2, 0.05, 0.05), matCable);
+      cable2.position.set(0, H + 0.4, -1.5);
+      g.add(cable2);
+
+      // Los tres colores de la bandera, repetidos a lo largo del cable. Va la
+      // bandera del país y no un emblema inventado: el chiste del juego no
+      // está en falsificar símbolos, está en lo que pasa debajo de ellos.
+      const TRICOLOR = [0xf2c31d, 0x1b4fa8, 0xe63946];
+      for (let i = 0; i < 10; i++) {
+        const paño = new THREE.Mesh(
+          caja(0.9, 1.15, 0.04), mat(TRICOLOR[i % 3], 0.12, 0.9),
+        );
+        paño.position.set(-X + 0.75 + i * 1.5, H + 0.9 - 0.62, 0);
+        // Cada paño con su ángulo: colgadas todas rectas parecen una regla de
+        // colores, no ropa tendida.
+        paño.rotation.z = (aleatorio() - 0.5) * 0.34;
+        g.add(paño);
+      }
+
+      // Y un par de faroles del alumbrado del centro, colgados del cable de
+      // atrás. Son los que dan el punto de luz que el bloom recoge.
+      for (const x of [-2.6, 2.9]) {
+        const farol = new THREE.Mesh(caja(0.34, 0.46, 0.34), neon(0xffd28a, 1.4));
+        farol.position.set(x, H + 0.1, -1.5);
+        g.add(farol);
+      }
+      break;
+    }
+  }
+
+  return fundirPorMaterial(g);
 }
 
 export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
@@ -2813,7 +3083,15 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
 
     case 'apagon': {
       // Torres de generación y tuberías. Casi sin luz propia.
-      const alto = 5 + aleatorio() * 6;
+      //
+      // De 5-11 m a 9-17. La mediana estaba en 8,83 y su remate caía en
+      // y=0.188 de pantalla a veinte metros: el sexto superior del cuadro se
+      // quedaba vacío de lado a lado. Aquí subir no cuesta verosimilitud —una
+      // térmica son chimeneas y torres de refrigeración, y esas SON altas—, al
+      // revés: a cinco metros aquello parecía un depósito de gasolinera.
+      // El sorteo se queda ancho a propósito, que es lo que hace que el perfil
+      // de la planta tenga dientes.
+      const alto = 9 + aleatorio() * 8;
       const torre = new THREE.Mesh(
         new THREE.CylinderGeometry(0.95, 1.35, alto, 7),
         mat(colores.props, 0.03, 0.95),
@@ -2944,12 +3222,20 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
 
       // Concertina sobre el alero. Es lo que hace que la postal colonial
       // incomode, y por eso se queda.
+      //
+      // Va a la altura del alero MÁS BAJO de las dos casas, y no a un 6.6 fijo
+      // como antes: ahora que hay cuadras de dos y de tres plantas, la cota
+      // fija caía en mitad de la fachada de las altas y el rollo se leía como
+      // un adorno colgado de la pared. Del alero bajo es de donde se ve saltar
+      // de un tejado al siguiente, que es lo que hace.
+      const aleroBajo = Math.min(...g.children
+        .map((c) => c.userData.alero).filter((a) => typeof a === 'number'));
       for (let i = 0; i < 3; i++) {
         const rollo = new THREE.Mesh(
           new THREE.TorusGeometry(0.36, 0.05, 4, 11),
           mat(0x9aa4b8, 0.3, 0.4),
         );
-        rollo.position.set(-1 + i, 6.6, 0.4);
+        rollo.position.set(-1 + i, aleroBajo + 0.55, 0.4);
         rollo.rotation.y = Math.PI / 2;
         g.add(rollo);
       }

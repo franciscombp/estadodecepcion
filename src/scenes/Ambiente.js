@@ -47,7 +47,7 @@
 // ============================================================================
 
 import * as THREE from 'three';
-import { cieloEntre } from '../utils/entorno.js';
+import { cieloEntre, fondoDe, fondoEntre } from '../utils/entorno.js';
 
 /**
  * CUÁNTO DURA EL VIAJE, en segundos.
@@ -81,6 +81,24 @@ export const DURACION = 2.0;
  * entre 0 y 0,3, y 0,23 entre 0 y 1,2.
  */
 export const ENTORNO_BASE = 0.3;
+
+/**
+ * LA EXPOSICIÓN, cuando el barrio no pide la suya.
+ *
+ * Dejó de ser un número global el día que se arregló el espacio de color de
+ * las texturas procedurales. Con el fallo, todo lo pintado en canvas entraba
+ * como si ya fuera lineal y salía lavado, así que las intensidades de cada
+ * paleta llevaban compensando en la dirección contraria; quitado el fallo, el
+ * mundo se quedó oscuro —Carondelet cayó a 0,326 de claridad media con el 42 %
+ * del cuadro en la banda más oscura—.
+ *
+ * Y la exposición que lo devuelve no puede ser una sola para todos: medido, a
+ * 1.8 las Elecciones quedan en 0,458 de claridad y 0,529 de saturación —justo
+ * la horquilla de la referencia— pero el Apagón sube a 0,409, o sea que deja
+ * de ser un apagón. Cada barrio es una hora del día distinta; que cada uno
+ * traiga su exposición no es un parche, es lo que ya son las intensidades.
+ */
+export const EXPOSICION_BASE = 1.2;
 
 export class TransicionDeAmbiente {
   /**
@@ -133,6 +151,8 @@ export class TransicionDeAmbiente {
       escena,
       mapaDestino,
       coloresDestino: c,
+      // Para colgar su cielo tal cual al terminar el fundido.
+      idDestino: escena.config.id,
       paso: 0,
       color: {
         ambiente: new THREE.Color(c.luzAmbiente),
@@ -143,6 +163,10 @@ export class TransicionDeAmbiente {
         niebla: new THREE.Color(c.nieblaLejos),
       },
       entorno: c.brilloEntorno ?? ENTORNO_BASE,
+      // De la que hay puesta AHORA a la que pide el barrio nuevo. Se lee
+      // del renderizador y no del retrato porque la escena no lo tiene.
+      exposicionDesde: this.renderizador.toneMappingExposure,
+      exposicion: c.exposicion ?? EXPOSICION_BASE,
     };
 
     // El cielo del barrio VIEJO se queda puesto de momento. El fotograma del
@@ -205,9 +229,23 @@ export class TransicionDeAmbiente {
       const hasta = Math.max(1e-4, e.fog.density);
       e.fog.density = desde * ((hasta / desde) ** s);
     }
-    if (e.background?.isColor) e.background.lerpColors(o.color.fondo, v.color.niebla, s);
+    // --- El fondo -----------------------------------------------------------
+    // Ya no es un color al que hacerle lerp: es el cielo pintado. Se repinta
+    // uno intermedio, que cuesta 0,3-0,5 ms —repintar un lienzo y subirlo— y
+    // por eso este sí puede ir cada fotograma mientras el de los reflejos va a
+    // pasos. Al llegar al final se cuelga el del barrio destino, para no dejar
+    // la partida corriendo sobre la textura de tránsito.
+    e.background = s >= 1
+      ? fondoDe(v.idDestino, v.coloresDestino)
+      : fondoEntre(o.colores, v.coloresDestino, s);
 
     e.environmentIntensity = o.entorno + (v.entorno - o.entorno) * s;
+
+    // La exposición viaja con lo demás: entrar al Apagón es también cerrar el
+    // diafragma, y hacerlo de golpe sería el corte que esta clase existe para
+    // quitar.
+    this.renderizador.toneMappingExposure =
+      v.exposicionDesde + (v.exposicion - v.exposicionDesde) * s;
 
     // Lo que no es luz de escena sino objeto que emite. Ver BaseScene.entrada.
     esc.entrada = s;
@@ -248,5 +286,6 @@ export class TransicionDeAmbiente {
   _plantar(escena, mapa) {
     this.escena.environment = mapa;
     this.escena.environmentIntensity = escena.colores.brilloEntorno ?? ENTORNO_BASE;
+    this.renderizador.toneMappingExposure = escena.colores.exposicion ?? EXPOSICION_BASE;
   }
 }
