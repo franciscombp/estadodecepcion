@@ -59,6 +59,13 @@ export const VELOCIDAD = {
   ACELERACION: 0.09, // Unidades/segundo² — sube de 15 a 32 en unos 190 s.
   // Penalización al chocar: no es game over inmediato, pierdes ritmo.
   FRENAZO_POR_GOLPE: 0.45, // Multiplicador aplicado sobre la velocidad base.
+  // SUELO ABSOLUTO tras el frenazo, como fracción de INICIAL. Vivía como un
+  // 0.6 suelto dentro de Game.js y ha dejado de poder vivir ahí: el generador
+  // de tarimas dimensiona el hueco saltable a partir de la velocidad MÁS LENTA
+  // a la que se puede llegar a él, que es exactamente este número. Dos copias
+  // del mismo 0.6 en dos ficheros distintos es un hueco insaltable esperando a
+  // que alguien toque uno y no el otro.
+  PISO_TRAS_GOLPE: 0.6,
   // Recuperación tras el frenazo, en unidades/segundo².
   // A 8, recuperar un frenazo lleva ~1.4 s: se nota el tropiezo, pero no
   // arruina la partida.
@@ -704,19 +711,74 @@ export const ELEVADO = {
   // corto y el jugador se estrella contra el costado del bus.
   //   √(2 · 27.5 · 3.65) = 14.2
   IMPULSO_RAMPA: 14.2,
-  // Cada cuántos metros se intenta colocar una tarima. A 190 salía una cada
-  // diez segundos largos y la capa de arriba se sentía una rareza; a 95 es una
-  // parte del recorrido y no un premio.
-  // Y MÁS JUNTAS. El hueco entre el final de una hilera y el principio de la
-  // siguiente tiene que ser saltable: con el salto en 2.20 m de pico y 0.8 s
-  // de vuelo, a velocidad de crucero (20 u/s) se cubren dieciséis metros. Con
-  // 12 de separación el salto entra con margen a cualquier velocidad, y el
-  // tramo de arriba pasa a ser una cadena en vez de islas sueltas.
-  DISTANCIA_ENTRE: 12,
-  // Cuántas hileras seguidas puede haber vivas a la vez. Dos era lo justo
-  // para que se solaparan en pantalla; con tres se ve la cadena entera desde
-  // la primera rampa, que es lo que invita a subirse.
+  // METROS DE CALLE LIBRE entre el final de una cadena y el pie de la rampa de
+  // la siguiente. Ojo: es una separación GEOMÉTRICA, no una cadencia. Los 12
+  // que había aquí decían ser lo segundo y se comparaban como lo primero
+  // contra la Z equivocada, y por eso nunca hubo más de una tarima viva.
+  //
+  // 22 sale de dos cuentas que coinciden:
+  //   · La reserva de carril se estira 6 m por detrás y 8 por delante de la
+  //     cadena (ver Elevado._generar): 14 m. Por debajo de eso dos cadenas en
+  //     carriles distintos se vetarían el mismo tramo de Z y el generador de
+  //     obstáculos se quedaría sin sitio donde repartir. 22 deja 8 m de aire.
+  //   · Es lo mismo que OBSTACULOS.SEPARACION_MINIMA, y por el mismo motivo:
+  //     a 32 u/s son 0.69 s para caer del tablado, ver la rampa siguiente y
+  //     colocarse; a 15 u/s, 1.47 s.
+  DISTANCIA_ENTRE: 22,
+  // Cuántas cadenas seguidas puede haber vivas a la vez. Con la condición de
+  // solape arreglada esto por fin manda: medido sobre el gestor real, 3 dan
+  // 7.25 cadenas por tramo de 850 m (antes 2.50) y tablado sobre la cabeza el
+  // 66 % del recorrido (antes 23 %). Con 4 sube al 81 %, y ahí la capa de
+  // arriba deja de ser una opción y pasa a ser el suelo por defecto.
   MAXIMO_VIVAS: 3,
+
+  // ---- EL HUECO ----------------------------------------------------------
+  // Una tarima no es una tabla: es una cadena de tramos con vacío entre ellos,
+  // como los vagones del original. El vacío es lo que convierte correr por
+  // arriba en una decisión repetida en vez de en un pasillo elevado.
+  //
+  // EL TAMAÑO NO SE ELIGE, SE DESPEJA, y no puede ser fijo. Hay dos cotas y
+  // van en direcciones contrarias:
+  //
+  //   · Para que se pueda saltar SIEMPRE, el alcance del salto tiene que ganar
+  //     al hueco a la velocidad más lenta posible. El vuelo dura 0.800 s
+  //     (2·v0/g = 2·11/27.5) y llega a 0.847 s contando el MARGEN_ATERRIZAJE,
+  //     porque el labio de llegada engancha 0.55 m por debajo del tablado.
+  //   · Para que NO saltar cueste algo, el hueco tiene que dar tiempo a caer
+  //     esos mismos 0.55 m: 0.20 s (√(2·0.55/27.5)). Por debajo de eso el
+  //     labio de enfrente te recoge y el hueco es decorado.
+  //
+  // Medido en el navegador con el Player real: a 32 u/s un hueco de 4.5 y uno
+  // de 6.0 SE CRUZAN ANDANDO. A 9 u/s —el piso tras un golpe— el alcance es de
+  // 7.6 m y un hueco de 6 es casi insaltable. No hay número fijo que sirva:
+  // el hueco escala con la velocidad, igual que la separación entre grupos de
+  // obstáculos escala para mantener constante el tiempo de reacción.
+  //
+  // Se reparte el vuelo: medio segundo para el hueco y los 0.347 s restantes
+  // como VENTANA para pulsar saltar. Medido, la ventana sale constante en toda
+  // la curva: 0.34 s en el peor caso concebible y 0.62 s jugando normal, contra
+  // los 0.15 s de SALTO.BUFFER_ENTRADA.
+  HUECO_SEGUNDOS: 0.5,
+  // Los extremos de esa misma cuenta, escritos para que se vean: el piso de
+  // velocidad va de 9 (arrancando) a 14.4 (a tope), así que el hueco va de
+  // 0.5·9 = 4.5 a 0.5·14.4 = 7.2. Sirven de tope por si alguien mueve VELOCIDAD.
+  HUECO_MINIMO: 4.5,
+  HUECO_MAXIMO: 7.2,
+
+  // ---- LOS TRAMOS --------------------------------------------------------
+  // Largo de cada pieza maciza de la cadena, en metros.
+  //
+  // MÍNIMO 20: es lo que tiene que medir el primer tramo para que quepa la
+  // caída de la rampa. Medido barriendo velocidades, el impulso de 14.2 deja
+  // al jugador tocando tablado 6.5 m pasada la rampa en el peor caso (17 u/s;
+  // por encima de 18 el jugador sube apoyado en la pendiente y aterriza en el
+  // borde mismo). Con las botas de campo puestas y saltando justo en el pie de
+  // la rampa a 32 u/s se llega a 16.7 m. 20 los cubre. Y de paso son dos buses
+  // de 8.4, que es lo mínimo para que una fila se lea como fila.
+  TRAMO_MINIMO: 20,
+  // MÁXIMO 34: cuatro buses. Más largo y el tramo vuelve a ser la tabla de 55
+  // a 95 m que se venía a partir.
+  TRAMO_MAXIMO: 34,
   // Margen de tolerancia al aterrizar sobre la plataforma: si el jugador está
   // cayendo y su pie queda dentro de esta franja por encima, se le engancha.
   MARGEN_ATERRIZAJE: 0.55,

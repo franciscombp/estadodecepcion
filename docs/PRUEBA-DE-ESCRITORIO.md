@@ -108,9 +108,39 @@ tope. Un golpe la corta al 45 % y se recupera a 8 u/s².
 - **Pruebas** — las de verdad, las nominales — con un **18 %** por grupo, valor
   10–20.
 - **Potenciadores**, cada 320 m y con un 62 % de que la tirada salga premiada.
-- **Tarimas** (la capa de arriba) cada 12 m de intento, de 55 a 95 m de largo,
-  a 3,15 m de altura. Se sube por rampa, que da un impulso de 14,2 —sale de la
-  altura, no se elige— y arriba se saltan los obstáculos de la calle.
+- **Tarimas** (la capa de arriba), unas **siete por tramo** y hasta tres vivas
+  a la vez: tablado sobre la cabeza el **66 %** del recorrido, una cada 118 m
+  —3,7 s a velocidad tope, 7,9 s a la de salida—. Nunca dos seguidas en el
+  mismo carril. Cada una son 55 a 95 m a 3,15 m de altura partidos en **dos o
+  tres tramos con hueco entre ellos**, y el hueco es por donde se cae. Se sube
+  por rampa, que da un impulso de 14,2 —sale de la altura, no se elige—.
+- **El hueco no es un número fijo**: mide medio segundo de la velocidad más
+  lenta a la que se puede llegar a él (el piso tras un golpe), o sea de **4,5 m
+  al empezar a 7,2 m a velocidad tope**. Sale de repartir los 0,847 s de vuelo
+  del salto: 0,50 s de hueco y **0,347 s de ventana para pulsar saltar**, que a
+  ritmo normal son 0,62 s. Fijo no puede ser: medido, a 32 u/s un hueco de 6 m
+  se cruza andando, y a 9 u/s uno de 6 m es insaltable.
+- **Caerse por un hueco no cuesta un golpe.** Te devuelve a la calle y te deja
+  arriba los papeles de valor 5, que es el motivo por el que subiste.
+
+**Medido** (12 tramos de 850 m a 15, 24 y 32 u/s, y la cinta contada pieza a
+pieza sobre 128 cadenas): 7,17-7,25 cadenas por tramo, 17,8-18,3 tramos de
+tablado, 10,6-11,0 huecos, 65,5-67,0 % de cobertura, hasta 3 cadenas vivas,
+**cero solapes** entre cadenas y cero entre reservas de obstáculo, y nunca dos
+seguidas en el mismo carril. De la cinta: 4,66 arcos por cadena a 0,60-0,85 m
+sobre el tablado, dos piezas marcando la rampa —una antes del pie, otra en la
+pendiente— y **cero piezas flotando a la altura del tablado dentro de un
+hueco**, que era lo único que podía leerse como «aquí hay piso» siendo mentira.
+Sin saltar se cae en los cuatro casos límite (hueco máximo a velocidad máxima,
+hueco máximo en el piso de velocidad, hueco mínimo en el piso absoluto, hueco
+mínimo a la velocidad de salida), con ventanas de 0,34 a 0,62 s.
+
+Antes de esto eran **2,50 cadenas por tramo, 23,3 % de cobertura, una sola viva
+y cero huecos**: `MAXIMO_VIVAS: 3` era configuración muerta porque la condición
+de no solape comparaba el borde LEJANO de la cadena —que nace en −260— contra
+los 12 m de separación, así que solo se generaba con la lista vacía.
+
+**A comprobar a mano:** que caerse se sienta caro sin sentirse injusto.
 
 **Los perseguidores** empiezan a 26 m, pueden alejarse hasta 34, y te atrapan si
 bajan de **4,5**. Cada golpe los acerca **8 m**: con tres golpes —26 → 2— te

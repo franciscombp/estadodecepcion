@@ -216,44 +216,82 @@ export class CoinManager {
    * tiene tope de papeles, sigue contando —pero se genera igual.
    *
    * @param {number} carril
-   * @param {number} zInicio Borde cercano del tablado
-   * @param {number} largo   Metros de tablado utilizables
-   * @param {number} altura  Altura de la superficie
+   * @param {number} zPieRampa Z del pie de la rampa (el borde cercano)
+   * @param {number} altura    Altura de la superficie
+   * @param {{ini:number,fin:number}[]} piezas Tramos macizos, en metros desde
+   *   el pie de la rampa. Entre uno y el siguiente hay vacío.
+   * @param {number} largoRampa
    */
-  generarHileraElevada(carril, zInicio, largo, altura, rampa = null) {
+  generarHileraElevada(carril, zPieRampa, altura, piezas, largoRampa) {
     const x = CARRILES.POSICIONES[carril];
-    const cuantos = Math.max(2, Math.floor(largo / EVIDENCIA.SEPARACION));
-
     const faseElevada = Math.random() * Math.PI * 2;
+    let puestos = 0;
 
-    for (let i = 0; i < cuantos; i++) {
-      const zEvidencia = zInicio - i * EVIDENCIA.SEPARACION;
+    const plantar = (avance, y) => {
       const malla = this._obtenerEvidencia();
       malla.visible = true;
-
-      // Las piezas que caen sobre la rampa suben CON la rampa, siguiendo su
-      // pendiente. Son las que dicen «esto se puede subir»: puestas a la
-      // altura del tablado flotarían en el aire delante de la madera, y
-      // puestas a ras de suelo no enseñarían nada.
-      let y = altura + EVIDENCIA.ALTURA;
-      if (rampa && zEvidencia > rampa.zRampaFin) {
-        const t = Math.min(1, Math.max(0,
-          (rampa.zRampaIni - zEvidencia) / (rampa.zRampaIni - rampa.zRampaFin)));
-        y = t * altura + EVIDENCIA.ALTURA;
-      }
-      malla.position.set(x, y, zEvidencia);
-
+      const z = zPieRampa - avance;
+      malla.position.set(x, y, z);
       this.activos.push({
         malla,
         tipo: 'evidencia',
         x,
         y,
-        z: zEvidencia,
-        fase: faseElevada + i * 1.05,
+        z,
+        fase: faseElevada + puestos * 1.05,
         valor: EVIDENCIA.VALOR_MAXIMO, // Arriba se paga mejor. Para eso subiste.
         recogido: false,
       });
+      puestos++;
       this.generadosEsteTramo++;
+    };
+
+    const enTramo = (a) => piezas.some((p) => a >= p.ini && a <= p.fin);
+    const finCadena = piezas[piezas.length - 1].fin;
+
+    // --- La cinta, tramo a tramo --------------------------------------------
+    // LA CINTA EMPIEZA CUATRO METROS ANTES DE LA RAMPA, no pasada la rampa.
+    // Los cinco metros y medio de subida sin una moneda no decían que aquello
+    // se pudiera subir; las piezas que caen sobre la rampa suben CON ella,
+    // siguiendo su pendiente, y eso es lo que se lee como «por aquí».
+    //
+    // Lo que NO se pone es cinta sobre un hueco a la altura del tablado:
+    // flotaría en mitad del vacío diciendo que ahí hay piso. Los huecos llevan
+    // su propio arco, abajo.
+    for (let a = -4; a <= finCadena; a += EVIDENCIA.SEPARACION) {
+      if (a > largoRampa && !enTramo(a)) continue;
+      const subida = Math.min(1, Math.max(0, a / largoRampa));
+      const y = (a <= largoRampa ? subida * altura : altura) + EVIDENCIA.ALTURA;
+      plantar(a, y);
+    }
+
+    // --- Y un arco por cada hueco -------------------------------------------
+    // ARQUEA SOBRE EL HUECO POR EL MISMO MOTIVO POR EL QUE ARQUEA SOBRE LA
+    // RAMPA: la cinta es el cartel. Sobre la rampa dice «se sube»; sobre el
+    // vacío dice «se salta», y lo dice desde doscientos metros, que es cuando
+    // hace falta saberlo. Sin el arco, un hueco de cinco metros a contraluz y
+    // a 32 u/s es un cambio de textura que se ve cuando ya se pisó.
+    //
+    // TRES PIEZAS, con su propia separación, y no la de EVIDENCIA.SEPARACION:
+    // el hueco mide de 4.5 a 7.2 m, así que la rejilla de 7 m metería cero o
+    // una, y una pieza suelta no dibuja un arco. Tres, a un cuarto, la mitad y
+    // tres cuartos, sí.
+    //
+    // El alto del arco es el mismo que usa la hilera de calle
+    // (ALTURA_ARCO − ALTURA = 0.85 m) y no se elige más alto por una razón
+    // medida: el salto sube 2.20 m sobre el tablado, así que un arco de 0.85
+    // queda barrido entero por cualquier salto que cruce el hueco. Un arco a
+    // la altura del pico solo se cogería clavando el salto, y entonces la
+    // recompensa dejaría de ser la señal para ser otra prueba.
+    for (let i = 0; i < piezas.length - 1; i++) {
+      const ini = piezas[i].fin;
+      const largoHueco = piezas[i + 1].ini - ini;
+      for (let k = 1; k <= 3; k++) {
+        const t = k / 4;
+        const y = altura + EVIDENCIA.ALTURA
+          + Math.sin(t * Math.PI) * (EVIDENCIA.ALTURA_ARCO - EVIDENCIA.ALTURA);
+        plantar(ini + t * largoHueco, y);
+      }
     }
   }
 

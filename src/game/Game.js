@@ -1961,8 +1961,12 @@ export class Game {
 
     // Niveles elevados. Devuelve la altura del suelo bajo los pies, que puede
     // ser el asfalto o el tablado de una tarima.
+    // Se le pasa la velocidad BASE, no la efectiva: el gestor dimensiona el
+    // hueco saltable a partir del piso de velocidad que se deduce de ella, y
+    // la base es la única que solo sube. Ver Elevado._generar().
     const alturaSuelo = this.elevado.actualizar(
       dt, avance, this.jugador, this.obstaculos, this.evidencia,
+      this.velocidadBase,
     );
     this.jugador.establecerSuelo(alturaSuelo);
 
@@ -2074,7 +2078,7 @@ export class Game {
       // El frenazo se calcula sobre la BASE, no sobre la actual: si no, dos
       // golpes seguidos se multiplicarían entre sí y te dejarían clavado.
       this.velocidad = Math.max(
-        VELOCIDAD.INICIAL * 0.6,
+        VELOCIDAD.INICIAL * VELOCIDAD.PISO_TRAS_GOLPE,
         this.velocidadBase * VELOCIDAD.FRENAZO_POR_GOLPE,
       );
       this.perseguidor.acercarPorGolpe();

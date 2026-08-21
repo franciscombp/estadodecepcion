@@ -3743,19 +3743,43 @@ export function crearAvisoBifurcacion(destinos, colores, centroEsPeligro = false
 // debajo sosteniéndola.
 
 /** Buses en fila, uno tras otro. Se corre por encima del techo. */
-function _busesBajoTarima(g, largo, ancho, alto) {
-  // Cada bus mide unos ocho metros, así que un tramo de veinte lleva dos y
-  // pico. Se recortan al largo exacto: medio bus asomando por el final se lee
-  // como que la plataforma se acaba antes de tiempo.
+/**
+ * Una FILA de buses parados, la que sostiene UN tramo de la cadena.
+ *
+ * Antes esto montaba los 55-95 m de tarima de una tirada y el resultado era
+ * una cinta de cajas: ni el morro ni la cola de ningún bus llegaban a estar en
+ * cuadro, así que debajo no se leía «buses», se leía «zócalo». Ahora cada
+ * tramo mide de 20 a 34 m y acaba en un hueco, o sea que los DOS extremos de
+ * cada fila están a la vista desde lejos, y son los que dicen qué hay debajo.
+ *
+ * ORIENTACIÓN: los buses miran hacia +Z, o sea de frente al jugador que viene.
+ * Es lo que hace legible el hueco desde arriba: al asomarte ves la cola del
+ * que dejas y, cruzando el vacío, el parabrisas y los faros del siguiente
+ * apuntándote. Mirando todos hacia -Z solo se verían culatas iguales.
+ *
+ * @param {number} indice Orden del tramo dentro de la cadena. Solo desplaza la
+ *   alternancia de color, para que dos filas consecutivas no empiecen igual.
+ */
+function _busesBajoTarima(g, largo, ancho, alto, indice = 0) {
+  // Un bus urbano mide unos doce metros; aquí se recorta a 8.4 para que en el
+  // tramo más corto (TRAMO_MINIMO, 20 m) quepan dos y la fila se lea como
+  // fila. Se recortan al largo exacto del tramo: medio bus asomando por el
+  // borde se lee como que el piso se acaba antes de tiempo.
   const LARGO_BUS = 8.4;
   const cuantos = Math.max(1, Math.round(largo / LARGO_BUS));
   const paso = largo / cuantos;
 
+  const matCristal = mat(0x1d2735, 0.05, 0.35);
+  const matRueda = mat(0x14161c, 0.02, 0.85);
+  const matParachoques = mat(0x3a3f4a, 0.04, 0.9);
+
   for (let i = 0; i < cuantos; i++) {
     const z = -i * paso - paso / 2;
+    const tono = (indice + i) % 2 ? 0xd9d2c4 : 0xe8e2d6;
+
     const carroceria = new THREE.Mesh(
       caja(ancho * 0.94, alto * 0.86, paso * 0.94),
-      mat(i % 2 ? 0xd9d2c4 : 0xe8e2d6, 0.03, 0.9),
+      mat(tono, 0.03, 0.9),
     );
     carroceria.position.set(0, alto * 0.43, z);
     g.add(carroceria);
@@ -3773,7 +3797,7 @@ function _busesBajoTarima(g, largo, ancho, alto) {
     for (const lado of [-1, 1]) {
       const cristal = new THREE.Mesh(
         caja(0.06, 0.44, paso * 0.78),
-        mat(0x1d2735, 0.05, 0.35),
+        matCristal,
       );
       cristal.position.set(lado * ancho * 0.47, alto * 0.7, z);
       g.add(cristal);
@@ -3784,18 +3808,67 @@ function _busesBajoTarima(g, largo, ancho, alto) {
       for (const dz of [paso * 0.3, -paso * 0.3]) {
         const rueda = new THREE.Mesh(
           new THREE.CylinderGeometry(0.34, 0.34, 0.2, 8),
-          mat(0x14161c, 0.02, 0.85),
+          matRueda,
         );
         rueda.rotation.z = Math.PI / 2;
         rueda.position.set(lado * ancho * 0.45, 0.34, z + dz);
         g.add(rueda);
       }
     }
+
+    // --- El MORRO del primero de la fila ------------------------------------
+    // El que mira al jugador. Es la cara que se ve al otro lado del hueco.
+    if (i === 0) {
+      const parabrisas = new THREE.Mesh(
+        caja(ancho * 0.8, 0.62, 0.08),
+        matCristal,
+      );
+      parabrisas.position.set(0, alto * 0.66, z + paso * 0.47);
+      g.add(parabrisas);
+
+      // Los faros van encendidos y no es capricho: son dos puntos calientes a
+      // la altura de la calle que se distinguen a contraluz y en el Apagón,
+      // que es donde un hueco negro sobre asfalto negro no se ve de otro modo.
+      for (const lado of [-1, 1]) {
+        const faro = new THREE.Mesh(caja(0.26, 0.16, 0.06), neon(NEON.blanco, 1.6));
+        faro.position.set(lado * ancho * 0.28, alto * 0.3, z + paso * 0.47);
+        g.add(faro);
+      }
+
+      const paragolpes = new THREE.Mesh(caja(ancho * 0.9, 0.18, 0.14), matParachoques);
+      paragolpes.position.set(0, alto * 0.16, z + paso * 0.47);
+      g.add(paragolpes);
+    }
+
+    // --- La COLA del último -------------------------------------------------
+    // El borde de despegue: es lo último que se ve antes de saltar.
+    if (i === cuantos - 1) {
+      const luna = new THREE.Mesh(caja(ancho * 0.74, 0.4, 0.08), matCristal);
+      luna.position.set(0, alto * 0.66, z - paso * 0.47);
+      g.add(luna);
+
+      for (const lado of [-1, 1]) {
+        const piloto = new THREE.Mesh(caja(0.2, 0.14, 0.06), neon(NEON.rojo, 1.4));
+        piloto.position.set(lado * ancho * 0.3, alto * 0.3, z - paso * 0.47);
+        g.add(piloto);
+      }
+
+      const paragolpes = new THREE.Mesh(caja(ancho * 0.9, 0.18, 0.14), matParachoques);
+      paragolpes.position.set(0, alto * 0.16, z - paso * 0.47);
+      g.add(paragolpes);
+    }
   }
 }
 
-/** Contenedores de puerto, apilados. La Bahía es mercadería en tránsito. */
-function _contenedoresBajoTarima(g, largo, ancho, alto) {
+/**
+ * Contenedores de puerto, apilados. La Bahía es mercadería en tránsito.
+ *
+ * @param {number} indice Orden del tramo en la cadena. Corre la paleta para
+ *   que dos pilas separadas por un hueco no empiecen por el mismo color: el
+ *   hueco tiene que leerse como un corte, y dos rojos idénticos a lado y lado
+ *   lo leen como una junta.
+ */
+function _contenedoresBajoTarima(g, largo, ancho, alto, indice = 0) {
   const LARGO_CAJA = 6.2;
   const COLORES = [0xc63a41, 0x326da6, 0x2f7d52, 0xd08a2a];
   const cuantos = Math.max(1, Math.round(largo / LARGO_CAJA));
@@ -3803,9 +3876,10 @@ function _contenedoresBajoTarima(g, largo, ancho, alto) {
 
   for (let i = 0; i < cuantos; i++) {
     const z = -i * paso - paso / 2;
+    const color = COLORES[(indice * 2 + i) % COLORES.length];
     const contenedor = new THREE.Mesh(
       caja(ancho * 0.96, alto * 0.94, paso * 0.96),
-      mat(COLORES[i % COLORES.length], 0.05, 0.92),
+      mat(color, 0.05, 0.92),
     );
     contenedor.position.set(0, alto * 0.47, z);
     g.add(contenedor);
@@ -3827,7 +3901,22 @@ function _contenedoresBajoTarima(g, largo, ancho, alto) {
   }
 }
 
-export function crearTarima(largo, colores, idEscenario = 'bahia') {
+/**
+ * Una cadena de tarima: rampa + tramos macizos con vacío entre ellos.
+ *
+ * ANTES RECIBÍA UN LARGO Y MONTABA UNA TABLA. De 55 a 95 metros de tablero
+ * corrido, que es lo que el jugador describió como «una línea recta»: se sube
+ * y se corre sin riesgo hasta que se acaba. Ahora recibe la lista de tramos y
+ * monta uno por tramo, con sus dos bordes a la vista y el vacío entre medias.
+ *
+ * @param {{ini:number,fin:number}[]} piezas Tramos macizos, en METROS DESDE EL
+ *   PIE DE LA RAMPA, creciendo hacia -Z. Los calcula Elevado._repartirTramos,
+ *   que es quien sabe qué hueco es saltable a la velocidad de esta partida.
+ * @param {object} colores
+ * @param {string} idEscenario Decide QUÉ sostiene cada tramo: contenedores de
+ *   puerto en la Bahía, buses parados en el resto.
+ */
+export function crearTarima(piezas, colores, idEscenario = 'bahia') {
   const g = new THREE.Group();
   const acento = colores.acento ?? COLOR3D.dorado;
   const ancho = CARRILES.ANCHO * 0.92;
@@ -3864,83 +3953,84 @@ export function crearTarima(largo, colores, idEscenario = 'bahia') {
   banda.position.set(0, h / 2 + 0.13, -ELEVADO.LARGO_RAMPA / 2);
   g.add(banda);
 
-  // --- Tablado -------------------------------------------------------------
-  const zInicio = -ELEVADO.LARGO_RAMPA;
-  // Con segmentos a lo largo: el tablado mide 20-35 metros y la curvatura del
-  // mundo dobla por vértice — sin ellos quedaría tendido recto sobre una calle
-  // que se curva por debajo. Ver utils/curvatura.js.
-  const tablero = new THREE.Mesh(
-    caja(ancho, 0.26, largo, 1, 1, Math.max(2, Math.round(largo / 4))),
-    material({
-      map: texturaMadera(),
-      roughness: 0.8,
-      metalness: 0.05,
-      flatShading: true,
-    }),
-  );
-  tablero.position.set(0, h - 0.13, zInicio - largo / 2);
-  g.add(tablero);
-
-  // --- QUÉ SOSTIENE EL TABLADO ---------------------------------------------
-  // Una tarima de obra en mitad del centro histórico no significa nada: es un
-  // cajón elevado y punto. Lo que sí significa algo es subirse POR ENCIMA de
-  // algo que está ahí por una razón. Debajo van buses parados en fila o
-  // contenedores del muelle, según el barrio.
-  //
-  // La superficie no se toca: el alto, el ancho y la rampa siguen donde
-  // estaban, porque son lo que el jugador lee para saber que se sube. Lo que
-  // cambia es lo que hay debajo.
-  const bajo = new THREE.Group();
-  bajo.position.z = zInicio;
-  if (idEscenario === 'bahia') _contenedoresBajoTarima(bajo, largo, ancho, h);
-  else _busesBajoTarima(bajo, largo, ancho, h);
-  g.add(bajo);
-
-  // Borde de neón a ambos lados, a la altura de la superficie. Es lo que
-  // comunica DÓNDE está el suelo nuevo: sin esta línea, desde arriba no se
-  // distingue el filo y el jugador se cae sin entender por qué.
+  // --- Un tramo por pieza ----------------------------------------------------
   const matBorde = neon(acento, 1.7);
-  for (const s of [-1, 1]) {
-    const borde = new THREE.Mesh(
-      // Segmentado a lo largo, como el tablero: es la línea que marca el filo
-      // y la que más cantaría si quedara recta sobre la calle curvada.
-      caja(0.1, 0.12, largo + ELEVADO.LARGO_RAMPA,
-        1, 1, Math.max(2, Math.round(largo / 4))),
-      matBorde,
-    );
-    borde.position.set(
-      s * (ancho / 2),
-      h + 0.06,
-      zInicio - largo / 2 + ELEVADO.LARGO_RAMPA / 2,
-    );
-    g.add(borde);
-  }
-
-  // Patas de andamio. Van en pares, cada 6 metros.
   const matPata = mat(COLOR3D.metal, 0.05, 0.85);
-  for (let z = zInicio - 1.5; z > zInicio - largo; z -= 6) {
+  const matFaldon = mat(0x2a3040, 0.05, 0.9);
+  const matTablero = material({
+    map: texturaMadera(),
+    roughness: 0.8,
+    metalness: 0.05,
+    flatShading: true,
+  });
+
+  piezas.forEach((pieza, i) => {
+    const largo = pieza.fin - pieza.ini;
+    // El grupo crece hacia -Z, así que un tramo que va del metro `ini` al `fin`
+    // vive entre -fin y -ini.
+    const centro = -(pieza.ini + largo / 2);
+    const esPrimero = i === 0;
+
+    const tablero = new THREE.Mesh(caja(ancho, 0.26, largo), matTablero);
+    tablero.position.set(0, h - 0.13, centro);
+    g.add(tablero);
+
+    // Borde de neón a ambos lados. Es lo que comunica DÓNDE está el suelo
+    // nuevo: sin esta línea, desde arriba no se distingue el filo y el jugador
+    // se cae sin entender por qué. En el primer tramo se estira hacia atrás
+    // para cubrir también la rampa, que es la misma superficie.
+    const largoBorde = largo + (esPrimero ? ELEVADO.LARGO_RAMPA : 0);
+    const centroBorde = centro + (esPrimero ? ELEVADO.LARGO_RAMPA / 2 : 0);
     for (const s of [-1, 1]) {
-      const pata = new THREE.Mesh(caja(0.16, h, 0.16), matPata);
-      pata.position.set(s * (ancho / 2 - 0.16), h / 2, z);
-      g.add(pata);
+      const borde = new THREE.Mesh(caja(0.1, 0.12, largoBorde), matBorde);
+      borde.position.set(s * (ancho / 2), h + 0.06, centroBorde);
+      g.add(borde);
     }
-  }
 
-  // Faldón del fondo, para que el tablado tenga final visible y el jugador
-  // sepa cuándo se acaba el piso.
-  const faldon = new THREE.Mesh(
-    caja(ancho, h, 0.2),
-    mat(0x2a3040, 0.05, 0.9),
-  );
-  faldon.position.set(0, h / 2, zInicio - largo);
-  g.add(faldon);
+    // Patas de andamio. Van en pares, cada 6 metros.
+    for (let z = -pieza.ini - 1.5; z > -pieza.fin; z -= 6) {
+      for (const s of [-1, 1]) {
+        const pata = new THREE.Mesh(caja(0.16, h, 0.16), matPata);
+        pata.position.set(s * (ancho / 2 - 0.16), h / 2, z);
+        g.add(pata);
+      }
+    }
 
-  const remate = new THREE.Mesh(
-    caja(ancho, 0.14, 0.26),
-    neon(NEON.ambar, 1.8),
-  );
-  remate.position.set(0, h + 0.06, zInicio - largo);
-  g.add(remate);
+    // --- LOS DOS LABIOS DEL HUECO --------------------------------------------
+    // Faldón y remate ámbar en los DOS extremos del tramo, no solo al final de
+    // la cadena como antes. Es lo que hace que un hueco se lea a doscientos
+    // metros: dos barras encendidas con negro entre ellas. Con remate solo en
+    // el borde de salida, el de llegada quedaba sin marcar y el hueco parecía
+    // el final del tablado, o sea el sitio donde hay que bajarse —justo lo
+    // contrario de lo que se pide ahí.
+    //
+    // El de llegada del primer tramo no se pone: ahí está la rampa.
+    const labios = esPrimero ? [-pieza.fin] : [-pieza.ini, -pieza.fin];
+    for (const z of labios) {
+      const faldon = new THREE.Mesh(caja(ancho, h, 0.2), matFaldon);
+      faldon.position.set(0, h / 2, z);
+      g.add(faldon);
+
+      const remate = new THREE.Mesh(caja(ancho, 0.14, 0.26), neon(NEON.ambar, 1.8));
+      remate.position.set(0, h + 0.06, z);
+      g.add(remate);
+    }
+
+    // --- QUÉ SOSTIENE EL TRAMO ------------------------------------------------
+    // Una tarima de obra en mitad del centro histórico no significa nada: es un
+    // cajón elevado y punto. Lo que sí significa algo es subirse POR ENCIMA de
+    // algo que está ahí por una razón. Debajo van buses parados en fila o
+    // contenedores del muelle, según el barrio.
+    //
+    // Y AHORA HAY VARIOS, uno por tramo, con el hueco entre ellos: cada fila
+    // enseña su morro y su cola, que es lo que una fila corrida de noventa
+    // metros no enseñaba nunca.
+    const bajo = new THREE.Group();
+    bajo.position.z = -pieza.ini;
+    if (idEscenario === 'bahia') _contenedoresBajoTarima(bajo, largo, ancho, h, i);
+    else _busesBajoTarima(bajo, largo, ancho, h, i);
+    g.add(bajo);
+  });
 
   return g;
 }
