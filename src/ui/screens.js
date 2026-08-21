@@ -2422,8 +2422,12 @@ export class Pantallas {
     const botones = el('div', 'botones');
     botones.appendChild(boton(T('pausa.seguir'), 'boton--principal',
       () => this.juego.reanudar()));
+    // ABANDONAR NO ES QUE TE ATRAPEN. Esto llamaba a terminarPartida('captura'),
+    // o sea que retirarse a la portada montaba el cerco, el sorteo del juez y
+    // la primera plana con foto de arresto incluida. Ver Game.abandonarPartida:
+    // cierra la corrida —lo recogido se queda— y vuelve al menú.
     botones.appendChild(boton(T('pausa.abandonar'), 'boton--tenue',
-      () => this.juego.terminarPartida('captura')));
+      () => this.juego.abandonarPartida()));
     contenido.appendChild(botones);
 
     escalonar(plana);

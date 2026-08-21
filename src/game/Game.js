@@ -679,6 +679,48 @@ export class Game {
   }
 
   /**
+   * ABANDONAR LA CORRIDA. Es lo que hace el botón de la pausa, y NO es que te
+   * atrapen.
+   *
+   * Llamaba a `terminarPartida('captura')`, que es la ruta de la captura
+   * entera: el cerco cerrándose, el sorteo del juez y la primera plana con tu
+   * foto de arresto. O sea que retirarse a la portada te montaba un juicio.
+   * Además de raro, contradice lo que significa cada cosa: el sorteo del juez
+   * es la OPORTUNIDAD de seguir corriendo después de que te agarren, y a quien
+   * se va por su pie no hay que agarrarlo ni darle una oportunidad de nada.
+   *
+   * LO RECOGIDO SE QUEDA, igual que al ser capturado. Es la regla de la casa
+   * —«recógelas aunque te capturen»— y sin ella abandonar sería PEOR que caer
+   * preso: perderías los papeles y las pruebas de la corrida por retirarte.
+   * Así que la partida se cierra en el cuaderno como cualquier otra y solo
+   * después se vuelve a la portada.
+   *
+   * No hay atajo que explotar: quien abandona renuncia justo a lo que da el
+   * cerco, que es la posibilidad de seguir.
+   */
+  abandonarPartida() {
+    if (this.estado !== 'pausa' && this.estado !== 'jugando') return;
+
+    this.controles.desactivar();
+    this.bifurcacion.abortarViraje();
+    this.jugador.giroCinematico = 0;
+    this._asentarGiroMundo();
+    this._limpiarEfectos();
+
+    const puntaje = this.evidenciaPartida + Math.floor(this.distanciaTotal / 10);
+    this.cuaderno.ultimoEscenario = this.escenarioActual;
+    this._cerrarEnCuaderno({
+      papeles: this.evidenciaPartida,
+      distancia: Math.floor(this.distanciaTotal),
+      puntaje,
+      pruebas: this.pruebasPartida,
+      ruta: [...this.rutaPartida],
+    });
+
+    this.volverAlMenu();
+  }
+
+  /**
    * Te alcanzaron. Esto NO abre la pantalla de fin de partida: arranca el
    * cerco, que es la representación de lo que acaba de pasar. El resultado se
    * calcula ya (para no recalcularlo dos veces) pero se queda en espera hasta
