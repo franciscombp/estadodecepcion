@@ -131,7 +131,9 @@ function asentarFachada(objeto, giro = 0) {
         if (c[k] > max[k]) max[k] = c[k];
       }
     }
-    cajas.push({ min, max });
+    // La malla viaja con su caja: el recorte de la explanada (más abajo)
+    // necesita poder apagar la pieza, no solo saber dónde estaba.
+    cajas.push({ min, max, malla: o });
   });
 
   if (!cajas.length) return objeto;   // rama vacía: nada que asentar
@@ -149,8 +151,54 @@ function asentarFachada(objeto, giro = 0) {
   for (const c of cajas) if (c.max[1] >= alturaCuerpo && c.max[2] > frente) frente = c.max[2];
   if (!Number.isFinite(frente)) frente = global.max[2];
 
+  const desplazamientoX = -(global.min[0] + global.max[0]) / 2;
+
+  // LA EXPLANADA SE QUEDA FUERA, y no es un recorte cosmético.
+  //
+  // La maqueta trae cada edificio con su plaza, y esas plazas se meten HACIA EL
+  // JUGADOR: medido recorriendo los vértices del clon, la losa de la Fiscalía
+  // llega a 11,5 m por delante del plano del cruce, la de la Asamblea a 23,2 y
+  // la Plaza Grande a 18,4, todas rasantes y de ±15 a ±28 de ancho. En la
+  // ciudad esas losas dan a una calle. Aquí no había calle a la que dar —la
+  // fachada topaba directamente con el barrio— así que en pantalla eran una
+  // alfombra gris delante del edificio, y nadie las echaba de menos.
+  //
+  // Ahora delante SÍ hay calle (ver BOCACALLE en models/props.js) y la losa es
+  // exactamente lo que la taparía: veinte metros de piedra por encima del
+  // asfalto de la transversal. Se va, y con ella lo que el modelador plantó en
+  // el mismo sitio: bolardos, gradas, astas y banderines.
+  //
+  // Dos reglas, y las dos dicen lo mismo —nada de lo que está delante de la
+  // fachada pertenece al cruce—:
+  //   · lo que está ENTERO por delante (astas de 6 m, bolardos, gradas),
+  //   · las losas RASANTES que cruzan el plano, que no se pueden partir por la
+  //     mitad y son lo único bajo que asoma hacia el jugador.
+  // El cuerpo no se toca: por construcción su frente está en z = 0, que es lo
+  // que acaba de calcular este mismo método.
+  const UMBRAL = 0.5;      // medio metro de margen sobre el plano de la fachada
+  const RASANTE = 2;       // por debajo de dos metros ya no es edificio, es piso
+  let medioAncho = 0;
+  let altoCuerpo = 0;
+  for (const c of cajas) {
+    const zMin = c.min[2] - frente;
+    const zMax = c.max[2] - frente;
+    const alto = c.max[1] - global.min[1];
+    if (zMax > UMBRAL && (zMin > UMBRAL || alto < RASANTE)) {
+      c.malla.visible = false;
+      continue;
+    }
+    // Lo que SÍ se queda define hasta dónde llega el edificio. Es el dato que
+    // la bocacalle necesita para saber dónde empezar su manzana del fondo sin
+    // meterla dentro de la Asamblea, que mide 44 m de frente.
+    medioAncho = Math.max(medioAncho,
+      Math.abs(c.min[0] + desplazamientoX), Math.abs(c.max[0] + desplazamientoX));
+    altoCuerpo = Math.max(altoCuerpo, alto);
+  }
+  objeto.userData.medioAncho = medioAncho;
+  objeto.userData.altoCuerpo = altoCuerpo;
+
   objeto.position.set(
-    -(global.min[0] + global.max[0]) / 2,   // centrado en la calle
+    desplazamientoX,                        // centrado en la calle
     -global.min[1],                         // apoyado en el asfalto
     -frente,                                // su fachada en el plano del cruce
   );

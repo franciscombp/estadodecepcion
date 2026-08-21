@@ -31,6 +31,11 @@ import { material } from '../utils/materiales.js';
 import { caja, cajaViva } from '../utils/geometria.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { CARRILES, OBSTACULOS, PALETA, TUNEL, ELEVADO } from '../config/balance.js';
+// El ancho de la calle sale de donde se construye la calle, no de una copia:
+// la transversal mide EXACTAMENTE lo mismo que la principal, y escribir 8.8 a
+// mano aquí sería un número que deja de ser verdad el día que alguien toque
+// CARRILES.ANCHO. (Track no importa props: no hay ciclo.)
+import { ANCHO_PISTA } from '../game/Track.js';
 import { COLOR3D } from '../config/estilo.js';
 import { clonarEdificioDelCruce } from './hitos.js';
 
@@ -3088,11 +3093,20 @@ function crearCartelDestino(texto, colorAcento, esPeligro = false) {
  * @param {object} colores       Paleta del escenario
  * @param {boolean} centroEsPeligro El de frente es el cerco, no una entrada
  */
+/**
+ * @param {object} coloresRutas Paletas de los dos vecinos: {izquierda, derecha}
+ */
 export function crearCruceDeEdificios(nombre, colores, centroEsPeligro = false,
-                                      idEscenario = null) {
+                                      idEscenario = null, coloresRutas = null) {
   const g = new THREE.Group();
   const acento = colores.acento ?? COLOR3D.dorado;
   const hueco = CARRILES.ANCHO * 1.02;   // por donde se pasa, en cada carril
+  // Hasta dónde llega el edificio de frente. Lo publica asentarFachada() al
+  // clonarlo, medido sobre los vértices de verdad: la Fiscalía ±15, la Asamblea
+  // ±22,2, Carondelet ±20,6. Es donde tiene que empezar la manzana del fondo de
+  // cada bocacalle, y por eso no puede ser un número escrito aquí.
+  let medioAncho = 8;
+  let altoCuerpo = 11;
 
   // --- El edificio del centro ----------------------------------------------
   // EL EDIFICIO DE VERDAD, si lo hay. La Fiscalía en la Bahía, la Asamblea en
@@ -3107,6 +3121,8 @@ export function crearCruceDeEdificios(nombre, colores, centroEsPeligro = false,
   const real = clonarEdificioDelCruce(idEscenario);
   if (real) {
     real.position.z -= 0.6;
+    medioAncho = real.userData.medioAncho ?? medioAncho;
+    altoCuerpo = real.userData.altoCuerpo ?? altoCuerpo;
     g.add(real);
   } else {
     // Las Elecciones no tienen edificio modelado: ahí sigue la fachada
@@ -3158,6 +3174,244 @@ export function crearCruceDeEdificios(nombre, colores, centroEsPeligro = false,
     chapa.position.set(lado * (CARRILES.ANCHO * 1.5 + 1.6), 5.4, 0.1);
     g.add(chapa);
   }
+
+  // --- Y LA CALLE QUE CRUZA POR DELANTE ------------------------------------
+  // Las medianeras de arriba dejan de ser el final de la calle y pasan a ser lo
+  // que siempre fueron en una ciudad: las dos esquinas del fondo del cruce, las
+  // que flanquean al edificio. Delante de ellas va la transversal.
+  //
+  // Si no llegan las paletas de los vecinos no se monta nada: es preferible el
+  // cruce de antes a una bocacalle del color equivocado, que sería peor que no
+  // enseñar nada (ver crearBocacalle).
+  if (coloresRutas?.izquierda && coloresRutas?.derecha) {
+    g.add(crearBocacalle(-1, coloresRutas.izquierda, medioAncho, altoCuerpo));
+    g.add(crearBocacalle(+1, coloresRutas.derecha, medioAncho, altoCuerpo));
+  }
+
+  return g;
+}
+
+// ---------------------------------------------------------------------------
+// LA BOCACALLE — la calle de al lado, vista ANTES de doblar
+// ---------------------------------------------------------------------------
+// EL PROBLEMA. El cruce enseñaba el edificio de frente y dos medianeras, y a
+// los lados no había nada: la calle a la que se va no existía hasta el
+// fotograma en que el mundo giraba (ver Game._prepararGiroMundo). La
+// transición ya era continua, pero se decidía a ciegas —el cartel decía el
+// nombre del barrio y el mundo no decía nada—, y por eso seguía sintiéndose
+// cortada.
+//
+// LO QUE SE MONTA. Una calle que CRUZA por delante del edificio: calzada del
+// ancho de la principal, sus dos aceras con su bordillo, la manzana de enfrente
+// y las luces de la esquina. Y todo con la paleta del barrio AL QUE LLEVA ESE
+// LADO —que es exactamente la misma con la que se pintará el tramo nuevo al
+// cruzar (Game._cambiarEscenario tiñe el asfalto con colores.calle y las líneas
+// con colores.acento)—, así que enseñar una calle morada y entregar una azul es
+// imposible por construcción: sale de la misma entrada de escenarios.js.
+//
+// DÓNDE, EXACTAMENTE, Y POR QUÉ AHÍ. La banda va DELANTE del plano del cruce:
+// el bordillo de enfrente cae en z = 0, que es donde está la fachada de la
+// institución y donde nace la calle nueva cuando el mundo gira, y la banda
+// crece hacia el jugador. Con eso el centro de la calzada se atraviesa 6 m
+// antes de que dispare la esquina —0,23 s a 26 u/s—, que es justo lo que se
+// tarda en salir de una intersección antes de doblar. Detrás del plano no cabía
+// nada: ahí está el cuerpo del edificio, que mide de 30 a 44 metros de frente.
+//
+// LO QUE NO LLEVA, Y ES LO PRIMERO QUE SE PROBÓ: LUCES. Una farola del color
+// del destino tiñendo la bocacalle entera es lo natural, y es lo único que no
+// se puede hacer. Medido con el juego corriendo: añadir UNA PointLight a la
+// escena a mitad de partida cuesta 3.268 ms en el fotograma en que entra
+// —cambia el número de luces y Three recompila los 52 programas de la escena—,
+// contra 7-8 ms del fotograma anterior y del siguiente. El color lo ponen
+// materiales emisivos, que no recompilan nada.
+//
+// LA CURVATURA NO LE AFECTA, y hay que decirlo porque la regla de la casa es
+// que todo lo que pase de ~8 m a lo largo necesita segmentos (ver
+// utils/curvatura.js). Esta pieza es larga en X (40 m) y corta en Z (12 m), y
+// el doblez solo depende de z: a lo ancho no hay nada que curvar —todos los
+// vértices de una fila comparten profundidad— y a lo largo de la banda la
+// flecha de la cuerda vale k·Δz²/4 = 0,0009 · 144 / 4 = 3,2 cm. Aun así la
+// calzada lleva tres segmentos en Z, que son gratis, por no dejar la excepción
+// sin red.
+
+/**
+ * Las medidas de la calle transversal. Las lee también el escenario, para abrir
+ * el hueco en el decorado (BaseScene.actualizar) y para cortar la bóveda de la
+ * Bahía en el borde del cruce (Game._actualizarJuego).
+ *
+ * z LOCAL del cruce, con +z hacia el jugador.
+ */
+export const BOCACALLE = {
+  // El mismo ancho que la calle por la que se viene. Una transversal más
+  // estrecha se lee como un callejón y una más ancha como una avenida: las dos
+  // mienten sobre lo que hay al otro lado, que es otro tramo idéntico a éste.
+  ANCHO_CALZADA: ANCHO_PISTA,
+  ACERA: 1.6,
+  // Borde LEJANO de la banda: el plano del cruce, ni un centímetro por detrás.
+  FONDO: 0,
+  get FRENTE() { return this.FONDO + this.ACERA * 2 + this.ANCHO_CALZADA; },
+  // Cuánto se mete hacia el costado. Cuarenta y no más porque la explanada de
+  // la pista mide 90 de lado a lado (ANCHO_EXPLANADA en game/Track.js): con 40
+  // el extremo cae en x = 44,4 y la calle sigue teniendo suelo debajo. Con 46
+  // los últimos metros flotaban sobre el vacío.
+  LARGO: 40,
+  // Cuánto decorado del barrio hay que apagar a cada lado de la banda. Es la
+  // media manzana más ancha que genera crearDecorado —la hilera de la Bahía,
+  // 4 × 2,60 × 1,5 = 15,6 m de frente— así que ninguna se queda cruzada encima
+  // de la calzada.
+  MARGEN_DECORADO: 8,
+};
+
+/**
+ * Una bocacalle, la del lado que se le pida.
+ *
+ * @param {number} signo    -1 izquierda, +1 derecha
+ * @param {object} destino  Paleta del barrio al que lleva ESE lado
+ * @param {number} medioAncho  Hasta dónde llega el edificio de la institución
+ * @param {number} altoCuerpo  Cuánto mide de alto, para no pasarle por encima
+ */
+function crearBocacalle(signo, destino, medioAncho, altoCuerpo) {
+  const g = new THREE.Group();
+  const acento = destino.acento ?? COLOR3D.dorado;
+  const X0 = ANCHO_PISTA / 2;            // 4,4: el bordillo de la calle principal
+  const zCalzada = BOCACALLE.FONDO + BOCACALLE.ACERA + BOCACALLE.ANCHO_CALZADA / 2;
+  const xCentro = signo * (X0 + BOCACALLE.LARGO / 2);
+
+  // --- La calzada -----------------------------------------------------------
+  // Arranca en el bordillo de la calle principal y no en el eje: el cambio de
+  // color cae exactamente en la línea donde una calle acaba y empieza otra, que
+  // es donde el ojo ya espera un corte. Pintada hasta el centro, la
+  // intersección salía a tres colores y parecía un error de material.
+  const calzada = new THREE.Mesh(
+    new THREE.PlaneGeometry(BOCACALLE.LARGO, BOCACALLE.ANCHO_CALZADA, 1, 3),
+    mat(destino.calle, 0.02, 0.92),
+  );
+  calzada.rotation.x = -Math.PI / 2;
+  // Dos centímetros por encima del asfalto: la explanada de la pista está a
+  // −0,04 y sin separarlas se pelean por el mismo plano.
+  calzada.position.set(xCentro, 0.02, zCalzada);
+  g.add(calzada);
+
+  // Todo lo demás va a UNA malla por material (ver fundirPorMaterial): son unas
+  // cincuenta cajas por lado y en el cruce ya hay 74-125 mallas del edificio.
+  // Es el mismo trato que la hilera de la Bahía y la cuadra colonial.
+  const piezas = new THREE.Group();
+  const matMuro = mat(destino.props ?? 0x8a7f6d, 0.03, 0.95);
+  const matAcento = neon(acento, 1.35);
+  const matPoste = mat(0x22242c, 0.02, 0.8);
+  const tonoAcera = new THREE.Color(destino.calle).multiplyScalar(1.4).getHex();
+  const matAcera = mat(tonoAcera, 0.03, 0.9);
+
+  // --- Las dos aceras -------------------------------------------------------
+  for (const z of [BOCACALLE.FONDO + BOCACALLE.ACERA / 2,
+    BOCACALLE.FRENTE - BOCACALLE.ACERA / 2]) {
+    const acera = new THREE.Mesh(
+      cajaViva(BOCACALLE.LARGO, 0.34, BOCACALLE.ACERA), matAcera,
+    );
+    acera.position.set(xCentro, 0.17, z);
+    piezas.add(acera);
+  }
+
+  // --- La discontinua -------------------------------------------------------
+  // Es el detalle que convierte una mancha de color en una CALLE, y va del
+  // acento del destino porque es lo que Track pinta en el asfalto de ese barrio
+  // (ver Track.aplicarTema: colorLinea = colores.acento).
+  for (let x = X0 + 3; x < X0 + BOCACALLE.LARGO - 3; x += 6) {
+    const trazo = new THREE.Mesh(cajaViva(3, 0.03, 0.22), matAcento);
+    trazo.position.set(signo * (x + 1.5), 0.05, zCalzada);
+    piezas.add(trazo);
+  }
+
+  // --- La manzana de enfrente -----------------------------------------------
+  // ARRANCA DONDE ACABA EL EDIFICIO. La Asamblea mide 44 m de frente y
+  // Carondelet 41: una manzana puesta a ojo a doce metros del eje se mete
+  // dentro del edificio y se ve el recorte.
+  //
+  // Y ES ALTA A PROPÓSITO. Mirando de frente por un corredor de fachadas, lo
+  // único de la calle de al lado que asoma por encima de la manzana propia es
+  // lo que sobresale: medido, las paredes del corredor rondan los 7,2 m en la
+  // Bahía (la bóveda: radio 10,4 centrada en y = −3,2), 6,6 en el centro
+  // histórico, 7-8 en las Elecciones y hasta 11 en el Apagón. Por debajo de 12
+  // la bocacalle no existe hasta tenerla encima.
+  //
+  // El techo lo pone el propio edificio: la esquina NUNCA puede más que aquello
+  // sobre lo que hay que decidir si se entra. Es la regla 3 de este archivo.
+  const techo = Math.max(14, altoCuerpo * 0.82);
+  const ALTOS = [17, 13, 19, 15, 12];
+  let x = medioAncho + 0.5;
+  let i = 0;
+  while (x < X0 + BOCACALLE.LARGO) {
+    const ancho = Math.min(8 + (i % 3) * 3, X0 + BOCACALLE.LARGO - x);
+    if (ancho < 4) break;
+    // El primero es el más alto que se permita: es el que está pegado al
+    // edificio, o sea el único que se ve desde lejos.
+    const alto = i === 0 ? techo : Math.min(ALTOS[i % ALTOS.length], techo);
+    const bloque = new THREE.Mesh(caja(ancho, alto, 8), matMuro);
+    bloque.position.set(signo * (x + ancho / 2), alto / 2, BOCACALLE.FONDO - 4);
+    piezas.add(bloque);
+
+    // Bandas de ventanas encendidas. No son ventanas: son la forma barata de
+    // que el acento del barrio destino ocupe superficie, que es lo que se ve.
+    for (let k = 0; k * 2.6 + 3 < alto - 1.4; k++) {
+      const v = new THREE.Mesh(cajaViva(ancho * 0.62, 0.55, 0.25), matAcento);
+      v.position.set(signo * (x + ancho / 2), 3 + k * 2.6, BOCACALLE.FONDO + 0.02);
+      piezas.add(v);
+    }
+    x += ancho + 1.4;
+    i++;
+  }
+
+  // --- El poste de la esquina cercana ---------------------------------------
+  // Aquí iba un BLOQUE de esquina, que es lo que de verdad hay en una esquina.
+  // Se montó, se fotografió y se quitó: mirando de frente por un corredor
+  // recto, el bloque de la acera cercana TAPA LA BOCACALLE ENTERA justo cuando
+  // empieza a leerse. Lo que queda es lo que marca la esquina sin ocupar
+  // cuadro: un poste con la cabeza encendida.
+  const poste = new THREE.Mesh(cajaViva(0.26, 6.2, 0.26), matPoste);
+  poste.position.set(signo * (X0 + 1.1), 3.1, BOCACALLE.FRENTE - 0.5);
+  piezas.add(poste);
+  const cabeza = new THREE.Mesh(cajaViva(0.5, 1.3, 0.5), matAcento);
+  cabeza.position.set(signo * (X0 + 1.1), 6.4, BOCACALLE.FRENTE - 0.5);
+  piezas.add(cabeza);
+
+  // --- Las farolas de la transversal ----------------------------------------
+  for (let fx = X0 + 9; fx < X0 + BOCACALLE.LARGO - 4; fx += 12) {
+    const palo = new THREE.Mesh(cajaViva(0.22, 6.4, 0.22), matPoste);
+    palo.position.set(signo * fx, 3.2, BOCACALLE.FONDO + 0.9);
+    piezas.add(palo);
+    const foco = new THREE.Mesh(cajaViva(0.8, 0.35, 0.8), matAcento);
+    foco.position.set(signo * fx, 6.5, BOCACALLE.FONDO + 0.9);
+    piezas.add(foco);
+  }
+
+  g.add(fundirPorMaterial(piezas));
+
+  // --- El rótulo de esquina, y va aparte porque IGNORA LA NIEBLA -------------
+  // Es lo único de la bocacalle que corta la bruma, por lo mismo que los
+  // carteles de destino (ver crearCartelDestino): a 200 metros la niebla se
+  // come el 73 % del color —FogExp2 a 0,005: exp(−(0,005·230)²) = 0,27— y la
+  // paleta del destino, que ES todo el mensaje, llegaría teñida del cielo de
+  // ESTE barrio. No dice nada y no hay que leerlo: es una banda de luz del
+  // color al que vas.
+  //
+  // VA A LA ALTURA DE LA CORNISA, y el número sale de una cuenta, no del gusto:
+  // un rayo que salga de la cámara (y = 4,7) y tenga que pasar por encima de la
+  // manzana propia (x = 7,8, alero a 7,5) para llegar a la esquina del edificio
+  // (x ≈ 22) necesita y > 12,6. Por debajo de eso el rótulo se ve cuando ya no
+  // hace falta.
+  const rotulo = new THREE.Mesh(
+    cajaViva(6.5, 1.2, 0.3),
+    material({
+      color: acento,
+      emissive: acento,
+      emissiveIntensity: 1.9,
+      roughness: 0.3,
+      toneMapped: false,
+      fog: false,
+    }),
+  );
+  rotulo.position.set(signo * (medioAncho + 5), techo - 2.2, BOCACALLE.FONDO + 0.2);
+  g.add(rotulo);
 
   return g;
 }

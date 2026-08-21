@@ -47,13 +47,14 @@ import { Intro } from './Intro.js';
 import { Particulas } from './Particulas.js';
 
 import { crearEscenario } from '../scenes/index.js';
+import { TransicionDeAmbiente } from '../scenes/Ambiente.js';
 import { cieloDe } from '../utils/entorno.js';
 import { obtenerEscenario } from '../config/escenarios.js';
 import { CATALOGO_POTENCIADORES } from '../config/balance.js';
 import { PERSONAJES } from '../config/personajes.js';
 import { Controles } from '../utils/controls.js';
 import { curvarEscena } from '../utils/curvatura.js';
-import { pulsarPeligro, ajustarHaloEvidencia } from '../models/props.js';
+import { pulsarPeligro, ajustarHaloEvidencia, BOCACALLE } from '../models/props.js';
 import { remateCaptura, remateExhausto, citaVerificada } from '../config/textos.js';
 import {
   VELOCIDAD, TRAMO, CAMARA, JUGADOR, CARRILES, CERCO, EVIDENCIA,
@@ -344,6 +345,12 @@ export class Game {
     }
     this.barrioPorPreparar = null;
 
+    // El cruce del cielo cuesta un prefiltrado por paso: si el vigilante acaba
+    // de bajar de nivel es porque el fotograma no llega, y ése es el primer
+    // gasto opcional que sobra. En baja se queda en cero (un solo cambio de
+    // cielo al final del fundido). Ver estilo.js/pasosCieloTransito.
+    if (this.ambiente) this.ambiente.pasosCielo = this.calidad.pasosCieloTransito ?? 0;
+
     this.renderizador.setPixelRatio(
       Math.min(window.devicePixelRatio, this.calidad.pixelRatioMaximo),
     );
@@ -389,6 +396,14 @@ export class Game {
     // Resto fraccionario de la estela: emitir `Math.round(0.4)` partículas por
     // fotograma es emitir cero para siempre.
     this.restoEstela = 0;
+
+    // EL VIAJE DE LA LUZ ENTRE BARRIOS. Se construye antes del primer
+    // _cambiarEscenario porque ése ya lo usa: con this.escenario a null es el
+    // caso base y planta la paleta entera de golpe, que es lo correcto —no hay
+    // barrio anterior del que venir—. Ver scenes/Ambiente.js.
+    this.ambiente = new TransicionDeAmbiente(
+      this.escenaThree, this.renderizador, this.calidad,
+    );
 
     this.escenario = null;
     // El fondo del menú es la temporada en la que se va a retomar, no siempre
@@ -525,7 +540,17 @@ export class Game {
     // de un milisegundo. Es el arreglo del congelón de las esquinas: el
     // destruir/crear de antes costaba medio segundo EN EL FOTOGRAMA DEL
     // CRUCE, o sea justo cuando arranca el giro. Ver BaseScene.suspender().
-    if (this.escenario) this.escenario.suspender();
+    // Y EL RETRATO DE LO QUE HAY EN PANTALLA, tomado justo antes de descolgar
+    // nada: es el punto de partida del fundido de ambiente. Después de
+    // suspender() ya no se puede leer, porque la niebla y el fondo son
+    // GLOBALES de la escena Three y suspender() se los lleva consigo.
+    //
+    // Es la foto de lo VIVO, no de la paleta: si se cruza con el despeje de la
+    // bifurcación abierto, lo que había era una calle sin niebla y con la luz
+    // subida, y de ahí tiene que salir el fundido. Ver scenes/Ambiente.js.
+    const anterior = this.escenario;
+    const retrato = anterior ? anterior.retrato() : null;
+    if (anterior) anterior.suspender();
 
     this.escenarioActual = id;
     const clave = `${id}|${this.calidad.nivel}`;
@@ -550,13 +575,23 @@ export class Game {
     //
     // Se genera una vez por barrio y se guarda, así que cruzar la bifurcación
     // de ida y vuelta no vuelve a pagarlo. Ver utils/entorno.js.
-    this.escenaThree.environment = cieloDe(this.renderizador, id, colores);
-    // La intensidad la lleva el propio escenario: el Apagón es de noche y su
-    // cielo tiene que reflejar poco, o los contenedores brillan a oscuras.
-    // 0.3 de base. El cielo procedural es más brillante de lo que parece —es un
-    // degradado a pantalla completa— y al uno lavaba la escena entera. Cada
-    // barrio puede pedir el suyo: el Apagón es de noche y refleja casi nada.
-    this.escenaThree.environmentIntensity = colores.brilloEntorno ?? 0.3;
+    const cielo = cieloDe(this.renderizador, id, colores);
+
+    // Y LA LUZ NO SE PLANTA: VIAJA.
+    //
+    // Las cinco luces, la niebla, el fondo, el cielo y su intensidad salen del
+    // estado que había en pantalla al cruzar y tardan dos segundos en llegar al
+    // de aquí. Entrar al Apagón deja de ser un corte a negro —medido: −82 % de
+    // brillo en un fotograma— y pasa a ser lo que dice el nombre del barrio.
+    //
+    // Si no hay de dónde venir (arranque en frío) o si el barrio es el mismo
+    // que ya estaba puesto (volver a jugar desde la portada), se planta entero
+    // en este fotograma: es el caso base. Ver scenes/Ambiente.js.
+    this.ambiente.arrancar(
+      this.escenario === anterior ? null : retrato,
+      this.escenario,
+      cielo,
+    );
 
     this.pista.aplicarTema(colores);
     this.obstaculos.aplicarTema(colores, id);
@@ -886,6 +921,12 @@ export class Game {
     escena.suspender();
     this.escenaThree.fog = nieblaActiva;
     this.escenaThree.background = fondoActivo;
+    // Y su cielo, aquí también. Generarlo cuesta un prefiltrado (1,2-3,5 ms
+    // medidos, con un caso de 24 ms la primera vez), y hasta ahora se pagaba en
+    // el fotograma del cruce por el mismo motivo por el que se pagaba el barrio
+    // entero: porque nadie lo había pedido antes. Es la misma jugada, aplicada
+    // a la textura. Se guarda en la caché de utils/entorno.js.
+    cieloDe(this.renderizador, id, escena.obtenerColores());
     this.escenariosVivos.set(clave, escena);
   }
 
@@ -1744,6 +1785,15 @@ export class Game {
 
     this._actualizarCamara(dt);
 
+    // LA LUZ VIAJA DESPUÉS DE QUE EL BARRIO HAYA DICHO LO QUE QUIERE, y antes
+    // de pintar. Va aquí y no dentro de _actualizarJuego por dos motivos: es el
+    // único sitio por el que pasan todos los estados que mueven mundo —jugando,
+    // cerco y pausa— y es el único que tiene el dt del fotograma a mano. El
+    // fundido se mide con el reloj del juego, no con el de pared.
+    //
+    // En la intro y en el menú no llega, y da igual: allí no hay cruces.
+    this.ambiente.actualizar(dt);
+
     // Con bloom vamos por el compositor; sin él, directo a pantalla.
     this._render();
 
@@ -1867,7 +1917,18 @@ export class Game {
     // La Bahía va techada, y su bóveda no puede atravesar la fachada de la
     // bifurcación: el escenario necesita saber dónde se acaba la calle.
     // Cuando no hay fachada en pista, no hay tope.
-    this.escenario.zTope = this.bifurcacion.activa ? this.bifurcacion.z : null;
+    // Y EL TOPE SE ADELANTA HASTA EL BORDE DE LA TRANSVERSAL. La bóveda del
+    // mercado llegaba hasta la fachada, pero delante de la fachada ya no hay
+    // mercado: hay un cruce. Con el tope en la fachada, los doce metros últimos
+    // de bóveda pasaban por encima de la calzada transversal, que es techar una
+    // esquina.
+    this.escenario.zTope = this.bifurcacion.activa
+      ? this.bifurcacion.z + BOCACALLE.FRENTE
+      : null;
+
+    // Dónde está el plano del cruce, para que el escenario abra el hueco del
+    // decorado por el que se ve la bocacalle. Ver BaseScene.actualizar().
+    this.escenario.zBocacalle = this.bifurcacion.activa ? this.bifurcacion.z : null;
 
     // DESPEJE: a 150 m del edificio la niebla empieza a retirarse y a 55 ya
     // se le ve la fachada entera —queda tiempo de sobra para colocarse en el
@@ -2390,6 +2451,10 @@ export class Game {
     // justificaba ya no está, y el telón de fondo volvía sin niebla y con las
     // luces subidas para siempre. Solo el objetivo: el regreso es en fundido.
     if (this.escenario) this.escenario.despejeObjetivo = 0;
+    // Y si te capturaron a medio cruce, el fundido de ambiente se remata aquí:
+    // la portada tiene que enseñar el barrio con SU luz, no con la mitad de la
+    // del vecino. Mismo criterio que _asentarGiroMundo.
+    this.ambiente.asentar();
     this._establecerEstado('menu');
   }
 }

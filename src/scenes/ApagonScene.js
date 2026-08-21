@@ -215,10 +215,25 @@ export class ApagonScene extends BaseScene {
     const titileo = 0.98 + Math.sin(this.tiempo * 30) * 0.02;
     this.foco.intensity *= titileo;
 
+    // EL HAZ Y LA LENTE ENTRAN CON EL BARRIO, NO ANTES.
+    //
+    // El cono dibujado y el punto de la lente son geometría haciéndose pasar
+    // por luz, y eso sólo cuela con oscuridad alrededor: durante los dos
+    // segundos que tarda la Bahía en irse, un cono aditivo a plena luz de
+    // mediodía se lee como un cono de plástico pegado delante del personaje.
+    // Se multiplica el OBJETIVO y no el resultado, que es lo que evita que la
+    // exponencial se realimente; el retraso de τ=0,4 s que eso deja es además
+    // el correcto: la linterna sube un poco por detrás de la oscuridad.
+    //
+    // El foco en sí NO se toca: es luz de verdad, y sobre un cuadro todavía
+    // claro no se nota (medido: el cuadro del primer fotograma del Apagón con
+    // la luz de la Bahía puesta sale a 0,340, por debajo de los 0,52 de la
+    // Bahía sola, así que no quema nada). Que ya esté encendida es además lo
+    // que se quiere contar: se va la luz y tú ya la tienes en la mano.
     const conLinterna = this.tiempoLinterna > 0;
-    this.haz.material.opacity += ((conLinterna ? 0.06 : 0.03) * titileo
+    this.haz.material.opacity += ((conLinterna ? 0.06 : 0.03) * titileo * this.entrada
       - this.haz.material.opacity) * t;
-    this.lente.scale.setScalar((conLinterna ? 1.5 : 1) * titileo);
+    this.lente.scale.setScalar((conLinterna ? 1.5 : 1) * titileo * this.entrada);
 
     // --- Parpadeos ---------------------------------------------------------
     for (const p of this.parpadeos) {

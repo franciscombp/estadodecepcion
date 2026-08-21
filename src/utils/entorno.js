@@ -48,6 +48,22 @@ const cache = new Map();
 let pmrem = null;
 
 /**
+ * EL CIELO A MEDIO CAMINO ENTRE DOS BARRIOS.
+ *
+ * Es UN SOLO objetivo de render que se reescribe una y otra vez durante la
+ * transición de ambiente, y eso no es tacañería de memoria: `scene.environment`
+ * tiene que seguir apuntando SIEMPRE AL MISMO objeto Texture. Medido: cambiar
+ * la identidad de la textura cada fotograma cuesta 2,7 ms extra de refresco de
+ * uniformes en todos los materiales de la escena; reescribir el contenido del
+ * mismo objetivo no cuesta nada de eso. (Recompilar no recompila ninguna de las
+ * dos: el recuento de programas se queda igual, comprobado.)
+ */
+let objetivoTransito = null;
+
+/** El lienzo se comparte: se pinta, se sube y se vuelve a pintar encima. */
+let lienzo = null;
+
+/**
  * Alto y ancho del cielo antes de prefiltrar.
  *
  * 256 × 128 y no 1024: lo que sale de aquí se va a consultar SIEMPRE borroso
@@ -59,34 +75,36 @@ const ANCHO = 256;
 const ALTO = 128;
 
 /**
- * El cielo del escenario, listo para poner en `escena.environment`.
+ * Los cuatro colores que definen un cielo, en notación de lienzo.
  *
- * @param {THREE.WebGLRenderer} renderizador
- * @param {string} id      Identificador del barrio, para la caché
- * @param {object} colores Paleta del escenario (config/escenarios.js)
- * @returns {THREE.Texture}
+ * Arriba el color del cielo, en el ecuador el de la niebla —que es donde el
+ * mundo se funde con el fondo—, abajo el rebote cálido del suelo y aparte el
+ * del sol. Son los colores que la escena ya usa para sus luces, así que el
+ * reflejo nunca puede desentonar con la iluminación: es la misma paleta vista
+ * de otra manera.
+ *
+ * Está sacado a función porque ahora hay dos clientes: el cielo de un barrio y
+ * el cielo intermedio entre dos.
  */
-export function cieloDe(renderizador, id, colores) {
-  const guardado = cache.get(id);
-  if (guardado) return guardado;
+function tonosDe(colores) {
+  return {
+    arriba: hex(colores.luzCielo ?? colores.nieblaLejos),
+    medio: hex(colores.nieblaLejos),
+    abajo: hex(colores.rebote ?? colores.luzAmbiente),
+    sol: hex(colores.luzDireccional ?? 0xffffff),
+  };
+}
 
-  if (!pmrem) pmrem = new THREE.PMREMGenerator(renderizador);
-
-  const lienzo = document.createElement('canvas');
-  lienzo.width = ANCHO;
-  lienzo.height = ALTO;
+/** Pinta un cielo en el lienzo compartido y lo devuelve como textura. */
+function pintarCielo({ arriba, medio, abajo, sol: colorSol }) {
+  if (!lienzo) {
+    lienzo = document.createElement('canvas');
+    lienzo.width = ANCHO;
+    lienzo.height = ALTO;
+  }
   const ctx = lienzo.getContext('2d');
 
   // --- El degradado vertical ------------------------------------------------
-  // Arriba el color del cielo, en el ecuador el de la niebla —que es donde el
-  // mundo se funde con el fondo— y abajo el rebote cálido del suelo. Son los
-  // tres colores que la escena ya usa para sus luces, así que el reflejo nunca
-  // puede desentonar con la iluminación: es la misma paleta vista de otra
-  // manera.
-  const arriba = hex(colores.luzCielo ?? colores.nieblaLejos);
-  const medio = hex(colores.nieblaLejos);
-  const abajo = hex(colores.rebote ?? colores.luzAmbiente);
-
   const grad = ctx.createLinearGradient(0, 0, 0, ALTO);
   grad.addColorStop(0, arriba);
   grad.addColorStop(0.48, medio);
@@ -106,9 +124,8 @@ export function cieloDe(renderizador, id, colores) {
     ANCHO * 0.72, ALTO * 0.22, 0,
     ANCHO * 0.72, ALTO * 0.22, ALTO * 0.42,
   );
-  const luz = hex(colores.luzDireccional ?? 0xffffff);
-  sol.addColorStop(0, luz);
-  sol.addColorStop(0.35, mezcla(luz, medio, 0.55));
+  sol.addColorStop(0, colorSol);
+  sol.addColorStop(0.35, mezcla(colorSol, medio, 0.55));
   sol.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = sol;
   ctx.fillRect(0, 0, ANCHO, ALTO);
@@ -119,12 +136,76 @@ export function cieloDe(renderizador, id, colores) {
   // motor que vienen con gamma aplicada. Sin esto el cielo entra al cálculo
   // más claro de lo que es y los reflejos salen lavados.
   textura.colorSpace = THREE.SRGBColorSpace;
+  return textura;
+}
 
-  const objetivo = pmrem.fromEquirectangular(textura);
+/**
+ * Prefiltra un cielo. Con `objetivo` reescribe ese render target —y conserva la
+ * identidad de su textura, que es lo que importa para la transición—; sin él,
+ * pide uno nuevo.
+ */
+function prefiltrar(renderizador, tonos, objetivo = null) {
+  if (!pmrem) {
+    pmrem = new THREE.PMREMGenerator(renderizador);
+    // El sombreador del equirectangular se compila AQUÍ y no en la primera
+    // mezcla. Medido: sin esto la primera regeneración del cielo de tránsito
+    // costó 24 ms, y caía justo dentro del cruce, que es el fotograma que
+    // menos margen tiene de todo el juego.
+    pmrem.compileEquirectangularShader();
+  }
+  const textura = pintarCielo(tonos);
+  const salida = pmrem.fromEquirectangular(textura, objetivo);
   textura.dispose();
+  return salida;
+}
 
+/**
+ * El cielo del escenario, listo para poner en `escena.environment`.
+ *
+ * @param {THREE.WebGLRenderer} renderizador
+ * @param {string} id      Identificador del barrio, para la caché
+ * @param {object} colores Paleta del escenario (config/escenarios.js)
+ * @returns {THREE.Texture}
+ */
+export function cieloDe(renderizador, id, colores) {
+  const guardado = cache.get(id);
+  if (guardado) return guardado;
+
+  const objetivo = prefiltrar(renderizador, tonosDe(colores));
   cache.set(id, objetivo.texture);
   return objetivo.texture;
+}
+
+/**
+ * EL CIELO INTERMEDIO ENTRE DOS BARRIOS, para que los reflejos también viajen.
+ *
+ * Al cruzar de la Bahía al Apagón no basta con bajar la intensidad del entorno:
+ * lo que se refleja en los cantos biselados pasa de un mediodía azul a una
+ * noche marina, y ese cambio vale por sí solo 0,0726 de brillo medio del cuadro
+ * —el 13,7 %, medido con el mundo parado—. Dejarlo como un salto sería dejar la
+ * quinta parte de la transición sin transicionar.
+ *
+ * No se puede mezclar en el sombreador (son texturas prefiltradas y el material
+ * estándar sólo muestrea una), así que se vuelve a prefiltrar un cielo pintado
+ * con la paleta a medio camino. Cuesta 1,2-3,5 ms, o sea que no se llama cada
+ * fotograma: la transición lo pide a pasos. Ver scenes/Ambiente.js.
+ *
+ * @param {THREE.WebGLRenderer} renderizador
+ * @param {object} coloresA Paleta del barrio del que se viene
+ * @param {object} coloresB Paleta del barrio al que se va
+ * @param {number} t        0 el de A, 1 el de B
+ * @returns {THREE.Texture} SIEMPRE el mismo objeto: sólo cambia su contenido
+ */
+export function cieloEntre(renderizador, coloresA, coloresB, t) {
+  const a = tonosDe(coloresA);
+  const b = tonosDe(coloresB);
+  objetivoTransito = prefiltrar(renderizador, {
+    arriba: mezcla(a.arriba, b.arriba, t),
+    medio: mezcla(a.medio, b.medio, t),
+    abajo: mezcla(a.abajo, b.abajo, t),
+    sol: mezcla(a.sol, b.sol, t),
+  }, objetivoTransito);
+  return objetivoTransito.texture;
 }
 
 /**
@@ -136,6 +217,8 @@ export function cieloDe(renderizador, id, colores) {
 export function soltarCielos() {
   for (const t of cache.values()) t.dispose();
   cache.clear();
+  objetivoTransito?.dispose();
+  objetivoTransito = null;
   pmrem?.dispose();
   pmrem = null;
 }

@@ -43,6 +43,7 @@ import {
   crearCruceDeEdificios,
   crearPasoLateral,
   crearFlechaAsfalto,
+  BOCACALLE,
 } from '../models/props.js';
 import { obtenerEscenario } from '../config/escenarios.js';
 import { COLOR3D } from '../config/estilo.js';
@@ -116,7 +117,16 @@ export class Bifurcacion {
     // BIFURCA LA CIUDAD, no un paredón con tres agujeros. De frente está el
     // edificio de la institución con su portal; a los lados la calle sigue,
     // enmarcada por las medianeras del barrio. Ver crearCruceDeEdificios().
-    this.tuneles = crearCruceDeEdificios(destinos.centro, colores, centroEsPeligro, idEscenario);
+    // LAS DOS PALETAS VECINAS VIAJAN CON EL CRUCE. La bocacalle de cada lado se
+    // pinta con el color del barrio al que lleva ESE lado, y sale de la misma
+    // entrada de config/escenarios.js que usará el tramo nuevo al cruzar
+    // (Game._cambiarEscenario → Track.aplicarTema). Calculadas por separado
+    // acabarían diciendo cosas distintas el día que alguien toque una paleta, y
+    // enseñar una calle morada y entregar una azul es peor que no enseñar nada.
+    this.tuneles = crearCruceDeEdificios(
+      destinos.centro, colores, centroEsPeligro, idEscenario,
+      { izquierda: izquierda.colores, derecha: derecha.colores },
+    );
     this.tuneles.position.z = this.z;
     this.grupo.add(this.tuneles);
 
@@ -143,7 +153,9 @@ export class Bifurcacion {
       for (const d of direcciones) {
         const flecha = crearFlechaAsfalto(d.dir, d.color);
         flecha.position.x = CARRILES.POSICIONES[d.carril];
-        flecha.position.z = this.z + 12 + i * 14;
+        // Detrás del borde cercano del cruce: una flecha pintada EN MEDIO de la
+        // calzada transversal dice que hay que girar donde ya se está girando.
+        flecha.position.z = this.z + BOCACALLE.FRENTE + 2 + i * 14;
         this.grupo.add(flecha);
         this.flechas.push(flecha);
       }
@@ -197,7 +209,7 @@ export class Bifurcacion {
       flecha.position.z += avance;
       // Las flechas que quedan atrás se reenganchan por delante de la fachada,
       // así el corredor nunca se queda sin señalización.
-      if (flecha.position.z > 14) flecha.position.z = this.z + 10;
+      if (flecha.position.z > 14) flecha.position.z = this.z + BOCACALLE.FRENTE + 2;
     }
 
     // La entrada se detecta cuando la boca pasa por la posición del jugador.

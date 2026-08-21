@@ -176,6 +176,21 @@ export const CALIDAD = {
     // pase, así que lo que se paga aquí es el recorrido por CPU de un array
     // plano por fotograma: barato, pero no gratis en un móvil de gama baja.
     pozoParticulas: 420,
+    // EN CUÁNTOS PASOS SE CRUZA EL CIELO AL CAMBIAR DE BARRIO.
+    //
+    // El mapa de entorno es una textura prefiltrada: no se puede mezclar con
+    // otra en el sombreador, sólo se puede volver a prefiltrar uno intermedio.
+    // Eso cuesta entre 1,2 y 3,5 ms medidos (256×128 → cubo de 64, en un
+    // equipo sin GPU donde un fotograma entero cuesta 5,4-8,5), así que cada
+    // fotograma no; a pasos, sí.
+    //
+    // Dieciséis y no ocho: cambiar el cielo de la Bahía por el del Apagón
+    // mueve el brillo medio del cuadro 0,0726 —el 13,7 %, medido con el mundo
+    // quieto—, o sea 0,0057 por paso con dieciséis. Y el propio fundido, en su
+    // tramo más empinado a 60 fps, mueve 0,005 por fotograma: el escalón del
+    // cielo mide lo mismo que un fotograma normal de la transición, así que no
+    // se puede leer como escalón. Con ocho medía el doble y se notaba un tic.
+    pasosCieloTransito: 16,
   },
   media: {
     bloom: true,
@@ -185,6 +200,10 @@ export const CALIDAD = {
     particulas: true,
     halosEvidencia: true,
     pozoParticulas: 220,
+    // La mitad de pasos: el escalón sube a 0,0105 —el doble de un fotograma
+    // del fundido— pero se paga la mitad de prefiltrados. En gama media el
+    // trato correcto es ese.
+    pasosCieloTransito: 8,
   },
   baja: {
     bloom: false,
@@ -193,6 +212,11 @@ export const CALIDAD = {
     sombrasNeon: false,
     particulas: false,
     halosEvidencia: false,
+    // NINGUNO. El cielo se cambia de una vez al final de la transición, que es
+    // donde menos cuesta: al terminar el fundido hacia el Apagón el cuadro ya
+    // está oscuro y el mapa aporta 0,038 en vez de los 0,073 que aportaría
+    // cambiándolo al principio, con la Bahía todavía puesta. Medido.
+    pasosCieloTransito: 0,
     pozoParticulas: 0,
   },
 };

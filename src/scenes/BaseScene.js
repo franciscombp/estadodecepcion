@@ -16,7 +16,7 @@
 // ============================================================================
 
 import * as THREE from 'three';
-import { crearDecorado, crearDron } from '../models/props.js';
+import { crearDecorado, crearDron, BOCACALLE } from '../models/props.js';
 import { ANCHO_PISTA } from '../game/Track.js';
 import { CALIDAD } from '../config/estilo.js';
 
@@ -57,9 +57,27 @@ export class BaseScene {
     // y se aplica. Al cruzar, el objetivo vuelve a 0 y el ambiente regresa.
     this.despeje = 0;
     this.despejeObjetivo = 0;
+
+    // --- EL HUECO DE LA BOCACALLE -------------------------------------------
+    // Dónde está el plano del cruce, o null si no hay cruce en pista. Lo
+    // escribe Game (ver _actualizarJuego). Con él se apaga el decorado que
+    // caería justo encima de la calle transversal: la manzana del barrio se
+    // recicla a x = ±7,8…10,4 sin ningún hueco, así que sin esto la bocacalle
+    // se monta detrás de una pared de puestos y no se ve nunca.
+    this.zBocacalle = null;
+
     // El Apagón gestiona su propia luz y niebla (la oscuridad ES su mecánica):
     // pone esto a true y BaseScene no le toca las intensidades.
     this.luzPropia = false;
+
+    // CUÁNTO DE ESTE BARRIO YA ESTÁ PUESTO: 0 recién cruzado, 1 asentado.
+    //
+    // Lo escribe la transición de ambiente (scenes/Ambiente.js) y sirve para lo
+    // que no es luz de escena sino un objeto que emite: el cono de la linterna
+    // del Apagón, por ejemplo, que dibujado a plena luz de la Bahía se lee como
+    // un cono de plástico y no como un haz. Vale 1 salvo durante los dos
+    // segundos que dura un cruce, así que quien no lo mire funciona igual.
+    this.entrada = 1;
 
     this._crearLuces();
     this._crearNiebla();
@@ -251,17 +269,48 @@ export class BaseScene {
     }
 
     // --- Decorado ----------------------------------------------------------
+    // Y EL HUECO POR EL QUE SE VE LA BOCACALLE.
+    //
+    // La calle transversal del cruce ocupa una banda de z, y la manzana de ESTE
+    // barrio la taparía entera. Hay que abrir el hueco que en una ciudad abre
+    // la propia esquina.
+    //
+    // Se apaga por VENTANA y se queda apagado hasta que la pieza recicle, y las
+    // dos cosas tienen motivo:
+    //
+    //   · Ventana: media banda (6 m) más MARGEN_DECORADO (8 m, la media manzana
+    //     más ancha que genera crearDecorado). Sin el margen, una hilera con el
+    //     centro fuera de la banda se queda cruzada por encima de la calzada.
+    //
+    //   · Latch: la banda viaja hacia el jugador AL MISMO RITMO que el
+    //     decorado, así que lo que está fuera se queda fuera; la única manera
+    //     de entrar es reciclando, y eso ocurre con el cruce todavía a 216-245
+    //     metros, con la niebla comiéndose el 73 % de la pieza. Sin el latch, la
+    //     pieza volvería a encenderse en el fotograma del cruce —a dos metros
+    //     del jugador— y sería un puesto de mercado apareciendo de la nada.
+    const zBoca = this.zBocacalle;
+    const bandaDesde = BOCACALLE.FONDO - BOCACALLE.MARGEN_DECORADO;
+    const bandaHasta = BOCACALLE.FRENTE + BOCACALLE.MARGEN_DECORADO;
+
     for (const d of this.decorados) {
       d.objeto.position.z += avance;
 
       if (d.objeto.position.z > SEPARACION_DECORADO) {
         d.objeto.position.z -= this.totalDecorado;
+        // Vuelve a entrar en juego: la pieza que renace es otra manzana.
+        d.oculto = false;
         // Al reciclar, revolvemos posición y escala: la ciudad no se repite.
         if (!d.alineado) {
           d.objeto.position.x = d.signo * (OFFSET_LATERAL + Math.random() * 2.6);
           d.objeto.scale.setScalar(0.85 + Math.random() * 0.55);
         }
       }
+
+      if (zBoca !== null) {
+        const relativa = d.objeto.position.z - zBoca;
+        if (relativa > bandaDesde && relativa < bandaHasta) d.oculto = true;
+      }
+      d.objeto.visible = !d.oculto;
 
       // Luces de emergencia de las patrullas.
       const patrulla = d.objeto.userData.patrulla;
@@ -301,6 +350,70 @@ export class BaseScene {
     return this.colores;
   }
 
+  /**
+   * LO QUE HAY PUESTO AHORA MISMO, para poder viajar desde aquí.
+   *
+   * Es la foto del ambiente en el instante del cruce, y son los valores VIVOS,
+   * no los de la paleta: si se cruza con el despeje de la bifurcación abierto,
+   * lo que había en pantalla era una calle sin niebla y con la luz subida, y es
+   * de ahí de donde tiene que salir el fundido. Si se sale del Apagón con la
+   * linterna encendida, igual.
+   *
+   * Se llama ANTES de suspender(), porque la niebla y el fondo son globales de
+   * la escena Three y suspender() se los lleva. Ver scenes/Ambiente.js.
+   */
+  retrato() {
+    const c = this.colores;
+    return {
+      colores: c,
+      color: {
+        ambiente: this.luzAmbiente.color.clone(),
+        cielo: this.luzCielo.color.clone(),
+        suelo: this.luzCielo.groundColor.clone(),
+        direccional: this.luzDireccional.color.clone(),
+        relleno: this.luzRelleno.color.clone(),
+        niebla: this.escena.fog
+          ? this.escena.fog.color.clone()
+          : new THREE.Color(c.nieblaLejos),
+        fondo: this.escena.background?.isColor
+          ? this.escena.background.clone()
+          : new THREE.Color(c.nieblaLejos),
+      },
+      intensidad: {
+        ambiente: this.luzAmbiente.intensity,
+        cielo: this.luzCielo.intensity,
+        direccional: this.luzDireccional.intensity,
+      },
+      niebla: this.escena.fog ? this.escena.fog.density : this.densidadBase,
+      entorno: this.escena.environmentIntensity,
+      mapaEntorno: this.escena.environment,
+    };
+  }
+
+  /**
+   * Devuelve luces, niebla y fondo a los colores de ESTE barrio.
+   *
+   * Hace falta porque la transición de ambiente escribe colores mezclados
+   * directamente en las lámparas y en la niebla, y un cruce puede cortarse a
+   * medias —te atrapan, abandonas, cruzas otra vez—. Sin esto, un barrio
+   * aparcado a mitad de fundido guardaría esa mezcla y volvería con ella
+   * puesta para siempre: la Bahía reaparecería tirando a azul marino.
+   *
+   * Las INTENSIDADES no se tocan aquí a propósito: ésas la escena las reescribe
+   * enteras en su primer actualizar(), así que se arreglan solas.
+   */
+  restablecerPaleta() {
+    const c = this.colores;
+    this.luzAmbiente.color.set(c.luzAmbiente);
+    this.luzCielo.color.set(c.luzCielo ?? c.nieblaLejos);
+    this.luzCielo.groundColor.set(c.rebote ?? c.luzAmbiente);
+    this.luzDireccional.color.set(c.luzDireccional);
+    this.luzRelleno.color.set(c.acento);
+    if (this.escena.fog) this.escena.fog.color.set(c.nieblaLejos);
+    if (this.escena.background?.isColor) this.escena.background.set(c.nieblaLejos);
+    this.entrada = 1;
+  }
+
   /** Gancho del potenciador linterna. Solo lo implementa el Apagón. */
   encenderLinterna() {}
 
@@ -338,6 +451,11 @@ export class BaseScene {
     // niebla puesta y el juego ya la retirará al acercarse al próximo cruce.
     this.despeje = 0;
     this.despejeObjetivo = 0;
+    // Y la paleta, tampoco: un barrio del que se salió a mitad de fundido
+    // guardó luces y niebla con el color del vecino a medias. Se vuelve
+    // siempre con la propia, y ya la transición volverá a mezclarla si hay
+    // cruce. Ver restablecerPaleta().
+    this.restablecerPaleta();
   }
 
   /** Desmonta el escenario y libera memoria. */
