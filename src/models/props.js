@@ -2149,11 +2149,25 @@ function matGye(color, emision = 0.05, rugosidad = 0.92) {
  */
 function crearCasaGuayaquil(ancho, rnd) {
   const g = new THREE.Group();
-  const PLANTA_BAJA = 3.2;     // hasta el techo del soportal
-  const PLANTA_ALTA = 3.0;
-  const ANTEPECHO = 0.6;
-  const FONDO = 4.2;
-  const VUELO = 1.5;           // cuánto vuela la planta alta sobre la vereda
+  // MÁS ALTA, NO CON MÁS PISOS. Se probó una tercera planta sorteada y estaba
+  // mal: en la referencia lo que hay no son más plantas, es la MISMA cantidad
+  // estirada —todo angosto y apretado, con las verticales largas—. Una casa de
+  // tres plantas iguales se lee como un bloque; una de dos con puntal alto se
+  // lee como la casa de portal que es, que además es lo que tiene el centro de
+  // Guayaquil: entresuelos de cuatro metros y pico porque sin aire
+  // acondicionado el techo alto ERA la ventilación.
+  //
+  // De 3,2 + 3,0 + 0,6 = 6,8 a 4,3 + 4,3 + 0,85 = 9,45. El mismo dibujo, un
+  // 39 % más alto.
+  const PLANTA_BAJA = 4.3;     // hasta el techo del soportal
+  const PLANTA_ALTA = 4.3;
+  const ANTEPECHO = 0.85;
+  // Y MÁS ANGOSTA DE FONDO, que es la otra mitad de «apretado»: el fondo de la
+  // casa es lo que se ve de canto desde la calle, y 4,2 metros de canto contra
+  // 9,45 de alto daban un prisma cuadrado. A 3,3 la proporción del canto pasa
+  // de 1:1,6 a 1:2,9.
+  const FONDO = 3.3;
+  const VUELO = 1.35;          // cuánto vuela la planta alta sobre la vereda
 
   const muro = GYE.muros[Math.floor(rnd() * GYE.muros.length)];
   const columna = GYE.columnas[Math.floor(rnd() * GYE.columnas.length)];
@@ -2172,75 +2186,66 @@ function crearCasaGuayaquil(ancho, rnd) {
   g.add(_caja(ancho, 0.5, FONDO - VUELO + 0.04, matGye(GYE.zocalo, 0.04, 0.9),
     0, 0.25, -VUELO / 2));
 
-  // Las persianas de los locales, bajo el soportal.
-  const locales = Math.max(1, Math.round(ancho / 2.6));
+  // Las persianas de los locales, bajo el soportal. CRECEN CON EL PUNTAL: una
+  // persiana de 2,2 bajo un techo de 4,3 deja metro y medio de pared muerta y
+  // el local se lee como una alacena. Van a 3,3 —tres cuartos del puntal— con
+  // el dintel justo encima, que es lo que se ve en la calle.
+  //
+  // Y MÁS ANGOSTOS: de 2,6 a 1,95 de frente. Es la mitad de «apretado» que
+  // pide la referencia y además es más fiel —los locales de esas galerías son
+  // portales estrechos, no escaparates—: la cuadra pasa de dos locales por
+  // casa a tres, y lo que cambia en pantalla es la CADENCIA, que es lo que se
+  // lee corriendo.
+  const locales = Math.max(1, Math.round(ancho / 1.95));
   const anchoLocal = ancho / locales;
+  const altoPersiana = PLANTA_BAJA * 0.77;
   for (let i = 0; i < locales; i++) {
     const x = (i - (locales - 1) / 2) * anchoLocal;
-    g.add(_caja(anchoLocal - 0.35, 2.2, 0.1, matGye(GYE.persiana, 0.03, 0.7),
-      x, 1.2, zFrente - VUELO - 0.02));
+    g.add(_caja(anchoLocal - 0.3, altoPersiana, 0.1, matGye(GYE.persiana, 0.03, 0.7),
+      x, altoPersiana / 2, zFrente - VUELO - 0.02));
     // El dintel pintado sobre cada local: otra franja de color.
-    g.add(_caja(anchoLocal - 0.25, 0.42, 0.12, matCol,
-      x, 2.55, zFrente - VUELO - 0.02));
+    g.add(_caja(anchoLocal - 0.22, 0.42, 0.12, matCol,
+      x, altoPersiana + 0.3, zFrente - VUELO - 0.02));
   }
 
-  // Las columnas del soportal, al filo de la vereda. Cuadradas y pintadas.
-  const cuantas = Math.max(2, Math.round(ancho / 3) + 1);
+  // Las columnas del soportal, al filo de la vereda. Cuadradas, pintadas y
+  // MÁS FINAS: 0,42 de canto contra 3,2 de puntal ya era esbelto, pero contra
+  // 4,3 se pedía afinarlas para que la proporción no se achatara.
+  const cuantas = Math.max(2, Math.round(ancho / 2.4) + 1);
   for (let i = 0; i < cuantas; i++) {
     const x = (i / (cuantas - 1) - 0.5) * (ancho - 0.5);
-    g.add(_caja(0.42, PLANTA_BAJA, 0.42, matCol, x, PLANTA_BAJA / 2, zFrente - 0.25));
+    g.add(_caja(0.34, PLANTA_BAJA, 0.34, matCol, x, PLANTA_BAJA / 2, zFrente - 0.25));
     // Basa más clara, como en las fotos.
-    g.add(_caja(0.5, 0.35, 0.5, matGye(GYE.marco, 0.04, 0.9), x, 0.17, zFrente - 0.25));
+    g.add(_caja(0.42, 0.35, 0.42, matGye(GYE.marco, 0.04, 0.9), x, 0.17, zFrente - 0.25));
   }
 
   // --- El forjado que vuela --------------------------------------------------
   g.add(_caja(ancho, 0.3, FONDO, matMuro, 0, PLANTA_BAJA + 0.15, 0));
 
-  // --- Plantas altas: muro y banda corrida de ventanas ---------------------
-  //
-  // DOS PLANTAS ALTAS EN LA MITAD DE LOS SOLARES, Y NO UNA SIEMPRE.
-  //
-  // Con una sola, la casa medía 7,16 m y su cornisa caía en y=0.245 de la
-  // pantalla a veinte metros: el quinto superior del cuadro quedaba vacío de
-  // lado a lado —medido por rayos, el cielo empezaba en y=0.02 y no encontraba
-  // nada hasta y=0.23—. La referencia tiene ahí construido desde y=0.05.
-  //
-  // Subir TODAS a tres plantas era la respuesta fácil y la equivocada: una
-  // cuadra con la misma altura de punta a punta se lee como un muro extruido,
-  // que es justo lo contrario de lo que hace reconocible a esa calle. En el
-  // centro de Guayaquil conviven la casa de dos plantas y la de tres en la
-  // misma manzana, y ESE diente de sierra es la mitad del retrato. Sorteando
-  // a la mitad, la cuadra alterna 7,16 y 10,16 y la cornisa alta cae en 0.146.
-  const PLANTAS_ALTAS = rnd() > 0.5 ? 2 : 1;
+  // --- Planta alta: muro y banda corrida de ventanas -----------------------
   const yAlta = PLANTA_BAJA + 0.3;
-  for (let planta = 0; planta < PLANTAS_ALTAS; planta++) {
-    const yPie = yAlta + planta * PLANTA_ALTA;
-    g.add(_caja(ancho, PLANTA_ALTA, FONDO, matMuro, 0, yPie + PLANTA_ALTA / 2, 0));
+  g.add(_caja(ancho, PLANTA_ALTA, FONDO, matMuro, 0, yAlta + PLANTA_ALTA / 2, 0));
 
-    // La banda de ventanas, de esquina a esquina.
-    const yVent = yPie + PLANTA_ALTA * 0.55;
-    g.add(_caja(ancho - 0.5, 1.5, 0.1, matGye(GYE.ventana, 0.06, 0.5),
-      0, yVent, zFrente + 0.02));
-    // Montantes finos, que es lo que la hace una banda de ventanas y no un
-    // rectángulo negro.
-    const montantes = Math.max(3, Math.round(ancho / 0.9));
-    for (let i = 0; i < montantes; i++) {
-      const x = (i / (montantes - 1) - 0.5) * (ancho - 0.6);
-      g.add(_caja(0.08, 1.5, 0.14, matGye(GYE.marco, 0.05, 0.9), x, yVent, zFrente + 0.04));
-    }
-    // Y su antepecho, la franja de color bajo la ventana.
-    g.add(_caja(ancho, 0.5, 0.12, matCol, 0, yVent - 1.05, zFrente + 0.03));
-
-    // El forjado entre plantas altas: la línea horizontal que impide que dos
-    // bandas de ventanas seguidas se lean como una sola cuadrícula.
-    if (planta < PLANTAS_ALTAS - 1) {
-      g.add(_caja(ancho + 0.08, 0.22, FONDO + 0.08, matCol,
-        0, yPie + PLANTA_ALTA, 0));
-    }
+  // La banda de ventanas, de esquina a esquina. Con el puntal estirado la
+  // ventana crece con él —2,1 en vez de 1,5—: dejarla en su alto de antes la
+  // habría convertido en una rendija a media pared.
+  const yVent = yAlta + PLANTA_ALTA * 0.55;
+  g.add(_caja(ancho - 0.5, 2.1, 0.1, matGye(GYE.ventana, 0.06, 0.5),
+    0, yVent, zFrente + 0.02));
+  // Montantes finos, que es lo que la hace una banda de ventanas y no un
+  // rectángulo negro. Y MÁS JUNTOS: la rejilla de 0,9 en una banda más alta
+  // dejaba huecos apaisados, y lo que se busca es lo contrario. A 0,62 cada
+  // hueco queda vertical.
+  const montantes = Math.max(3, Math.round(ancho / 0.62));
+  for (let i = 0; i < montantes; i++) {
+    const x = (i / (montantes - 1) - 0.5) * (ancho - 0.6);
+    g.add(_caja(0.07, 2.1, 0.14, matGye(GYE.marco, 0.05, 0.9), x, yVent, zFrente + 0.04));
   }
+  // Y su antepecho, la franja de color bajo la ventana.
+  g.add(_caja(ancho, 0.5, 0.12, matCol, 0, yVent - 1.35, zFrente + 0.03));
 
   // --- Remate plano ---------------------------------------------------------
-  const yRemate = yAlta + PLANTAS_ALTAS * PLANTA_ALTA;
+  const yRemate = yAlta + PLANTA_ALTA;
   g.add(_caja(ancho, ANTEPECHO, FONDO + 0.15, matMuro, 0, yRemate + ANTEPECHO / 2, 0));
   g.add(_caja(ancho + 0.1, 0.12, FONDO + 0.25, matGye(GYE.marco, 0.05, 0.9),
     0, yRemate + ANTEPECHO, 0));
@@ -2616,20 +2621,19 @@ function crearCasaColonial(ancho, rnd = Math.random) {
   const fondo = 6.2;
   // Dos plantas, con la baja más alta que la alta: es así en las casas de
   // portal, porque abajo hay comercio y arriba se vive.
-  const baja = 3.1 + rnd() * 0.5;
-  const alta = 2.5 + rnd() * 0.4;
-  // Y UNA TERCERA EN PARTE DE LA CUADRA. Las calles anchas del centro —García
-  // Moreno, Chile, las que dan al palacio— no son de dos plantas de punta a
-  // punta: alternan dos y tres, y esa alternancia es lo que hace que la
-  // manzana tenga perfil en vez de canto. Con dos plantas fijas la cuadra
-  // medía 7,80 y su alero caía en y=0.223 de pantalla a veinte metros, con el
-  // quinto superior del cuadro vacío; con la tercera sube a 10,6 y cae en
-  // 0.135, que es donde la referencia pone el borde construido.
+  // MÁS ALTA, NO CON MÁS PISOS. Se probó una tercera planta sorteada y estaba
+  // mal: en la referencia lo que hay no son más plantas, es la MISMA cantidad
+  // estirada. Y aquí además la tercera planta era históricamente falsa —la
+  // casa de patio del centro tiene dos y punto—, mientras que el puntal alto
+  // sí es de la casa: cuatro metros abajo porque ahí hubo comercio, y tres y
+  // medio arriba porque a 2.800 de altura el techo alto es lo que guarda el
+  // calor del día.
   //
-  // Sorteada al 45 % y no siempre: si suben todas vuelve a haber una sola
-  // línea de cornisa, que es el problema de partida con otra altura.
-  const tercera = rnd() > 0.55 ? 2.5 + rnd() * 0.3 : 0;
-  const alto = baja + alta + tercera;
+  // De 3,1-3,6 + 2,5-2,9 (5,6-6,5) a 4,2-4,8 + 3,5-3,9 (7,7-8,7). El mismo
+  // dibujo —zócalo, portal, balcón, cornisa, alero, teja— un 34 % más alto.
+  const baja = 4.2 + rnd() * 0.6;
+  const alta = 3.5 + rnd() * 0.4;
+  const alto = baja + alta;
 
   const muro = new THREE.Mesh(caja(ancho, alto, fondo), matColonial(revoque, 0.02, 0.96));
   muro.position.set(0, alto / 2, -fondo / 2 + 0.1);
@@ -2643,12 +2647,8 @@ function crearCasaColonial(ancho, rnd = Math.random) {
   g.add(zocalo);
 
   // Cornisa entre plantas y alero, los dos en blanco: es lo que marca el
-  // ritmo horizontal de la cuadra cuando pasas corriendo. Con tercera planta
-  // hay una cornisa más, en el mismo blanco: sin ella el cuerpo de arriba se
-  // lee como un piso añadido a posteriori, que es un edificio distinto.
-  const cornisas = [[baja, 0.18, 0.18], [alto, 0.34, 0.26]];
-  if (tercera) cornisas.splice(1, 0, [baja + alta, 0.16, 0.16]);
-  for (const [y, sobresale, grosor] of cornisas) {
+  // ritmo horizontal de la cuadra cuando pasas corriendo.
+  for (const [y, sobresale, grosor] of [[baja, 0.18, 0.18], [alto, 0.34, 0.26]]) {
     const c = new THREE.Mesh(
       caja(ancho + sobresale, grosor, fondo + sobresale),
       matColonial(0xf3f1eb, 0.02, 0.94),
@@ -2672,17 +2672,22 @@ function crearCasaColonial(ancho, rnd = Math.random) {
   for (let i = 0; i < portales; i++) {
     const x = -ancho / 2 + pasoP * (i + 0.5);
 
-    const marco = new THREE.Mesh(caja(1.5, 2.5, 0.16), matColonial(PIEDRA, 0.02, 0.95));
-    marco.position.set(x, 1.25, 0.42);
+    // El portal crece con el puntal —de 2,5 a 3,4— por lo mismo que la
+    // persiana de Guayaquil: una puerta de dos metros y medio bajo un techo de
+    // cuatro y medio deja dos metros de pared muerta encima, y el portal deja
+    // de ser portal.
+    const altoPortal = baja * 0.76;
+    const marco = new THREE.Mesh(caja(1.5, altoPortal, 0.16), matColonial(PIEDRA, 0.02, 0.95));
+    marco.position.set(x, altoPortal / 2, 0.42);
     g.add(marco);
 
     // La puerta: madera casi siempre, y de vez en cuando pintada de verde,
     // que es el otro color de puerta que se ve por ahí.
     const puerta = new THREE.Mesh(
-      caja(1.25, 2.3, 0.1),
+      caja(1.25, altoPortal - 0.2, 0.1),
       matColonial(rnd() < 0.25 ? 0x507941 : MADERA, 0.02, 0.9),
     );
-    puerta.position.set(x, 1.15, 0.48);
+    puerta.position.set(x, (altoPortal - 0.2) / 2, 0.48);
     g.add(puerta);
   }
 
@@ -2699,34 +2704,19 @@ function crearCasaColonial(ancho, rnd = Math.random) {
 
   for (let i = 0; i < ventanas; i++) {
     const x = -ancho / 2 + pasoV * (i + 0.5);
-    const yV = baja + 1.25;
+    const yV = baja + alta * 0.5;
 
-    const marco = new THREE.Mesh(caja(1.15, 1.9, 0.14), matColonial(0xf3f1eb, 0.02, 0.94));
+    // Ventana de balcón A LA FRANCESA, o sea alta y estrecha: es lo que hay en
+    // el centro y es lo que pide el puntal nuevo. De 1,15 × 1,9 a 1,0 × 2,6.
+    const marco = new THREE.Mesh(caja(1.0, 2.6, 0.14), matColonial(0xf3f1eb, 0.02, 0.94));
     marco.position.set(x, yV, 0.4);
     g.add(marco);
 
-    const vidrio = new THREE.Mesh(caja(0.9, 1.6, 0.08), matColonial(VIDRIO_COLONIAL, 0.06, 0.3));
+    const vidrio = new THREE.Mesh(caja(0.78, 2.3, 0.08), matColonial(VIDRIO_COLONIAL, 0.06, 0.3));
     vidrio.position.set(x, yV, 0.45);
     g.add(vidrio);
 
     if (!corrido) g.add(_balcon(1.6, x, baja + 0.1, 0.75));
-  }
-
-  // --- Tercera planta: ventanas menores y sin balcón -----------------------
-  // Cuando la hay, es siempre el piso pobre: ventanas más chicas, marco más
-  // fino y ningún balcón. Es así porque arriba del todo van los cuartos de
-  // servicio, y ponerle balcón corrido la convertiría en un palacio.
-  if (tercera) {
-    for (let i = 0; i < ventanas; i++) {
-      const x = -ancho / 2 + pasoV * (i + 0.5);
-      const yV = baja + alta + 1.1;
-      const marco = new THREE.Mesh(caja(0.95, 1.5, 0.12), matColonial(0xf3f1eb, 0.02, 0.94));
-      marco.position.set(x, yV, 0.38);
-      g.add(marco);
-      const vidrio = new THREE.Mesh(caja(0.72, 1.2, 0.07), matColonial(VIDRIO_COLONIAL, 0.06, 0.3));
-      vidrio.position.set(x, yV, 0.43);
-      g.add(vidrio);
-    }
   }
 
   // El alero, publicado: la concertina de la cuadra se cuelga de él, y ahora
@@ -3007,8 +2997,9 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
       // leía como un bordillo. A 1,5 recuperan la proporción que tienen en el
       // archivo respecto a lo que se camina, y las medidas de dentro siguen
       // guardando entre sí exactamente la relación medida.
-      const ESCALA = 1.5;
-      const LOCALES = 4;
+      const ESCALA_FRENTE = 1.25;
+      const ESCALA_ALTO = 1.95;
+      const LOCALES = 5;
       const largo = LOCALES * LOCAL.ANCHO;
 
       // La hilera se arma aparte para poder FUNDIRLA entera antes de colgarla:
@@ -3075,8 +3066,17 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
       // Seis locales son unas doscientas cajas. Fundidas por material bajan a
       // una docena de mallas y la hilera entera cuesta menos que los tres
       // puestos de antes. Ver fundirPorMaterial().
+      // ESCALA NO UNIFORME: se estira en alto y se aprieta de frente.
+      //
+      // El mercado es la única pieza que no se puede reproporcionar por dentro
+      // —sus medidas salen del archivo y ahí están documentadas al centímetro
+      // (LOCAL.ANCHO 2,60 de frente, 3,31 de alto)—, así que lo que se toca es
+      // la escala a la que se planta, que era 1,5 en los tres ejes. Ahora 1,25
+      // de frente y 1,95 de alto: los mismos puestos, más estrechos y más
+      // altos, que es exactamente la geometría de la referencia. La cornisa
+      // sube de 4,97 a 6,45 y el frente de cada local baja de 3,90 a 3,25.
       const fundida = fundirPorMaterial(hilera);
-      fundida.scale.setScalar(ESCALA);
+      fundida.scale.set(ESCALA_FRENTE, ESCALA_ALTO, ESCALA_FRENTE);
       g.add(fundida);
       break;
     }
@@ -3092,8 +3092,12 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
       // El sorteo se queda ancho a propósito, que es lo que hace que el perfil
       // de la planta tenga dientes.
       const alto = 9 + aleatorio() * 8;
+      // Y MÁS FINAS. Una chimenea de 1,35 de base y 9 de alto es un bidón; la
+      // proporción de una torre de verdad va de 1:10 para arriba. A 0.62/0.92
+      // la esbeltez pasa de 1:6,7 a 1:9,8 sin tocar la altura, que es lo que
+      // pedía la referencia: no más cosas, las mismas más angostas.
       const torre = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.95, 1.35, alto, 7),
+        new THREE.CylinderGeometry(0.62, 0.92, alto, 7),
         mat(colores.props, 0.03, 0.95),
       );
       torre.position.y = alto / 2;
@@ -3102,7 +3106,7 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
       // Aros de refuerzo: dan escala a la torre.
       for (let i = 1; i <= 3; i++) {
         const aro = new THREE.Mesh(
-          new THREE.TorusGeometry(1.15 - i * 0.06, 0.07, 5, 12),
+          new THREE.TorusGeometry(0.8 - i * 0.05, 0.06, 5, 12),
           mat(0x2a2f3d, 0.02),
         );
         aro.rotation.x = Math.PI / 2;
@@ -3140,8 +3144,16 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
       //
       // Van dos casas de anchos desiguales, como los solares: partir la cuadra
       // por la mitad exacta canta a rejilla.
-      const ANCHO_CUADRA = 13.5;
-      const primera = ANCHO_CUADRA / 2 + (aleatorio() - 0.5) * 2.4;
+      // MÁS ANGOSTA. En la referencia el corredor aprieta y las verticales son
+      // largas; una cuadra de 13,5 m de frente con 9,45 de alto sigue siendo
+      // una fachada apaisada. A 10 el frente por casa baja a 5 m y la
+      // proporción de cada una pasa de 1:1,4 a 1:1,9, o sea vertical.
+      //
+      // Y hay un efecto de segundo orden que es la mitad del asunto: con las
+      // manzanas más estrechas caben más por metro de calle, así que la
+      // CADENCIA de medianeras se acelera. Eso es lo que se lee corriendo.
+      const ANCHO_CUADRA = 10;
+      const primera = ANCHO_CUADRA / 2 + (aleatorio() - 0.5) * 1.8;
       const cuadraGye = new THREE.Group();
       for (const [ancho, x] of [
         [primera, -ANCHO_CUADRA / 2 + primera / 2],
@@ -3207,10 +3219,15 @@ export function crearDecorado(idEscenario, colores, aleatorio = Math.random) {
       // balcón es corrido o de a uno. Esa es la gramática de la calle:
       // repetirla se lee como un barrio, y repetir un modelo fijo, como un
       // bucle.
-      const ANCHO_CUADRA = 14;
+      // MÁS ANGOSTA, por lo mismo que la de Guayaquil: 14 m de frente con 8,2
+      // de alto es una fachada tumbada. A 10,5 cada casa mide 5,25 de frente
+      // por 8,2 de alto, que es la proporción que tienen de verdad los solares
+      // del centro —parcelas estrechas y profundas, porque el valor estaba en
+      // el frente a la calle—.
+      const ANCHO_CUADRA = 10.5;
       // Anchos desiguales, que es como están los solares de verdad: partir la
       // cuadra en dos mitades exactas canta a rejilla.
-      const primera = ANCHO_CUADRA / 2 + (aleatorio() - 0.5) * 2.6;
+      const primera = ANCHO_CUADRA / 2 + (aleatorio() - 0.5) * 2.0;
       for (const [ancho, x] of [
         [primera, -ANCHO_CUADRA / 2 + primera / 2],
         [ANCHO_CUADRA - primera, ANCHO_CUADRA / 2 - (ANCHO_CUADRA - primera) / 2],

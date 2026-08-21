@@ -887,7 +887,61 @@ salto con botas 3,60 y 1,80 de personaje).
 
 ---
 
-### 6.15 · Del guion, sigue sin implementarse — **abierto**
+### 6.15 · La ciudad era ancha y tumbada — **resuelto**
+
+Lo de arriba llenó el techo del cuadro, pero por el camino resolvió mal una
+cosa: subió las casas AÑADIENDO PLANTAS. En la referencia no hay más plantas,
+hay las mismas estiradas — todo angosto y apretado, con las verticales largas.
+Una casa colonial de tres plantas además es históricamente falsa: la casa de
+patio del centro tiene dos y punto.
+
+Así que se deshizo y se rehizo por proporción, no por cantidad:
+
+| | antes | ahora |
+|---|---|---|
+| casa de Guayaquil | 3,2 + 3,0 + 0,6 = **6,8** | 4,3 + 4,3 + 0,85 = **9,45** |
+| casa colonial | 3,1-3,6 + 2,5-2,9 = **5,6-6,5** | 4,2-4,8 + 3,5-3,9 = **7,7-8,7** |
+| frente de cuadra (GYE / centro) | 13,5 / 14 | **10 / 10,5** |
+| frente de local (GYE) | 2,6 | **1,95** |
+| torre del Apagón, esbeltez | 1:6,7 | **1:9,8** |
+| hilera de la Bahía, escala | 1,5 en los tres ejes | **1,25 de frente, 1,95 de alto** |
+| bóveda: clave / semiluz | 7,2 / 9,9 = **0,73** | 8,8 / 7,5 = **1,17** |
+| vereda hasta la fachada | 3,4 | **2,2** |
+
+El puntal alto no es licencia: en Guayaquil los entresuelos miden cuatro metros
+y pico porque sin aire acondicionado el techo alto ERA la ventilación, y en
+Quito por lo mismo al revés —guardar el calor del día a 2.800—. Lo que sí hubo
+que rehacer con ellos son los huecos: una persiana de 2,2 bajo un techo de 4,3
+deja metro y medio de pared muerta y el local se lee como una alacena, así que
+persianas, portales y ventanas crecen con el puntal (0,76-0,77 de la planta) y
+la ventana de balcón pasa a ser a la francesa, 1,0 × 2,6.
+
+Resultado medido, con la cornisa a veinte metros y el cielo por rayos:
+
+| | antes de todo | tras subir plantas | ahora, por proporción |
+|---|---|---|---|
+| cornisa a 20 m (elecciones) | 0,245 | 0,199 | **−0,014** (sale por arriba) |
+| cornisa a 40 m (elecciones) | 0,280 | 0,250 | **0,094** |
+| cielo del cuadro (apagón / elec. / carondelet) | 30,0 / 24,6 / 28,1 % | 16,0 / 8,3 / 11,0 % | **15,8 / 6,6 / 11,4 %** |
+| cielo de la mitad superior | 57,8 / 50,3 / 56,5 % | 25,5 / 22,4 / 25,5 % | **~21 / 13,3 / 23,8 %** |
+
+Y un fallo que sólo se vio al acercar la cámara: **los papeles que vuelan por
+la Bahía cruzaban el plano del objetivo**. Reciclaban en z > 15, o sea nueve
+metros POR DETRÁS de la cámara. Medido sobre la foto, una hoja de 0,5 × 0,65 a
+2,2 m de la lente tapa el 40 % del ancho del cuadro: salía un rectángulo blanco
+pegado al objetivo. Ahora se encogen entre −2 y +4 y reciclan en z > 4. Se
+encogen en vez de desvanecerse porque el material va compartido entre las doce
+y la opacidad es del material.
+
+**A comprobar a mano:** que el pasillo apretado no haga que la bocacalle del
+cruce se vea peor. Medido da 18-33 rayos de 576 a las cuatro distancias —contra
+8-81 con la vereda ancha y contra 0 antes de que la bocacalle existiera—, o sea
+que se ve menos que con la calle ancha pero se ve; si en mano se lee justo, lo
+que toca es abrir el hueco del decorado, no volver a ensanchar la vereda.
+
+---
+
+### 6.16 · Del guion, sigue sin implementarse — **abierto**
 
 Cuatro cosas listadas en `docs/GUION.md` y todavía no en el juego:
 

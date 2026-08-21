@@ -19,9 +19,21 @@ import { BaseScene } from './BaseScene.js';
 // el centro a ras, el arranque sería vertical y quedaría un tubo; hundiéndolo
 // un poco, el arco toca el suelo abierto —como los pasajes de verdad— y la
 // clave queda a una altura de nave, no de túnel.
+// MÁS ANGOSTA Y MÁS ALTA, que es la geometría de la referencia.
+//
+// Con radio 10,4 y el centro a −3,2 la bóveda arrancaba en x = ±9,9 y su clave
+// quedaba en 7,2: más ancha que alta, o sea una nave tumbada. En la referencia
+// los arcos son lo contrario —estrechos y de clave alta— y eso no es estilo,
+// es lo que hace que el pasillo apriete.
+//
+// Subiendo el centro POR ENCIMA del suelo la relación se invierte: con centro
+// en +1,2 la bóveda arranca en x = ±7,5 (24 % más estrecha) y la clave sube a
+// 8,8 (22 % más alta), o sea clave/semiluz pasa de 0,73 a 1,17. El arranque
+// queda ahora detrás de la hilera de puestos en vez de a la vista, que es
+// además como se ven los pasajes: el arco nace del techo de los locales.
 const CUBIERTA = {
-  RADIO: 10.4,
-  CENTRO_Y: -3.2,        // Arranca en x = ±sqrt(R² - y²) ≈ ±9.9
+  RADIO: 7.6,
+  CENTRO_Y: 1.2,         // Arranca en x = ±sqrt(R² - y²) ≈ ±7.5; clave en 8.8
   LARGO_TRAMO: 12,       // Longitud de cada segmento reciclable
   SEGMENTOS: 14,         // 168 m cubiertos: más que la niebla
 };
@@ -165,10 +177,26 @@ export class BahiaScene extends BaseScene {
       p.malla.rotation.z += p.giro * dt;
       p.malla.rotation.y += p.giro * 0.7 * dt;
 
-      if (p.malla.position.z > 15) {
+      // SE ENCOGEN ANTES DE LLEGAR AL OBJETIVO, y esto era un fallo de verdad.
+      //
+      // Reciclaban en z > 15, o sea NUEVE METROS POR DETRÁS de la cámara, así
+      // que cada hoja cruzaba el plano del objetivo. Medido sobre la foto: una
+      // hoja de 0,5 × 0,65 a 2,2 m de la cámara tapa el 40 % del ancho del
+      // cuadro. Con la cámara a 6,4 ya pasaba y se leía como una veladura;
+      // acortada a 5,5 y con el angular de diseño se lee como un cuadro blanco
+      // pegado a la lente.
+      //
+      // Encogerlas y no desvanecerlas porque el material va COMPARTIDO entre
+      // las doce: la opacidad es del material, así que difuminar una las
+      // difuminaría todas. La escala es de la malla.
+      const cerca = (p.malla.position.z + 2) / 6;   // 0 a −2 m, 1 a +4
+      p.malla.scale.setScalar(1 - Math.min(1, Math.max(0, cerca)));
+
+      if (p.malla.position.z > 4) {
         p.malla.position.z = -160 - Math.random() * 40;
         p.malla.position.x = (Math.random() - 0.5) * 16;
         p.malla.position.y = 2.5 + Math.random() * 3;
+        p.malla.scale.setScalar(1);
       }
     }
   }

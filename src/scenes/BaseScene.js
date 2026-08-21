@@ -31,7 +31,15 @@ const SEPARACION_DECORADO = 15;
 // veces en la misma calle, y eso no dobla la presencia, la reparte. El sitio
 // del edificio es el cruce, que es donde significa algo porque es donde hay que
 // decidir si se entra. Ver models/hitos.js.
-const OFFSET_LATERAL = ANCHO_PISTA / 2 + 3.4;
+// Y EL PASILLO APRIETA. 3.4 de vereda dejaba las fachadas a 6,15-6,65 del eje
+// con la calzada acabando en 4,4: casi dos metros de acera vacía a cada lado,
+// que en pantalla es cuadro muerto entre lo que se corre y lo que se mira. En
+// la referencia no hay acera: la pared está pegada a la vía.
+//
+// 2.2 deja las fachadas a 4,95-5,45, o sea medio metro de vereda en Guayaquil
+// y uno en el centro histórico, que es lo que miden de verdad. Y no toca nada
+// de juego: lo generado —obstáculos, tarimas, papeles— vive dentro de |x| 4,4.
+const OFFSET_LATERAL = ANCHO_PISTA / 2 + 2.2;
 
 export class BaseScene {
   /**
