@@ -773,7 +773,23 @@ de estado tenía algún teletransporte.
   entrevista (y al reintentar, desde el picado del cerco). La fase 1 de la
   cinemática ahora funde desde donde venga la cámara durante su primera mitad.
 
-### 6.13 · Del guion, sigue sin implementarse — **abierto**
+### 6.13 · Abandonar la corrida abría un juicio — **resuelto**
+
+El botón «Abandonar la corrida» de la pausa llamaba a
+`terminarPartida('captura')`, o sea la ruta entera de la captura: el cerco
+cerrándose, el sorteo del juez y la primera plana con foto de arresto.
+Retirarse a la portada te montaba un juicio.
+
+Además de raro, contradice lo que significa cada pieza: **el sorteo del juez es
+la oportunidad de seguir corriendo después de que te agarren**, y a quien se va
+por su pie no hay que agarrarlo ni ofrecerle una oportunidad de nada.
+
+Ahora `abandonarPartida()` cierra la corrida y vuelve al menú. Y **lo recogido
+se queda**, igual que al ser capturado: es la regla de la casa —«recógelas
+aunque te capturen»— y sin ella abandonar sería *peor* que caer preso. No hay
+atajo que explotar: quien abandona renuncia justo a lo que da el cerco.
+
+### 6.14 · Del guion, sigue sin implementarse — **abierto**
 
 Cuatro cosas listadas en `docs/GUION.md` y todavía no en el juego:
 
