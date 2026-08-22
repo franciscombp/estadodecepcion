@@ -941,7 +941,75 @@ que toca es abrir el hueco del decorado, no volver a ensanchar la vereda.
 
 ---
 
-### 6.16 · Del guion, sigue sin implementarse — **abierto**
+### 6.16 · Volvió a congelarse, y el culpable era el bisel — **resuelto**
+
+El §6.10 arregló tres relojes que se peleaban; esto es otra cosa. Cronometrando
+cada parte del montaje con el reloj parado:
+
+| | construir el barrio | de eso, `_crearDecorado` |
+|---|---|---|
+| Bahía | **1.650 ms** | 1.648 |
+| Elecciones | **1.787 ms** | 1.781 |
+| Carondelet | **1.073 ms** | 1.069 |
+| Apagón | 33 ms | 15 |
+
+Y un fotograma normal de juego cuesta **0,4 ms**. O sea: no había ningún
+problema de rendimiento sostenido, había un segundo y medio metido en un solo
+fotograma. El cruce aéreo nuevo cuesta 0-15 ms y el dron cero; no eran ellos.
+
+**Primera causa: el bisel, y una cuenta de píxeles mal hecha.** `RADIO_MINIMO`
+estaba en 0.012 con el argumento de que por debajo de eso el bisel no ocupa un
+píxel. El argumento era bueno y el número estaba mal: a veinte metros la
+pantalla vertical abarca 13 m en 393 píxeles, o sea 3,3 cm por píxel, y un
+bisel de 1,2 cm es un tercio de píxel. Barrido:
+
+|suelo|bahía|elecciones|carondelet|piezas biseladas (bahía)|
+|---|---|---|---|---|
+|0.012|1650|1787|1073|2300|
+|0.020|1126|834|628|1290|
+|0.030|818|819|541|985|
+|**0.045**|**420**|**679**|**357**|**158**|
+|0.060|210|582|318|67|
+
+Con el bisel apagado del todo y el MISMO decorado costaba 207 / 88 / 107, así
+que el bisel era el coste entero. Y no es el número de segmentos —con uno solo
+costaba 1.688— sino el coste fijo por pieza: construir la caja redondeada,
+soldarle los vértices y volver a clonarla y transformarla dentro de
+`fundirPorMaterial`. Con 0.045 se bisela lo que tiene volumen y se deja con
+arista viva lo que es lámina, que es donde no se veía.
+
+**Segunda causa: treinta y dos manzanas en un fotograma.** Bajado el bisel
+quedaban 350-615 ms, y eso ya no se puede abaratar por pieza: son doce a
+diecinueve milisegundos por manzana y es trabajo real. Lo que se puede es no
+hacerlo todo a la vez. Ahora `_crearDecorado` solo APUNTA las treinta y dos y
+`construirPendientes(6)` levanta las que quepan en seis milisegundos por
+fotograma, mientras el barrio está aparcado durante la aproximación —que dura
+cientos de metros—. `rematarDecorado()` termina lo que quede justo antes de
+enseñarlo, y medido nunca queda nada: los tres fotogramas caros de una corrida
+de cuatro tramos llegan con **cero pendientes**.
+
+Una pieza que se levanta veinte fotogramas tarde tiene que nacer donde estaría
+si hubiera nacido con las demás, no en su z de origen; de ahí `recorridoDecorado`.
+
+**Resultado**, corriendo cuatro tramos completos con sus tres bifurcaciones
+(9.288 fotogramas):
+
+| | antes | ahora |
+|---|---|---|
+| peor fotograma | ~2.200 ms | **29-95 ms** |
+| fotogramas > 100 ms | uno por barrio y visita | **0-1** |
+| fotogramas > 16,6 ms | — | 39 de 9.288 |
+| p50 / p95 / p99 | — | 0,1 / 0,2 / 1,4 ms |
+
+**Lo que queda abierto:** el fotograma del cruce sigue costando 29-95 ms y no
+está en ninguna de las diez partes cronometradas —remate 0,1, cielo 0, pista
+0,5, obstáculos 0,3, precarga 1,6, partículas 0, efectos 0, bifurcación 0,
+viraje 0,2, polvo 0,1—. Son dos a seis fotogramas perdidos UNA vez por esquina;
+antes de seguir buscando conviene comprobar en mano si se nota.
+
+---
+
+### 6.17 · Del guion, sigue sin implementarse — **abierto**
 
 Cuatro cosas listadas en `docs/GUION.md` y todavía no en el juego:
 

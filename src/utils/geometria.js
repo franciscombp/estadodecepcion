@@ -60,11 +60,39 @@ const PROPORCION = 0.12;
 const RADIO_MAXIMO = 0.22;
 
 /**
- * Y un suelo: por debajo de tres milímetros el bisel no ocupa ni un píxel en
- * pantalla y solo sirve para gastar triángulos. Las piezas más finas que esto
- * salen con la arista viva de siempre, que a ese tamaño es indistinguible.
+ * Y UN SUELO, que resultó ser el mando de rendimiento más grande del juego.
+ *
+ * Estaba en 0.012 con el argumento de que por debajo de eso el bisel no ocupa
+ * ni un píxel. El argumento era bueno y el número estaba mal, por dos cuentas:
+ *
+ *   · LO QUE MIDE UN PÍXEL. A veinte metros —la distancia a la que se lee el
+ *     decorado— la pantalla vertical abarca 13 m de ancho en 393 píxeles: cada
+ *     píxel son 3,3 cm. Un bisel de 1,2 cm es un tercio de píxel. No es que se
+ *     vea poco: es que no se puede ver.
+ *   · LO QUE CUESTA. Medido construyendo cada barrio con el reloj parado:
+ *     construir la Bahía costaba 1.650 ms, las Elecciones 1.787 y Carondelet
+ *     1.073, y esos son los congelones. Con el bisel apagado del todo bajaban a
+ *     207 / 88 / 107, o sea que el bisel ERA el coste entero. Y no es el número
+ *     de segmentos —con uno solo costaba 1.688— sino el coste fijo por pieza:
+ *     construir la caja redondeada, soldarle los vértices, y después clonarla y
+ *     transformarla otra vez dentro de fundirPorMaterial.
+ *
+ * Barrido del suelo, en milisegundos por barrio (bahía / elecciones / carondelet)
+ * y piezas que conservan el bisel en la Bahía:
+ *
+ *     0.012   1650 / 1787 / 1073    2300 piezas   ← como estaba
+ *     0.020   1126 /  834 /  628    1290
+ *     0.030    818 /  819 /  541     985
+ *     0.045    420 /  679 /  357     158          ← aquí
+ *     0.060    210 /  582 /  318      67
+ *
+ * 0.045 es el corte: exige que el lado más corto de la pieza pase de 37 cm, o
+ * sea que se bisela lo que tiene volumen —muros, cornisas, forjados, cajones de
+ * obstáculo, el personaje— y se deja con arista viva lo que es lámina:
+ * montantes, listones de baranda, dinteles, chapas. Que es exactamente donde el
+ * bisel no se veía.
  */
-const RADIO_MINIMO = 0.012;
+const RADIO_MINIMO = 0.045;
 
 /** Segmentos del bisel. Lo fija el nivel de calidad al arrancar. */
 let segmentos = 2;

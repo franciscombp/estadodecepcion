@@ -578,6 +578,12 @@ export class Game {
       this.escenario = crearEscenario(id, this.escenaThree, this.calidad);
       this.escenariosVivos.set(clave, this.escenario);
     }
+    // Y SE REMATA LO QUE LE FALTE. El decorado se construye a plazos mientras
+    // el barrio está aparcado (ver BaseScene.construirPendientes), así que al
+    // enseñarlo hay que terminar lo que quede: cruzar a una calle a medio
+    // construir sería peor que el tirón que esto viene a quitar. Si la
+    // aproximación hizo su trabajo, aquí no queda nada y no cuesta nada.
+    this.escenario.rematarDecorado();
 
     const config = obtenerEscenario(id);
     const colores = this.escenario.obtenerColores();
@@ -1809,6 +1815,19 @@ export class Game {
     //
     // En la intro y en el menú no llega, y da igual: allí no hay cruces.
     this.ambiente.actualizar(dt);
+
+    // EL DECORADO DE LOS BARRIOS APARCADOS, A PLAZOS. Ver BaseScene:
+    // levantar las treinta y dos manzanas de un barrio costaba de 350 a 615 ms
+    // EN UN SOLO FOTOGRAMA, y ése era el congelón. Ahora se reparte con un
+    // presupuesto por fotograma, y con seis milisegundos el reparto no se nota:
+    // un fotograma normal de juego cuesta 0,4 ms medidos, así que aun con el
+    // plazo puesto queda de sobra dentro de los 16,6 de sesenta por segundo.
+    //
+    // Se le da a UNO por fotograma —el primero que tenga faena— y no a todos:
+    // dos barrios preconstruyéndose a la vez pagarían el presupuesto dos veces.
+    for (const esc of this.escenariosVivos.values()) {
+      if (esc.pendientes?.length) { esc.construirPendientes(6); break; }
+    }
 
     // Con bloom vamos por el compositor; sin él, directo a pantalla.
     this._render();

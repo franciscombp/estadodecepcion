@@ -236,36 +236,89 @@ export class BaseScene {
     this.escena.background = fondoDe(this.config.id, this.colores);
   }
 
+  /**
+   * EL DECORADO SE APUNTA AHORA Y SE CONSTRUYE A PLAZOS.
+   *
+   * Aquí estaba el congelón entero. Medido cronometrando cada parte del montaje
+   * con el reloj parado: construir un barrio costaba 400 ms en la Bahía, 615 en
+   * las Elecciones y 355 en Carondelet, y de esos, 398 / 609 / 351 eran ESTE
+   * método. El cruce aéreo cuesta 0-15 y el dron cero.
+   *
+   * Y no se puede hacer más barato pieza a pieza —ya se le subió el suelo del
+   * bisel y bajó cuatro veces, ver utils/geometria.js— porque son treinta y dos
+   * manzanas y cada una vale de doce a diecinueve milisegundos: es trabajo real
+   * que hay que hacer. Lo que sí se puede es no hacerlo TODO EN EL MISMO
+   * FOTOGRAMA.
+   *
+   * Así que este método solo apunta las treinta y dos en una lista y las
+   * construye `construirPendientes()`, con un presupuesto de milisegundos por
+   * fotograma. El barrio se preconstruye durante la aproximación al cruce, que
+   * dura cientos de metros: sobran fotogramas.
+   */
   _crearDecorado() {
     const porLado = this.calidad.decoradosPorLado;
+    // Se fija ANTES de construir nada porque _crearCrucesAereos lo necesita y
+    // porque el reciclado lo usa desde el primer fotograma.
+    this.totalDecorado = SEPARACION_DECORADO * porLado;
 
+    /** Lo que falta por levantar. Se vacía en construirPendientes(). */
+    this.pendientes = [];
     for (const signo of [-1, 1]) {
-      for (let i = 0; i < porLado; i++) {
-        const elemento = crearDecorado(this.config.id, this.colores);
-
-        const z = -i * SEPARACION_DECORADO;
-        // Variación lateral, para que no quede una pared perfectamente recta.
-        // Salvo cuando el propio elemento pide alineación: una hilera de
-        // puestos de mercado va a escuadra, y torcerla se lee como error de
-        // colocación, no como desorden de barrio.
-        const alineado = !!elemento.userData.alineado;
-        const desviacion = alineado ? 0 : Math.random() * 2.6;
-        elemento.position.set(signo * (OFFSET_LATERAL + desviacion), 0, z);
-        elemento.rotation.y = signo > 0 ? -Math.PI / 2 : Math.PI / 2;
-        if (!alineado) elemento.scale.setScalar(0.85 + Math.random() * 0.55);
-
-        this.grupo.add(elemento);
-        this.decorados.push({
-          objeto: elemento,
-          signo,
-          alineado,
-          // Cada patrulla parpadea a su ritmo; sincronizadas se leen como bug.
-          fasePatrulla: Math.random() * Math.PI * 2,
-        });
-      }
+      for (let i = 0; i < porLado; i++) this.pendientes.push({ signo, i });
     }
 
-    this.totalDecorado = SEPARACION_DECORADO * porLado;
+    // Cuánto ha avanzado el decorado desde que se apuntó la lista. Una pieza
+    // que se construye veinte fotogramas más tarde tiene que nacer donde
+    // estaría si hubiera nacido con las demás, no en su z de origen: si no,
+    // aparecería veinte metros por detrás y se vería llegar.
+    this.recorridoDecorado = 0;
+  }
+
+  /**
+   * Levanta las manzanas que quepan en el presupuesto y dice si queda alguna.
+   *
+   * @param {number} presupuestoMs Cuánto se le puede dedicar a este fotograma.
+   *   Con 0 construye una y para, que es el mínimo para que siempre progrese.
+   * @returns {boolean} true si ya no queda nada pendiente.
+   */
+  construirPendientes(presupuestoMs = 6) {
+    if (!this.pendientes?.length) return true;
+    const hasta = performance.now() + presupuestoMs;
+    do {
+      this._levantarDecorado(this.pendientes.shift());
+    } while (this.pendientes.length && performance.now() < hasta);
+    return this.pendientes.length === 0;
+  }
+
+  /** Termina de golpe lo que quede. Se llama justo antes de enseñar el barrio. */
+  rematarDecorado() {
+    while (this.pendientes?.length) this._levantarDecorado(this.pendientes.shift());
+  }
+
+  /** Una manzana, con su sitio. Es el cuerpo del bucle de antes. */
+  _levantarDecorado({ signo, i }) {
+    const elemento = crearDecorado(this.config.id, this.colores);
+
+    // La z de origen MENOS lo ya recorrido: ver recorridoDecorado.
+    const z = -i * SEPARACION_DECORADO + this.recorridoDecorado;
+    // Variación lateral, para que no quede una pared perfectamente recta.
+    // Salvo cuando el propio elemento pide alineación: una hilera de
+    // puestos de mercado va a escuadra, y torcerla se lee como error de
+    // colocación, no como desorden de barrio.
+    const alineado = !!elemento.userData.alineado;
+    const desviacion = alineado ? 0 : Math.random() * 2.6;
+    elemento.position.set(signo * (OFFSET_LATERAL + desviacion), 0, z);
+    elemento.rotation.y = signo > 0 ? -Math.PI / 2 : Math.PI / 2;
+    if (!alineado) elemento.scale.setScalar(0.85 + Math.random() * 0.55);
+
+    this.grupo.add(elemento);
+    this.decorados.push({
+      objeto: elemento,
+      signo,
+      alineado,
+      // Cada patrulla parpadea a su ritmo; sincronizadas se leen como bug.
+      fasePatrulla: Math.random() * Math.PI * 2,
+    });
   }
 
   /**
@@ -362,6 +415,11 @@ export class BaseScene {
     const zBoca = this.zBocacalle;
     const bandaDesde = BOCACALLE.FONDO - BOCACALLE.MARGEN_DECORADO;
     const bandaHasta = BOCACALLE.FRENTE + BOCACALLE.MARGEN_DECORADO;
+
+    // Lo que llevan recorrido las manzanas ya levantadas. Lo necesita
+    // _levantarDecorado para que una pieza que se construye tarde nazca donde
+    // le toca y no veinte metros por detrás.
+    this.recorridoDecorado += avance;
 
     for (const d of this.decorados) {
       d.objeto.position.z += avance;
