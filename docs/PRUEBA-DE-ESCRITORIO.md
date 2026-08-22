@@ -1009,7 +1009,59 @@ antes de seguir buscando conviene comprobar en mano si se nota.
 
 ---
 
-### 6.17 · Del guion, sigue sin implementarse — **abierto**
+### 6.17 · Se doblaba contra la pared, y una pared tapaba el giro — **resuelto**
+
+Dos fallos distintos que se sentían como uno.
+
+**Se doblaba en el sitio equivocado.** El viraje disparaba en `this.z >= 0`, o
+sea en el plano del cruce: la fachada de la institución. Con la calle
+transversal montada delante —doce metros de intersección— eso significa que el
+jugador la cruzaba ENTERA y viraba al llegar al bordillo de enfrente. Ahora
+quien se va por un lado dobla en el EJE de la calzada a la que entra, que es lo
+que hace un coche: `BOCACALLE.EJE` = 6 m antes, 0,23 s a velocidad de crucero.
+Quien sigue de frente no —ése va a la puerta— y por eso el umbral depende del
+carril y llega desde `Game`.
+
+**Y una pared tapaba la esquina, medida rayo a rayo.** Atribuyendo cada impacto
+de una rejilla de 576 a su dueño, con el cruce a varias distancias:
+
+| | institución | calle transversal | medianera | manzana del barrio |
+|---|---|---|---|---|
+| 40 m | 4,3 % | **0,7 %** | 1,7 % | 93,2 % |
+| 24 m | 18,6 % | **0 %** | 10,9 % | 70,5 % |
+| 14 m | 45,3 % | **0 %** | 18,1 % | 36,6 % |
+| 10 m | 72,6 % | **0 %** | 16,7 % | 10,8 % |
+
+La calle a la que se dobla no salía en pantalla. Y no era el edificio: era **la
+manzana del propio corredor**. Apuntando un rayo al eje de la calzada
+transversal con el cruce a cuarenta metros, el punto SÍ está en cuadro —cae en
+x = 0,094, pegado al borde izquierdo— pero el rayo choca antes, a veintitrés
+metros, contra la fachada de al lado. Con razón: mirar la bocacalle es mirar
+muy de refilón, y una visual tan oblicua atraviesa la manzana de enfrente
+veinte metros antes de llegar.
+
+O sea que el hueco que hay que abrir en el decorado no lo fija el ancho de una
+manzana —que es lo que fijaba `MARGEN_DECORADO: 8`— sino la visual. Por detrás
+del cruce siguen bastando ocho metros; por delante hacen falta treinta
+(`MARGEN_DECORADO_DELANTE`). Y esto empeoró al apretar el pasillo en §6.15 —la
+fachada pasó de 6,15 a 4,95 del eje—: con la calle ancha la visual se colaba
+por el hueco de siempre, y por eso el fallo apareció ahora.
+
+Con la esquina abierta, a cuarenta metros se ve el edificio de frente y **las
+dos fachadas de la transversal a los lados, cada una del color del barrio al
+que lleva**, más las flechas del asfalto. Que es lo que la bocacalle venía a
+hacer desde el principio.
+
+Un cabo suelto que abre este cambio y va cerrado: las piezas apagadas para
+abrir la esquina se quedan apagadas hasta reciclar —es un pestillo a propósito,
+sin él la manzana se encendería en el fotograma del cruce a dos metros del
+jugador— pero al VOLVER a ese barrio el pestillo ya no protege nada y sí deja
+agujeros: con la banda en cincuenta metros son tres o cuatro manzanas por lado
+que tardarían 240 m en recuperarse. `reanudar()` las devuelve enteras.
+
+---
+
+### 6.18 · Del guion, sigue sin implementarse — **abierto**
 
 Cuatro cosas listadas en `docs/GUION.md` y todavía no en el juego:
 

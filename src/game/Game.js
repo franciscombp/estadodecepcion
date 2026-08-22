@@ -2165,7 +2165,9 @@ export class Game {
       this._prepararBarrio(pendiente);
     }
 
-    if (this.bifurcacion.actualizar(dt, avance)) {
+    // El carril viaja hasta aquí porque decide DÓNDE se dobla: por un lado,
+    // en el eje de la transversal; de frente, en la puerta. Ver Bifurcacion.
+    if (this.bifurcacion.actualizar(dt, avance, this.jugador.carril)) {
       this._cruzarBifurcacion(this.jugador.carril);
       return;
     }

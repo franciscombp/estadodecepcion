@@ -413,8 +413,10 @@ export class BaseScene {
     //     pieza volvería a encenderse en el fotograma del cruce —a dos metros
     //     del jugador— y sería un puesto de mercado apareciendo de la nada.
     const zBoca = this.zBocacalle;
+    // Asimétrica: por detrás basta media manzana, por delante manda la visual
+    // oblicua hacia la boca de la transversal. Ver BOCACALLE en props.js.
     const bandaDesde = BOCACALLE.FONDO - BOCACALLE.MARGEN_DECORADO;
-    const bandaHasta = BOCACALLE.FRENTE + BOCACALLE.MARGEN_DECORADO;
+    const bandaHasta = BOCACALLE.FRENTE + BOCACALLE.MARGEN_DECORADO_DELANTE;
 
     // Lo que llevan recorrido las manzanas ya levantadas. Lo necesita
     // _levantarDecorado para que una pieza que se construye tarde nazca donde
@@ -607,6 +609,23 @@ export class BaseScene {
     // siempre con la propia, y ya la transición volverá a mezclarla si hay
     // cruce. Ver restablecerPaleta().
     this.restablecerPaleta();
+
+    // Y LA MANZANA VUELVE ENTERA. Las piezas que se apagaron para abrir la
+    // esquina se quedan apagadas hasta reciclar —es un pestillo, y lo es a
+    // propósito: sin él la manzana volvería a encenderse en el fotograma del
+    // cruce, a dos metros del jugador—. Pero al VOLVER a este barrio ese
+    // pestillo ya no protege nada y sí deja agujeros: con la banda de la
+    // esquina en cincuenta metros son tres o cuatro manzanas por lado que
+    // tardarían 240 m en recuperarse, o sea un cuarto del tramo con huecos.
+    for (const d of this.decorados) {
+      d.oculto = false;
+      d.objeto.visible = true;
+    }
+    this.zBocacalle = null;
+    for (const c of this.cruces) {
+      c.oculto = false;
+      c.objeto.visible = true;
+    }
   }
 
   /** Desmonta el escenario y libera memoria. */

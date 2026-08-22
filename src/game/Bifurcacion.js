@@ -180,7 +180,7 @@ export class Bifurcacion {
    * @param {number} avance
    * @returns {boolean} true en el fotograma en que el jugador entra al túnel
    */
-  actualizar(dt, avance) {
+  actualizar(dt, avance, carril = CARRILES.CENTRO) {
     if (this.virando) {
       this.tiempoViraje += dt;
       if (this.tiempoViraje >= (this.duracionActual ?? this.DURACION_VIRAJE)) {
@@ -212,8 +212,20 @@ export class Bifurcacion {
       if (flecha.position.z > 14) flecha.position.z = this.z + BOCACALLE.FRENTE + 2;
     }
 
-    // La entrada se detecta cuando la boca pasa por la posición del jugador.
-    if (this.z >= 0) {
+    // DÓNDE SE DOBLA, que no es donde se entra.
+    //
+    // Esto disparaba en `this.z >= 0`, o sea en el plano del cruce: la fachada
+    // de la institución. Con la calle transversal montada delante —doce metros
+    // de intersección, ver BOCACALLE— eso significaba que el jugador la cruzaba
+    // ENTERA y viraba al llegar al bordillo de enfrente. Se veía doblar contra
+    // la pared.
+    //
+    // Quien se va por un lado dobla en el EJE de la calzada a la que entra, que
+    // es lo que hace un coche: seis metros antes, 0,23 s a velocidad de crucero.
+    // Quien sigue de frente no —ése va a la puerta— y por eso el umbral depende
+    // del carril y llega de fuera.
+    const umbral = carril === CARRILES.CENTRO ? 0 : -BOCACALLE.EJE;
+    if (this.z >= umbral) {
       this.activa = false;
       return true;
     }

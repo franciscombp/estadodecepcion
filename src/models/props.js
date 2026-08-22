@@ -3553,16 +3553,49 @@ export const BOCACALLE = {
   // Borde LEJANO de la banda: el plano del cruce, ni un centímetro por detrás.
   FONDO: 0,
   get FRENTE() { return this.FONDO + this.ACERA * 2 + this.ANCHO_CALZADA; },
+  /**
+   * EL EJE DE LA CALZADA TRANSVERSAL, que es DONDE SE DOBLA.
+   *
+   * El viraje se disparaba en el plano del cruce, o sea en la fachada de la
+   * institución: el jugador se metía en la intersección, la cruzaba entera —los
+   * doce metros— y sólo entonces giraba. Lo que se veía era exactamente lo que
+   * decía quien lo jugó: doblar contra la pared.
+   *
+   * Un coche dobla en el eje de la calle a la que entra, no en el bordillo de
+   * enfrente. Ese eje está a ACERA + ANCHO_CALZADA/2 = 6 m de la fachada, o sea
+   * 0,23 s antes a velocidad de crucero y 0,19 a tope: el giro arranca dentro
+   * del cruce y se acaba de resolver saliendo por la transversal.
+   */
+  get EJE() { return this.FONDO + this.ACERA + this.ANCHO_CALZADA / 2; },
   // Cuánto se mete hacia el costado. Cuarenta y no más porque la explanada de
   // la pista mide 90 de lado a lado (ANCHO_EXPLANADA en game/Track.js): con 40
   // el extremo cae en x = 44,4 y la calle sigue teniendo suelo debajo. Con 46
   // los últimos metros flotaban sobre el vacío.
   LARGO: 40,
-  // Cuánto decorado del barrio hay que apagar a cada lado de la banda. Es la
-  // media manzana más ancha que genera crearDecorado —la hilera de la Bahía,
-  // 4 × 2,60 × 1,5 = 15,6 m de frente— así que ninguna se queda cruzada encima
-  // de la calzada.
+  // Cuánto decorado del barrio hay que apagar POR DETRÁS de la banda. Es media
+  // manzana, así que ninguna se queda cruzada encima de la calzada.
   MARGEN_DECORADO: 8,
+  /**
+   * Y CUÁNTO POR DELANTE, que es otra cosa y mucho más.
+   *
+   * El margen era simétrico y por eso la esquina no se veía. Medido apuntando
+   * un rayo al eje de la calzada transversal con el cruce a cuarenta metros: el
+   * punto ESTÁ en cuadro —cae en x = 0,094 de la pantalla, pegado al borde
+   * izquierdo— pero el rayo choca antes, a veintitrés metros, contra la
+   * fachada del propio corredor. Y con razón: para mirar la bocacalle hay que
+   * mirar MUY de refilón, y una visual tan oblicua atraviesa la manzana de
+   * enfrente veinte metros antes de llegar.
+   *
+   * O sea que el margen que hace falta por delante no lo fija el ancho de una
+   * manzana sino la visual: con la fachada a 4,95 del eje y el jugador en el
+   * carril de fuera, la línea que va a la boca de la transversal roza la
+   * manzana hasta unos veinticinco metros antes del cruce. Treinta deja margen.
+   *
+   * Esto empeoró al apretar el pasillo —la fachada pasó de 6,15 a 4,95— y por
+   * eso apareció ahora: con la calle ancha la visual se colaba por el hueco de
+   * ocho metros de siempre.
+   */
+  MARGEN_DECORADO_DELANTE: 30,
 };
 
 /**
