@@ -15,7 +15,7 @@
 
 import * as THREE from 'three';
 import { CARRILES, OBSTACULOS } from '../config/balance.js';
-import { crearObstaculo } from '../models/props.js';
+import { crearObstaculo, crearSombra } from '../models/props.js';
 import { crearCaja, hayColision } from '../utils/collision.js';
 
 // Tipos que se pueden superar sin abandonar el carril.
@@ -98,6 +98,29 @@ export class ObstacleManager {
     if (libres.length > 0) return libres.pop();
 
     const malla = crearObstaculo(tipo, this.colores, this.escenario);
+
+    // SU SOMBRA, colgada del propio obstáculo. Va como hijo y no suelta —al
+    // revés que la del personaje— porque un obstáculo no salta: se mueve en Z
+    // con su grupo y la mancha tiene que ir con él sin que nadie la coloque.
+    //
+    // El tamaño sale de su caja envolvente y se mide UNA vez, al sacarlo del
+    // molde: los obstáculos se reciclan por tipo, así que el de un tipo mide
+    // siempre lo mismo y volver a medirlo por fotograma sería pagar por nada.
+    //
+    // Y no es sólo aspecto: la sombra dice a qué distancia está el obstáculo,
+    // que en un corredor con curvatura del mundo —donde lo lejano se hunde por
+    // debajo de la cresta— es justo lo que cuesta juzgar.
+    // EL RADIO SE ACOTA, y no es prudencia: medido, la caja envolvente de un
+    // obstáculo incluye sus halos y su cono de luz —que son mallas de varios
+    // metros— y salían manchas de diez metros tapando media calzada y trepando
+    // por las fachadas. Un obstáculo ocupa un carril, y un carril mide 2,4.
+    const caja = new THREE.Box3().setFromObject(malla);
+    const huella = Math.max(caja.max.x - caja.min.x, caja.max.z - caja.min.z) * 0.55;
+    const sombra = crearSombra(THREE.MathUtils.clamp(huella, 0.55, 1.5));
+    sombra.position.y = 0.02;
+    sombra.material.opacity = 0.75;
+    malla.add(sombra);
+
     malla.visible = false;
     this.grupo.add(malla);
     return malla;

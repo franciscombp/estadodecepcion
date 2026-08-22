@@ -119,6 +119,16 @@ export const AGACHARSE = {
 // Subway Surfers hace lo mismo: perdonar de más se siente bien, lo contrario
 // se siente roto.
 export const JUGADOR = {
+  // --- LA SOMBRA DE CONTACTO ------------------------------------------------
+  // Radio de la mancha bajo los pies. 0.62 es algo más que el ancho de hombros
+  // del personaje: una sombra del tamaño exacto de la silueta se lee como un
+  // recorte, y una sombra de verdad al mediodía se derrama un poco.
+  RADIO_SOMBRA: 0.62,
+  // A qué altura deja de dibujarse. 3.2 m es por encima del pico de un salto
+  // normal (2,2) y por debajo del de botas (3,6): en el salto grande la sombra
+  // se apaga arriba del todo, que es lo que hace de verdad.
+  ALTURA_SOMBRA_NULA: 3.2,
+
   ANCHO_COLISION: 0.7,
   PROFUNDIDAD_COLISION: 0.7,
   // Vidas: cuántos golpes aguantas antes de que te atrapen.

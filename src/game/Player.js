@@ -20,6 +20,7 @@ import {
   poseDerrotaGLB, reposarGLB,
 } from '../models/personajeGLB.js';
 import { crearCaja } from '../utils/collision.js';
+import { crearSombra } from '../models/props.js';
 
 export class Player {
   /**
@@ -37,6 +38,13 @@ export class Player {
     // cara todo el rato y la mochila PRENSA quedaría oculta detrás.
     this.modelo.rotation.y = Math.PI;
     escena.add(this.modelo);
+
+    // LA SOMBRA VA SUELTA EN LA ESCENA, no colgada del modelo. Colgada, subiría
+    // con el salto —que es exactamente lo contrario de lo que tiene que hacer—
+    // y heredaría su giro al cambiar de carril, con lo que la mancha se ladearía
+    // en el suelo. Se coloca a mano cada fotograma. Ver crearSombra().
+    this.sombra = crearSombra(JUGADOR.RADIO_SOMBRA);
+    escena.add(this.sombra);
 
     // ---- Estado de carril -------------------------------------------------
     this.carril = CARRILES.CENTRO;
@@ -282,6 +290,7 @@ export class Player {
     // ---- Aplicar al modelo ------------------------------------------------
     this.modelo.position.x = this.x;
     this.modelo.position.y = this.y;
+    this._colocarSombra();
 
     // El aplastón del choque manda sobre la pose normal mientras dura: escribe
     // escala y las dos rotaciones, así que la inclinación de carril se salta.
@@ -451,6 +460,34 @@ export class Player {
    * Dura menos de medio segundo. Más que eso deja de ser un golpe y pasa a ser
    * una animación que hay que esperar.
    */
+  /**
+   * La sombra, cada fotograma: dónde cae y cuánto se ve.
+   *
+   * Va SIEMPRE en el suelo que le toca —la calle o el tablado— y nunca en la
+   * altura del personaje: mientras está en el aire, la sombra es lo único que
+   * dice dónde va a aterrizar, y en un juego de saltar huecos y cambiar de
+   * carril en el aire eso es información, no adorno.
+   *
+   * Encoge y se aclara con la altura porque es lo que hace una sombra de
+   * verdad al alejarse su dueño de la superficie, y porque así la distancia al
+   * suelo se lee sin mirar al personaje. A 2,2 m —el pico de un salto normal—
+   * queda en el 55 % de su tamaño y a un tercio de su fuerza.
+   */
+  _colocarSombra() {
+    if (!this.sombra) return;
+    const suelo = this.volando ? this.y : (this.alturaSuelo ?? 0);
+    const altura = Math.max(0, this.y - suelo);
+    // 2 cm por encima del suelo: en el mismo plano pelearía con el asfalto y
+    // saldría el parpadeo de dos superficies coplanares.
+    this.sombra.position.set(this.x, suelo + 0.02, 0);
+    const t = Math.min(1, altura / JUGADOR.ALTURA_SOMBRA_NULA);
+    this.sombra.scale.setScalar(JUGADOR.RADIO_SOMBRA * (1 - 0.55 * t));
+    // Su propio material —crearSombra() lo clona— para poder desvanecerla sin
+    // tocar la de nadie más.
+    this.sombra.material.opacity = 1 - 0.8 * t;
+    this.sombra.visible = altura < JUGADOR.ALTURA_SOMBRA_NULA;
+  }
+
   _aplastar(dt) {
     if (this.aplaston <= 0) return false;
 

@@ -1108,7 +1108,54 @@ intersecciones—, así que el cruce aéreo nuevo a 9 m no le pasa por delante.
 
 ---
 
-### 6.19 · Del guion, sigue sin implementarse — **abierto**
+### 6.19 · No había ni una sombra en todo el juego — **resuelto**
+
+`shadowMap.enabled = false` y ninguna falsa: nada TOCABA el suelo. Es de esas
+cosas que no se saben señalar —el mundo «parece maqueta» por muy bien iluminado
+que esté— y en la referencia está clarísima: el personaje lleva su mancha
+blanda debajo, y es la mitad de lo que lo hace sólido.
+
+No se enciende el mapa de sombras de verdad, y no por comodidad: es una pasada
+extra de render sobre las mil y pico llamadas que ya cuesta un barrio. A esta
+escala se imita con una mancha, que además se puede poner exactamente donde
+hace falta —a ras del suelo que toque, sea la calle o el tablado— sin depender
+de dónde esté el sol.
+
+**Y no es decoración, es información.** Mientras estás en el aire, la sombra es
+lo único que dice DÓNDE vas a caer. En un juego que va de saltar huecos de 4,5
+a 7,2 m y de cambiar de carril en el aire, eso no es un adorno. Encoge al 45 % y
+se apaga al 20 % conforme subes, y desaparece pasados 3,2 m —por encima del
+salto normal (2,2) y por debajo del de botas (3,6)—.
+
+Dos intentos fallidos que conviene dejar escritos porque los dos parecían
+correctos:
+
+1. **Mezcla multiplicativa.** Es la que hace de verdad una sombra —oscurece el
+   color que ya hay en vez de pintar gris encima— pero multiplica TODO el
+   cuadrado, y la parte transparente del degradado vale cero en premultiplicado:
+   salía un cuadrado negro. Con transparencia normal la mancha queda algo más
+   plana y a cambio se controla con la opacidad, que es lo que hace falta para
+   desvanecerla al saltar.
+2. **Con niebla.** Parecía obligatorio —todo lo demás se difumina— y hacía lo
+   contrario: a cuarenta metros la mancha se mezcla hacia el color del cielo y
+   DEJA DE SER OSCURA. Con una docena de obstáculos en pista salía un velo
+   claro cubriendo media calzada. Medidas las manchas, el tamaño era correcto
+   (2,4 m, un carril), o sea que no era la escala sino el color. Una sombra no
+   es un objeto en el aire: es una modulación del suelo, y ese suelo ya lleva su
+   niebla.
+
+Y una tercera trampa, ésta de tamaño: el radio de la sombra de un obstáculo
+salía de su caja envolvente, que **incluye sus halos y su cono de luz**. Salían
+manchas de diez metros trepando por las fachadas. Va acotado a [0,55 · 1,5], que
+es la huella de un carril.
+
+Coste: cero medible. Peor fotograma de una corrida de cuatro tramos, 64 ms —el
+mismo que sin sombras—, y la saturación y el reparto de valores de los cuatro
+barrios no se mueven.
+
+---
+
+### 6.20 · Del guion, sigue sin implementarse — **abierto**
 
 Cuatro cosas listadas en `docs/GUION.md` y todavía no en el juego:
 

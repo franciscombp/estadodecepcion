@@ -28,7 +28,7 @@
 
 import * as THREE from 'three';
 import { material } from '../utils/materiales.js';
-import { caja, cajaViva } from '../utils/geometria.js';
+import { caja, cajaViva, cajaLarga } from '../utils/geometria.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { CARRILES, OBSTACULOS, PALETA, TUNEL, ELEVADO } from '../config/balance.js';
 // El ancho de la calle sale de donde se construye la calle, no de una copia:
@@ -3775,7 +3775,7 @@ export function crearPasoLateral(largo, colores) {
   // error de encaje. Ver utils/curvatura.js.
   const segmentos = Math.max(2, Math.round(largo / 4));
   const techo = new THREE.Mesh(
-    caja(ancho + 1.2, 0.5, largo, 1, 1, segmentos),
+    cajaLarga(ancho + 1.2, 0.5, largo, segmentos),
     mat(colores.props ?? 0x6b5f4d, 0.03, 0.95),
   );
   techo.position.set(0, alto, -largo / 2);
@@ -3797,7 +3797,7 @@ export function crearPasoLateral(largo, colores) {
     .multiplyScalar(0.34).getHex();
   for (const lado of [-1, 1]) {
     const muro = new THREE.Mesh(
-      caja(0.7, alto, largo, 1, 1, segmentos),
+      cajaLarga(0.7, alto, largo, segmentos),
       mat(tonoMuro, 0.02, 0.82),
     );
     muro.position.set(lado * (ancho / 2), alto / 2, -largo / 2);
@@ -4402,7 +4402,7 @@ export function crearGaleriaTramite(largo, colores, nombre) {
 
   for (const s of [-1, 1]) {
     const pared = new THREE.Mesh(
-      caja(0.4, alto, largo, 1, 1, segmentosLargo),
+      cajaLarga(0.4, alto, largo, segmentosLargo),
       matMuro,
     );
     pared.position.set(s * (ancho / 2), alto / 2, -largo / 2);
@@ -4410,7 +4410,7 @@ export function crearGaleriaTramite(largo, colores, nombre) {
   }
 
   const techo = new THREE.Mesh(
-    caja(ancho, 0.4, largo, 1, 1, segmentosLargo), matMuro);
+    cajaLarga(ancho, 0.4, largo, segmentosLargo), matMuro);
   techo.position.set(0, alto, -largo / 2);
   g.add(techo);
 
@@ -4452,7 +4452,7 @@ export function crearGaleriaTramite(largo, colores, nombre) {
   const matZocalo = neon(acento, 1.0);
   for (const s of [-1, 1]) {
     const zocalo = new THREE.Mesh(
-      caja(0.14, 0.12, largo, 1, 1, segmentosLargo),
+      cajaLarga(0.14, 0.12, largo, segmentosLargo),
       matZocalo,
     );
     zocalo.position.set(s * (CARRILES.ANCHO * 1.6), 0.06, -largo / 2);
@@ -4683,6 +4683,94 @@ export function crearFlechaAsfalto(direccion, color) {
 }
 
 /** DRON de vigilancia con foco. Sobrevuela la pista. */
+/**
+ * LA SOMBRA DE CONTACTO — la mancha que apoya al personaje en el suelo.
+ *
+ * No había ninguna sombra en el juego: `shadowMap.enabled = false` y ni una
+ * falsa. Y se notaba, aunque cueste señalarlo: sin sombra nada TOCA el suelo,
+ * todo flota un poco, y por eso el mundo se leía como maqueta por muy bien que
+ * estuviera iluminado. En la referencia el personaje tiene la suya, blanda y
+ * corta, y es la mitad de lo que lo hace sólido.
+ *
+ * NO ES UN MAPA DE SOMBRAS. Encender el de verdad significa una pasada extra de
+ * render sobre las mil y pico llamadas de dibujo que ya cuesta un barrio, y en
+ * un móvil eso es la mitad del presupuesto por un efecto que a esta escala se
+ * imita con una mancha. La mancha, además, se puede colocar exactamente donde
+ * hace falta —bajo los pies, a ras del suelo que toque, sea la calle o el
+ * tablado— sin depender de dónde esté el sol.
+ *
+ * Y ADEMÁS ES INFORMACIÓN DE JUEGO, que es lo que la hace obligatoria y no
+ * decorativa: mientras estás en el aire, la sombra es lo único que dice DÓNDE
+ * vas a caer. En un juego que va de saltar huecos y de cambiar de carril en el
+ * aire, eso no es un adorno.
+ *
+ * @param {number} radio Radio de la mancha en metros.
+ */
+export function crearSombra(radio = 0.62) {
+  const g = new THREE.Mesh(geoSombra(), matSombra().clone());
+  g.rotation.x = -Math.PI / 2;
+  g.scale.setScalar(radio);
+  // Sin escritura de profundidad y renderizada tarde: si escribiera, la mancha
+  // taparía por Z a lo que se dibuje después en el mismo plano —los papeles a
+  // ras de suelo, las flechas del asfalto— y saldrían recortes.
+  g.renderOrder = 2;
+  return g;
+}
+
+let _geoSombra = null;
+function geoSombra() {
+  // Un disco de radio 1 y ocho lados: la textura ya redondea el borde, así que
+  // más lados sólo cuestan triángulos. Se escala al plantarla.
+  _geoSombra = _geoSombra ?? new THREE.CircleGeometry(1, 8);
+  return _geoSombra;
+}
+
+let _matSombra = null;
+function matSombra() {
+  if (_matSombra) return _matSombra;
+  // Degradado radial: negro blando en el centro y nada en el borde. Pintado y
+  // no un PNG porque son cuatro líneas y pesa cero.
+  const l = document.createElement('canvas');
+  l.width = 64; l.height = 64;
+  const x = l.getContext('2d');
+  const rad = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  rad.addColorStop(0, 'rgba(0,0,0,0.85)');
+  rad.addColorStop(0.55, 'rgba(0,0,0,0.42)');
+  rad.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = rad;
+  x.fillRect(0, 0, 64, 64);
+  const tex = new THREE.CanvasTexture(l);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  _matSombra = new THREE.MeshBasicMaterial({
+    map: tex,
+    transparent: true,
+    opacity: 1,
+    depthWrite: false,
+    // TRANSPARENCIA NORMAL Y NO MULTIPLICATIVA, y esto costó una foto en blanco.
+    // La multiplicativa es la correcta para una sombra —oscurece el color que
+    // ya hay en vez de pintar gris encima— pero multiplica TODO el cuadrado,
+    // incluida la parte transparente del degradado, que en premultiplicado vale
+    // cero: el resultado era un cuadrado negro, no una mancha. Con la normal la
+    // mancha sale algo más plana y se controla con la opacidad, que además es
+    // lo que hace falta para desvanecerla al saltar.
+    blending: THREE.NormalBlending,
+    // SIN NIEBLA, que parece lo contrario de lo que hace falta y es lo correcto.
+    //
+    // Con niebla puesta —que fue el primer intento— la mancha se mezcla hacia el
+    // color del cielo con la distancia, o sea que a cuarenta metros DEJA DE SER
+    // OSCURA y se vuelve un parche pálido. Con una docena de obstáculos en
+    // pista, en la foto salía un velo claro cubriendo media calzada y trepando
+    // por las fachadas. Medidas las manchas, el tamaño era correcto —2,4 m, un
+    // carril— así que no era la escala: era el color.
+    //
+    // Una sombra no es un objeto en el aire que la niebla deba difuminar: es una
+    // modulación del suelo que hay debajo, y ese suelo ya lleva su niebla. Lo
+    // que la apaga con la distancia es que la propia calle se va aclarando.
+    fog: false,
+  });
+  return _matSombra;
+}
+
 export function crearDron() {
   const g = new THREE.Group();
 

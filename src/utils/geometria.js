@@ -177,6 +177,39 @@ export function caja(ancho, alto, fondo, radio) {
 }
 
 /**
+ * UNA CAJA LARGA, PARTIDA A LO LARGO DE LA Z, para que se pueda doblar.
+ *
+ * La curvatura del mundo dobla POR VÉRTICE en el sombreador (ver
+ * utils/curvatura.js), así que una viga de treinta metros con vértices sólo en
+ * las esquinas no se curva: se tiende recta como una cuerda sobre una calle que
+ * baja, y todo lo que se apoya en ella parece flotar.
+ *
+ * Existe porque hasta ahora esas piezas llamaban a `caja(w, h, d, 1, 1, seg)`
+ * copiando la firma de `BoxGeometry`, y `caja` no tiene esa firma: su cuarto
+ * argumento es el RADIO DEL BISEL. O sea que aquellas cinco vigas —el techo y
+ * los muros del paso lateral, y las paredes, el techo y los zócalos de la
+ * galería del trámite— pedían un bisel de UN METRO, más que medio grosor de la
+ * pieza (0,35 en el caso del muro), lo que degenera la caja redondeada; y de
+ * paso los segmentos que venían a pedir se tiraban a la basura, así que
+ * seguían sin curvarse.
+ *
+ * No lleva bisel a propósito: en una viga de treinta metros vista de canto el
+ * bisel no se ve, y los segmentos sí.
+ *
+ * @param {number} segmentosLargo Cortes a lo largo de la Z.
+ */
+export function cajaLarga(ancho, alto, fondo, segmentosLargo) {
+  const n = Math.max(1, Math.round(segmentosLargo));
+  const clave = `l${m(ancho)}|${m(alto)}|${m(fondo)}|${n}`;
+  let g = cache.get(clave);
+  if (!g) {
+    g = new THREE.BoxGeometry(ancho, alto, fondo, 1, 1, n);
+    cache.set(clave, g);
+  }
+  return g;
+}
+
+/**
  * La caja de toda la vida, también compartida.
  *
  * Existe para las piezas que no deben biselarse —las de varios materiales, las
