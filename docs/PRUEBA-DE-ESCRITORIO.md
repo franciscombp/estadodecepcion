@@ -1061,7 +1061,54 @@ que tardarían 240 m en recuperarse. `reanudar()` las devuelve enteras.
 
 ---
 
-### 6.18 · Del guion, sigue sin implementarse — **abierto**
+### 6.18 · El salto metía al personaje debajo del cartel — **resuelto**
+
+Lo primero que hay que decir de esto es que **las dos primeras mediciones eran
+falsas**, y merece la pena dejarlo escrito porque el error es de los que se
+repiten:
+
+1. El arnés forzaba `jugador.y` desde fuera para simular estar en la tarima. El
+   MODELO no se entera —lo coloca `jugador.actualizar()`— así que la caja
+   envolvente medía un personaje en el suelo con la cámara subida a tres metros.
+   Salían cifras de escándalo (cabeza en −0,70, o sea fuera del cuadro) que no
+   pasaban en el juego.
+2. La corrección nueva proyectaba con `camara.project()` **sin actualizar la
+   matriz**. Three sólo recalcula `matrixWorldInverse` al renderizar, así que
+   leía la cámara de un fotograma antes —o de mucho antes, en una prueba que no
+   pinta— y devolvía imposibles: un punto más alto proyectando más abajo que
+   otro más bajo.
+
+Con las dos cosas arregladas —subir a la tarima por su rampa como se sube
+jugando, y `updateMatrixWorld` antes de proyectar— el encuadre real es:
+
+| | cabeza en pantalla, en reposo | en el pico del salto |
+|---|---|---|
+| en la calle | 0,660 | **0,520** |
+| sobre el tablado (3,15 m) | 0,506 | **0,392** |
+| tablado + salto con botas (6,75 m) | — | **0,325** |
+
+Y con los factores de antes (0,45 la posición y 0,12 la mira) el pico desde el
+tablado quedaba en **0,304**, y el de botas en torno a 0,24. El cartel de salida
+de la bifurcación ocupa la banda **y = 0,09-0,27**: ahí es donde se metía. No
+era que los letreros estorbasen, era que el salto lo llevaba debajo de ellos.
+
+Los factores suben a 0,80 y 0,55. Barrido, con la cabeza en el pico de un salto
+en la calle: 0,45/0,12 → 0,419; 0,65/0,35 → 0,485; **0,80/0,55 → 0,520**;
+1,00/0,85 → 0,545. Más arriba tampoco sale gratis: la cámara vuelve rezagada al
+aterrizar y los pies se acercan al borde de abajo.
+
+Y queda una red, `CAMARA.TECHO_PERSONAJE`: si la cabeza entrara en la banda del
+cartel, la cámara y la mira suben LA MISMA cantidad hasta sacarla —trasladar las
+dos no cambia el picado ni gira nada, que es la lección de §6.5—. No se dispara
+en ninguno de los tres casos de la tabla, y es lo correcto para una red.
+
+**Comprobado además:** nada de geometría se interpone entre la cámara y el
+personaje mientras va por arriba —240 fotogramas de rayo cámara-pecho, cero
+intersecciones—, así que el cruce aéreo nuevo a 9 m no le pasa por delante.
+
+---
+
+### 6.19 · Del guion, sigue sin implementarse — **abierto**
 
 Cuatro cosas listadas en `docs/GUION.md` y todavía no en el juego:
 

@@ -941,6 +941,62 @@ export const CAMARA = {
   // ver el borde de la plataforma —que es de donde te caes—, sube porque si no
   // el propio tablado tapa lo que viene, y la mira baja para que el final del
   // elevado entre en cuadro con antelación.
+  // --- CUÁNTO SIGUE LA CÁMARA A LA ALTURA DEL SUELO -------------------------
+  // Subirse a una tarima no es saltar: el suelo cambia de sitio y la cámara
+  // tiene que ir con él, o el personaje se queda arriba del cuadro. Se sigue
+  // casi entero en posición y a medias en la mira, y esa DIFERENCIA es la que
+  // abre el picado al subir. Medido sobre una tarima de verdad —subiendo por su
+  // rampa, no forzando la altura a mano—: la cabeza queda en 0,506 del alto de
+  // pantalla contra 0,660 en la calle.
+  SEGUIMIENTO_SUELO: 0.90,
+  SEGUIMIENTO_SUELO_MIRA: 0.55,
+
+  // --- CUÁNTO SIGUE LA CÁMARA AL SALTO --------------------------------------
+  //
+  // Estaba en 0.45 la posición y 0.12 la mira, con el argumento de que «que el
+  // encuadre ceda un poco es lo que hace que un salto se sienta salto». El
+  // argumento sigue siendo bueno; los números dejaron de valer al acortar la
+  // cámara y cerrar el angular (§6.14). Medido proyectando la caja del
+  // personaje fotograma a fotograma durante un salto:
+  //
+  //   posición  mira   cabeza en el pico   cuánto sube en cuadro
+  //     0.45    0.12        0.014                0.621     ← como estaba
+  //     0.65    0.35        0.102                0.519
+  //     0.80    0.55        0.168                0.465     ← aquí
+  //     0.90    0.70        0.212                0.406
+  //     1.00    0.85        0.249                0.389
+  //
+  // Con 0.45 la CABEZA llegaba a 0.014 de la pantalla: el personaje salía por
+  // el borde de arriba, que es exactamente donde vive el cartel de salida de la
+  // bifurcación y el HUD. Por eso «los letreros lo tapan»: no es que los
+  // letreros estorben, es que el salto lo metía debajo de ellos.
+  //
+  // 0.80 / 0.55 lo deja en 0.168 —bien dentro— y aun así sube 0.465 del alto de
+  // la pantalla, o sea que el salto se sigue leyendo como salto. Subir más
+  // tampoco sale gratis: al aterrizar la cámara viene rezagada arriba y los
+  // pies bajan a 0.982 con 0.90, que ya roza el borde de abajo.
+  SEGUIMIENTO_SALTO: 0.80,
+  SEGUIMIENTO_SALTO_MIRA: 0.55,
+
+  // --- EL TECHO DEL PERSONAJE, que es una red y no un mando ------------------
+  //
+  // Los factores de arriba dicen cuánto acompaña la cámara. Esto dice otra
+  // cosa: que el personaje no se meta debajo del cartel de salida, pase lo que
+  // pase. El cartel se cuelga a 68 px del borde superior y mide otros ciento y
+  // pico, o sea que ocupa la banda y = 0.09-0.27 de la pantalla.
+  //
+  // 0.28 va justo por debajo de esa banda. Y NO SE DISPARA EN NINGÚN CASO
+  // MEDIDO HOY, que es como tiene que ser una red: con la cámara ya ajustada,
+  // la cabeza queda en 0,520 saltando en la calle, 0,392 saltando desde el
+  // tablado y 0,325 en el techo de lo alcanzable —tablado más salto con botas,
+  // 6,75 m—. Existe porque esas tres cifras dependen de media docena de
+  // constantes que se van a volver a tocar, y el día que una se mueva, esto
+  // avisa moviendo la cámara en vez de escondiendo al personaje.
+  TECHO_PERSONAJE: 0.28,
+  // Y cuánto tiene que sobrarle antes de devolver la corrección, para que no
+  // oscile entre corregir y soltar en cada fotograma.
+  HOLGURA_TECHO: 0.12,
+
   ARRIBA_ALTURA_EXTRA: 0.4,
   ARRIBA_DISTANCIA_EXTRA: 1.2,
   ARRIBA_MIRA_BAJA: 0.2,

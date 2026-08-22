@@ -2339,7 +2339,9 @@ export class Game {
     const alturaSuelo = this.jugador.volando ? this.jugador.y : (this.jugador.alturaSuelo ?? 0);
     const alturaSalto = this.jugador.volando ? 0 : this.jugador.y - alturaSuelo;
 
-    const yObjetivo = CAMARA.POSICION.y + alturaSuelo * 0.90 + alturaSalto * 0.45
+    const yObjetivo = CAMARA.POSICION.y
+      + alturaSuelo * CAMARA.SEGUIMIENTO_SUELO
+      + alturaSalto * CAMARA.SEGUIMIENTO_SALTO
       + CAMARA.ARRIBA_ALTURA_EXTRA * m;
     this.camara.position.y += (yObjetivo - this.camara.position.y) * t;
 
@@ -2348,7 +2350,8 @@ export class Game {
 
     // Vuelta a la profundidad de siempre. Solo se mueve tras un cerco, pero
     // sin esta línea el encuadre se quedaría descolocado al reanudar.
-    const zObjetivo = CAMARA.POSICION.z + CAMARA.ARRIBA_DISTANCIA_EXTRA * m;
+    const zObjetivo = CAMARA.POSICION.z
+      + CAMARA.ARRIBA_DISTANCIA_EXTRA * m;
     this.camara.position.z += (zObjetivo - this.camara.position.z) * t;
 
     // Sacudida por golpe, con decaimiento exponencial.
@@ -2366,12 +2369,83 @@ export class Game {
     // orbitaría alrededor del personaje. Van juntas.
     this._mirar(
       pivoteX,
-      CAMARA.MIRA.y + alturaSuelo * 0.55 + alturaSalto * 0.12
+      CAMARA.MIRA.y + alturaSuelo * CAMARA.SEGUIMIENTO_SUELO_MIRA
+        + alturaSalto * CAMARA.SEGUIMIENTO_SALTO_MIRA
         - CAMARA.ARRIBA_MIRA_BAJA * m,
       CAMARA.MIRA.z,
       this.recuperacionCamara > 0 ? 3 : 14,
       dt,
     );
+
+    // --- EL TECHO DEL PERSONAJE ----------------------------------------------
+    //
+    // Los factores de arriba dicen CUÁNTO acompaña la cámara. Esto dice algo
+    // distinto y más fuerte: que el personaje no se sale por arriba, pase lo
+    // que pase. Y hacía falta porque los factores solos no llegan.
+    //
+    // Medido proyectando su caja: en la calle un salto normal llevaba la cabeza
+    // a 0,014 de la pantalla —el borde— y desde el tablado a −0,70, o sea fuera
+    // del cuadro. Ahí es donde vive el cartel de salida de la bifurcación y el
+    // HUD, y por eso el jugador lo contaba como «los letreros lo tapan»: no es
+    // que los letreros estorben, es que el salto lo metía debajo.
+    //
+    // Se barrieron los factores de seguimiento y no bastan: para dejar el
+    // tablado en su sitio hacía falta que la mira siguiera el suelo a 2,6 veces
+    // su altura, que ya no es seguir sino inventarse el encuadre, y aun así el
+    // salto desde arriba se salía. La razón de fondo es que la altura sube
+    // hasta 6,75 m —tablado 3,15, salto con botas 3,60— y ningún factor fijo
+    // sirve para un rango así.
+    //
+    // Así que se mide dónde ha quedado y se corrige lo que falte, subiendo
+    // cámara y mira LA MISMA cantidad: trasladar las dos no cambia el picado ni
+    // gira nada, sólo baja el mundo en el cuadro. Es la única corrección que no
+    // puede fabricar paralajes opuestos, que es la lección de §6.5.
+    this._alzaCamara = this._alzaCamara ?? 0;
+    // ANTES DE PROYECTAR, ACTUALIZAR LA MATRIZ. `project()` usa
+    // `matrixWorldInverse`, y Three sólo la recalcula al renderizar: sin esta
+    // línea la corrección leía la cámara de HACE UN FOTOGRAMA —o de mucho
+    // antes, en las pruebas que no pintan— y salían números imposibles, como
+    // que un punto más alto proyectara más abajo que otro más bajo.
+    this.camara.updateMatrixWorld(true);
+    // 1.60 sobre los pies: es el alto real del modelo con sombrero, medido con
+    // su caja envolvente (1,56 sobre el suelo). Se usa una constante y no un
+    // Box3 por fotograma a propósito: recorrer el esqueleto sesenta veces por
+    // segundo para saber lo que ya se sabe es pagar por nada.
+    const cabeza = new THREE.Vector3(this.jugador.x, this.jugador.y + 1.60, 0)
+      .project(this.camara);
+    const yCabeza = (1 - cabeza.y) / 2;
+    if (import.meta.env.DEV) this._yCabeza = yCabeza;
+    // Cuánto mide en metros la pantalla a la distancia del personaje: es el
+    // cambio de escala entre «fracción de cuadro» y «metros de cámara».
+    const distancia = this.camara.position.z - this.jugador.y * 0 + 0.0;
+    const altoVisible = 2 * Math.abs(distancia)
+      * Math.tan(THREE.MathUtils.degToRad(this.camara.fov) / 2);
+    let objetivoAlza = this._alzaCamara;
+    if (yCabeza < CAMARA.TECHO_PERSONAJE) {
+      objetivoAlza += (CAMARA.TECHO_PERSONAJE - yCabeza) * altoVisible;
+    } else if (yCabeza > CAMARA.TECHO_PERSONAJE + CAMARA.HOLGURA_TECHO) {
+      // Ya sobra sitio: la corrección se devuelve, o el encuadre se quedaría
+      // alto para siempre después del primer salto.
+      objetivoAlza -= (yCabeza - CAMARA.TECHO_PERSONAJE - CAMARA.HOLGURA_TECHO) * altoVisible;
+    }
+    objetivoAlza = Math.max(0, objetivoAlza);
+    // Sube deprisa y baja despacio: llegar tarde a corregir es que se salga del
+    // cuadro, y volver deprisa es un tirón al aterrizar.
+    const ritmo = objetivoAlza > this._alzaCamara ? 18 : 4;
+    this._alzaCamara += (objetivoAlza - this._alzaCamara) * (1 - Math.exp(-ritmo * dt));
+    if (this._alzaCamara > 0.001) {
+      this.camara.position.y += this._alzaCamara;
+      this._mirar(
+        pivoteX,
+        CAMARA.MIRA.y + alturaSuelo * CAMARA.SEGUIMIENTO_SUELO_MIRA
+          + alturaSalto * CAMARA.SEGUIMIENTO_SALTO_MIRA
+          - CAMARA.ARRIBA_MIRA_BAJA * m
+          + this._alzaCamara,
+        CAMARA.MIRA.z,
+        this.recuperacionCamara > 0 ? 3 : 14,
+        dt,
+      );
+    }
 
     // El polvo de la esquina. La rotación ya no se aplica aquí —la hace el
     // arco de arriba, posición y mira a la vez— y por eso desapareció el
