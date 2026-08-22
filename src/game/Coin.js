@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { CARRILES, EVIDENCIA, PRUEBAS, OBSTACULOS } from '../config/balance.js';
 import { crearEvidencia, crearPrueba, ajustarBrilloEvidencia } from '../models/props.js';
 import { crearCaja, hayColisionPlana, distanciaHorizontal } from '../utils/collision.js';
+import { HUECO } from './Luces.js';
 
 export class CoinManager {
   constructor(escena, camara = null) {
@@ -336,9 +337,22 @@ export class CoinManager {
   actualizar(dt, avance, jugador) {
     this.tiempo += dt;
 
+    // La luz de la prueba nominal es UNA del aparejo, no una por pieza. Ver
+    // game/Luces.js: con una PointLight colgada de cada prueba, cada vez que
+    // aparecía una cambiaba el recuento de luces de la escena y se recompilaban
+    // todos los materiales —medido, cuatro programas por prueba—. Y las pruebas
+    // salen en el 18 % de los grupos, o sea muchas veces por tramo.
+    const rig = this.escena.userData.rig;
+    let conLuz = null;
+
     for (let i = this.activos.length - 1; i >= 0; i--) {
       const item = this.activos[i];
       item.z += avance;
+
+      // La candidata: la prueba sin recoger más cercana por delante. Nunca hay
+      // dos a la vez en cuadro, así que una luz basta.
+      if (rig && !item.recogido && item.malla.userData.pideLuz
+          && item.z < 6 && (!conLuz || item.z > conLuz.z)) conLuz = item;
 
       // --- Imán ------------------------------------------------------------
       // Los recolectables cercanos se acercan al jugador. Compensa la menor
@@ -416,8 +430,19 @@ export class CoinManager {
       // Mismo umbral que los obstáculos: por detrás de la cámara no queda
       // nada vivo, o al adelantarlo cruzaría el objetivo. Ver DISTANCIA_RECICLADO.
       if (item.z > OBSTACULOS.DISTANCIA_RECICLADO) {
+        if (conLuz === item) conLuz = null;
         this._devolver(item);
         this.activos.splice(i, 1);
+      }
+    }
+
+    // Y la luz, al final: encenderla dentro del bucle la movería varias veces
+    // por fotograma sin necesidad.
+    if (rig) {
+      if (!conLuz) rig.apagar(HUECO.PRUEBA);
+      else {
+        const l = conLuz.malla.userData.pideLuz;
+        rig.encender(HUECO.PRUEBA, conLuz.malla.position, l.color, l.intensidad, l.alcance);
       }
     }
   }

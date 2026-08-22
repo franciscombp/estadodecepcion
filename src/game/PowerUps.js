@@ -24,6 +24,7 @@ import * as THREE from 'three';
 import { CARRILES, POTENCIADORES, CATALOGO_POTENCIADORES, OBSTACULOS } from '../config/balance.js';
 import { crearPotenciador } from '../models/props.js';
 import { crearCaja, hayColisionPlana } from '../utils/collision.js';
+import { HUECO } from './Luces.js';
 
 export class PowerUpManager {
   constructor(escena, camara = null) {
@@ -126,6 +127,16 @@ export class PowerUpManager {
     this.tiempo += dt;
     this.distanciaDesdeUltimo += avance;
 
+    // La luz del potenciador es UNA del aparejo, no una por pieza. Ver
+    // game/Luces.js: colgarle una PointLight a cada cápsula cambiaba el
+    // recuento de luces de la escena cada vez que aparecía o desaparecía una, y
+    // eso recompila todos los materiales —medido, once programas—.
+    //
+    // Se le da al más cercano de los que estén en cuadro y no cogidos, que
+    // además es el único que se ve: salen cada 320 m.
+    const rig = this.escena.userData.rig;
+    let conLuz = null;
+
     for (let i = this.activos.length - 1; i >= 0; i--) {
       const p = this.activos[i];
       p.z += avance;
@@ -138,6 +149,10 @@ export class PowerUpManager {
       // ciclo dura los 2.86 s que siempre quiso durar.
       p.malla.position.y = POTENCIADORES.ALTURA + Math.sin(this.tiempo * 2.2 + p.fase) * 0.18;
       p.malla.rotation.y = this.tiempo * 1.1;
+
+      // El candidato a llevarse la luz: el que esté más cerca por delante.
+      if (rig && p.malla.userData.pideLuz && p.z < 6
+          && (!conLuz || p.z > conLuz.z)) conLuz = p;
 
       const u = p.malla.userData;
 
@@ -173,16 +188,27 @@ export class PowerUpManager {
 
       // Ver DISTANCIA_RECICLADO: nada sigue vivo por detrás de la cámara.
       if (p.z > OBSTACULOS.DISTANCIA_RECICLADO) {
+        if (conLuz === p) conLuz = null;
         this._destruir(p);
         this.activos.splice(i, 1);
       }
     }
+
+    this._alumbrar(rig, conLuz);
   }
 
   /**
    * Recoge el potenciador que toque el jugador.
    * @returns {object|null} La definición del recogido, o null
    */
+  /** Enciende la luz del aparejo sobre el potenciador elegido, o la apaga. */
+  _alumbrar(rig, elegido) {
+    if (!rig) return;
+    if (!elegido) { rig.apagar(HUECO.POTENCIADOR); return; }
+    const l = elegido.malla.userData.pideLuz;
+    rig.encender(HUECO.POTENCIADOR, elegido.malla.position, l.color, l.intensidad, l.alcance);
+  }
+
   recoger(jugador) {
     const caja = jugador.obtenerCaja();
     const cajaRecogida = crearCaja(

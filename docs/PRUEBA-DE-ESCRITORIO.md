@@ -1155,7 +1155,93 @@ barrios no se mueven.
 
 ---
 
-### 6.20 · Del guion, sigue sin implementarse — **abierto**
+### 6.20 · Seguía congelándose, y no estaba donde miraba nadie — **resuelto**
+
+El §6.16 quitó segundo y medio metido en un fotograma y aun así el juego seguía
+dando tirones. La razón por la que no aparecían en ninguna medición es que
+**todas las anteriores llamaban a `_actualizarJuego` en un bucle cerrado, sin
+pintar**. Y lo que estaba pasando no pasa al actualizar: pasa al RENDERIZAR.
+
+**Compilar sombreadores.** Contando programas del renderizador a lo largo de una
+partida real:
+
+| momento | programas |
+|---|---|
+| menú | 39 |
+| intro | 45 |
+| primer tramo | **57** |
+| a los 27 s | **63** |
+| entrar al Apagón | **76** |
+| entrar a Carondelet | **87** |
+
+Cuarenta y ocho sombreadores compilándose con la partida en marcha. Compilar y
+enlazar GLSL es síncrono: bloquea el hilo, y en un móvil cuesta de veinte a
+doscientos milisegundos cada uno.
+
+**Y la causa de fondo no era la cantidad de materiales: era el recuento de
+luces.** El número de luces de cada tipo entra en las MACROS del sombreador
+(`NUM_POINT_LIGHTS`, `NUM_SPOT_LIGHTS`), o sea que forma parte de la firma con
+la que Three decide si un material necesita un programa nuevo. Cambiar el
+recuento recompila TODOS los materiales de la escena. Diferenciando las claves
+de caché de antes y después de cruzar a otro barrio, los catorce programas
+nuevos se distinguían **exactamente en los mismos dos campos**, y los dos eran
+recuentos de luces.
+
+Y el juego los cambiaba a todas horas, porque varias piezas traían su luz
+colgada. Medido con el juego corriendo:
+
+| | luces puntuales | programas |
+|---|---|---|
+| lo normal | 2 | 92 |
+| aparece una prueba | 3 | **96** (+4) |
+| aparece un potenciador | 4 | **107** (+11) |
+| desaparecen las dos | 2 | 107 |
+
+Volver a un recuento ya visto es gratis; llegar a uno nuevo recompila. Y las
+pruebas salen en el 18 % de los grupos, los potenciadores cada 320 m, el Apagón
+traía seis luces piloto, Carondelet dos focos y el trámite tres farolas.
+
+**La solución es la de siempre en este oficio: presupuesto fijo de luces.** Ver
+`game/Luces.js`. Se crean al arrancar —cinco puntuales y dos focos—, se cuelgan
+de la ESCENA y no del barrio, y no se añade ni se quita ninguna nunca más. Las
+piezas ya no llevan luz: la PIDEN, y quien las mueve la coloca. La prueba más
+cercana usa un hueco, el potenciador vivo otro, el trámite dos, y el Apagón pasa
+de seis luces piloto a una que va rotando entre sus seis posiciones —a la
+velocidad a la que se corre, y con el parpadeo de fluorescente moribundo, se lee
+igual: lo que hace el efecto es que aparezca y desaparezca, no que haya seis—.
+
+Cinco y no ocho porque cada puntual se evalúa por fragmento en todos los
+materiales: el presupuesto fijo arregla los tirones, pero no es gratis al
+pintar.
+
+**Y aparte, precalentar.** Con la portada delante —que es la pantalla de carga
+que este juego ya tiene— se construyen los otros tres barrios y se compilan sus
+materiales SIN colgarlos, con `compile(objeto, camara, escenaDestino)`, más las
+dieciséis combinaciones de obstáculo (que son distintas en cada barrio) en un
+grupo que no se cuelga de ninguna escena.
+
+Colgar los cuatro barrios a la vez para compilarlos, que fue el primer intento,
+salía PEOR: cada barrio traía entonces sus cinco luces, así que la escena pasaba
+de cinco a veinte y lo que se compilaba era una variante que el juego no iba a
+usar jamás.
+
+**Resultado:**
+
+| momento | antes | ahora |
+|---|---|---|
+| menú | 39 | 50 |
+| primer tramo | 57 | 54 |
+| 35 s corriendo | 63 | **55** |
+| entrar al Apagón | 76 | **60** |
+| Carondelet | 87 | **59** |
+| **compilados en marcha** | **48** | **9** |
+
+Y en el arnés de lógica, que ya iba bien, todavía mejora: de 38 fotogramas por
+encima de 16,6 ms a **6** sobre 9.286, con el peor en 54 ms.
+
+---
+
+### 6.21 · Del guion, sigue sin implementarse — **abierto**
 
 Cuatro cosas listadas en `docs/GUION.md` y todavía no en el juego:
 

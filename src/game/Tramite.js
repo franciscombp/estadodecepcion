@@ -35,6 +35,7 @@
 import * as THREE from 'three';
 import { CARRILES, TRAMITE, EVIDENCIA } from '../config/balance.js';
 import { crearGaleriaTramite } from '../models/props.js';
+import { HUECO } from './Luces.js';
 
 export class TramiteManager {
   constructor(escena) {
@@ -86,11 +87,17 @@ export class TramiteManager {
     // alejarían con el resto de la geometría y el pasillo se iría apagando a
     // medida que avanzas. Estas se quedan donde están, iluminando siempre el
     // tramo que el jugador tiene delante.
-    for (const z of [-12, -40, -72]) {
-      const luz = new THREE.PointLight(colores.acento ?? 0xffcf3f, 15, 44, 2);
-      luz.position.set(0, 5, z);
-      this.grupo.add(luz);
-      this.luces.push(luz);
+    // DOS FAROLAS DEL APAREJO, NO TRES COLGADAS. Ver game/Luces.js: crear luces
+    // al empezar el trámite subía el recuento de la escena y recompilaba todos
+    // los materiales, o sea que entrar al pasillo costaba un tirón. Ahora se
+    // piden dos huecos que ya existen y se colocan; la tercera sobraba —con el
+    // alcance de 44 m las dos cubren el pasillo entero—.
+    const rig = this.escena.userData.rig;
+    this.rig = rig;
+    if (rig) {
+      const color = colores.acento ?? 0xffcf3f;
+      rig.encender(HUECO.TRAMITE, { x: 0, y: 5, z: -16 }, color, 15, 44);
+      rig.encender(HUECO.LIBRE, { x: 0, y: 5, z: -58 }, color, 15, 44);
     }
 
     this._regar(papeles);
@@ -275,7 +282,12 @@ export class TramiteManager {
       });
       this.galeria = null;
     }
-    for (const luz of this.luces) this.grupo.remove(luz);
+    // Las farolas son del aparejo: se apagan, no se quitan. Quitarlas movería
+    // el recuento de luces y recompilaría la escena entera. Ver game/Luces.js.
+    if (this.rig) {
+      this.rig.apagar(HUECO.TRAMITE);
+      this.rig.apagar(HUECO.LIBRE);
+    }
     this.luces = [];
     this.activo = false;
     this.recorrido = 0;

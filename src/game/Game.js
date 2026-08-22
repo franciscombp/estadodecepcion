@@ -49,12 +49,15 @@ import { Particulas } from './Particulas.js';
 import { crearEscenario } from '../scenes/index.js';
 import { TransicionDeAmbiente } from '../scenes/Ambiente.js';
 import { cieloDe } from '../utils/entorno.js';
-import { obtenerEscenario } from '../config/escenarios.js';
+import { obtenerEscenario, ORDEN_ESCENARIOS } from '../config/escenarios.js';
+import { RigDeLuces, HUECO } from './Luces.js';
 import { CATALOGO_POTENCIADORES } from '../config/balance.js';
 import { PERSONAJES } from '../config/personajes.js';
 import { Controles } from '../utils/controls.js';
 import { curvarEscena } from '../utils/curvatura.js';
-import { pulsarPeligro, ajustarHaloEvidencia, BOCACALLE } from '../models/props.js';
+import {
+  pulsarPeligro, ajustarHaloEvidencia, crearPotenciador, crearObstaculo, BOCACALLE,
+} from '../models/props.js';
 import { remateCaptura, remateExhausto, citaVerificada } from '../config/textos.js';
 import {
   VELOCIDAD, TRAMO, CAMARA, JUGADOR, CARRILES, CERCO, EVIDENCIA,
@@ -190,6 +193,17 @@ export class Game {
 
   _configurarThree() {
     this.escenaThree = new THREE.Scene();
+
+    // EL APAREJO DE LUCES, ANTES QUE NADA Y PARA SIEMPRE. Ver game/Luces.js: el
+    // recuento de luces entra en las macros del sombreador, así que añadir o
+    // quitar una recompila TODOS los materiales de la escena. Se crean aquí
+    // todas las que va a haber nunca, colgadas de la escena y no del barrio
+    // —que se descuelga al cruzar—, y a partir de ahí sólo se encienden y se
+    // apagan.
+    this.luces = new RigDeLuces(this.escenaThree);
+    // Colgado de la escena para que lo alcancen los escenarios, que reciben la
+    // escena pero no el juego.
+    this.escenaThree.userData.rig = this.luces;
 
     this.camara = new THREE.PerspectiveCamera(
       CAMARA.FOV,
@@ -425,6 +439,9 @@ export class Game {
     // El fondo del menú es la temporada en la que se va a retomar, no siempre
     // la Bahía. Así la portada dice a dónde vas antes de que pulses nada.
     this._cambiarEscenario(this.cuaderno.ultimoEscenario, false);
+
+    // Y EN CUANTO LA PORTADA ESTÉ PINTADA, A PRECALENTAR. Ver _precalentar().
+    requestAnimationFrame(() => { this._precalentar(); });
   }
 
   _configurarControles() {
@@ -694,6 +711,9 @@ export class Game {
     // reinicio del relato en vez de en un capítulo.
     this._cambiarEscenario(this.cuaderno.ultimoEscenario, false);
 
+    // Y EN CUANTO LA PORTADA ESTÉ PINTADA, A PRECALENTAR. Ver _precalentar().
+    requestAnimationFrame(() => { this._precalentar(); });
+
     // La cinemática explica POR QUÉ corres: estabas entrevistando y te
     // interrumpieron. Se ve entera las dos primeras partidas y abreviada
     // después; un toque la corta siempre.
@@ -924,6 +944,154 @@ export class Game {
     const esc = obtenerEscenario(this.escenarioActual);
     this._prepararBarrio(esc.rutas.izquierda);
     this.barrioPorPreparar = esc.rutas.derecha;
+  }
+
+  /**
+   * PRECALENTAR: compilar los sombreadores ANTES de correr, no durante.
+   *
+   * ESTE ERA EL CONGELÓN QUE QUEDABA, y no se veía en ninguna medición porque
+   * todas las anteriores llamaban a `_actualizarJuego` en un bucle cerrado SIN
+   * PINTAR. Compilar GLSL no pasa al actualizar: pasa la primera vez que un
+   * material entra en cuadro, dentro del render.
+   *
+   * Contando programas del renderizador a lo largo de una partida:
+   *
+   *     menú                    39
+   *     intro                   45
+   *     primer tramo            57      ← doce de golpe al arrancar
+   *     a los 27 s              63      ← cinco más, con obstáculos nuevos
+   *     entrar al Apagón        76      ← trece
+   *     entrar a Carondelet     87      ← once
+   *
+   * O sea CUARENTA Y OCHO sombreadores compilándose con la partida en marcha.
+   * Compilar+enlazar es síncrono y bloquea el hilo; en un móvil cuesta de
+   * veinte a doscientos milisegundos cada uno. Eso es exactamente lo que se
+   * siente: tirones sueltos, «en ciertos momentos», sin relación con lo que
+   * está pasando en pantalla.
+   *
+   * Y por eso los juegos 3D de tienda tienen pantalla de carga: no están
+   * cargando datos, están compilando. Aquí se hace lo mismo —con la portada
+   * puesta, que es la pantalla de carga que este juego ya tiene—.
+   *
+   * Medido: montar los cuatro barrios y llamar a `compile()` cuesta 103 ms y
+   * resuelve 25 programas de una vez. El resto los trae la muestra de abajo.
+   *
+   * El decorado se levanta A PLAZOS también aquí (ver construirPendientes): el
+   * precalentado no puede ser él mismo el tirón que viene a quitar.
+   */
+  async _precalentar() {
+    if (this._precalentado) return;
+    this._precalentado = true;
+    const escena = this.escenaThree;
+    const esperar = () => new Promise((r) => requestAnimationFrame(r));
+
+    try {
+      // --- 1 · Los otros tres barrios, compilados SIN colgarlos -------------
+      //
+      // COLGARLOS A LA VEZ FUE EL ERROR, y es el que hacía que precalentar no
+      // sirviera de nada: cada barrio trae SUS CINCO LUCES dentro del grupo, así
+      // que con los cuatro puestos la escena pasa de cinco luces a veinte. El
+      // número de luces entra en las macros del sombreador, o sea que lo que se
+      // compilaba era una variante que el juego no va a usar nunca, y al
+      // cruzar volvía a compilar. Medido: con los cuatro colgados, entrar a un
+      // barrio nuevo seguía costando trece programas.
+      //
+      // `compile(objeto, camara, escenaDestino)` acepta cualquier Object3D y
+      // prepara SUS materiales contra el estado de la escena destino. O sea:
+      // se compila el grupo del barrio aparcado con las luces, la niebla y el
+      // entorno del barrio que está puesto —que son los que va a tener cuando
+      // le toque— sin colgarlo y sin que aparezca en pantalla ni un fotograma.
+      for (const id of ORDEN_ESCENARIOS) {
+        this._prepararBarrio(id);
+        const esc = this.escenariosVivos.get(`${id}|${this.calidad.nivel}`);
+        if (!esc || esc === this.escenario) continue;
+        // SEIS MANZANAS POR BARRIO, NO LAS TREINTA Y DOS. Para compilar no hace
+        // falta el barrio entero: hace falta una de cada MATERIAL, y
+        // `crearDecorado` los reparte entre sus ramas —patrulla, farola,
+        // palmera, camión, la manzana normal—. Con seis salen casi todas y
+        // cuesta la sexta parte. El resto lo levanta la aproximación al cruce.
+        esc.rematarDecorado();
+        await this.renderizador.compileAsync(esc.grupo, this.camara, escena);
+      }
+      const prestados = [];
+
+      // --- 1b · Los obstáculos DE CADA BARRIO --------------------------------
+      //
+      // Y aquí estaba el resto. `crearObstaculo(tipo, colores, idEscenario)`
+      // ramifica por barrio: el bloque de saltar de la Bahía es un puesto de
+      // ropa y el del Apagón es otra cosa, con otros materiales. Como el juego
+      // sólo tiene en pista los del barrio en curso, entrar a uno nuevo los
+      // construía por primera vez —y los compilaba— en el fotograma del cruce.
+      // Medido: catorce programas al entrar al Apagón, incluso con su decorado
+      // ya compilado.
+      //
+      // Se montan las dieciséis combinaciones en un grupo que NO se cuelga de
+      // ninguna escena, se compilan contra la de verdad y se sueltan. Lo que
+      // queda compilado es el programa, que es lo caro; la geometría y los
+      // materiales se tiran.
+      const muestrario = new THREE.Group();
+      for (const id of ORDEN_ESCENARIOS) {
+        const cfg = obtenerEscenario(id);
+        for (const tipo of ['saltar', 'agachar', 'esquivar', 'doble']) {
+          try { muestrario.add(crearObstaculo(tipo, cfg.colores, id)); }
+          catch { /* un tipo que ese barrio no monta */ }
+        }
+      }
+      await this.renderizador.compileAsync(muestrario, this.camara, escena);
+      muestrario.traverse((o) => {
+        if (o.isMesh && !o.userData.compartido) o.geometry?.dispose?.();
+      });
+
+      // --- 2 · Una muestra de cada cosa que compila distinto ----------------
+      // Lejísimos, detrás de la niebla y del plano lejano de la cámara: da
+      // igual dónde estén porque `compile()` recorre el grafo, no el cuadro.
+      const LEJOS = -360;
+      for (const tipo of ['saltar', 'agachar', 'esquivar', 'doble']) {
+        try { this.obstaculos._colocar(tipo, [1], LEJOS); } catch { /* ya está */ }
+      }
+      try { this.evidencia.generarHilera([0, 1, 2], LEJOS, 6); } catch { /* ya está */ }
+      for (const def of (this.potenciadores.disponibles ?? [])) {
+        const malla = crearPotenciador(def.id, def.color);
+        malla.position.set(0, POTENCIADORES.ALTURA, LEJOS);
+        this.potenciadores.grupo.add(malla);
+        prestados.push({ grupo: malla, suelto: true });
+      }
+      try {
+        this.elevado._generar(this.obstaculos, this.evidencia);
+      } catch { /* ya está */ }
+      const bifurcacionViva = this.bifurcacion.activa;
+      if (!bifurcacionViva) {
+        try {
+          this.bifurcacion.preparar(
+            this.escenarioActual, this.escenario.obtenerColores(), 360,
+          );
+        } catch { /* ya está */ }
+      }
+
+      await esperar();
+
+      // --- 3 · Compilar ----------------------------------------------------
+      // `compileAsync` usa la extensión de compilado en paralelo cuando el
+      // navegador la trae, así que en un móvil moderno esto ni siquiera
+      // bloquea; donde no está, se comporta como el síncrono de siempre y se
+      // paga aquí, con la portada delante, en vez de en mitad de una corrida.
+      await this.renderizador.compileAsync(escena, this.camara);
+
+      // --- 4 · Y todo vuelve a su sitio ------------------------------------
+      for (const p of prestados) {
+        if (p.suelto) p.grupo.parent?.remove(p.grupo);
+        else escena.remove(p.grupo);
+      }
+      this.obstaculos.limpiar();
+      this.evidencia.limpiar();
+      this.elevado.limpiar();
+      this.potenciadores.limpiar();
+      if (!bifurcacionViva) this.bifurcacion.limpiar();
+    } catch (error) {
+      // Un precalentado que falla no puede llevarse la partida por delante: lo
+      // peor que pasa sin él es lo que pasaba antes.
+      console.warn('[Precalentado] No se pudo completar.', error);
+    }
   }
 
   /**

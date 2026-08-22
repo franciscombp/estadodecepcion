@@ -1146,9 +1146,13 @@ export function crearPrueba() {
   halo.position.z = -0.25;
   g.add(halo);
 
-  // Y luz propia, como la cápsula. Sin ella la prueba es una calcomanía
+  // Y LUZ PROPIA, PERO PEDIDA, NO COLGADA. Sin luz la prueba es una calcomanía
   // pegada al aire: no tiñe el suelo de debajo y el ojo la descarta como HUD.
-  g.add(new THREE.PointLight(COLOR3D.naranja, 3.2, 5.2, 2));
+  // Con una PointLight colgada de la pieza, en cambio, cada prueba que aparece
+  // cambia el recuento de luces de la escena y recompila TODOS los materiales
+  // —medido: +4 programas por prueba—. Se pide un hueco del aparejo y lo
+  // coloca quien la mueve. Ver game/Luces.js.
+  g.userData.pideLuz = { color: COLOR3D.naranja, intensidad: 3.2, alcance: 5.2 };
 
   g.userData.tipo = 'evidencia';
   g.userData.halo = halo;
@@ -1257,14 +1261,14 @@ function capsulaPotenciador(color) {
   // al aire: no tiñe el asfalto de debajo ni las cajas de al lado, y el ojo la
   // descarta como parte del HUD. Cuesta cero: nunca hay más de un potenciador
   // vivo a la vez, porque salen cada 320 m y se ven desde 220.
-  const farol = new THREE.PointLight(color, 4.5, 6.5, 2);
-  g.add(farol);
+  // Lo mismo que la prueba: la luz se PIDE, no se cuelga. Medido, un
+  // potenciador colgando su PointLight recompilaba once programas.
+  g.userData.pideLuz = { color, intensidad: 4.5, alcance: 6.5 };
 
   g.userData.aro = aro;
   g.userData.cristal = cristal;
   g.userData.estallido = estallido;
   g.userData.peana = peana;
-  g.userData.farol = farol;
   return g;
 }
 
@@ -1505,7 +1509,7 @@ function insigniaLinterna(color) {
   lente.position.z = 0.262;
   g.add(lente);
 
-  g.add(new THREE.PointLight(color, 6, 5.5, 2));
+  g.userData.pideLuz = { color, intensidad: 6, alcance: 5.5 };
   return g;
 }
 

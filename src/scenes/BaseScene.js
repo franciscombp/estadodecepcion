@@ -189,9 +189,19 @@ export class BaseScene {
     // 3. Relleno de color siguiendo al jugador. Garantiza que el personaje
     //    nunca se pierda contra el fondo y tiñe el entorno cercano con el
     //    acento del escenario.
-    this.luzRelleno = new THREE.PointLight(c.acento, 2.2, 46, 2);
+    // EL RELLENO YA NO ES DEL BARRIO, ES DEL JUEGO. Ver game/Luces.js: si cada
+    // barrio trae la suya, al cambiar de barrio la luz se descuelga con el
+    // grupo viejo y se cuelga con el nuevo, y entre medias el recuento de luces
+    // de la escena baja y sube. Eso recompila todos los materiales.
+    //
+    // Ahora se coge la del aparejo y sólo se le cambia el color, que es un
+    // uniforme y no cuesta nada.
+    this.luzRelleno = this.escena.userData.rig.relleno;
+    this.luzRelleno.color.set(c.acento);
+    this.luzRelleno.intensity = 2.2;
+    this.luzRelleno.distance = 46;
+    this.luzRelleno.decay = 2;
     this.luzRelleno.position.set(0, 5, -6);
-    this.grupo.add(this.luzRelleno);
 
     // 4. Contraluz frío desde el fondo: recorta la silueta del jugador y de
     //    los obstáculos contra la niebla. Es lo que da profundidad a la imagen.

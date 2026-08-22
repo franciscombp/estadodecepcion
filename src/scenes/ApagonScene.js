@@ -22,6 +22,7 @@
 
 import * as THREE from 'three';
 import { BaseScene } from './BaseScene.js';
+import { HUECO } from '../game/Luces.js';
 
 // Convierte un radio de visión deseado en densidad de niebla exponencial.
 const densidadParaRadio = (radio) => 1.8 / Math.max(4, radio);
@@ -65,11 +66,20 @@ export class ApagonScene extends BaseScene {
    * por lo que este tramo era injugable. Decay ~1 e intensidad alta.
    */
   _crearLinternaJugador() {
-    this.foco = new THREE.SpotLight(0xffe9b0, 150, 140, Math.PI / 5.2, 0.5, 1.0);
+    // EL FOCO ES DEL APAREJO, NO DEL BARRIO. Ver game/Luces.js: colgado del
+    // grupo del Apagón, entrar y salir de este barrio subía y bajaba
+    // NUM_SPOT_LIGHTS y con ello se recompilaban todos los materiales de la
+    // escena. Ahora el foco existe siempre, en todos los barrios, apagado; aquí
+    // sólo se le da color, sitio y trabajo.
+    this.foco = this.escena.userData.rig.foco;
+    this.foco.color.setHex(0xffe9b0);
+    this.foco.intensity = 0;
+    this.foco.distance = 140;
+    this.foco.angle = Math.PI / 5.2;
+    this.foco.penumbra = 0.5;
+    this.foco.decay = 1.0;
     this.foco.position.set(0, ALTURA_LINTERNA, Z_LINTERNA);
     this.foco.target.position.set(0, 0, -34);
-    this.grupo.add(this.foco);
-    this.grupo.add(this.foco.target);
 
     // El haz dibujado. Es un cono abierto por la base, sin escribir en el
     // buffer de profundidad para que no recorte lo que hay dentro.
@@ -111,30 +121,29 @@ export class ApagonScene extends BaseScene {
    * cuando no tienes linterna, y refuerzan la idea de red eléctrica agonizando.
    */
   _crearParpadeos() {
+    // UNA LUZ, NO SEIS. Eran seis PointLights colgadas del grupo del barrio, y
+    // entrar al Apagón subía el recuento de luces de la escena de dos a ocho:
+    // eso recompila TODOS los materiales, y es el tirón que se sentía al cruzar
+    // (medido, catorce programas). Ver game/Luces.js.
+    //
+    // Ahora hay UNA, del hueco libre del aparejo, que va saltando entre las
+    // seis posiciones. A la velocidad a la que se corre y con el parpadeo de
+    // fluorescente moribundo, se lee igual: lo que hace el efecto es que
+    // aparezca y desaparezca, no que haya seis a la vez.
     this.parpadeos = [];
-
     for (let i = 0; i < 6; i++) {
-      const luz = new THREE.PointLight(
-        Math.random() > 0.5 ? 0x4fd1ff : 0xff4f6d,
-        0,      // Arranca apagada; el ciclo la enciende.
-        22,
-        2,
-      );
-      luz.position.set(
-        (Math.random() > 0.5 ? 1 : -1) * (7 + Math.random() * 5),
-        2 + Math.random() * 6,
-        -Math.random() * 130,
-      );
-      this.grupo.add(luz);
-
       this.parpadeos.push({
-        luz,
-        // Cada una con su propio ritmo: un parpadeo sincronizado se lee como bug.
-        frecuencia: 0.4 + Math.random() * 2.2,
+        x: (Math.random() > 0.5 ? 1 : -1) * (7 + Math.random() * 5),
+        y: 2 + Math.random() * 6,
+        z: -Math.random() * 130,
+        color: Math.random() > 0.5 ? 0x4fd1ff : 0xff4f6d,
+        intensidadMaxima: 6 + Math.random() * 8,
+        frecuencia: 0.6 + Math.random() * 2.2,
         fase: Math.random() * Math.PI * 2,
-        intensidadMaxima: 1.5 + Math.random() * 2,
       });
     }
+    // Cuál lleva la luz ahora mismo. Cambia cuando la que la lleva se recicla.
+    this.parpadeoVivo = 0;
   }
 
   /**
@@ -236,16 +245,28 @@ export class ApagonScene extends BaseScene {
     this.lente.scale.setScalar((conLinterna ? 1.5 : 1) * titileo * this.entrada);
 
     // --- Parpadeos ---------------------------------------------------------
+    // Las seis posiciones avanzan como siempre; la que va ILUMINADA es una, la
+    // del hueco libre del aparejo. Ver _crearParpadeos().
     for (const p of this.parpadeos) {
-      p.luz.position.z += avance;
-      if (p.luz.position.z > 12) {
-        p.luz.position.z = -130 - Math.random() * 30;
-        p.luz.position.x = (Math.random() > 0.5 ? 1 : -1) * (7 + Math.random() * 5);
+      p.z += avance;
+      if (p.z > 12) {
+        p.z = -130 - Math.random() * 30;
+        p.x = (Math.random() > 0.5 ? 1 : -1) * (7 + Math.random() * 5);
       }
-
-      // Onda cuadrada suavizada: parpadeo de fluorescente moribundo.
-      const onda = Math.sin(this.tiempo * p.frecuencia * Math.PI * 2 + p.fase);
-      p.luz.intensity = onda > 0.3 ? p.intensidadMaxima : 0;
+    }
+    // La luz salta a la siguiente cuando la suya se ha ido por detrás: así el
+    // relevo cae siempre fuera de cuadro y no se ve encenderse de la nada.
+    const viva = this.parpadeos[this.parpadeoVivo];
+    if (viva.z > 12 || viva.z < -140) {
+      this.parpadeoVivo = (this.parpadeoVivo + 1) % this.parpadeos.length;
+    }
+    const p = this.parpadeos[this.parpadeoVivo];
+    // Onda cuadrada suavizada: parpadeo de fluorescente moribundo.
+    const onda = Math.sin(this.tiempo * p.frecuencia * Math.PI * 2 + p.fase);
+    const rig = this.escena.userData.rig;
+    if (rig) {
+      if (onda > 0.3) rig.encender(HUECO.LIBRE, p, p.color, p.intensidadMaxima, 22);
+      else rig.apagar(HUECO.LIBRE);
     }
   }
 

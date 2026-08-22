@@ -58,13 +58,22 @@ export class CarondeletScene extends BaseScene {
   _crearVigilancia() {
     this.focos = [];
 
+    // LOS DOS FOCOS SON DEL APAREJO, NO DEL BARRIO. Ver game/Luces.js: colgados
+    // del grupo, entrar y salir del centro histórico subía y bajaba
+    // NUM_SPOT_LIGHTS y con eso se recompilaban todos los materiales de la
+    // escena. Existen siempre, en todos los barrios, apagados; aquí sólo se les
+    // da color, sitio y trabajo.
+    const rig = this.escena.userData.rig;
     for (let i = 0; i < 2; i++) {
-      const foco = new THREE.SpotLight(0xffd0c0, 3.5, 55, Math.PI / 9, 0.6, 1.6);
+      const foco = i === 0 ? rig.foco : rig.foco2;
+      foco.color.setHex(0xffd0c0);
+      foco.intensity = 3.5;
+      foco.distance = 55;
+      foco.angle = Math.PI / 9;
+      foco.penumbra = 0.6;
+      foco.decay = 1.6;
       foco.position.set((i === 0 ? -1 : 1) * 9, 13, -30 - i * 45);
       foco.target.position.set(0, 0, -30 - i * 45);
-
-      this.grupo.add(foco);
-      this.grupo.add(foco.target);
 
       this.focos.push({
         luz: foco,
