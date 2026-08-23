@@ -65,6 +65,45 @@ se renombraron **en el juego**, porque el nombre es del sistema:
 | `.marcador` | UNA cifra grande con su rótulo | la COLUMNA de cifras de la esquina | → `.marcador-corrida` |
 | `.progreso` | carril + `<span>` de relleno | lo mismo, con dos clases más | **adoptado**: se borró el del juego |
 
+## La expresión también es del tema
+
+Esto es un juego, pero es un juego **de EL MERCIO**, y el tema del periódico no
+solo trae colores: trae una forma de comportarse. Durante un tiempo el juego
+llevaba lo que trae cualquier juego —esquinas redondeadas, sombras, botones que
+saltan al pasar por encima y se hunden al pulsarlos— y eso peleaba con el papel.
+Un periódico impreso no flota ni rebota. Se cambió todo lo que hacía de juguete
+por lo que declara el tema:
+
+| | Lo que había | Lo que declara `mercio` | Dónde |
+|---|---|---|---|
+| Radio | `--r-chico/--r/--r-grande` y cinco literales de 6–14 px | `--ref-radio: 0` → `--mal-r-s` y `--mal-r` valen **0** | `src/style.css` |
+| Elevación | dos `box-shadow` a mano | `--ref-elev-1/2: none` → `--mal-elev-1/2` | `.marca-nueva`, el disco del sobre |
+| Al pulsar | `transform: scale(.96)` | `--ref-presion: none` → `--mal-presion` | `.boton:active` |
+| Al pasar por encima | `translateY(-2px)` | `--ref-salto: none` → `--mal-salto` | `.boton:hover` |
+
+Importa que no se escribió `border-radius: 0`: se escribió
+`border-radius: var(--mal-r-s)`. La diferencia es que si mañana el juego se
+mira con `data-marca="base"` —o si el periódico decide redondear— la forma
+cambia sola. Poner el cero a mano habría sido volver a tener un sistema propio,
+esta vez disfrazado.
+
+**Por qué gana el cero.** El Figma del sistema tiene radios de 4 y 8 px, y aun
+así aquí no se usan: el README del sistema es explícito en que *«la fuente de
+verdad de EL MERCIO. es el `theme.json`** del tema en producción»*, y ese
+`theme.json` no redondea nada. Cuando el Figma y el sitio vivo no coinciden,
+manda el sitio vivo.
+
+**Lo que el tema no gobierna** y por eso sigue siendo del juego:
+
+- **El HUD sobre el lienzo.** No es una página: es una capa encima de una
+  cámara 3D. Ver `.hud-juego`.
+- **El anillo rojo de `.elector__ficha`.** Parece elevación y no lo es: es el
+  indicador de *seleccionado*, exactamente el recurso que el propio sistema usa
+  en `.menu__lista` bajo `mercio`. Un `inset` no levanta nada del papel.
+- **Las curvas de las transiciones del juego.** Las de la interfaz salen del
+  sistema; las de la coreografía —el sobre que se abre, la cámara del final—
+  son tiempo de juego, no tiempo de lectura.
+
 ## Lo que pone el sistema y lo que pone el juego
 
 El sistema viste **todo lo que no es correr**: las once pantallas, sus tokens,

@@ -65,10 +65,14 @@
   --acento: var(--dorado);
   --acento-rgb: var(--dorado-rgb);
 
-  /* --- Forma --- */
-  --r-chico: 10px;
-  --r: 14px;
-  --r-grande: 20px;
+  /* --- Forma ---
+     LA FORMA LA PONE EL TEMA, no esta hoja. `mal-ds` multiplica sus radios por
+     `--ref-radio`, y el del periódico vale CERO: a escuadra, que es lo que
+     hace su tema en producción. Estos tres nombres se quedan porque los usan
+     treinta reglas; lo que se fue son los diez, catorce y veinte píxeles. */
+  --r-chico: var(--mal-r-s);
+  --r: var(--mal-r);
+  --r-grande: var(--mal-r);
 
   /* --- Movimiento --- */
   --t-rapido: 160ms;
@@ -1210,18 +1214,22 @@ html, body {
   outline-offset: 2px;
 }
 
-/* El botón se hunde al pulsar y REBOTA al soltar. El rebote está en la
-   transición, no en el :active: al soltar, el navegador vuelve al estado de
-   reposo con la curva elástica y eso se siente como un muelle. Cuesta una
-   línea y es la diferencia entre pulsar un botón y tocar un cristal. */
-.boton:active { transform: scale(0.97); }
+/* CÓMO RESPONDE UN CONTROL LO DICE EL TEMA.
+   Aquí había un `scale(0.97)` al pulsar y un `translateY(-1px)` al pasar por
+   encima, con un comentario que decía que ese rebote era «la diferencia entre
+   pulsar un botón y tocar un cristal». En un juego sí; en EL MERCIO. no, y el
+   tema lo dice con dos tokens: `--ref-presion: none` y `--ref-salto: none`.
+   Un periódico impreso no se hunde cuando lo tocas.
+   Se piden por token en vez de borrarse: el día que esto se vista con el tema
+   de juegos —que sí trae presión y salto— el botón responde solo. */
+.boton:active { transform: var(--mal-presion); }
 
 @media (hover: hover) {
   .boton:hover {
     background: var(--tinta);
     border-color: var(--tinta);
     color: var(--papel-blanco);
-    transform: translateY(-1px);
+    transform: var(--mal-salto);
   }
 }
 
@@ -1864,8 +1872,14 @@ html, body {
      recto era una interpretación, no la maqueta. Con los dos radios
      declarados, el ranking deja de ser la única pantalla con esquinas: pasa a
      ser la única que las estaba usando bien. */
-  --r-sm: 4px;   /* radius/sm — pestañas, la carta del primer puesto */
-  --r-md: 8px;   /* radius/md — botones y tarjetas */
+  /* AQUÍ DECÍA 4 Y 8, y venía del Figma. Manda el tema, y el tema dice CERO.
+     No es una discusión de gusto: el README del sistema lo deja escrito —«la
+     fuente de verdad de EL MERCIO. es el theme.json del tema en producción»—
+     y ese theme.json pone `--ref-radio: 0`. El Figma es una maqueta; el sitio
+     que está publicado es el periódico. Si algún día el periódico redondea sus
+     botones, el juego se entera al actualizar el sistema. */
+  --r-sm: var(--mal-r-s);
+  --r-md: var(--mal-r);
 
   /* EL COMPÁS. space/8, space/12 y space/24 son variables del Figma. El 4 y el
      16 no están declarados allí pero salen por todas partes en las maquetas
@@ -2302,7 +2316,9 @@ html, body {
   width: 9px;
   height: 9px;
   border: 1.5px solid var(--tinta-tenue);
-  border-radius: 2px;
+  /* Sin radio: lo pone el tema, y el del periódico va a escuadra.
+     Ver `--r-sm` / `--r-md` arriba. */
+  border-radius: var(--r-sm);
 }
 
 .sumario__papel--tengo::before {
@@ -4116,7 +4132,9 @@ html, body {
   gap: 12px;
   padding: 10px 12px;
   border: 1px solid transparent;
-  border-radius: 4px;
+  /* Sin radio: lo pone el tema, y el del periódico va a escuadra.
+     Ver `--r-sm` / `--r-md` arriba. */
+  border-radius: var(--r-sm);
 }
 
 .ranking__quien {
@@ -4948,7 +4966,9 @@ html, body {
   display: inline-block;
   width: 22px;
   height: 8px;
-  border-radius: 2px;
+  /* Sin radio: lo pone el tema, y el del periódico va a escuadra.
+     Ver `--r-sm` / `--r-md` arriba. */
+  border-radius: var(--r-sm);
   border: 1.5px solid var(--tinta-media);
   background: transparent;
 }
@@ -5221,7 +5241,9 @@ html, body {
   text-transform: uppercase;
   color: var(--rojo-diario);
   border: 1px solid currentColor;
-  border-radius: 2px;
+  /* Sin radio: lo pone el tema, y el del periódico va a escuadra.
+     Ver `--r-sm` / `--r-md` arriba. */
+  border-radius: var(--r-sm);
   padding: 1px 5px;
 }
 
@@ -5683,19 +5705,57 @@ html, body {
   background: transparent;
 }
 
-.pantalla--portada .portada__foto::before,
-.pantalla--portada .portada__foto::after {
+/* EL ANCHO DE LAS BARRAS, UNA SOLA VEZ. Lo usan las dos columnas de papel y el
+   troquel de la foto, y si se escriben por separado dejan de encajar en cuanto
+   una cambia: la ventana deja de coincidir con el hueco entre las barras y
+   aparece una rendija de un píxel, que es exactamente lo que pasaba. */
+.pantalla--portada { --barra-portada: max(var(--margen-pagina), calc(50vw - 230px)); }
+
+/* LAS DOS BARRAS DE PAPEL SON DE LA PÁGINA, NO DE LA FOTO.
+   Colgaban de `.portada__foto` con `top: 0; bottom: 0`, o sea que medían lo
+   que mide la figura — y entre las tres piezas apiladas de la portada hay
+   huecos: ocho píxeles entre el bloque de arriba y la figura, y veintitrés
+   entre la figura y el bloque de abajo. Por esas dos rendijas la calle salía A
+   TODO LO ANCHO DE LA PANTALLA, cortando las barras en dos sitios. Medido
+   muestreando la columna de píxeles: a la altura de la foto había 24 px de
+   papel a cada lado, y a la altura de las rendijas, cero.
+
+   Puestas en la página van de borde a borde vertical, así que el marco es una
+   «П» continua —dos columnas y los dos bloques opacos— y no hay hueco posible,
+   haga lo que haga la aritmética de arriba. La ventana por la que se ve la
+   partida pasa a ser lo que queda entre las cuatro piezas, que es como se
+   troquela una foto en una plana. */
+.pantalla--portada .plana::before,
+.pantalla--portada .plana::after {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
-  width: max(var(--margen-pagina), calc(50vw - 230px));
+  width: var(--barra-portada);
   background: var(--papel);
-  z-index: 1;
+  pointer-events: none;
 }
 
-.pantalla--portada .portada__foto::before { left: calc(50% - 50vw); }
-.pantalla--portada .portada__foto::after { right: calc(50% - 50vw); }
+.pantalla--portada .plana::before { left: calc(50% - 50vw); }
+.pantalla--portada .plana::after { right: calc(50% - 50vw); }
+
+/* La hoja de la portada tiene que ser el sistema de referencia de esas dos
+   barras: sin posición, se colocan contra la pantalla y dejan de encajar con
+   el ancho legible de la plana. */
+.pantalla--portada .plana { position: relative; }
+
+/* Y LOS DOS BLOQUES, POR ENCIMA DE LAS BARRAS.
+   Un elemento posicionado —que es lo que son las barras— pinta por encima del
+   contenido en flujo de su hermano, aunque vaya antes en el árbol. Sin esto la
+   columna de papel de la izquierda se comía la primera letra de cada línea
+   («l Tostadólogo investiga…», «oto: EL MERCIO») y la de la derecha, el canto
+   del tercer botón. Se ve enseguida y se diagnostica fatal: parece que el
+   texto está desplazado cuando lo que pasa es que está tapado. */
+.pantalla--portada .plana__bloque,
+.pantalla--portada .portada__abajo {
+  position: relative;
+  z-index: 1;
+}
 
 .pantalla--portada .portada__hueco {
   /* Transparente a propósito: por aquí se ve el lienzo con la partida
@@ -5705,7 +5765,20 @@ html, body {
   border: 0;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  box-shadow: inset 0 0 0 1px rgba(20, 20, 20, 0.14);
+
+  /* EL TROQUEL ES EXACTAMENTE LA FOTO QUE SE VE. Iba de borde a borde de la
+     pantalla y las barras lo tapaban por los lados; eso vale mientras nadie
+     dibuje nada encima, y aquí había un filete —`inset 0 0 0 1px`— que se
+     pintaba en los bordes DE LA PANTALLA, encima del papel de las barras. Un
+     píxel a 211 en vez de 243 en toda la altura de la foto: no se ve y se
+     diagnostica fatal. Recortado con la misma medida que las barras, el hueco
+     y la ventana son la misma caja.
+
+     Y SIN FILETE, que es lo que dice el tema: `--ref-borde: 0` en el
+     periódico —«la separación la hace el aire»— y sus propias figuras
+     (`.figura img`) tampoco lo llevan. Una foto a color sobre papel gris no
+     necesita que le dibujen el canto. */
+  margin-inline: var(--barra-portada);
 }
 
 /* El pie de la foto de portada, como en el Figma: Montserrat gris con la
@@ -5873,10 +5946,14 @@ html, body {
   border-radius: 50%;
   background: var(--papel-blanco);
   border: 2px solid var(--tinta);
+  /* Los dos aros son papel, no sombra: un troquel concentrico, como el sello
+     de una portada. La sombra que había detrás (`0 18px 34px`) se fue con el
+     tema: el periódico va sin elevación —`--ref-elev-1: none`— y se pide por
+     token para que en otro tema vuelva sola. */
   box-shadow:
     0 0 0 8px var(--papel),
     0 0 0 9px var(--papel-sombra),
-    0 18px 34px rgba(20, 20, 20, 0.14);
+    var(--mal-elev-2);
 }
 
 /* Abierto, el filete del disco es rojo: lo que hay dentro es de la casa.
@@ -6066,8 +6143,12 @@ html, body {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  border-radius: 2px;
-  box-shadow: 0 2px 6px rgba(197, 59, 43, 0.35);
+  /* Sin radio: lo pone el tema, y el del periódico va a escuadra.
+     Ver `--r-sm` / `--r-md` arriba. */
+  border-radius: var(--r-sm);
+  /* La elevación también es del tema, y el del periódico no tiene: `--ref-elev-1:
+     none`. Una etiqueta impresa no proyecta sombra sobre el papel. */
+  box-shadow: var(--mal-elev-1);
   animation: nueva-latir 1.6s ease-in-out infinite;
 }
 
