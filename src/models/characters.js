@@ -1146,6 +1146,9 @@ export function animarSalto(personaje, subida = 0) {
  * Animación del dúo perseguidor. El de abajo trota pesado; el de arriba se
  * bambolea encima y señala.
  */
+const _asiento = new THREE.Vector3();
+const _cadera = new THREE.Vector3();
+
 export function animarPerseguidores(grupo, tiempo, dt = 1 / 60) {
   const partes = grupo.userData?.partes;
   if (!partes) return;
@@ -1154,10 +1157,43 @@ export function animarPerseguidores(grupo, tiempo, dt = 1 / 60) {
   // bambolea encima señalando. No hay rebote que escribir a mano —la zancada
   // ya lo trae— así que el de arriba solo copia el vaivén de la cabeza.
   if (partes.delModelo) {
-    animarCarreraGLB(partes.abajo, dt, 24);
+    // EL DE ABAJO NO CORRE COMO LOS DEMÁS: va agachado, porque lleva a alguien
+    // sentado en los hombros. Es su propio ciclo, y sin él el mando trotaba
+    // erguido con Roy flotándole por encima de la coronilla.
+    animarCarreraGLB(partes.abajo, dt, 24, 'cargando');
     poseMontadoGLB(partes.arriba, tiempo);
-    const vaiven = Math.sin(tiempo * 7);
-    partes.arriba.position.y = partes.alturaMontado + Math.abs(vaiven) * 0.06;
+
+    // ROY SE SIENTA DONDE ESTÉN LOS HOMBROS, no a una altura fija. El de abajo
+    // corre AGACHADO —lleva a alguien encima— así que sus hombros bajan medio
+    // metro respecto a la pose de reposo, y con el asiento clavado Roy se
+    // quedaba flotando un palmo por encima de su coronilla. Se le pregunta al
+    // hueso cada fotograma y de paso se hereda el rebote de la zancada, que es
+    // mejor que el vaivén escrito a mano que había aquí.
+    const hombros = partes.abajo.userData?.glb?.huesos?.get('Spine')?.nodo;
+    const caderaRoy = partes.arriba.userData?.glb?.huesos?.get('Hips')?.nodo;
+    if (hombros && caderaRoy) {
+      hombros.getWorldPosition(_asiento);
+      grupo.worldToLocal(_asiento);
+
+      // DÓNDE LE QUEDA A ROY LA CADERA, que es por donde se sienta. No se
+      // calcula, se pregunta: en el clip de ir sentado las piernas van
+      // dobladas, así que su cadera no está a media estatura del origen sino
+      // bastante más abajo, y cuánto depende del clip. Se le pone el modelo a
+      // cero, se mira dónde cae el hueso, y se sube lo que haga falta para que
+      // caiga sobre los hombros del que carga.
+      partes.arriba.position.y = 0;
+      partes.arriba.updateMatrixWorld(true);
+      caderaRoy.getWorldPosition(_cadera);
+      grupo.worldToLocal(_cadera);
+      partes.arriba.position.y = _asiento.y - _cadera.y + 0.06;
+      // Y TAMBIÉN EN Z. El que carga corre inclinado hacia adelante, así que
+      // sus hombros se adelantan medio palmo respecto a sus pies; con Roy
+      // clavado en el eje se quedaba montado en la nuca en vez de encima, y de
+      // frente sólo se le veía la cabeza asomar por detrás.
+      partes.arriba.position.z = _asiento.z - _cadera.z;
+    } else {
+      partes.arriba.position.y = partes.alturaMontado;
+    }
     partes.arriba.rotation.z = Math.sin(tiempo * 3.5) * 0.07;
     return;
   }

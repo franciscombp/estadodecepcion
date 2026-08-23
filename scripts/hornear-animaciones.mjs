@@ -64,6 +64,9 @@ const RECETA = [
   // hace: ir sentado y gritar—.
   ['golpe', '/scripts/animaciones/golpe.fbx', 30],
   ['montado', '/scripts/animaciones/montado.fbx', 15],
+  // Y el ciclo del que CARGA. No es el mismo que el de correr: va agachado,
+  // porque lleva a Roy sentado encima.
+  ['cargando', '/scripts/animaciones/cargando.fbx', 30],
 ];
 
 // El Chromium que traiga el entorno, si está donde suele. Sin esto, Playwright

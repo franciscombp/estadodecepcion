@@ -112,19 +112,33 @@ Baja la pieza en `.glb` desde el creador y dale una vuelta por Blender:
 4. De vuelta a Blender, y de ahí a `.glb`.
 5. `npm run modelos -- ruta/al/personaje.glb` antes de dejarlo en su sitio.
 
-> **Se intentó saltarse Blender y no salió.** La idea era cargar el `.fbx` de
-> Mixamo en el propio creador —Three sí trae `FBXLoader`— y pasarle el ciclo a
-> nuestro esqueleto con `SkeletonUtils.retargetClip`. Lo que funciona: el `.fbx`
-> se lee (119 huesos, el clip entero), los nombres se emparejan solos —22 de 24;
-> los dos que faltan son `head_end` y `headfront`, extras de Meshy que ninguna
-> animación toca— y se detecta que Mixamo viene en centímetros. Lo que NO
-> funciona: la pose resultante sale aplastada. Medido con la cabeza y el pie
-> izquierdo, en las cinco combinaciones de opciones de `retargetClip` y también
-> renombrando las pistas a pelo: la cabeza acaba a 0,40 m y el pie a 0,51 m
-> —**la cabeza por debajo del pie**— cuando en reposo la cabeza está a 1,31 m.
-> Los nombres coinciden pero los ejes de los huesos no, y arreglarlo es escribir
-> un retargeteador de verdad. No se dejó a medias en el repositorio: hasta que
-> funcione, el camino es Blender.
+### Y al revés: traer una animación de Mixamo sin subir nada
+
+**No hace falta subir el personaje.** Si lo único que se quiere es una
+animación, se baja de Mixamo puesta sobre SU muñeco —«without skin», que son
+cuatrocientos kilobytes de huesos y nada más— y se pasa a nuestro esqueleto
+aquí mismo:
+
+```bash
+cp lo-que-bajaste.fbx scripts/animaciones/comosellame.fbx
+# añadir la línea en la RECETA de scripts/hornear-animaciones.mjs
+npm run dev            # en otra terminal
+npm run animaciones
+```
+
+Eso reescribe `public/modelos/animaciones.glb`, que es lo que el juego carga:
+diez clips en 496 KB, sin malla ni textura, y un solo archivo para los seis
+personajes —comparten esqueleto y nombres de hueso—.
+
+> **`SkeletonUtils.retargetClip` no sirve para esto**, y se comprobó con un
+> `.fbx` de Mixamo de verdad: en las cinco combinaciones de sus opciones, y
+> también renombrando las pistas a pelo, la pose sale aplastada —la cabeza
+> acaba a 0,40 m y el pie a 0,51 m, o sea la cabeza por debajo del pie, cuando
+> en reposo la cabeza está a 1,31 m—. Los nombres coinciden pero los ejes de
+> los huesos no. `src/creador/mixamo.js` hace el retargeteo pasando por la
+> orientación EN EL MUNDO y corrigiendo por la diferencia entre las dos poses
+> de reposo, que es lo que sí funciona; está explicado ahí y medido en el
+> §6.26 de `PRUEBA-DE-ESCRITORIO.md`.
 
 ---
 

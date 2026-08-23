@@ -1327,7 +1327,7 @@ function pasoDeReloj(g, tiempo) {
   return Math.max(0, Math.min(0.1, tiempo - antes));
 }
 
-export function animarCarreraGLB(modelo, dt, velocidad = 20) {
+export function animarCarreraGLB(modelo, dt, velocidad = 20, ciclo = 'correr') {
   const g = modelo.userData.glb;
   if (!g) return;
   const { huesos } = g;
@@ -1336,9 +1336,12 @@ export function animarCarreraGLB(modelo, dt, velocidad = 20) {
   // nota en todo lo que un ciclo escrito a mano no acierta: el peso que cae
   // sobre el pie de apoyo, el hombro que se adelanta con el brazo contrario,
   // la cabeza que llega tarde.
-  const conClip = g.acciones?.correr;
+  // QUÉ CICLO. Casi siempre el de correr, pero el de abajo del dúo lleva a Roy
+  // sentado encima y corre AGACHADO: es otro clip, y el mismo código.
+  const cual = g.acciones?.[ciclo] ? ciclo : 'correr';
+  const conClip = g.acciones?.[cual];
   if (conClip) {
-    pedirClips(g, { correr: 1 }, dt);
+    pedirClips(g, { [cual]: 1 }, dt);
     const clip = conClip.getClip();
     // LA CADENCIA. El clip trae un ciclo entero —dos pasos— en 0,73 s, o sea
     // 2,74 pasos por segundo tal cual. Se estira para ir de 2,9 a 4,3 pasos

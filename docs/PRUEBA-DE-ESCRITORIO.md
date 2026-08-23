@@ -1603,8 +1603,9 @@ carrera:
 | arrancar | 1,63 s | 50 | 30 | el arranque, de pie a corriendo |
 | golpe | 3,10 s | 94 | 30 | el choque **y** la derrota |
 | montado | 5,80 s | 88 | 15 | Roy sentado sobre el mando |
+| cargando | 0,47 s | 15 | 30 | el mando corriendo agachado |
 
-**477 KB los nueve**, y un solo archivo para los seis personajes: comparten
+**496 KB los diez**, y un solo archivo para los seis personajes: comparten
 esqueleto y nombres de hueso, y las pistas van nombradas por hueso, así que el
 mismo clip se ata a cualquiera. Se rehornea con `npm run animaciones`.
 
@@ -1747,6 +1748,22 @@ pone el golpe en el fotograma del impacto y no medio segundo después.
 Y como el clip ya lo pone en el suelo, el jugador **no gira el modelo** el
 cuarto de vuelta en X que hacía con la pose escrita a mano —eso lo tumbaría dos
 veces: de espaldas al asfalto y de cara a él a la vez—.
+
+**El que carga corre agachado**, con su propio ciclo: lleva a alguien sentado
+en los hombros y no puede ir erguido. Y como va agachado, sus hombros bajan
+medio metro respecto a la pose de reposo — así que **Roy se sienta donde estén
+los hombros, no a una altura fija**. Con el asiento clavado en el 1,62 de
+antes, se quedaba flotando un palmo por encima de la coronilla del otro.
+
+Se le pregunta al hueso cada fotograma, en Y **y en Z** —el que carga corre
+inclinado hacia adelante, así que sus hombros se adelantan medio palmo respecto
+a sus pies, y con Roy clavado en el eje se quedaba montado en la nuca—. Y dónde
+le queda a Roy la cadera tampoco se calcula: se le pone el modelo a cero, se
+mira dónde cae el hueso y se sube lo que haga falta, porque en el clip de ir
+sentado las piernas van dobladas y la cadera no está a media estatura del
+origen. Medido corriendo: el que carga tiene los hombros a 1,18–1,27 y la
+cabeza a 1,32–1,42; Roy acaba con la cadera a 1,24–1,33 y la cabeza a
+1,54–1,72, o sea justo encima.
 
 **Y Roy va sentado de verdad.** El clip es un «sitting yell», que es
 literalmente lo que hace sobre los hombros del mando: ir sentado y vociferar.
