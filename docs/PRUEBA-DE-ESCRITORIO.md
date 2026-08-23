@@ -1654,6 +1654,66 @@ tiene que seguir corriendo.
 
 ---
 
+### 6.27 · Los relevos entre animaciones eran cortes — **resuelto**
+
+Con siete clips en marcha apareció lo que con uno no se veía: **pasar de un
+clip a otro poniendo uno a 1 y el otro a 0 en el mismo fotograma es un corte**.
+El cuerpo entero salta de una postura a otra sin pasar por el medio. Se veía en
+tres sitios —al entrar en la partida, al empezar a rodar, y cada vez que el
+entrevistado pasaba de contar un secreto a discutir—.
+
+Ahora cada clip tiene un peso OBJETIVO y el real lo persigue con un suavizado
+exponencial. Se midió el relevo más grande de todos —el del entrevistado, de
+manos juntas a manos abiertas— mirando cuánto se mueve su mano derecha entre
+dos fotogramas seguidos:
+
+| | mayor salto de la mano |
+|---|---|
+| sin fundido | de golpe, en un fotograma |
+| a 12 por segundo | 30,4 mm (1,8 m/s de mano: un gesto brusco) |
+| **a 8 por segundo** | **20,1 mm**, repartido en 0,3 s |
+
+Más lento que 8 y los dos clips conviven tanto que se ve al personaje hacer las
+dos cosas a medias.
+
+**Y en la partida**, con la cabeza como testigo y `dt` fijo de 1/60 —corriendo,
+la cabeza se mueve 10 mm por fotograma, que es la vara de medir—:
+
+| relevo | antes | ahora |
+|---|---|---|
+| entrar al salto | — | 18 mm |
+| salir del salto | 101 mm | **14 mm** |
+| entrar al rol | 92 mm | **55 mm** |
+| salir del rol | 34 mm | **4 mm** |
+
+Los 101 mm de salir del salto no eran el fundido: eran **dos actualizaciones
+del mezclador en el mismo fotograma**. Al volver de una pose, el jugador
+llamaba a `reposarGLB()` y acto seguido al ciclo de carrera, y cada uno movía el
+reloj. Con clips no hace falta reposar nada —el ciclo funde solo desde donde
+esté—, así que sólo se reposa a los personajes de cajas, que no tienen clip.
+
+Los 92 mm de entrar al rol eran la envolvente del jugador aplicada a pelo: sube
+al 43 % en el primer fotograma, a propósito, porque la caja de colisión se
+encoge de golpe. Ahora la imagen entra con su propio fundido encima y la caja
+sigue encogiéndose cuando quiere.
+
+Y el 55 que queda al entrar al rol no es un corte: es que **una zambullida
+empieza rápido**. Lo mismo con los 57–101 mm que se miden DENTRO del salto justo
+antes de aterrizar: un aterrizaje es una caída, y el mocap la tiene grabada.
+
+### 6.28 · La entrevista se hacía desde el otro lado de la vereda — **resuelto**
+
+El entrevistado estaba a 1,88 m del periodista. Con el clip del micrófono
+puesto, eso deja el puño a medio metro largo de la cara del otro: los dos
+parecen estar hablando cada uno con su pared, y el gesto de aguantar el micro
+—que es la mitad de lo que cuenta la portada— no se lee, porque un micrófono
+sólo se entiende si llega a alguien.
+
+A **1,15 m** el puño queda justo delante del entrevistado. Es la distancia a la
+que se hace una entrevista de calle: un brazo y pico.
+
+---
+
 ## 7 · Cómo se prueba cada pantalla sin jugar
 
 `/creador/pantallas/` abre cualquiera de las diez con datos de ejemplo, sobre

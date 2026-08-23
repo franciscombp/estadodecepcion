@@ -16,7 +16,7 @@ import {
   crearPersonaje, animarCarrera, animarSalto, aplicarPoseAgachado, pivotesDe, reposar,
 } from '../models/characters.js';
 import {
-  esGLB, animarCarreraGLB, animarSaltoGLB, aplicarPoseAgachadoGLB,
+  esGLB, usaClipsGLB, animarCarreraGLB, animarSaltoGLB, aplicarPoseAgachadoGLB,
   poseDerrotaGLB, reposarGLB,
 } from '../models/personajeGLB.js';
 import { crearCaja } from '../utils/collision.js';
@@ -362,17 +362,23 @@ export class Player {
       // el mezclador siguiera corriendo machacaría los huesos del ovillo.
       if (this.factorAgachado > 0.001) {
         this.poseManual = true;
-        aplicarPoseAgachadoGLB(this.modelo, this.factorAgachado, this.avanceRodada);
+        aplicarPoseAgachadoGLB(this.modelo, this.factorAgachado, this.avanceRodada, dt);
       } else if (this.estaEnElAire) {
         this.poseManual = true;
-        animarSaltoGLB(this.modelo, subida, this.avanceSalto);
+        animarSaltoGLB(this.modelo, subida, this.avanceSalto, dt);
       } else {
         // Se deshace la pose escrita a mano SOLO al volver de ella. Hacerlo
         // cada fotograma dejaba el cuerpo en cruz durante el instante que va
         // de una cosa a la otra, y ese instante se veía: es el fotograma que
         // el jugador pillaba de vez en cuando con el personaje en T.
         if (this.poseManual) {
-          reposarGLB(this.modelo);
+          // CON CLIPS NO SE REPOSA. El ciclo de carrera funde solo desde donde
+          // esté, así que meter un reposo por el medio sobra: era pedirle al
+          // mezclador dos actualizaciones en el mismo fotograma y daba un
+          // salto de 101 mm de cabeza justo al aterrizar. Sin clips —los
+          // personajes de cajas— sí hace falta, o el cuerpo se queda con la
+          // última pose escrita a mano.
+          if (!usaClipsGLB(this.modelo)) reposarGLB(this.modelo, dt);
           this.poseManual = false;
         }
         animarCarreraGLB(this.modelo, dt, velocidad);

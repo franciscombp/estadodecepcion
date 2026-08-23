@@ -1106,6 +1106,19 @@ export function esGLB(modelo) {
 }
 
 /**
+ * ¿Este personaje se mueve con los clips de fuera?
+ *
+ * Lo pregunta el jugador para NO llamar a `reposarGLB()` al volver de una
+ * pose: con clips, el ciclo de carrera ya funde solo desde donde estuviera, y
+ * meter un reposo por el medio era pedirle al mezclador dos actualizaciones en
+ * el mismo fotograma y un salto de 101 mm de cabeza al aterrizar.
+ */
+export function usaClipsGLB(modelo) {
+  const a = modelo?.userData?.glb?.acciones;
+  return !!a && Object.keys(a).length > 0;
+}
+
+/**
  * El ciclo de carrera del archivo, a la cadencia del juego.
  * El clip está grabado para una velocidad concreta; se estira o se encoge con
  * la velocidad de la corrida para que los pies no patinen sobre el asfalto.
@@ -1174,67 +1187,94 @@ const EJE_Y = new THREE.Vector3(0, 1, 0);   // la torsión del tronco
 // una pose escrita a mano puesta antes se pierde entera, y un clip sonando
 // debajo de una pose escrita a mano la pisa al fotograma siguiente.
 //
-// La regla es una sola: en cada instante hay UN clip a peso 1 y los demás a 0,
-// o ninguno y entonces manda lo escrito a mano. `mandaElClip()` es quien lo
-// decide, y devuelve la acción elegida o null.
-function mandaElClip(g, nombre, peso = 1, dt = 0) {
-  const acciones = g.acciones;
-  if (!acciones || !acciones[nombre]) return null;
-  // CON `dt` SE FUNDE, SIN `dt` SE CORTA. Al salir de la cinemática el
-  // personaje viene del clip de arranque y entra en el de carrera: sin fundido
-  // eso es un salto de pose en el primer fotograma de cada partida, y se ve.
-  // El salto y el rol no lo necesitan —empiezan con una silueta tan distinta
-  // que el corte no se lee— y además no reciben `dt`.
-  const paso = dt > 0 ? 1 - Math.exp(-14 * dt) : 1;
-  for (const [otro, accion] of Object.entries(acciones)) {
-    const objetivo = otro === nombre ? peso : 0;
-    const actual = accion.getEffectiveWeight();
-    accion.setEffectiveWeight(actual + (objetivo - actual) * paso);
-  }
-  // El ciclo de carrera del propio archivo —el paseo con el que vino— se
-  // apaga: lo sustituyen éstos.
-  if (g.correr) g.correr.setEffectiveWeight(0);
-  return acciones[nombre];
-}
+// LOS PESOS NO SE CAMBIAN DE GOLPE, y ésta es la diferencia entre que parezca
+// un personaje y que parezca un GIF. Pasar de un clip a otro poniendo uno a 1
+// y el otro a 0 en el mismo fotograma es un CORTE: el cuerpo entero salta de
+// una postura a otra sin pasar por el medio. Se veía en tres sitios —al
+// entrar en la partida, al empezar a rodar, y cada vez que el entrevistado
+// pasaba de contar un secreto a discutir— y era exactamente lo que se veía
+// «raro».
+//
+// Aquí cada clip tiene un peso OBJETIVO y el real lo persigue con un
+// suavizado exponencial.
+//
+// 8 POR SEGUNDO, o sea el 90 % del camino en 0,29 s. Se midió el relevo del
+// entrevistado —de contar un secreto a discutir, que es el cambio de postura
+// más grande de todos— mirando cuánto se mueve su mano derecha entre dos
+// fotogramas seguidos: sin fundido era un salto de golpe; a 12 por segundo el
+// primer fotograma daba un tirón de 30 mm (1,8 m/s de mano, que es velocidad
+// de gesto brusco); a 8 se reparte y ninguno pasa de 20. Más lento que eso y
+// los dos clips conviven tanto que se ve al personaje hacer las dos cosas a
+// medias.
+const FUNDIDO = 8;   // por segundo
+
+// Los clips que llevan su propio reloj —suenan y avanzan solos— frente a los
+// que van con la AGUJA PUESTA por el juego. El salto dura lo que dure el vuelo
+// y el rol lo que dure la agachada, así que a esos dos se les escribe `time` a
+// mano y se les deja `timeScale` a cero.
+const CON_AGUJA = new Set(['salto', 'rol']);
 
 /**
- * Varios clips a la vez, con la aguja puesta por reloj.
+ * Pide unos pesos y deja que el fundido haga el resto.
  *
- * Lo usan las poses de la portada y la cinemática, que no tienen `dt`: reciben
- * el tiempo acumulado de la escena y con eso basta —`time = tiempo % duración`
- * y el mezclador se limita a evaluar—. Además hace falta poder mezclar DOS:
- * la salida de la entrevista es un fundido del micrófono al arranque de
- * carrera, y con un solo clip a peso 1 eso sería un corte.
- *
- * @param {Object<string,number>} mezcla nombre del clip → peso
- * @returns {boolean} si había clips que tocar
+ * @param {Object<string,number>} objetivo nombre del clip → peso que se quiere
+ * @param {number} dt segundos desde el fotograma anterior; 0 = de golpe
+ * @returns {boolean} si hay algún clip pidiendo mandar
  */
-function tocarClips(g, mezcla, tiempo) {
+function pedirClips(g, objetivo, dt) {
   if (!g.acciones) return false;
+  const paso = dt > 0 ? 1 - Math.exp(-FUNDIDO * dt) : 1;
   let alguno = false;
   for (const [nombre, accion] of Object.entries(g.acciones)) {
-    const peso = mezcla[nombre] ?? 0;
-    accion.setEffectiveWeight(peso);
-    if (peso <= 0) continue;
-    const duracion = accion.getClip().duration;
-    accion.time = duracion > 0 ? (tiempo % duracion) : 0;
-    accion.timeScale = 0;
-    alguno = true;
+    const quiero = objetivo[nombre] ?? 0;
+    if (quiero > 0) alguno = true;
+    const tengo = accion.getEffectiveWeight();
+    // Se corta el hilo cuando ya no se distingue: dejar pesos de 0,004
+    // sonando cuesta evaluar la pista entera cada fotograma para nada.
+    accion.setEffectiveWeight(
+      Math.abs(quiero - tengo) < 0.004 ? quiero : tengo + (quiero - tengo) * paso,
+    );
   }
+  // El ciclo del propio archivo —el paseo con el que vino— no se usa nunca.
   if (g.correr) g.correr.setEffectiveWeight(0);
-  if (alguno) {
-    g.cuerpo.rotation.set(0, 0, 0);
-    g.cuerpo.position.set(0, 0, 0);
-    g.cuerpo.scale.setScalar(1);
-    g.mezclador.update(0);
-  }
   return alguno;
 }
 
-/** Suelta los huesos: ningún clip manda, y lo escrito a mano vuelve a valer. */
-function sueltaElClip(g) {
-  if (g.acciones) for (const a of Object.values(g.acciones)) a.setEffectiveWeight(0);
-  if (g.correr) g.correr.setEffectiveWeight(0);
+/** ¿Queda algún clip sonando de verdad? Mientras quede, hay que evaluarlo. */
+function algunClipSuena(g) {
+  if (!g.acciones) return false;
+  for (const a of Object.values(g.acciones)) if (a.getEffectiveWeight() > 0.004) return true;
+  return false;
+}
+
+/**
+ * Suelta los huesos: todos los clips a cero, con fundido si se le da `dt`.
+ *
+ * DEVUELVE si todavía queda algo sonando. Mientras quede, quien llame tiene
+ * que seguir dejando mandar al mezclador en vez de escribir la pose a mano:
+ * si no, el último fotograma del clip se queda congelado debajo y aparece de
+ * golpe en cuanto alguien vuelva a llamar al mezclador.
+ */
+function sueltaElClip(g, dt = 0) {
+  pedirClips(g, {}, dt);
+  return algunClipSuena(g);
+}
+
+/**
+ * El `dt` de las poses que no lo reciben.
+ *
+ * La cinemática y la portada pasan el TIEMPO ACUMULADO de la escena, no el
+ * salto entre fotogramas, porque sus poses siempre se calcularon a partir de
+ * un reloj. Para fundir hace falta el salto, así que se saca de la diferencia
+ * —y se recorta a 100 ms, que es lo que hay que hacer con cualquier `dt` que
+ * venga de una resta: la primera llamada y la vuelta de una pestaña en
+ * segundo plano dan saltos de segundos—.
+ */
+function pasoDeReloj(g, tiempo) {
+  const antes = g.relojPose;
+  g.relojPose = tiempo;
+  if (antes === undefined) return 0.016;
+  return Math.max(0, Math.min(0.1, tiempo - antes));
 }
 
 export function animarCarreraGLB(modelo, dt, velocidad = 20) {
@@ -1246,8 +1286,9 @@ export function animarCarreraGLB(modelo, dt, velocidad = 20) {
   // nota en todo lo que un ciclo escrito a mano no acierta: el peso que cae
   // sobre el pie de apoyo, el hombro que se adelanta con el brazo contrario,
   // la cabeza que llega tarde.
-  const conClip = mandaElClip(g, 'correr', 1, dt);
+  const conClip = g.acciones?.correr;
   if (conClip) {
+    pedirClips(g, { correr: 1 }, dt);
     const clip = conClip.getClip();
     // LA CADENCIA. El clip trae un ciclo entero —dos pasos— en 0,73 s, o sea
     // 2,74 pasos por segundo tal cual. Se estira para ir de 2,9 a 4,3 pasos
@@ -1376,7 +1417,7 @@ export function animarCarreraGLB(modelo, dt, velocidad = 20) {
  * fotograma siguiente— y se coloca el cuerpo a mano.
  * @param {number} subida +1 despegando, 0 en lo alto, −1 cayendo.
  */
-export function animarSaltoGLB(modelo, subida = 0, avance = -1) {
+export function animarSaltoGLB(modelo, subida = 0, avance = -1, dt = 0) {
   const g = modelo.userData.glb;
   if (!g) return;
   const { huesos } = g;
@@ -1390,19 +1431,21 @@ export function animarSaltoGLB(modelo, subida = 0, avance = -1) {
   // Así el aterrizaje del clip cae SIEMPRE en el fotograma en que el personaje
   // toca el suelo, corto o largo. Reproduciéndolo a su ritmo, un salto rápido
   // aterrizaba con el muñeco todavía boca abajo.
-  if (avance >= 0) {
-    const accion = mandaElClip(g, 'salto');
-    if (accion) {
-      accion.time = accion.getClip().duration * Math.max(0, Math.min(1, avance));
-      accion.timeScale = 0;
-      g.cuerpo.rotation.set(0, 0, 0);
-      g.cuerpo.position.set(0, 0, 0);
-      g.mezclador.update(0);
-      return;
-    }
+  if (avance >= 0 && g.acciones?.salto) {
+    const accion = g.acciones.salto;
+    pedirClips(g, { salto: 1 }, dt);
+    accion.time = accion.getClip().duration * Math.max(0, Math.min(1, avance));
+    accion.timeScale = 0;
+    g.cuerpo.rotation.set(0, 0, 0);
+    g.cuerpo.position.set(0, 0, 0);
+    g.mezclador.update(dt);
+    return;
   }
 
-  sueltaElClip(g);
+  // Si todavía queda algo de otro clip sonando, se le deja terminar de
+  // apagarse: escribir la pose a mano encima sería el corte que se quería
+  // evitar, sólo que en el otro sentido.
+  if (sueltaElClip(g, dt)) { g.mezclador.update(dt); return; }
   orientar(modelo);
   reposar(huesos);
 
@@ -1479,7 +1522,7 @@ export function animarSaltoGLB(modelo, subida = 0, avance = -1) {
  * @param {number} avance  0..1, por dónde va la vuelta. A 0 y a 1 el giro es
  *                         nulo, así que empieza y termina de pie sin costura.
  */
-export function aplicarPoseAgachadoGLB(modelo, factor, avance = 0) {
+export function aplicarPoseAgachadoGLB(modelo, factor, avance = 0, dt = 0) {
   const g = modelo.userData.glb;
   if (!g) return;
   const { huesos, cuerpo } = g;
@@ -1489,20 +1532,30 @@ export function aplicarPoseAgachadoGLB(modelo, factor, avance = 0) {
   cuerpo.scale.setScalar(1);
 
   const f = Math.min(1, Math.max(0, factor));
-  if (f <= 0.001) { sueltaElClip(g); return; }
+  if (f <= 0.001) {
+    if (sueltaElClip(g, dt)) g.mezclador.update(dt);
+    return;
+  }
 
   // EL ROL DE MIXAMO, SI ESTÁ. Mismo trato que el salto: la aguja se pone
   // donde diga `avance`, no se reproduce a su ritmo, porque la agachada del
   // juego dura 0,55 s y el clip 1,17 s. El peso va con `factor`, así que la
   // entrada y la salida se mezclan con lo que hubiera antes en vez de saltar
   // de una pose a otra en un fotograma.
-  const accion = mandaElClip(g, 'rol', f);
-  if (accion) {
+  if (g.acciones?.rol) {
+    const accion = g.acciones.rol;
+    // El peso es `factor` PERO FUNDIDO. La envolvente del jugador sube al 43 %
+    // en el primer fotograma —va deprisa a propósito, la caja de colisión se
+    // encoge de golpe— y aplicada tal cual eso era un tirón de 92 mm de cabeza
+    // en un fotograma, nueve veces lo que se mueve corriendo. Con el fundido
+    // encima, la imagen entra en dos o tres fotogramas y la caja sigue
+    // encogiéndose cuando quiere.
+    pedirClips(g, { rol: f }, dt);
     accion.time = accion.getClip().duration * Math.max(0, Math.min(1, avance));
     accion.timeScale = 0;
     cuerpo.rotation.set(0, 0, 0);
     cuerpo.position.set(0, 0, 0);
-    g.mezclador.update(0);
+    g.mezclador.update(dt);
     return;
   }
 
@@ -1610,7 +1663,12 @@ export function poseEntrevistaGLB(modelo, tiempo, intensidad = 1) {
   // dos clips. Ese medio es la fase en la que la cámara retrocede y aparecen
   // los perseguidores, y antes era la pose escrita a mano desvaneciéndose
   // hacia la cruz de reposo —el personaje se quedaba blando un segundo—.
-  if (tocarClips(g, { microfono: k, arrancar: 1 - k }, tiempo)) {
+  const paso = pasoDeReloj(g, tiempo);
+  if (pedirClips(g, { microfono: k, arrancar: 1 - k }, paso)) {
+    g.cuerpo.rotation.set(0, 0, 0);
+    g.cuerpo.position.set(0, 0, 0);
+    g.cuerpo.scale.setScalar(1);
+    g.mezclador.update(paso);
     return huesos.get('RightHand')?.nodo ?? null;
   }
 
@@ -1667,7 +1725,16 @@ export function poseMinistroGLB(modelo, tiempo = 0, presencia = 1) {
     // `presencia` va al PESO del clip: mientras se lo llevan, el gesto se
     // desvanece en vez de cortarse. Lo que encoge y aleja al personaje es
     // `_colocarMinistro()`, en la cinemática, y eso no se toca desde aquí.
-    tocarClips(g, enSecreto ? { secreto: k } : { discutir: k }, tiempo);
+    const paso = pasoDeReloj(g, tiempo);
+    // Y EL RELEVO SE FUNDE. Antes el cambio de un clip al otro era un corte
+    // seco a los seis segundos, siempre en el mismo sitio: el personaje pasaba
+    // de tener las manos juntas a tenerlas abiertas de un fotograma al
+    // siguiente. Ahora los dos suenan a la vez durante un cuarto de segundo.
+    pedirClips(g, enSecreto ? { secreto: k } : { discutir: k }, paso);
+    g.cuerpo.rotation.set(0, 0, 0);
+    g.cuerpo.position.set(0, 0, 0);
+    g.cuerpo.scale.setScalar(1);
+    g.mezclador.update(paso);
     return;
   }
 
@@ -1722,13 +1789,17 @@ export function poseMontadoGLB(modelo, tiempo = 0) {
 }
 
 /** Deja el cuerpo listo para volver a correr. */
-export function reposarGLB(modelo) {
+export function reposarGLB(modelo, dt = 0) {
   const g = modelo.userData.glb;
   if (!g) return;
-  // Primero se sueltan los clips: si alguno se quedara con peso, volvería a
-  // escribir los huesos en cuanto alguien llamara al mezclador y la pose de
-  // reposo duraría un fotograma.
-  sueltaElClip(g);
+  // SE SUELTAN LOS CLIPS, y con `dt` se sueltan FUNDIENDO. Mientras quede algo
+  // sonando no se escribe la pose de reposo: hacerlo sería devolver el corte
+  // que el fundido evita, sólo que a la cruz. Se deja que el mezclador termine
+  // de bajar el peso y el reposo llega solo.
+  if (sueltaElClip(g, dt)) {
+    g.mezclador.update(dt);
+    return;
+  }
   reposar(g.huesos);
   g.cuerpo.rotation.set(0, 0, 0);
   g.cuerpo.position.set(0, 0, 0);

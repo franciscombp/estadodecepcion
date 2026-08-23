@@ -51,12 +51,21 @@ const ABREVIADA = {
   caballito: 0.3,
 };
 
-// Dónde está el ministro. El periodista mira hacia -X (ver _poseEntrevista),
-// así que su interlocutor va ahí; y como la cámara está en +X, los dos salen
-// en cuadro uno detrás de otro en vez de tapándose.
-// Se acercó al meter la cámara dentro del pasillo: con el encuadre más
-// frontal, los -2.15 de antes lo dejaban medio cuerpo fuera por la izquierda.
-const SITIO_MINISTRO = { x: -1.7, y: 0, z: 0.8 };
+// Dónde está el entrevistado. El periodista mira hacia -X (ver
+// _poseEntrevista), así que su interlocutor va ahí; y como la cámara está en
+// +X, los dos salen en cuadro uno detrás de otro en vez de tapándose.
+//
+// SE ACERCÓ OTRA VEZ, y esta vez por el micrófono. A 1,88 m —donde estaba— el
+// periodista extiende el brazo y el micro se queda a medio metro largo de la
+// cara del otro: los dos parecen estar hablando cada uno con su pared. Una
+// entrevista de calle se hace a un brazo y pico, y el gesto de aguantar el
+// micro sólo se lee si el micro llega a alguien. A 1,15 m el puño queda
+// justo delante del entrevistado.
+//
+// Antes de esto ya se había acercado una vez, al meter la cámara dentro del
+// pasillo: con el encuadre más frontal, los −2,15 originales lo dejaban medio
+// cuerpo fuera por la izquierda.
+const SITIO_MINISTRO = { x: -1.05, y: 0, z: 0.48 };
 
 // Dónde se plantan los perseguidores DURANTE la cinemática.
 //
