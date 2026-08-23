@@ -8,12 +8,14 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "modelos": "python3 scripts/adelgazar-personajes.py"
+    "modelos": "python3 scripts/adelgazar-personajes.py",
+    "animaciones": "node scripts/hornear-animaciones.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"
   },
   "devDependencies": {
+    "playwright": "^1.62.1",
     "vite": "^7.1.5",
     "vite-plugin-pwa": "^1.0.3"
   }

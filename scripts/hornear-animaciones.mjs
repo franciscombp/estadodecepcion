@@ -1,0 +1,105 @@
+#!/usr/bin/env node
+// ============================================================================
+// HORNEAR ANIMACIONES — de los .fbx de Mixamo a un .glb que carga el juego
+// ============================================================================
+// Lee los `.fbx` de `scripts/animaciones/`, les pasa el ciclo a nuestro
+// esqueleto (ver `src/creador/mixamo.js`) y escribe
+// `public/modelos/animaciones.glb`: los tres clips y NADA MÁS —ni malla, ni
+// textura, ni material—, 93 KB para las tres animaciones.
+//
+// UN SOLO ARCHIVO PARA LOS SEIS PERSONAJES. Comparten esqueleto y nombres de
+// hueso, y las pistas van nombradas por hueso (`Hips.quaternion`), así que el
+// mismo clip se ata a cualquiera de ellos. Hornear uno por personaje sería
+// multiplicar por seis el mismo cuaternión.
+//
+// SE EJECUTA A MANO, con el servidor de desarrollo levantado:
+//
+//     npm run dev              (en otra terminal)
+//     npm run animaciones
+//
+// POR QUÉ PASA POR UN NAVEGADOR. `FBXLoader` y `GLTFExporter` son módulos de
+// los ejemplos de Three y dan por hecho que hay DOM: el primero para
+// descodificar, el segundo para volcar texturas a un lienzo. Montar eso en
+// Node es pelearse con dos docenas de polyfills; abrir Chromium y pedirle que
+// lo haga es una línea. Y de paso se hornea con EXACTAMENTE el mismo código
+// que corre en el juego, que es la regla de esta casa.
+// ============================================================================
+
+import { chromium } from 'playwright';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const AQUI = path.dirname(fileURLToPath(import.meta.url));
+const SALIDA = path.join(AQUI, '..', 'public', 'modelos', 'animaciones.glb');
+const SERVIDOR = process.env.SERVIDOR ?? 'http://localhost:5173';
+
+// Qué clip sale de qué archivo. El nombre es con el que el juego lo pide.
+const RECETA = [
+  ['correr', '/scripts/animaciones/correr.fbx'],
+  ['salto', '/scripts/animaciones/salto.fbx'],
+  ['rol', '/scripts/animaciones/rol.fbx'],
+];
+
+// El Chromium que traiga el entorno, si está donde suele. Sin esto, Playwright
+// busca el suyo propio y falla en cualquier máquina donde lo instalara otra
+// versión —que es todas las que no acaban de correr `playwright install`—.
+const DE_LA_CASA = '/opt/pw-browsers/chromium';
+const navegador = await chromium.launch({
+  executablePath: process.env.CHROMIUM
+    ?? (fs.existsSync(DE_LA_CASA) ? DE_LA_CASA : undefined),
+  args: ['--no-sandbox'],
+});
+const pagina = await navegador.newPage({ viewport: { width: 900, height: 600 } });
+pagina.on('pageerror', (e) => console.error('[navegador]', e.message));
+
+await pagina.goto(`${SERVIDOR}/?debug=1`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+await pagina.waitForFunction(() => !!window.__juego, { timeout: 120000 });
+
+const salida = await pagina.evaluate(async (receta) => {
+  const T = await import('/node_modules/.vite/deps/three.js');
+  const { GLTFExporter } = await import('/node_modules/three/examples/jsm/exporters/GLTFExporter.js');
+  const P = await import('/src/models/personajeGLB.js');
+  const M = await import('/src/creador/mixamo.js');
+  await P.cargarPersonajesGLB('/');
+
+  const clips = [];
+  const informe = [];
+  for (const [nombre, url] of receta) {
+    const { escena, clips: deFuera } = M.leerFBX(await (await fetch(url)).arrayBuffer());
+    if (!deFuera.length) throw new Error(`${url} no trae ninguna animación`);
+    const modelo = P.crearPersonajeGLB('tostadologo');
+    P.reposarGLB(modelo);
+    const r = M.pasarAlPersonaje(modelo, escena, deFuera[0], { nombre });
+    clips.push(r.clip);
+    informe.push(`  ${nombre.padEnd(8)} ${r.clip.duration.toFixed(2)} s · ${r.cuadros} cuadros`
+      + ` · ${r.emparejados.length} huesos · escala ${r.escala.toFixed(3)}`
+      + ` · posado ${r.desnivel >= 0 ? '−' : '+'}${Math.abs(r.desnivel).toFixed(3)} m`
+      + (r.sinPareja.length ? ` · sin pareja: ${r.sinPareja.join(', ')}` : ''));
+  }
+
+  // EL PORTADOR: el mismo esqueleto, sin malla. Se le arrancan los huesos al
+  // personaje y se cuelgan de un grupo pelado; lo que se exporta son nodos y
+  // pistas, y nada que pese.
+  const modelo = P.crearPersonajeGLB('tostadologo');
+  P.reposarGLB(modelo);
+  const raiz = new T.Group();
+  raiz.name = 'animaciones';
+  const raices = [];
+  modelo.traverse((o) => { if (o.isBone && !o.parent?.isBone) raices.push(o); });
+  for (const h of raices) raiz.add(h);
+
+  const bytes = await new Promise((ok, mal) => {
+    new GLTFExporter().parse(raiz, ok, mal,
+      { binary: true, onlyVisible: false, animations: clips });
+  });
+  const u8 = new Uint8Array(bytes);
+  let texto = '';
+  for (let i = 0; i < u8.length; i += 8192) texto += String.fromCharCode(...u8.subarray(i, i + 8192));
+  return { b64: btoa(texto), informe: informe.join('\n') };
+}, RECETA);
+
+console.log(salida.informe);
+fs.writeFileSync(SALIDA, Buffer.from(salida.b64, 'base64'));
+console.log(`\n${path.relative(process.cwd(), SALIDA)}: ${(fs.statSync(SALIDA).size / 1024).toFixed(0)} KB`);
+await navegador.close();
