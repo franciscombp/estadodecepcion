@@ -1416,6 +1416,80 @@ Dos trampas de esa medición, las dos costaron una tarde:
 
 ---
 
+### 6.24 · Corría patinando, y las proporciones contra la referencia — **resuelto / medido**
+
+**EL CLIP DEL ARCHIVO SE LLAMA `walking_man` Y ES LO QUE DICE.** Medido hueso a
+hueso, muestreando el ciclo en sesenta posiciones: zancada 0,68 m, alza del pie
+0,145 m, rebote de la cabeza 0,070 m, ciclo 1,07 s. Eso son 1,37 m de suelo por
+ciclo, y a la escala que se usaba —1,055 a 20 m/s— el personaje «andaba» a 1,35
+m/s mientras el mundo pasaba a 20: **patinaba 14,8 veces**. Que pareciera que
+resbala en vez de correr no era una impresión, era la medida.
+
+No se arregla igualando: para no patinar nada haría falta el clip a 15,6×, o sea
+cuarenta y cinco pasos por segundo, que no es correr sino un abanico. Y bajar la
+velocidad del mundo tampoco, porque la velocidad ES el juego.
+
+**Se intentó exagerar el clip y no vale.** Se extrapolaba cada hueso alejándolo
+de su reposo con un `slerp` de t mayor que uno —la fórmula extrapola, no está
+acotada—. La zancada subía de 0,68 a 1,16 m, que era lo que se buscaba, pero:
+
+- el pie se alzaba **0,88 m**, seis veces lo del clip y no las dos que se
+  pedían, porque la extrapolación se MULTIPLICA por la cadena de huesos y
+  muslo, rodilla y tobillo se componen;
+- y la pierna salía **estirada en la recogida**, con las dos piernas abiertas en
+  un spagat de vallista, porque un paseo casi no dobla la rodilla y extrapolar
+  «casi nada» sigue siendo casi nada.
+
+**Así que se escribe a mano.** Es el mismo ciclo que ya tenían los personajes de
+cajas en `characters.js` —la rodilla dobla en la RECOGIDA y no en el apoyo, los
+codos van doblados cerca de 90°, tronco y cadera giran en sentidos opuestos, el
+rebote va al doble de la zancada— pasado a huesos y subido de tono, porque lo
+que hace falta es que se lea a ocho metros, de espaldas y con el mundo pasando a
+treinta por hora.
+
+| | antes | ahora |
+|---|---|---|
+| zancada | 0,68 m | **1,08 m** |
+| alza del pie | 0,145 m | **0,56 m** |
+| cadencia | 0,9 pasos/s | **2,9 → 4,3** según la velocidad |
+| patinaje | 14,8× | **4,7 → 6,9×** |
+| cabeza por delante de la cadera | −0,03 m | **−0,13 m** |
+
+Dos cosas costaron una foto cada una:
+
+- **El signo.** `doblar` positivo echa el hueso hacia ATRÁS. Con el signo al
+  revés el personaje corría echado para atrás, como quien frena.
+- **Los tres `Spine` están numerados al revés de lo que parece.** `Spine02`
+  cuelga de la cadera, `Spine01` va encima y `Spine` es el de arriba, del que
+  salen cuello y hombros. Inclinando `Spine` sólo se echa hacia adelante el
+  pecho —medido: la cabeza se movía 4,8 cm— y el personaje sale jorobado.
+  Desde `Spine02` se inclina el tronco entero: 12,8 cm.
+
+#### Y las proporciones contra la referencia
+
+Se midió sobre una captura del original (1179×2556) con una rejilla encima, y
+contra el juego corriendo en 393×852:
+
+| | referencia | el juego |
+|---|---|---|
+| el personaje ocupa | 0,30–0,33 del alto | **0,318** |
+| el obstáculo de esquivar mide | ~2,7 m | **2,6 m** |
+
+O sea que **la escala no es el problema**: el personaje y los obstáculos están
+donde tienen que estar. Lo que la referencia tiene y el juego no es DENSIDAD y
+masa en el plano medio. En cualquier captura del original hay un tranvía entero
+pegado al carril de al lado, comiéndose un tercio del cuadro, y edificios
+apretados contra la vía sin acera de por medio. En el juego la calzada mide 8,8
+m y se ve abierta y vacía: los buses están en la capa elevada, más lejos, y las
+tiendas quedan detrás de una acera ancha.
+
+Eso es lo que queda abierto, y es una decisión de nivel —cuánto se cierra la
+calle— más que de escala. No se ha tocado nada: cambiar el ancho de la calzada o
+la altura de los obstáculos mueve el salto, el agachado y el cambio de carril, y
+eso se decide jugando, no midiendo.
+
+---
+
 ## 7 · Cómo se prueba cada pantalla sin jugar
 
 `/creador/pantallas/` abre cualquiera de las diez con datos de ejemplo, sobre
