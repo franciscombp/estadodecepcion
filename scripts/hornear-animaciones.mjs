@@ -117,19 +117,18 @@ const salida = await pagina.evaluate(async (receta) => {
   modelo.traverse((o) => { if (o.isBone && !o.parent?.isBone) raices.push(o); });
   for (const h of raices) raiz.add(h);
 
-  // CON QUÉ CADERA SE HORNEÓ, apuntado dentro del propio archivo.
+  // NO HACE FALTA APUNTAR NADA MÁS EN EL ARCHIVO.
   //
-  // La pista de posición de la cadera va en unidades del padre del hueso y es
-  // ABSOLUTA: dice «la cadera está a 87,8», no «la cadera baja 12». Y 87,8 es
-  // la cadera DEL TOSTADÓLOGO. Los otros la tienen entre 71,8 (Roy) y 95,9 (el
-  // mando), así que un clip agachado horneado con uno deja al otro con la
-  // cadera treinta centímetros por debajo de donde le corresponde y las
-  // piernas metidas dentro del torso. Se apunta aquí la referencia y cada
-  // personaje reescala la pista a la suya al cargarla.
-  const cadera = modelo.userData.glb.huesos.get('Hips').nodo;
-  cadera.userData.reposoCadera = {
-    x: cadera.position.x, y: cadera.position.y, z: cadera.position.z,
-  };
+  // Aquí se escribía la posición de reposo de la cadera del tostadólogo, para
+  // que cada personaje reescalara a la suya la pista de posición —que es
+  // ABSOLUTA: dice «la cadera está a 87,8», no «la cadera baja 12»—. Eso
+  // resolvía media cosa y ya no se usa: el juego RETARGETEA los clips a cada
+  // esqueleto al cargar (ver `src/models/retarget.js`), porque los nueve
+  // personajes tampoco comparten la pose de reposo —hay cuatro con la cadera y
+  // los fémures a más de ciento veinte grados del tostadólogo— y con las
+  // rotaciones compartidas corrían hechos un ovillo. El retargeteo rehace las
+  // dos cosas, rotación y posición, y le basta con los huesos que este archivo
+  // ya exporta.
 
   const bytes = await new Promise((ok, mal) => {
     new GLTFExporter().parse(raiz, ok, mal,

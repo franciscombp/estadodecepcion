@@ -72,6 +72,7 @@ import { caja as cajaBiselada } from '../utils/geometria.js';
 import { colgar, menear, descolgar } from '../utils/meneo.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as clonarConEsqueleto } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { pasarAlPersonaje, MISMO } from './retarget.js';
 
 // ---------------------------------------------------------------------------
 // PALETAS
@@ -811,59 +812,134 @@ async function cargarUno(id, base) {
  */
 const clipsDeFuera = new Map();
 
-/** Dónde tenía la cadera el personaje con el que se hornearon los clips. */
-let caderaDeReferencia = null;
+/** El esqueleto del tostadólogo, tal como salió del horneado. */
+let esqueletoDeReferencia = null;
 
 async function cargarAnimaciones(base) {
   const r = await fetch(`${base}modelos/animaciones.glb`);
   if (!r.ok) throw new Error(`No está animaciones.glb (${r.status})`);
   const gltf = await new GLTFLoader().parseAsync(await r.arrayBuffer(), '');
   for (const c of gltf.animations) clipsDeFuera.set(c.name, c);
-  gltf.scene.traverse((o) => {
-    if (o.userData?.reposoCadera) caderaDeReferencia = o.userData.reposoCadera;
-  });
+  // El archivo trae los huesos del tostadólogo, sin malla: son los nodos a los
+  // que apuntan las pistas. Se guardan porque hacen falta para retargetear a
+  // los demás, no sólo para leer la cadera de referencia.
+  esqueletoDeReferencia = gltf.scene;
+  esqueletoDeReferencia.updateMatrixWorld(true);
 }
 
 /**
- * Los clips, con la cadera traducida a ESTE personaje.
+ * Los clips ya traducidos de cada personaje, por id.
  *
- * La pista de posición de la cadera es ABSOLUTA —dice «la cadera está a 87,8»,
- * no «la cadera baja 12»— y ese 87,8 es el del tostadólogo, que es con quien se
- * hornearon. Los demás la tienen entre 71,8 (Roy) y 95,9 (el mando): con la
- * pista tal cual, un clip agachado deja al mando con la cadera treinta
- * centímetros por debajo de donde le corresponde, y como las rotaciones de las
- * piernas sí son las del clip, las piernas se le meten dentro del torso. Se vio
- * en el mando cargando a Roy: un tronco con dos muñones.
- *
- * Se traduce: el DESPLAZAMIENTO respecto al reposo se escala por la razón de
- * las dos caderas y se le suma al reposo de éste. Sólo se rehace la pista de la
- * cadera; las de rotación se comparten entre todos los personajes, que es lo
- * que permite que un archivo de 496 KB sirva para nueve.
+ * Traducir los diez clips cuesta unos milisegundos y se hace una vez por
+ * personaje, no una vez por instancia: `crearPersonajeGLB` se llama cada vez
+ * que se cambia de protagonista en Ajustes, se previsualiza uno o arranca una
+ * partida, y hacerlo en cada llamada sería un tirón en mitad del menú.
  */
-function clipsParaEste(cadera) {
-  const ref = caderaDeReferencia;
-  if (!ref || !cadera) return clipsDeFuera;
+const clipsTraducidos = new Map();
 
-  const razon = ref.y !== 0 ? cadera.position.y / ref.y : 1;
-  // Si es el mismo personaje con el que se horneó, no hay nada que traducir.
-  if (Math.abs(razon - 1) < 0.002) return clipsDeFuera;
+/**
+ * Los clips, RETARGETEADOS a este personaje.
+ *
+ * Los diez clips están horneados sobre el esqueleto del tostadólogo, y durante
+ * un tiempo se creyó que bastaba con traducirles la cadera: la pista de
+ * posición es ABSOLUTA —dice «la cadera está a 87,8», no «la cadera baja 12»—
+ * y ese 87,8 es el suyo, mientras los demás la tienen entre 71,8 (Roy) y 95,9
+ * (el mando). Eso era verdad y hacía falta, pero era la mitad del problema.
+ *
+ * LA OTRA MITAD: LOS NUEVE NO TIENEN LA MISMA POSE DE REPOSO. Se midió hueso a
+ * hueso el ángulo entre el cuaternión de reposo de cada uno y el del
+ * tostadólogo, y salió esto:
+ *
+ *     avecilla        cadera 12,2°   fémur 14,1°
+ *     genérico        cadera  8,7°   fémur  8,1°
+ *     mando / dúo     cadera 125,3°  fémur 126,2°
+ *     Roy             cadera 121,5°  fémur 123,0°
+ *     antidisturbias  cadera 134,5°  fémur 134,1°
+ *
+ * Una rotación local no significa nada por sí sola: significa «gira esto
+ * respecto a como estás en reposo». Con el reposo a ciento treinta grados de
+ * distancia, aplicarle las rotaciones del tostadólogo a esos cuatro es copiar
+ * «gira 30° a la derecha» entre dos coches que no apuntan al mismo lado. En
+ * pantalla: el antidisturbias pasaba de 1,70 m de estatura a 1,21 corriendo,
+ * con la cabeza treinta centímetros por debajo de su reposo y los pies a
+ * diecisiete centímetros del asfalto. Un ovillo flotando.
+ *
+ * Es exactamente el mismo problema que traer un clip de Mixamo, así que se usa
+ * exactamente la misma solución: pasar por la orientación de MUNDO corrigiendo
+ * por la diferencia de reposos (ver `src/models/retarget.js`). El esqueleto de
+ * referencia viene dentro de `animaciones.glb` —son los nodos a los que
+ * apuntan las pistas— así que no hay nada que descargar de más.
+ *
+ * Y ESTO NO SE HACE SI NO HACE FALTA. Si el reposo coincide con el de
+ * referencia —el tostadólogo, Buencan y Monki comparten esqueleto exacto— se
+ * devuelven los clips tal cual: retargetear un esqueleto a sí mismo es tirar
+ * milisegundos y arriesgarse a perder precisión por el camino.
+ */
+const LIMITE_MISMO_REPOSO = 1.0 * Math.PI / 180;   // un grado
+
+function clipsParaEste(id, cuerpo, huesos) {
+  if (clipsTraducidos.has(id)) return clipsTraducidos.get(id);
+
+  const salida = retargetear(cuerpo, huesos) ?? clipsDeFuera;
+  clipsTraducidos.set(id, salida);
+  return salida;
+}
+
+function retargetear(cuerpo, huesos) {
+  if (!esqueletoDeReferencia || !clipsDeFuera.size || !huesos) return null;
+
+  // ¿Hace falta? Se compara el reposo hueso a hueso con el de referencia.
+  //
+  // Se recorren TODOS los nodos, no sólo los `isBone`: el archivo de
+  // animaciones se exporta sin malla con piel, así que sus huesos vuelven del
+  // cargador como `Object3D` normales y buscando `isBone` no aparece ninguno.
+  const refs = new Map();
+  esqueletoDeReferencia.traverse((o) => { refs.set(o.name, o); });
+  let mayor = 0;
+  for (const [nombre, ficha] of huesos) {
+    const r = refs.get(nombre);
+    if (r) mayor = Math.max(mayor, ficha.nodo.quaternion.angleTo(r.quaternion));
+  }
+  if (mayor < LIMITE_MISMO_REPOSO) return null;
 
   const traducidos = new Map();
   for (const [nombre, clip] of clipsDeFuera) {
-    const pistas = clip.tracks.map((pista) => {
-      if (!pista.name.endsWith('.position')) return pista;
-      const v = pista.values;
-      const nuevos = new Float32Array(v.length);
-      for (let i = 0; i < v.length; i += 3) {
-        nuevos[i + 0] = cadera.position.x + (v[i + 0] - ref.x) * razon;
-        nuevos[i + 1] = cadera.position.y + (v[i + 1] - ref.y) * razon;
-        nuevos[i + 2] = cadera.position.z + (v[i + 2] - ref.z) * razon;
-      }
-      return new THREE.VectorKeyframeTrack(pista.name, pista.times, nuevos);
-    });
-    traducidos.set(nombre, new THREE.AnimationClip(nombre, clip.duration, pistas));
+    // A LA MISMA CADENCIA CON LA QUE SE HORNEÓ. El retargeteo vuelve a
+    // muestrear el clip, y muestrear a 30 un clip guardado a 15 es inventarse
+    // fotogramas; al revés, perderlos.
+    const t = clip.tracks.find((k) => k.times.length > 2) ?? clip.tracks[0];
+    const fps = clip.duration > 0
+      ? Math.max(2, Math.round((t.times.length - 1) / clip.duration)) : 30;
+    try {
+      const r = pasarAlPersonaje(cuerpo, esqueletoDeReferencia, clip, {
+        nombre, fps, columna: MISMO,
+      });
+      traducidos.set(nombre, r.clip);
+    } catch (e) {
+      console.warn(`[Personajes] No se pudo retargetear «${nombre}».`, e);
+      traducidos.set(nombre, clip);
+    }
   }
   return traducidos;
+}
+
+/**
+ * Se retargetean los diez clips de los nueve personajes AHORA, en la pantalla
+ * de carga, y no la primera vez que aparezca cada uno.
+ *
+ * Medido: la primera creación de un personaje que necesita retargeteo cuesta
+ * 55 ms y las siguientes 0 —los clips quedan en `clipsTraducidos`—. Cincuenta
+ * y cinco milisegundos son tres fotogramas y medio, y caían justo donde peor:
+ * al entrar el antidisturbias en el cerco, al crear al mando en la cinemática,
+ * al cambiar de protagonista en Ajustes. Aquí son 330 ms de una pantalla que
+ * ya está esperando a que bajen 1,8 MB de modelos.
+ *
+ * Los personajes de calentamiento se tiran; lo que queda es el mapa de clips.
+ */
+function calentarClips() {
+  for (const id of Object.keys(REDACCION)) {
+    try { crearPersonajeGLB(id); } catch { /* el que falle se queda sin calentar */ }
+  }
 }
 
 export function cargarPersonajesGLB(base = '/') {
@@ -881,7 +957,7 @@ export function cargarPersonajesGLB(base = '/') {
         return false;
       })),
     ],
-  );
+  ).then((r) => { calentarClips(); return r; });
   return promesaCarga;
 }
 
@@ -969,7 +1045,7 @@ export function crearPersonajeGLB(id) {
   // acción la primera vez que hace falta cuesta un enganche de bindings a
   // mitad de partida, y eso es un tirón justo en el fotograma del salto.
   const acciones = {};
-  for (const [nombre, clip] of clipsParaEste(esqueleto.huesos?.get('Hips')?.nodo)) {
+  for (const [nombre, clip] of clipsParaEste(id, cuerpo, esqueleto.huesos)) {
     const a = mezclador.clipAction(clip);
     a.play();
     a.setEffectiveWeight(0);
