@@ -1490,6 +1490,62 @@ eso se decide jugando, no midiendo.
 
 ---
 
+### 6.25 · La carrera era lineal, y el limbo no se leía — **resuelto**
+
+Dos cosas, las dos por lo mismo: de espaldas y a ocho metros sólo se lee el
+CONTORNO, y las dos poses estaban dentro del contorno del cuerpo.
+
+**LA ZANCADA IBA EN UN SOLO PLANO.** Vista desde atrás —que es el 95 % de la
+partida— las dos piernas se tapan la una a la otra y lo que queda es un bulto
+que sube y baja. Se le añadieron dos cosas que no tenía:
+
+- **Apertura lateral.** La cadera abre hasta 0,36 rad hacia fuera al recoger y
+  se cierra al plantar. Cada paso saca una pierna del contorno del cuerpo, que
+  es lo que hace que se cuenten los pasos sin verles los pies.
+- **Fase de vuelo de verdad.** El rebote de la cabeza pasa de 0,07 m (el clip
+  original) a **0,148–0,205 m** según la velocidad, y la curva no es un seno
+  sino un seno elevado a 0,62: deja al muñeco poco tiempo abajo y mucho arriba.
+  Un seno pelado pasa medio ciclo a media altura y se lee como flotar; así se
+  lee como despegar y caer. Más el bandazo lateral del tronco al ritmo de la
+  zancada —no del rebote—, que es el cuerpo cayendo sobre el pie que apoya.
+
+| | el clip | primera versión | ahora |
+|---|---|---|---|
+| zancada | 0,68 m | 1,08 m | **1,12 m** |
+| alza del pie | 0,145 m | 0,56 m | **0,68–0,73 m** |
+| rebote de la cabeza | 0,070 m | 0,05–0,08 m | **0,148–0,205 m** |
+
+**Y EL LIMBO ERA UN LIMBO.** El personaje se echaba hacia atrás doblando la
+cintura y pasaba por debajo del pórtico deslizándose. Funcionaba y no se leía:
+de espaldas, un cuerpo echado atrás y uno de pie tienen el mismo contorno, y lo
+único que decía «me agaché» era que la cabeza bajaba unos centímetros. En el
+género no se hace eso: se RUEDA, y una voltereta se lee desde cualquier ángulo
+porque el cuerpo entero da una vuelta.
+
+Ahora es un rol hacia adelante, y son dos cosas a la vez:
+
+- **El ovillo.** Rodillas al pecho, talones al culo, brazos abrazando y barbilla
+  dentro. Sin esto la vuelta es la de un palo.
+- **La vuelta, con el pivote donde toca.** Un cuerpo gira alrededor del centro
+  del ovillo, no de los pies, pero el origen de esta malla ESTÁ en los pies: si
+  se rota el cuerpo y ya está, el muñeco barre el suelo con la cabeza como una
+  guadaña. Se compensa desplazando por `C − R·C`, la diferencia entre dónde
+  acaba el centro y dónde tenía que quedarse.
+
+Dos números que salieron de mirar la tira de fotogramas, no de elegirlos:
+
+- **El centro del ovillo va a 0,31 de la estatura.** El extremo más lejano —el
+  ala del sombrero— queda a unos 50 cm del centro, así que con el centro más
+  bajo la cabeza pasa POR DEBAJO del asfalto en el punto bajo de la vuelta. A
+  0,24 el sombrero desaparecía dentro de la calle durante dos fotogramas.
+- **La vuelta necesita un reloj APARTE de `factorAgachado`.** Ése sube y vuelve
+  a bajar —es una envolvente— así que a mitad de la agachada valdría lo mismo
+  subiendo que bajando y el personaje rodaría hacia adelante y luego hacia
+  atrás. `avanceRodada` va de 0 a 1 y sigue corriendo durante el desvanecido de
+  la pose, para que la voltereta TERMINE en vez de cortarse a media vuelta.
+
+---
+
 ## 7 · Cómo se prueba cada pantalla sin jugar
 
 `/creador/pantallas/` abre cualquiera de las diez con datos de ejemplo, sobre

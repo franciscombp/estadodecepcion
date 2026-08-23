@@ -74,6 +74,11 @@ export class Player {
     this.estaAgachado = false;
     this.temporizadorAgachado = 0;
     this.factorAgachado = 0; // 0..1, para suavizar la pose visual
+    // POR DÓNDE VA EL ROL, 0..1. Hace falta un reloj APARTE de `factorAgachado`
+    // porque ése sube y vuelve a bajar —es una envolvente— y una vuelta no se
+    // puede sacar de ahí: a mitad de la agachada valdría lo mismo subiendo que
+    // bajando, y el personaje rodaría hacia adelante y luego hacia atrás.
+    this.avanceRodada = 0;
 
     // ---- Buffer de salto --------------------------------------------------
     // Si pulsas saltar poco antes de aterrizar, el salto se guarda y se ejecuta
@@ -284,6 +289,15 @@ export class Player {
       this.factorAgachado = objetivoAgachado;
     }
 
+    // La vuelta avanza mientras haya algo de pose, y se pone a cero al salir.
+    // Sigue corriendo durante el desvanecido de la pose a propósito: así la
+    // voltereta TERMINA —vuelve a 0 rad— en vez de cortarse a media vuelta.
+    if (this.factorAgachado > 0.001) {
+      this.avanceRodada = Math.min(1, this.avanceRodada + dt / AGACHARSE.DURACION);
+    } else {
+      this.avanceRodada = 0;
+    }
+
     // ---- Invulnerabilidad -------------------------------------------------
     if (this.invulnerabilidad > 0) this.invulnerabilidad -= dt;
 
@@ -332,7 +346,7 @@ export class Player {
       // el mezclador siguiera corriendo machacaría los huesos del ovillo.
       if (this.factorAgachado > 0.001) {
         this.poseManual = true;
-        aplicarPoseAgachadoGLB(this.modelo, this.factorAgachado);
+        aplicarPoseAgachadoGLB(this.modelo, this.factorAgachado, this.avanceRodada);
       } else if (this.estaEnElAire) {
         this.poseManual = true;
         animarSaltoGLB(this.modelo, subida);

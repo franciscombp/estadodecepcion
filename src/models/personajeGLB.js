@@ -1135,7 +1135,17 @@ export function animarCarreraGLB(modelo, dt, velocidad = 20) {
     const sen = Math.sin(f);
 
     // CADERA: adelante con el seno. Negativo es hacia adelante.
-    doblar(huesos, `${lado}UpLeg`, -sen * 1.15);
+    doblar(huesos, `${lado}UpLeg`, -sen * 1.22);
+
+    // Y ABIERTA DE LADO. Esto es lo que separa un trote de una carrera de
+    // dibujos: en el original las piernas no van en un plano, se abren hacia
+    // fuera al recoger y se cierran al plantar. Visto desde atrás —que es como
+    // se ve el 95% de la partida— una zancada en un solo plano no se lee: las
+    // dos piernas se tapan la una a la otra y sólo queda un bulto que sube y
+    // baja. Abriéndolas, cada paso saca una pierna del contorno del cuerpo.
+    const signo = lado === 'Left' ? 1 : -1;
+    girar(huesos, `${lado}UpLeg`, EJE_Z,
+      signo * (0.10 + 0.26 * Math.max(0, Math.sin(f - 0.6))));
 
     // RODILLA: dobla al RECOGER, un cuarto de ciclo después del punto más
     // atrasado. Nunca al revés —una rodilla no se dobla hacia adelante—, de
@@ -1179,8 +1189,24 @@ export function animarCarreraGLB(modelo, dt, velocidad = 20) {
   // no en el grupo del personaje porque el grupo lo mueve el juego —el salto,
   // el carril— y la sombra de contacto cuelga de él: si rebotara el grupo,
   // rebotaría la sombra y se despegaría del suelo.
+  // EL REBOTE, que es la mitad de lo cómico. Va al doble de la zancada —se
+  // sube una vez por pie— y sube MUCHO más que un rebote realista: 18 cm
+  // contra los 7 del clip original. No es un temblor sobre el suelo, es una
+  // fase de vuelo: el personaje despega en cada paso, que es lo que se pidió
+  // —«corriendo dando saltos»— y lo que hacen los runners del género.
+  //
+  // La curva no es un seno: es un seno ELEVADO, que deja al muñeco poco
+  // tiempo abajo y mucho arriba. Un seno pelado pasa la mitad del ciclo a
+  // media altura y se lee como flotar; así se lee como despegar y caer.
+  const vuelo = Math.pow(Math.abs(Math.sin(fase)), 0.62);
   g.cuerpo.rotation.x = 0;
-  g.cuerpo.position.set(0, Math.abs(Math.sin(fase)) * (0.05 + 0.03 * t), 0);
+  g.cuerpo.position.set(0, vuelo * (0.15 + 0.06 * t), 0);
+
+  // Y UN BANDAZO LATERAL, al ritmo de la zancada y no al del rebote: el cuerpo
+  // cae sobre el pie que apoya. Sin esto la carrera es simétrica y se ve
+  // mecánica; con esto el personaje va dando tumbos hacia los lados, que es
+  // justo lo que se buscaba.
+  g.cuerpo.rotation.z = Math.sin(fase) * (0.07 + 0.04 * t);
 
   // EL MENEO VA EL ÚLTIMO, siempre. La cabeza y el tronco parten de la zancada
   // que se acaba de escribir y le añaden el retraso.
@@ -1241,12 +1267,43 @@ export function animarSaltoGLB(modelo, subida = 0) {
  *
  * @param {number} factor 0 = erguido, 1 = tumbado del todo hacia atrás
  */
-export function aplicarPoseAgachadoGLB(modelo, factor) {
+/**
+ * EL ROL HACIA ADELANTE — la voltereta con la que se pasa por debajo.
+ *
+ * Antes esto era un LIMBO: el personaje se echaba hacia atrás doblando la
+ * cintura y pasaba por debajo del pórtico deslizándose. Funcionaba y no se
+ * leía: de espaldas, un cuerpo echado atrás y uno de pie tienen el mismo
+ * contorno, y lo único que decía «me agaché» era que la cabeza bajaba unos
+ * centímetros. En el género no se hace eso —se rueda—, y una voltereta se lee
+ * desde cualquier ángulo porque el cuerpo entero DA UNA VUELTA.
+ *
+ * Son dos cosas a la vez:
+ *
+ *   EL OVILLO. Rodillas al pecho, talones al culo, brazos abrazando y barbilla
+ *   dentro. Sin esto la vuelta es la de un palo y se ve el momento en que el
+ *   personaje atraviesa el suelo con la cabeza.
+ *
+ *   LA VUELTA, y aquí está el detalle. Un cuerpo gira alrededor del centro del
+ *   ovillo, no de los pies, pero el origen de esta malla está EN LOS PIES: si
+ *   se rota `cuerpo` y ya está, el muñeco barre el suelo con la cabeza como
+ *   una guadaña. Se compensa moviendo el cuerpo por la diferencia entre dónde
+ *   acaba el centro y dónde tenía que quedarse:
+ *
+ *       C = (0, h, 0)      el centro del ovillo, a media altura
+ *       R·C = (0, h·cosθ, h·senθ)
+ *       T = C − R·C        lo que hay que desplazar para que C no se mueva
+ *
+ * @param {number} factor  0..1, cuánto de la pose. Suaviza la entrada y la
+ *                         salida para que no haya un salto de fotograma.
+ * @param {number} avance  0..1, por dónde va la vuelta. A 0 y a 1 el giro es
+ *                         nulo, así que empieza y termina de pie sin costura.
+ */
+export function aplicarPoseAgachadoGLB(modelo, factor, avance = 0) {
   const g = modelo.userData.glb;
   if (!g) return;
   const { huesos, cuerpo } = g;
 
-  cuerpo.rotation.x = 0;
+  cuerpo.rotation.set(0, 0, 0);
   cuerpo.position.set(0, 0, 0);
   cuerpo.scale.setScalar(1);
 
@@ -1256,30 +1313,53 @@ export function aplicarPoseAgachadoGLB(modelo, factor) {
   orientar(modelo);
   reposar(huesos);
 
-  // La cadera baja y se adelanta: el peso se va sobre los pies y por eso el
-  // tronco puede irse atrás sin caerse. Sin bajarla, el personaje se dobla
-  // hacia atrás por la cintura y se queda igual de alto, que es justo lo que
-  // no vale bajo un pórtico.
+  // --- EL OVILLO ----------------------------------------------------------
+  // La cadera baja: en una voltereta el cuerpo se recoge antes de girar, y si
+  // no baja el personaje rueda a la altura a la que iba corriendo.
   const cadera = huesos.get('Hips');
-  if (cadera) {
-    cadera.nodo.position.y = cadera.pos.y * (1 - 0.42 * f);
-    cadera.nodo.position.z = cadera.pos.z + 22 * f;   // centímetros: ver la nota de escala
-  }
+  if (cadera) cadera.nodo.position.y = cadera.pos.y * (1 - 0.44 * f);
 
-  // Tronco y cabeza atrás; la barbilla acaba mirando al pórtico que pasa.
-  doblar(huesos, 'Hips', -0.85 * f);
-  doblar(huesos, 'Spine', -0.3 * f);
-  doblar(huesos, 'Spine01', -0.25 * f);
-  doblar(huesos, 'Head', -0.55 * f);
+  // El tronco se cierra HACIA ADELANTE —al revés que el limbo de antes— y la
+  // barbilla se mete dentro. Recuérdese que `Spine02` es la base.
+  doblar(huesos, 'Spine02', -0.55 * f);
+  doblar(huesos, 'Spine01', -0.45 * f);
+  doblar(huesos, 'Spine', -0.35 * f);
+  doblar(huesos, 'Head', -0.75 * f);
 
   for (const lado of ['Left', 'Right']) {
-    // Rodillas dobladas y pies por delante, que es lo que sostiene el arco.
-    doblar(huesos, `${lado}UpLeg`, -0.55 * f);
-    doblar(huesos, `${lado}Leg`, 1.25 * f);
-    doblar(huesos, `${lado}Foot`, -0.45 * f);
-    // Brazos abiertos hacia atrás, de contrapeso.
-    brazo(huesos, lado, 0.75 * f, 0.9 * f, -0.35 * f);
+    // Rodillas al pecho y talones al culo.
+    doblar(huesos, `${lado}UpLeg`, -1.55 * f);
+    doblar(huesos, `${lado}Leg`, 2.05 * f);
+    doblar(huesos, `${lado}Foot`, -0.35 * f);
+    // Y las piernas juntas: en el aire se abren solas y el ovillo deja de
+    // serlo. Se cierran un poco hacia dentro.
+    const signo = lado === 'Left' ? 1 : -1;
+    girar(huesos, `${lado}UpLeg`, EJE_Z, -signo * 0.12 * f);
+    // Brazos abrazando las espinillas.
+    brazo(huesos, lado, 1.55 * f, -1.35 * f, -2.35 * f);
   }
+
+  // --- LA VUELTA ----------------------------------------------------------
+  const a = Math.min(1, Math.max(0, avance));
+  // Suavizado: arranca y termina despacio, y en medio se va. Una vuelta a
+  // velocidad constante se lee como una animación mecánica; ésta se lee como
+  // un impulso.
+  const suave = a * a * (3 - 2 * a);
+  const giro = -Math.PI * 2 * suave * f;
+
+  // El centro del ovillo, proporcional a la estatura: los personajes miden
+  // entre 1,45 y 1,85 y una altura fija dejaría a unos rodando por el aire y a
+  // otros clavados en el asfalto.
+  const alto = modelo.userData.medidas?.alto ?? 1.7;
+  // 0.31: MEDIDO, no elegido. El extremo más lejano del ovillo —el ala del
+  // sombrero— queda a unos 50 cm del centro, así que con el centro más bajo
+  // que eso la cabeza pasa POR DEBAJO del asfalto en el punto bajo de la
+  // vuelta. Se vio en la tira de fotogramas: a 0.24 el sombrero desaparecía
+  // dentro de la calle durante dos fotogramas.
+  const h = alto * 0.31;
+
+  cuerpo.rotation.x = giro;
+  cuerpo.position.set(0, h - h * Math.cos(giro), -h * Math.sin(giro));
 }
 
 /** Despatarrado boca abajo: la pose de que lo tumbaron. */
