@@ -1100,6 +1100,56 @@ function brazo(huesos, lado, bajada, avance, codo) {
   girar(huesos, `${lado}ForeArm`, EJE_X, codo);
 }
 
+// ---------------------------------------------------------------------------
+// EL CLIP DEL GOLPE, QUE SIRVE PARA DOS COSAS
+// ---------------------------------------------------------------------------
+// «Big body blow» dura 3,10 s y cuenta un porrazo entero. Medido con la cabeza
+// y el pie, tiene tres tramos claros:
+//
+//   0,00 – 1,05 s   viene corriendo          (cabeza 1,19 → 1,34)
+//   1,05 – 1,70 s   el impacto y la caída    (cabeza 1,34 → 0,25)
+//   1,70 – 2,95 s   en el suelo, quieto      (cabeza 0,18)
+//
+// De ahí salen las DOS cosas que el juego necesita y que no son la misma:
+//
+//   EL CHOQUE DEL QUE SE SIGUE CORRIENDO. Dura 0,42 s y termina de pie, así
+//   que no vale la caída: se usa sólo el arranque del impacto y se vuelve. La
+//   aguja va y viene con un seno, así que el cuerpo encaja el golpe y se
+//   recompone —que es exactamente lo que pasa: pierdes ritmo, no la partida—.
+//
+//   LA DERROTA. Ahí sí se usa el final: tumbado boca arriba y quieto. Y como
+//   el clip ya lo pone en el suelo, el jugador NO tiene que girar el modelo un
+//   cuarto de vuelta como hacía con la pose escrita a mano.
+const GOLPE = {
+  IMPACTO: 1.05,     // dónde empieza a encajarlo
+  RETROCESO: 0.28,   // cuánto se recorre en el choque no mortal
+  TUMBADO: 2.40,     // un fotograma cualquiera del tramo en el suelo
+};
+
+/**
+ * El personaje encaja un golpe y se recompone.
+ * @param {number} t 0 recién chocado → 1 recuperado
+ */
+export function aplicarGolpeGLB(modelo, t, dt = 0) {
+  const g = modelo.userData.glb;
+  if (!g?.acciones?.golpe) return false;
+  const accion = g.acciones.golpe;
+  const k = Math.max(0, Math.min(1, t));
+
+  // Un seno: la aguja entra en el impacto y vuelve por donde vino. Y el PESO
+  // hace lo mismo, para que el golpe se mezcle con la carrera en vez de
+  // sustituirla: a media zancada, un personaje que deja de correr de golpe se
+  // lee como que se ha colgado el juego.
+  const forma = Math.sin(k * Math.PI);
+  accion.time = GOLPE.IMPACTO + GOLPE.RETROCESO * forma;
+  accion.timeScale = 0;
+  pedirClips(g, { golpe: forma }, dt);
+  g.cuerpo.rotation.set(0, 0, 0);
+  g.cuerpo.position.set(0, 0, 0);
+  g.mezclador.update(dt);
+  return true;
+}
+
 /** ¿Es un personaje del modelo, con su mezclador y sus huesos? */
 export function esGLB(modelo) {
   return !!modelo?.userData?.glb;
@@ -1616,6 +1666,20 @@ export function aplicarPoseAgachadoGLB(modelo, factor, avance = 0, dt = 0) {
 export function poseDerrotaGLB(modelo) {
   const g = modelo.userData.glb;
   if (!g) return;
+
+  // EL FINAL DEL CLIP DEL GOLPE: tumbado y quieto. Se pone la aguja y ya está
+  // —no hay nada que animar, es una foto—, y como el clip ya lo deja en el
+  // suelo, el jugador no gira el modelo: ver `caer()`.
+  if (g.acciones?.golpe) {
+    g.acciones.golpe.time = GOLPE.TUMBADO;
+    g.acciones.golpe.timeScale = 0;
+    pedirClips(g, { golpe: 1 }, 0);
+    g.cuerpo.rotation.set(0, 0, 0);
+    g.cuerpo.position.set(0, 0, 0);
+    g.mezclador.update(0);
+    return;
+  }
+
   sueltaElClip(g);
   const { huesos, cuerpo } = g;
   orientar(modelo);
@@ -1767,8 +1831,22 @@ export function poseMinistroGLB(modelo, tiempo = 0, presencia = 1) {
 export function poseMontadoGLB(modelo, tiempo = 0) {
   const g = modelo.userData.glb;
   if (!g) return;
-  sueltaElClip(g);
   const { huesos } = g;
+
+  // ROY VA SENTADO Y GRITANDO. El clip es un «sitting yell», que es
+  // literalmente lo que hace: ir sentado sobre los hombros del mando y
+  // vociferar. Las piernas ya vienen dobladas hacia adelante, que es lo que
+  // hacía a mano el bloque de abajo, y encima gesticula.
+  if (g.acciones?.montado) {
+    const paso = pasoDeReloj(g, tiempo);
+    pedirClips(g, { montado: 1 }, paso);
+    g.cuerpo.rotation.set(0, 0, 0);
+    g.cuerpo.position.set(0, 0, 0);
+    g.mezclador.update(paso);
+    return;
+  }
+
+  sueltaElClip(g);
 
   orientar(modelo);
   reposar(huesos);

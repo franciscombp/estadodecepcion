@@ -1601,8 +1601,10 @@ carrera:
 | discutir | 20,80 s | 313 | 15 | el entrevistado manoteando |
 | secreto | 6,00 s | 91 | 15 | el entrevistado en confianza |
 | arrancar | 1,63 s | 50 | 30 | el arranque, de pie a corriendo |
+| golpe | 3,10 s | 94 | 30 | el choque **y** la derrota |
+| montado | 5,80 s | 88 | 15 | Roy sentado sobre el mando |
 
-**375 KB los siete**, y un solo archivo para los seis personajes: comparten
+**477 KB los nueve**, y un solo archivo para los seis personajes: comparten
 esqueleto y nombres de hueso, y las pistas van nombradas por hueso, así que el
 mismo clip se ata a cualquiera. Se rehornea con `npm run animaciones`.
 
@@ -1711,6 +1713,45 @@ sólo se entiende si llega a alguien.
 
 A **1,15 m** el puño queda justo delante del entrevistado. Es la distancia a la
 que se hace una entrevista de calle: un brazo y pico.
+
+---
+
+### 6.29 · Un clip de golpe que sirve para dos cosas — **resuelto**
+
+«Big body blow» dura 3,10 s y cuenta un porrazo entero. Medido con la cabeza y
+el pie, tiene tres tramos:
+
+| | |
+|---|---|
+| 0,00 – 1,05 s | viene corriendo (cabeza 1,19 → 1,34) |
+| 1,05 – 1,70 s | el impacto y la caída (cabeza 1,34 → 0,25) |
+| 1,70 – 2,95 s | en el suelo, quieto (cabeza 0,18) |
+
+De ahí salen las **dos** cosas que el juego necesita y que no son la misma:
+
+**El choque del que se sigue corriendo** dura 0,42 s y termina de pie, así que
+no vale la caída. Se usa sólo el arranque del impacto —de 1,05 a 1,33— y se
+vuelve: la aguja va y viene con un seno, y el peso hace lo mismo, así que el
+cuerpo encaja el golpe y se recompone mezclándose con la carrera. Que es
+exactamente lo que pasa: pierdes ritmo, no la partida. A media zancada, un
+personaje que deja de correr de golpe se lee como que se ha colgado el juego.
+
+Y **se va la peonza.** La vuelta entera sobre el eje de avance era un apaño de
+cuando no había animación de choque: servía para que el golpe se leyera, pero un
+corredor que da una pirueta completa cada vez que roza una barrera no se lee
+como que le han dado, se lee como que el juego hace cosas raras. El aplastón se
+queda, al 45 % de lo que era, porque el squash-and-stretch sigue siendo lo que
+pone el golpe en el fotograma del impacto y no medio segundo después.
+
+**La derrota** usa el final: tumbado y quieto, medido de 0,03 a 0,34 m de alto.
+Y como el clip ya lo pone en el suelo, el jugador **no gira el modelo** el
+cuarto de vuelta en X que hacía con la pose escrita a mano —eso lo tumbaría dos
+veces: de espaldas al asfalto y de cara a él a la vez—.
+
+**Y Roy va sentado de verdad.** El clip es un «sitting yell», que es
+literalmente lo que hace sobre los hombros del mando: ir sentado y vociferar.
+Las piernas ya vienen dobladas hacia adelante —que era lo que hacía a mano el
+bloque de la pose— y encima gesticula.
 
 ---
 

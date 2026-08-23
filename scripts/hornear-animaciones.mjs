@@ -58,6 +58,12 @@ const RECETA = [
   ['discutir', '/scripts/animaciones/discutir.fbx', 15],
   ['secreto', '/scripts/animaciones/secreto.fbx', 15],
   ['arrancar', '/scripts/animaciones/arrancar.fbx', 30],
+  // Y LOS DOS DEL RESTO DEL REPARTO. `golpe` es la reacción al choque, que se
+  // recorre con la aguja puesta por el aplastón; `montado` es Roy sentado
+  // sobre los hombros del mando —un «sitting yell», que es exactamente lo que
+  // hace: ir sentado y gritar—.
+  ['golpe', '/scripts/animaciones/golpe.fbx', 30],
+  ['montado', '/scripts/animaciones/montado.fbx', 15],
 ];
 
 // El Chromium que traiga el entorno, si está donde suele. Sin esto, Playwright

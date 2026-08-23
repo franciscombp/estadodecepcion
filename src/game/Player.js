@@ -17,7 +17,7 @@ import {
 } from '../models/characters.js';
 import {
   esGLB, usaClipsGLB, animarCarreraGLB, animarSaltoGLB, aplicarPoseAgachadoGLB,
-  poseDerrotaGLB, reposarGLB,
+  poseDerrotaGLB, reposarGLB, aplicarGolpeGLB,
 } from '../models/personajeGLB.js';
 import { crearCaja } from '../utils/collision.js';
 import { crearSombra } from '../models/props.js';
@@ -541,17 +541,30 @@ export class Player {
     // fotograma del impacto y no medio segundo después.
     const rebote = Math.cos(t * Math.PI * 2.6) * Math.exp(-t * 4.2);
 
+    // CON CLIP, EL SQUASH SE MODERA Y LA PEONZA SE VA. La vuelta entera sobre
+    // el eje de avance era un apaño de cuando no había animación de choque:
+    // servía para que el golpe se leyera, pero un corredor que da una pirueta
+    // completa cada vez que roza una barrera no se lee como que le han dado,
+    // se lee como que el juego hace cosas raras. Ahora el cuerpo encaja el
+    // golpe de verdad, así que basta con un aplastón más suave y el bandazo.
+    const conClip = aplicarGolpeGLB(this.modelo, t, dt);
+    const fuerza = conClip ? 0.45 : 1;
+
     this.modelo.scale.set(
-      1 + rebote * 0.45,
-      1 - rebote * 0.4,
-      1 - rebote * 0.5,
+      1 + rebote * 0.45 * fuerza,
+      1 - rebote * 0.4 * fuerza,
+      1 - rebote * 0.5 * fuerza,
     );
 
-    // La voltereta: una vuelta entera sobre el eje de avance, encima de la
-    // media vuelta que el personaje lleva siempre puesta.
-    this.modelo.rotation.y = Math.PI + t * Math.PI * 2;
+    if (!conClip) {
+      // La voltereta: una vuelta entera sobre el eje de avance, encima de la
+      // media vuelta que el personaje lleva siempre puesta.
+      this.modelo.rotation.y = Math.PI + t * Math.PI * 2;
+    } else {
+      this.modelo.rotation.y = Math.PI + this.giroCinematico;
+    }
     // Y un bandazo lateral, para que no sea una peonza perfecta.
-    this.modelo.rotation.z = rebote * 0.5;
+    this.modelo.rotation.z = rebote * 0.5 * fuerza;
     return true;
   }
 
@@ -711,6 +724,19 @@ export class Player {
     this.factorAgachado = 0;
 
     this.modelo.scale.set(1, 1, 1);
+
+    // CON CLIP NO SE TUMBA EL MODELO. El final de «big body blow» ya lo deja
+    // boca arriba en el suelo, así que el cuarto de vuelta en X —que era la
+    // forma de tumbarlo cuando la pose se escribía a mano— lo pondría dos
+    // veces: de espaldas al asfalto y de cara a él a la vez.
+    if (esGLB(this.modelo) && usaClipsGLB(this.modelo)) {
+      this.modelo.rotation.set(0, Math.PI, 0);
+      this.y = 0;
+      this.modelo.position.y = 0;
+      poseDerrotaGLB(this.modelo);
+      return;
+    }
+
     this.modelo.rotation.set(-Math.PI / 2, Math.PI, 0);
     this.y = 0.26;
     this.modelo.position.y = this.y;
