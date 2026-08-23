@@ -37,14 +37,20 @@ export class Chaser {
 
     // Cerco: cuando atrapan al jugador, se abalanzan. 0..1.
     this.cercando = 0;
+
+    // Lo que se han apartado para no llevarse por delante un obstáculo.
+    this.esquiva = 0;
+    this.esquivaObjetivo = 0;
   }
 
   /**
    * @param {number} dt
    * @param {Player} jugador
    * @param {boolean} exhausto Reservado: hoy siempre es false.
+   * @param {Obstacles} [obstaculos] Para poder esquivarlos. Si no llega, no
+   *   esquivan: la cinemática y el cerco los mueven a mano y allí no hay pista.
    */
-  actualizar(dt, jugador, exhausto) {
+  actualizar(dt, jugador, exhausto, obstaculos = null) {
     this.tiempo += dt;
 
     // --- Distancia ---------------------------------------------------------
@@ -65,7 +71,7 @@ export class Chaser {
     const t = 1 - Math.exp(-3 * dt);
     this.x += (jugador.x - this.x) * t;
 
-    this._colocar(dt);
+    this._colocar(dt, obstaculos);
     animarPerseguidores(this.modelo, this.tiempo, dt);
   }
 
@@ -81,7 +87,7 @@ export class Chaser {
    * contrario de lo que hay que comunicar, porque lo más cercano a la cámara
    * —o sea, lo que va más rezagado— se dibuja más grande.
    */
-  _colocar(dt) {
+  _colocar(dt, obstaculos = null) {
     const cerca = this.cercania();               // 0 = lejos, 1 = encima
 
     let zVisual = THREE.MathUtils.lerp(PERSEGUIDOR.Z_LEJOS, PERSEGUIDOR.Z_CERCA, cerca);
@@ -109,15 +115,58 @@ export class Chaser {
     // Durante el cerco se echan encima, pero también POR UN LADO. De frente
     // taparían al personaje justo en el fotograma en que hay que verlo rodeado.
     if (this.cercando > 0) {
-      zVisual = THREE.MathUtils.lerp(zVisual, 1.5, this.cercando);
+      zVisual = THREE.MathUtils.lerp(zVisual, CERCO.Z_PERSEGUIDOR, this.cercando);
       escala = THREE.MathUtils.lerp(escala, 1.05, this.cercando);
       xVisual = THREE.MathUtils.lerp(
         xVisual, this.x + CERCO.DESVIO_PERSEGUIDOR, this.cercando,
       );
     }
 
+    // ESQUIVAN LO QUE EL JUGADOR YA ESQUIVÓ.
+    //
+    // Van entre el jugador y la cámara, y los obstáculos siguen viniendo hasta
+    // Z 5,5: todo lo que el jugador sortea les llega a ellos medio segundo
+    // después. Medido en un minuto de partida, 163 fotogramas de 3600 con el
+    // dúo metido dentro de un obstáculo —uno de cada veintidós, con solapes de
+    // hasta 1,3 m—: un contenedor atravesando a dos personas.
+    //
+    // El desvío se pide contra la posición SIN desviar (ver
+    // Obstacles.apartarse) y se persigue con el mismo suavizado que todo lo
+    // demás, así que sale un quiebro y no un salto de carril.
+    // Se pregunta desde DONDE YA ESTÁN, no desde donde irían sin desviarse:
+    // apartarse de un contenedor los mete en el carril del siguiente, y
+    // preguntando contra la base ese segundo no se ve. Con la posición ya
+    // desviada, el desvío se acumula.
+    //
+    // Y cuando no hay nada, el objetivo es cero: vuelven a su sitio. La vuelta
+    // es más lenta que la salida (2,5 contra 8 por segundo) porque un quiebro
+    // se hace deprisa y se deshace despacio; con las dos al mismo ritmo se
+    // metían otra vez debajo del mismo obstáculo antes de que acabara de
+    // pasar.
+    if (obstaculos) {
+      const extra = obstaculos.apartarse(
+        xVisual + this.esquiva, this.zVisualActual, 1.2 * this.escalaActual, 14,
+      );
+      this.esquivaObjetivo = extra !== 0 ? this.esquiva + extra : 0;
+    } else {
+      this.esquivaObjetivo = 0;
+    }
+
     // Suavizamos para que los cambios de distancia no den tirones.
     const ts = 1 - Math.exp(-5 * dt);
+    //
+    // Y CON TOPE DE VELOCIDAD LATERAL. Sin él, un obstáculo que aparece en el
+    // borde de los catorce metros de aviso pone el objetivo dos metros a un
+    // lado de golpe, y el suavizado exponencial se come esos dos metros en el
+    // primer fotograma: medido, 16,4 m/s de desplazamiento lateral, que no es
+    // un quiebro sino un salto de pantalla. Siete metros por segundo es algo
+    // menos de lo que cambia de carril el jugador (unos diez), y con catorce
+    // metros de aviso —siete décimas a velocidad de crucero— da de sobra.
+    const tq = 1 - Math.exp(-(this.esquivaObjetivo === 0 ? 2.5 : 8) * dt);
+    const tope = (this.esquivaObjetivo === 0 ? 3.5 : 7) * dt;
+    const falta = (this.esquivaObjetivo - this.esquiva) * tq;
+    this.esquiva += THREE.MathUtils.clamp(falta, -tope, tope);
+    xVisual += this.esquiva;
     this.zVisualActual += (zVisual - this.zVisualActual) * ts;
     this.escalaActual += (escala - this.escalaActual) * ts;
     this.xVisualActual += (xVisual - this.xVisualActual) * ts;
@@ -139,7 +188,9 @@ export class Chaser {
   cercar(fraccion, dt) {
     this.cercando = fraccion;
     this.tiempo += dt;
-    this._colocar(dt);
+    // Sin pista que esquivar: en el cerco el mundo está parado y lo que manda
+    // es el corro, no los obstáculos.
+    this._colocar(dt, null);
     animarPerseguidores(this.modelo, this.tiempo, dt);
   }
 
@@ -180,6 +231,8 @@ export class Chaser {
     this.x = 0;
     this.tiempo = 0;
     this.cercando = 0;
+    this.esquiva = 0;
+    this.esquivaObjetivo = 0;
     this.zVisualActual = PERSEGUIDOR.Z_LEJOS;
     this.escalaActual = PERSEGUIDOR.ESCALA_LEJOS;
     this.xVisualActual = PERSEGUIDOR.DESVIO_EN_PANTALLA * (CAMARA.POSICION.z - PERSEGUIDOR.Z_LEJOS);

@@ -1864,6 +1864,102 @@ Lo que queda es del modelo: sus pantalones y sus botas son un volumen oscuro
 muy voluminoso, y al doblar el muslo la silueta se cierra y no se ve pierna. Eso
 se arregla en Meshy, no aquí.
 
+### 6.32 · Y era la mitad: cuatro de los nueve no comparten la pose de reposo
+
+La traducción de la cadera de §6.31 hacía falta y no bastaba. Mirando al
+antidisturbias solo, en reposo y a cuatro décimas de carrera:
+
+| | alto en reposo | alto corriendo | cabeza | pies |
+|---|---|---|---|---|
+| tostadólogo | 1,70 | 1,54 | 1,29 → 1,17 | +0,03 |
+| **antidisturbias (antes)** | **1,70** | **1,21** | **1,26 → 0,96** | **+0,18** |
+| antidisturbias (ahora) | 1,70 | 1,53 | 1,26 → 1,12 | +0,04 |
+
+Un ovillo flotando a diecisiete centímetros del asfalto. La causa: se comparó
+hueso a hueso el cuaternión de reposo de cada personaje con el del tostadólogo.
+
+| | cadera | fémur |
+|---|---|---|
+| avecilla | 12,2° | 14,1° |
+| genérico | 8,7° | 8,1° |
+| **el mando y el dúo de abajo** | **125,3°** | **126,2°** |
+| **Roy** | **121,5°** | **123,0°** |
+| **el antidisturbias** | **134,5°** | **134,1°** |
+
+Una rotación local significa «gira esto respecto a como estás en reposo». Con el
+reposo a ciento treinta grados de distancia, compartir las pistas es copiar
+«gira 30° a la derecha» entre dos coches que no apuntan al mismo lado — que es
+literalmente el motivo por el que ya existía un retargeteador para traer los
+clips de Mixamo. Ahora el juego lo usa también entre dos esqueletos suyos: 55 ms
+por personaje, hechos en la pantalla de carga.
+
+### 6.33 · El rescate de la portada pasaba fuera de cuadro
+
+Medido en NDC durante los siete segundos de la fase: la pareja que se lleva al
+entrevistado ocupaba entre el **6,7 % y el 10,6 %** del alto del cuadro, con la
+mitad del cuerpo fuera por el borde derecho (su caja llegaba a 1,18, y el cuadro
+acaba en 1). Llegaba desde catorce metros calle arriba: una mancha en la esquina.
+
+Ahora entran por la esquina de abajo a la derecha —el punto se buscó barriendo
+el suelo entero contra tres condiciones: caja fuera de cuadro, a más de metro y
+medio del plano de la cámara y pegada al borde— y cruzan encogiendo: **112 % de
+alto al aparecer, 29 % al llegar al entrevistado, 14 % al irse**.
+
+Y Roy iba **sentado en el aire**: tenía siempre la pose de ir montado, y al
+separarlo para la llegada se le bajaba al suelo con las piernas dobladas.
+
+### 6.34 · El cerco: la escena que existe para que se vea, no se veía
+
+Medido al final del cerco, con el reparto completo proyectado a NDC:
+
+| | antes | ahora |
+|---|---|---|
+| policías dentro del cuadro | **1 de 5** | 5 de 5 |
+| el caído | 19 % del alto, esquina inferior izquierda | 19 %, centrado |
+| ancho máximo del reparto | 2,24 (el cuadro acaba en 1) | 0,89 |
+| vertical usada | de −0,5 a +0,5 | de −0,76 a +0,29 |
+
+Tres cosas a la vez. El corro pasó de círculo a **elipse** (1,35 de radio a lo
+ancho de la calle, 4,6 a lo largo), porque el cuadro es vertical y estrecho y
+meter ocho metros de corro a lo ancho pedía veintiséis metros de distancia. La
+cámara se centró y se acercó. Y el dúo, que resultó ser **quien tocaba el
+borde** —a 2,6 m de lado y casi encima de la cámara—, se recogió a 1,1.
+
+De paso, los cinco policías miraban PARA FUERA: llevaban media vuelta de más
+sobre la dirección al centro. No se notaba porque cuatro estaban fuera de plano.
+
+### 6.35 · Al chocar, el jugador se quedaba debajo del camión
+
+Medido fotograma a fotograma tras un choque contra un retén: **desde el cuarto
+fotograma la cara delantera del obstáculo está más cerca de la cámara que el
+personaje**, y su caja en pantalla lo contiene entero. Durante los veinte
+fotogramas que el obstáculo tarda en pasar de largo, el jugador está detrás de
+un camión — justo el momento en que hay que verlo.
+
+Empujarlo hacia atrás (medio fondo del obstáculo más medio metro, en dos
+fotogramas) arregla los primeros y nada más: el obstáculo viene a veinte metros
+por segundo y acaba pasando por encima de cualquier retroceso razonable. Así que
+además **lo que ya te dio se hunde**: se va bajo el asfalto ladeándose, en el
+metro y ochenta siguientes al golpe, y la calzada lo tapa sola.
+
+### 6.36 · Los perseguidores atravesaban los obstáculos
+
+Van entre el jugador y la cámara (Z 2,4) y los obstáculos siguen viniendo hasta
+Z 5,5: todo lo que el jugador esquiva les llega a ellos medio segundo después.
+Medido en un minuto de partida, **163 fotogramas de 3600** —uno de cada
+veintidós— con la caja del dúo dentro de la de un obstáculo, con solapes de
+hasta 1,3 m.
+
+Ahora se apartan. Con catorce metros de aviso (siete décimas a velocidad de
+crucero), buscando el hueco libre más cercano —no «el lado por el que salgo de
+este bulto», que metía en el carril del siguiente— y con tope de siete metros
+por segundo de desplazamiento lateral, algo menos de lo que cambia de carril el
+jugador. Contado en la misma partida y contra la posición sin desviar: de 113 a
+28, de 131 a 23, de 177 a 63. Entre el 75 % y el 85 % menos.
+
+Lo que queda son los grupos que tapan dos carriles a la vez: ahí no hay hueco, y
+se pasa por dentro durante una décima.
+
 ---
 
 ## 7 · Cómo se prueba cada pantalla sin jugar

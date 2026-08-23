@@ -2180,10 +2180,11 @@ export class Game {
     this.jugador.actualizar(dt, velocidadEfectiva);
 
     if (this.tramite.activo) {
-      // Se quedan a la puerta del túnel, esperando a que salgas.
+      // Se quedan a la puerta del túnel, esperando a que salgas. Y sin pista
+      // que esquivar: durante el trámite no hay obstáculos generándose.
       this.perseguidor.actualizar(dt, this.jugador, false);
     } else {
-      this.perseguidor.actualizar(dt, this.jugador, false);
+      this.perseguidor.actualizar(dt, this.jugador, false, this.obstaculos);
     }
 
     // ---- Recolección ------------------------------------------------------
@@ -2273,7 +2274,7 @@ export class Game {
     const golpe = this.jugador.volando
       ? null
       : this.obstaculos.comprobarColision(this.jugador);
-    if (golpe && this.jugador.recibirGolpe()) {
+    if (golpe && this.jugador.recibirGolpe(golpe)) {
       this.audio.golpe();
       this.sacudida = CAMARA.SACUDIDA_GOLPE;
 
@@ -2681,7 +2682,7 @@ export class Game {
 
     // Al mismo ritmo que la posición: el paneo de bajar la vista al corro es
     // parte de la escena, no un corte.
-    this._mirar(this.jugador.x, CERCO.CAMARA_MIRA_Y, -0.6, 2.4, dt);
+    this._mirar(this.jugador.x, CERCO.CAMARA_MIRA_Y, CERCO.CAMARA_MIRA_Z, 2.4, dt);
   }
 
   // -------------------------------------------------------------------------

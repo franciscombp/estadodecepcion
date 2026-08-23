@@ -22,6 +22,18 @@ import {
 import { crearCaja } from '../utils/collision.js';
 import { crearSombra } from '../models/props.js';
 
+/**
+ * Cuánto sale despedido hacia la cámara al chocar.
+ *
+ * No es una constante: es medio fondo del obstáculo más medio metro, o sea
+ * justo por delante de su cara. Con un valor fijo no sale la cuenta —en la
+ * pista hay bultos de 0,8 m de fondo y retenes de más de tres— y el fijo que
+ * valía para el pequeño dejaba al personaje dentro del grande, que es
+ * exactamente el problema que había que arreglar.
+ */
+const RETROCESO_MINIMO = 1.0;
+const RETROCESO_MAXIMO = 3.2;
+
 export class Player {
   /**
    * @param {THREE.Scene} escena
@@ -460,7 +472,8 @@ export class Player {
    * Registra un golpe. Devuelve true si el golpe se aplicó
    * (false si estaba invulnerable).
    */
-  recibirGolpe() {
+  /** @param {{profundidad?: number, z?: number}} [contraQue] Lo que le dio. */
+  recibirGolpe(contraQue = null) {
     if (this.invulnerabilidad > 0) return false;
 
     // El salvoconducto se gasta en lugar del intento. No cuenta como golpe
@@ -475,6 +488,12 @@ export class Player {
     this.invulnerabilidad = JUGADOR.INVULNERABILIDAD;
     // Arranca el aplastón. Ver _aplastar().
     this.aplaston = 1;
+    // Y SE APUNTA CUÁNTO HAY QUE RETROCEDER, que depende de con qué chocó.
+    const fondo = contraQue?.profundidad ?? 1.4;
+    const z = contraQue?.z ?? 0;
+    this.retroceso = THREE.MathUtils.clamp(
+      z + fondo / 2 + 0.5, RETROCESO_MINIMO, RETROCESO_MAXIMO,
+    );
     return true;
   }
 
@@ -515,7 +534,10 @@ export class Player {
     const altura = Math.max(0, this.y - suelo);
     // 2 cm por encima del suelo: en el mismo plano pelearía con el asfalto y
     // saldría el parpadeo de dos superficies coplanares.
-    this.sombra.position.set(this.x, suelo + 0.02, 0);
+    // En Z va donde vaya el personaje, que casi siempre es cero y durante el
+    // choque no: si se queda clavada, el empujón del golpe deja al personaje
+    // metro y pico por delante de su propia sombra.
+    this.sombra.position.set(this.x, suelo + 0.02, this.modelo.position.z);
     const t = Math.min(1, altura / JUGADOR.ALTURA_SOMBRA_NULA);
     this.sombra.scale.setScalar(JUGADOR.RADIO_SOMBRA * (1 - 0.55 * t));
     // Su propio material —crearSombra() lo clona— para poder desvanecerla sin
@@ -531,11 +553,36 @@ export class Player {
     if (this.aplaston <= 0) {
       this.aplaston = 0;
       this.modelo.scale.set(1, 1, 1);
+      this.modelo.position.z = 0;
       return false;
     }
 
     // t va de 0 (recién chocado) a 1 (recuperado).
     const t = 1 - this.aplaston;
+
+    // SE VA HACIA ATRÁS. Chocar lo dejaba clavado en Z 0 mientras el obstáculo
+    // le pasaba por encima a veinte metros por segundo: durante un cuarto de
+    // segundo el personaje estaba DENTRO del contenedor, o sea invisible, que
+    // es justo el momento en que hay que verlo. Ahora el golpe lo empuja hacia
+    // la cámara y vuelve solo.
+    //
+    // El empujón sube en la primera décima —lo que tarda un cuerpo en salir
+    // rebotado, no un fotograma— y se deshace despacio durante el resto del
+    // aplastón. No se toca `this.x` ni la caja de colisión: esto es puramente
+    // lo que se ve, y el juego sigue midiendo distancias donde siempre.
+    // La salida es casi instantánea —dos fotogramas— porque el obstáculo va a
+    // veinte metros por segundo y en cuatro fotogramas ya le ha pasado por
+    // encima: un empujón que tarde una décima llega tarde a su propio golpe.
+    // Con la subida en 0,24 medida en el aplastón, el personaje seguía dentro
+    // del retén durante los tres primeros fotogramas, que es donde se ve.
+    // Sale en dos fotogramas y vuelve en el resto del aplastón. Los dos
+    // fotogramas no son estética: el obstáculo va a veinte metros por segundo
+    // y en cuatro ya le ha pasado por encima, así que un empujón que tarde una
+    // décima llega tarde a su propio golpe.
+    const SALIDA = 0.07;
+    const salida = Math.min(1, t / SALIDA);
+    const vuelta = (1 - Math.max(0, (t - SALIDA) / (1 - SALIDA))) ** 2;
+    this.modelo.position.z = (this.retroceso ?? 1.4) * salida * (t < SALIDA ? 1 : vuelta);
     // Rebote elástico: amplitud que decae multiplicada por una oscilación.
     // El seno arranca en 1 con esta fase, así que el aplastón es máximo en el
     // fotograma del impacto y no medio segundo después.
@@ -619,7 +666,9 @@ export class Player {
     this.alturaVuelo = 0;
     this.vivo = true;
     this.aplaston = 0;
+    this.retroceso = 0;
     this.modelo.visible = true;
+    this.modelo.position.z = 0;
     // Se conserva la media vuelta: el personaje sigue corriendo de espaldas.
     this.modelo.rotation.set(0, Math.PI, 0);
     this.modelo.scale.set(1, 1, 1);
@@ -652,7 +701,9 @@ export class Player {
     this.caidaRapida = false;
 
     this.aplaston = 0;
+    this.retroceso = 0;
     this.modelo.visible = true;
+    this.modelo.position.z = 0;
     // NO se pone de pie de golpe: la pose de derrota (tumbado, −90° en X) se
     // deshace rodando hacia delante durante la primera media vuelta de
     // zancada. Antes era un teletransporte de cuerpo entero en un fotograma,
@@ -714,6 +765,12 @@ export class Player {
     this.vivo = false;
     this.modelo.visible = true;
     this.aplaston = 0;
+    // Y VUELVE AL EJE. Si le tumban en el mismo golpe que le empujó hacia la
+    // cámara, el cuerpo se queda metro y pico por delante de donde se dibuja
+    // el corro del cerco —que va centrado en el origen— y el caído aparece
+    // fuera de su propia escena.
+    this.retroceso = 0;
+    this.modelo.position.z = 0;
 
     // Tumbado y con la cabeza hacia la cámara. La media vuelta de siempre se
     // conserva; lo que se añade es el cuarto de vuelta que lo echa al suelo.

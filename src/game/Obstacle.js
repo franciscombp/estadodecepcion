@@ -128,6 +128,11 @@ export class ObstacleManager {
 
   _devolverAlPool(obstaculo) {
     obstaculo.malla.visible = false;
+    // Se deshace el hundimiento del choque antes de guardarlo: el pool
+    // reparte mallas, y una que vuelva medio enterrada y ladeada reaparece
+    // así a cien metros de aquí.
+    obstaculo.malla.position.y = 0;
+    obstaculo.malla.rotation.x = 0;
     const libres = this.pool.get(obstaculo.tipo) ?? [];
     // Si el pool ya está lleno, destruimos en vez de acumular memoria.
     if (libres.length >= OBSTACULOS.TAMANO_POOL) {
@@ -233,6 +238,7 @@ export class ObstacleManager {
     const x = xs.reduce((a, b) => a + b, 0) / xs.length;
 
     malla.position.set(x, 0, z);
+    malla.rotation.x = 0;
 
     // Caja de colisión según el tipo. Aquí es donde se codifica la regla
     // física: qué altura ocupa cada obstáculo.
@@ -347,6 +353,30 @@ export class ObstacleManager {
       o.z += avance;
       o.malla.position.z = o.z;
 
+      // LO QUE YA TE DIO SE HUNDE. Medido fotograma a fotograma después de un
+      // choque: desde el cuarto fotograma la cara delantera del obstáculo está
+      // MÁS CERCA DE LA CÁMARA que el personaje, y su caja en pantalla lo
+      // contiene entero. O sea que durante los veinte fotogramas que tarda en
+      // pasar de largo, el jugador está detrás de un camión. Empujarlo hacia
+      // atrás ayuda los primeros fotogramas y nada más: el obstáculo viene a
+      // veinte metros por segundo y acaba pasando por encima de cualquier
+      // retroceso razonable.
+      //
+      // Así que el obstáculo se va. No de golpe —desaparecer un camión a
+      // cuatro metros de la cámara se lee como un fallo— sino hundiéndose en
+      // el asfalto y ladeándose, que con la sacudida de cámara y el estallido
+      // de papeles encima se lee como que se quedó atrás. Y el asfalto lo tapa
+      // solo: cualquier rayo desde una cámara que mira desde arriba hasta un
+      // punto por debajo de cero cruza la calzada antes.
+      //
+      // Va por Z y no por tiempo: así se hunde exactamente en el tramo en que
+      // taparía al jugador, corra éste a la velocidad que corra.
+      if (o.yaGolpeo) {
+        const f = Math.max(0, Math.min(1, (o.z - (o.zGolpe ?? o.z)) / 1.8));
+        o.malla.position.y = -f * (o.altoCaja + 1.4);
+        o.malla.rotation.x = f * 0.22;
+      }
+
       if (o.z > OBSTACULOS.DISTANCIA_RECICLADO) {
         this._devolverAlPool(o);
         this.activos.splice(i, 1);
@@ -392,12 +422,76 @@ export class ObstacleManager {
 
       if (hayColision(cajaJugador, cajaObstaculo)) {
         o.yaGolpeo = true;
+        // Dónde estaba al dar: el hundimiento se mide desde aquí, para que
+        // empiece en el fotograma del golpe y no un metro después.
+        o.zGolpe = o.z;
         return o;
       }
     }
 
     return null;
   }
+
+  /**
+   * Cuánto tendría que apartarse de lado algo que corre por (xBase, z) para no
+   * llevarse por delante ningún obstáculo.
+   *
+   * Lo piden los perseguidores. Van entre el jugador y la cámara —en Z 2,4—, y
+   * los obstáculos siguen viniendo hasta Z 5,5, así que TODO lo que el jugador
+   * esquiva les pasa a ellos por encima cinco décimas después. Medido en un
+   * minuto de partida: 163 fotogramas de 3600 con la caja del dúo metida
+   * dentro de la de un obstáculo, o sea uno de cada veintidós, con solapes de
+   * hasta 1,3 m. Se veía un contenedor atravesando a dos personas.
+   *
+   * No se resuelve reciclando antes —a Z 1,5 los obstáculos se esfumarían en
+   * mitad del cuadro— ni con un salto: hay obstáculos altos, y a veinte metros
+   * por segundo la ventana para saltarlos es de una décima. Se resuelve
+   * apartándose, que es además lo que haría cualquiera.
+   *
+   * El aviso son nueve metros, que a la velocidad de crucero son cuatro
+   * décimas: bastante para que el desvío se lea como un quiebro y no como un
+   * teletransporte.
+   *
+   * @param {number} xBase  Dónde iría si no hubiera nada
+   * @param {number} z
+   * @param {number} ancho  Lo que ocupa de lado quien pregunta
+   * @param {number} aviso  Cuánto mira hacia adelante, en metros
+   * @returns {number} Desplazamiento lateral DESDE xBase (0 si está libre).
+   *   Se calcula contra xBase y no contra la posición ya desviada a propósito:
+   *   preguntando desde donde ya te apartaste, la respuesta es siempre «estás
+   *   bien» y el desvío se deshace justo cuando hace falta.
+   */
+  apartarse(xBase, z, ancho = 1.4, aviso = 14) {
+    // Todo lo que viene, como tramos de X ocupados.
+    const bultos = [];
+    for (const o of this.activos) {
+      if (o.z < z - aviso || o.z > z + 1.5) continue;
+      const r = o.anchoCaja / 2 + ancho / 2 + 0.2;
+      bultos.push([o.x - r, o.x + r]);
+    }
+    if (!bultos.length) return 0;
+
+    const libre = (x) => bultos.every(([a, b]) => x <= a || x >= b);
+    if (libre(xBase)) return 0;
+
+    // EL HUECO LIBRE MÁS CERCANO, y no «el lado por el que salgo de este
+    // bulto»: mirando los obstáculos de uno en uno, apartarse del contenedor
+    // del carril derecho los metía justo debajo del que había en el central.
+    // Los candidatos son los bordes de los propios bultos —el hueco entre dos
+    // obstáculos empieza donde acaba uno—.
+    const BORDE = 3.6;   // más allá se salen de cuadro
+    let mejor = null;
+    for (const [a, b] of bultos) {
+      for (const donde of [a - 0.02, b + 0.02]) {
+        if (donde < -BORDE || donde > BORDE || !libre(donde)) continue;
+        if (mejor === null || Math.abs(donde - xBase) < Math.abs(mejor - xBase)) mejor = donde;
+      }
+    }
+    // Si los tres carriles están tapados no hay nada que hacer: se pasa por
+    // dentro. Pasa poco y dura una décima.
+    return mejor === null ? 0 : mejor - xBase;
+  }
+
 
   // -------------------------------------------------------------------------
   // TEMA Y CICLO DE VIDA

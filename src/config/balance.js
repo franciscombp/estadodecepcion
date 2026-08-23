@@ -609,7 +609,27 @@ export const CERCO = {
   DURACION: 1.9,
   // Cuántos policías cierran el círculo.
   POLICIAS: 5,
-  RADIO: 4.6,
+
+  // EL CORRO ES UNA ELIPSE, NO UN CÍRCULO, y el motivo es el cuadro.
+  //
+  // Con un radio redondo de 4,6 m, medido en NDC al final del cerco: de los
+  // cinco policías, CUATRO caían fuera por los lados (de -2,24 a 1,84, cuando
+  // el cuadro acaba en ±1) y el dúo también. O sea que la escena que existe
+  // para que se vea que te rodean enseñaba a uno solo. La escena entera
+  // pasaba fuera de plano.
+  //
+  // No se arregla alejando la cámara: el cuadro es vertical y estrecho —393
+  // por 852, con un objetivo largo, o sea nueve grados de media apertura
+  // horizontal— y meter ocho metros de corro a lo ancho pediría veintiséis
+  // metros de distancia, con las figuras al 8 % del alto de pantalla. Un corro
+  // que no se ve o unas hormigas.
+  //
+  // Se arregla apretándolo A LO ANCHO Y estirándolo A LO LARGO, que es donde
+  // el cuadro tiene sitio de sobra. De paso, un corro más estrecho que hondo
+  // es lo que pasa en una calle: la gente no te rodea en círculo perfecto, te
+  // cierra el paso por delante y te tapa la salida por detrás.
+  RADIO_X: 1.35,
+  RADIO_Z: 4.6,
 
   // La cámara se sale de su sitio y da la vuelta para enseñar el corro. Sin
   // esto la escena no se entiende: desde detrás, los perseguidores tapan al
@@ -629,13 +649,37 @@ export const CERCO = {
   // MÁS ALTA QUE ANTES Y MÁS CERCA, y mirando casi al suelo: un cuerpo tumbado
   // se lee desde arriba, no desde su misma altura. A ras se ve un bulto entre
   // piernas; picado se ve quién está tirado y quién lo rodea.
-  CAMARA: { x: 1.4, y: 6.6, z: 9 },
+  //
+  // Y CENTRADA, Y MÁS CERCA TODAVÍA. Con la cámara a (1.4, 6.6, 9) se midió el
+  // reparto entero en NDC al final del cerco: el caído ocupaba el 19 % del
+  // alto en el cuadrante de abajo a la izquierda, cuatro de los cinco
+  // policías caían fuera por los lados y el dúo también, y el escenario
+  // completo sólo usaba de -0,5 a +0,5 en vertical: la mitad del cuadro era
+  // asfalto vacío.
+  //
+  // Con el corro en elipse (ver RADIO_X/RADIO_Z) y el dúo recogido, cabe todo
+  // a 7,6 de distancia: el caído sube al 21 % y los cinco policías y el dúo
+  // están dentro. El desplazamiento lateral de la cámara se quitó porque ya no
+  // hace falta para despejar la espalda del jugador —el jugador está en el
+  // suelo— y descentraba un corro que ahora sí se ve entero.
+  CAMARA: { x: 0.0, y: 6.4, z: 8.4 },
   CAMARA_MIRA_Y: 0.35,
+  // Adónde mira: un poco calle arriba, que es donde está el grueso del corro.
+  CAMARA_MIRA_Z: -1.3,
   // Desplazamiento lateral de los perseguidores durante el cerco: se ponen a
   // un lado en vez de encima, o taparían al personaje justo en el momento en
   // que hay que verlo. Subió a 2.6 al pasar el jugador a caer al suelo: dos
   // figuras de pie a metro y medio de un cuerpo tumbado lo tapan entero.
-  DESVIO_PERSEGUIDOR: 2.6,
+  //
+  // Y BAJÓ A 1.1 al reencuadrar la escena, porque resultó que el dúo ERA EL
+  // PROBLEMA: barriendo radios del corro contra distancias de cámara, el ancho
+  // en pantalla no cambiaba con el radio, y era porque quien tocaba el borde
+  // no era ningún policía sino ellos, a 2,6 m de lado y casi encima de la
+  // cámara. Con 1,1 el que manda vuelve a ser el corro.
+  DESVIO_PERSEGUIDOR: 1.1,
+  // Y en Z se retiran un poco: a 1.5 estaban tan cerca de la cámara que
+  // ocupaban el doble que los policías del fondo.
+  Z_PERSEGUIDOR: 0.4,
 
   // --- Sorteo del juez ---------------------------------------------------
   // Seis jueces y un selector que los recorre. Cinco llevan la camiseta

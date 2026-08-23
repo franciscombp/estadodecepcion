@@ -63,15 +63,26 @@ export class Cerco {
       // Se reparten en un arco por DELANTE y a los lados. La espalda se deja
       // libre a propósito: ahí están Noboa y Reimberg, que llegan por su lado.
       const angulo = -Math.PI * 0.72 + (i / (CERCO.POLICIAS - 1)) * Math.PI * 1.44;
-      const radio = CERCO.RADIO * (1.9 - avance);
+      const abre = 1.9 - avance;
 
+      // Elipse: estrecha a lo ancho de la calle y honda a lo largo. Ver
+      // CERCO.RADIO_X / RADIO_Z, que explica por qué no es un círculo.
       policia.position.set(
-        Math.sin(angulo) * radio,
+        Math.sin(angulo) * CERCO.RADIO_X * abre,
         0,
-        -Math.cos(angulo) * radio,
+        -Math.cos(angulo) * CERCO.RADIO_Z * abre,
       );
-      // Miran al centro, o sea al jugador.
-      policia.rotation.y = angulo + Math.PI;
+      // MIRAN AL CENTRO, o sea al jugador. Dos arreglos en la misma línea:
+      //
+      // - Con la elipse, el ángulo del reparto ya no coincide con la dirección
+      //   al centro: un punto a metro y medio de lado y cuatro y medio de
+      //   frente no mira a 45°. Se saca de la posición.
+      // - Y sobraba media vuelta. Estos modelos miran a +Z con rotación cero
+      //   —por eso el jugador lleva un `rotation.y = Math.PI` puesto a mano,
+      //   para correr de espaldas—, así que el `+ Math.PI` que había aquí los
+      //   ponía de espaldas al hombre que acababan de tirar al suelo. En un
+      //   corro de cinco no se notaba porque cuatro estaban fuera de cuadro.
+      policia.rotation.y = Math.atan2(-policia.position.x, -policia.position.z);
 
       // Trote hasta que se plantan.
       const trote = t < 0.85 ? Math.abs(Math.sin(this.tiempo * 9 + i)) * 0.09 : 0;
