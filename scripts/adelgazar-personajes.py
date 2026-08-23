@@ -41,7 +41,15 @@
 # entra en el .glb por EXT_texture_webp, que GLTFLoader trae de serie.
 #
 # SE EJECUTA A MANO, no en el build: los .glb versionados ya salen finos.
-#     python3 scripts/adelgazar-personajes.py
+#
+#     npm run modelos                      los seis del juego
+#     npm run modelos -- ~/Descargas/x.glb  uno suelto, el que vuelve de Blender
+#
+# Lo segundo es la otra mitad del viaje. El exportador del creador
+# (`/creador/exportador/`) baja el personaje en .glb para abrirlo en Blender, y
+# al bajarlo tiene que volcar el atlas en PNG porque `GLTFExporter` no sabe
+# escribir webp: de 42 KB pasa a 400 y pico. Eso está bien para editar y muy
+# mal para servir, así que lo que vuelve se pasa por aquí antes de entrar.
 # ============================================================================
 
 import json, struct, sys, io, os
@@ -155,8 +163,13 @@ def adelgazar(ruta):
 
 
 if __name__ == '__main__':
+    sueltos = [Path(a) for a in sys.argv[1:]]
+    for r in sueltos:
+        if not r.exists():
+            print(f'No está {r}')
+            raise SystemExit(1)
     total_antes = total_despues = 0
-    for ruta in sorted(CARPETA.glob('*.glb')):
+    for ruta in (sueltos or sorted(CARPETA.glob('*.glb'))):
         r = adelgazar(ruta)
         if r:
             total_antes += r[0]

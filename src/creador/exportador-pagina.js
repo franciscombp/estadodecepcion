@@ -1,12 +1,6 @@
 // Interfaz del exportador. La lógica y el catálogo viven en exportador.js, que
 // es lo que importa el juego; aquí solo se pinta y se conectan los botones.
-import { CATALOGO, exportar, crearVisor } from './exportador.js';
-import { cargarHitos } from '../models/hitos.js';
-
-// Los edificios vienen de un archivo, así que hay que esperarlos ANTES de
-// montar el catálogo: sin esto salían en la lista pero se clonaban vacíos —el
-// visor decía «0 × 0 × 0 m»— porque nadie había descargado el modelo en esta
-// página. El juego lo hace en su pantalla de carga; aquí no había ninguna.
+import { CATALOGO, exportar, crearVisor, preparar } from './exportador.js';
 
 
 const lienzo = document.getElementById('visor');
@@ -72,16 +66,26 @@ document.getElementById('bajarTodo').addEventListener('click', async (e) => {
   boton.disabled = false;
 });
 
-// Los edificios vienen de un archivo, así que hay que esperarlos: sin esto
-// salían en la lista pero se clonaban vacíos —el visor decía «0 × 0 × 0 m»—
-// porque nadie había descargado el modelo en esta página. El juego lo hace en
-// su pantalla de carga; aquí no había ninguna.
+// LOS ARCHIVOS, ANTES DE NADA. Los edificios vienen del .glb de Quito y los
+// personajes de los suyos; el juego los descarga en su pantalla de carga y
+// esta página no tiene ninguna. Sin esperar aquí, la pieza aparece en la
+// lista, se exporta, y lo que baja está vacío —el visor decía «0 × 0 × 0 m»—
+// o es el muñeco de cajas de reserva en vez del modelo. Ya pasó una vez con
+// los edificios y volvió a pasar con los personajes.
+//
+// Mientras tanto los botones se quedan desactivados: exportar a medio
+// descargar es exactamente cómo se cuela un archivo vacío.
 //
 // Va en un then y no con await de nivel superior porque el build apunta a
 // es2020, que no lo admite.
-cargarHitos(import.meta.env.BASE_URL ?? '/').then(() => seleccionar(elegida));
+const botones = [document.getElementById('bajar'), document.getElementById('bajarTodo')];
+for (const b of botones) b.disabled = true;
+medidas.textContent = 'Descargando modelos…';
 
-seleccionar(elegida);
+preparar(import.meta.env.BASE_URL ?? '/').then(() => {
+  for (const b of botones) b.disabled = false;
+  seleccionar(elegida);
+});
 
 let previo = performance.now();
 (function bucle(ahora) {

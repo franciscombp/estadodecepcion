@@ -754,16 +754,38 @@ cuelgan de la misma URL del juego.
 ### Editar una pieza en Blender
 
 1. Abre **`/creador/exportador/`**. Ahí están todas las piezas del juego
-   agrupadas —46 en total—: personajes, cuadras de decorado, obstáculos (los
-   genéricos y los **vestidos por escenario**), recolectables, los **edificios
-   del modelo de Quito**, potenciadores y elementos de escena. Cada una se
-   previsualiza con sus medidas reales en metros.
+   agrupadas —58 en total—: personajes, **el reparto entero del modelo**,
+   cuadras de decorado, obstáculos (los genéricos y los **vestidos por
+   escenario**), recolectables, los **edificios del modelo de Quito**,
+   potenciadores y elementos de escena. Cada una se previsualiza con sus
+   medidas reales en metros.
+
+   Los botones tardan un momento en habilitarse: los edificios vienen del
+   `.glb` de Quito y los personajes de los suyos, y **exportar antes de que
+   estén descargados baja un archivo vacío o el muñeco de cajas de reserva en
+   vez del modelo**. Se nota tarde y mal —el archivo se abre en Blender, tiene
+   el nombre correcto, y dentro hay otra cosa—, así que la página espera.
 2. **Descargar `.glb`** (o *Descargar todo*, que baja el catálogo entero).
    El visor se orbita arrastrando con el ratón y se acerca con la rueda; el
    botón *Reencuadrar* vuelve a la vista de partida.
 3. En Blender: *File ▸ Import ▸ glTF 2.0*, retocas, y *File ▸ Export ▸ glTF 2.0
    (.glb)*.
 4. Deja el archivo en **`public/modelos/piezas/`** con el mismo nombre.
+
+**Si lo que retocaste es un personaje, pásalo por el adelgazador antes de
+dejarlo:**
+
+```bash
+npm run modelos -- ruta/al/personaje.glb
+```
+
+`GLTFExporter` no sabe escribir webp, así que al bajar el personaje vuelca su
+atlas en PNG: de 42 KB pasa a 400 y pico. Eso está bien para editar en Blender
+—el PNG lo lee todo el mundo— y muy mal para servir. El adelgazador lo devuelve
+a 512² en webp y el archivo baja de 508 KB a 301. Sin argumentos
+(`npm run modelos`) repasa los seis del juego. El detalle de cómo se eligió ese
+tamaño está en `scripts/adelgazar-personajes.py` y en el §6.22 de la prueba de
+escritorio.
 
 A partir de ahí el juego usa el archivo. Si no está, usa el procedural. **No hay
 que tocar código ni registrar nada**: la comprobación se hace al arrancar, y una
@@ -781,7 +803,15 @@ generador pregunte por `piezaEditada(id)` antes de construir.
 
 ### Dos avisos que ahorran un rato
 
-**Los personajes importados no se animan.** `animarCarrera()` mueve los miembros
+**Los personajes del modelo bajan con su esqueleto, su ciclo y su textura**, y
+en la pose de reposo —la cruz en la que vinieron—, no a media zancada. Los
+nueve están en el grupo *Reparto (del modelo)*: los cuatro jugables, el
+entrevistado de la portada, el mando policial, el antidisturbias del cerco y
+los dos del dúo perseguidor. El dúo montado también se baja entero, pero **sin
+animaciones**: son dos esqueletos con los mismos nombres de hueso y un clip no
+sabría a cuál de los dos apunta.
+
+**Los personajes de cajas importados no se animan.** `animarCarrera()` mueve los miembros
 buscándolos por nombre, y desde que los miembros son articulados la lista es más
 larga: `brazoDer` → `antebrazoDer` → `manoDer`, `piernaDer` → `pantorrillaDer` →
 `pieDer`, y sus dos gemelos del otro lado, más `torso`, `cadera`, `cuello`,

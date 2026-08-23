@@ -807,6 +807,23 @@ export function cargarPersonajesGLB(base = '/') {
   return promesaCarga;
 }
 
+/**
+ * Los ids de todos los personajes que salen de un archivo.
+ *
+ * Lo pide el exportador del creador: la lista de personajes JUGABLES son
+ * cuatro, pero del modelo salen nueve —el entrevistado, el mando, el
+ * antidisturbias y los dos del dúo no se juegan y hasta ahora no había forma
+ * de bajarlos para retocarlos en Blender—.
+ */
+export function idsPersonajesGLB() {
+  return Object.keys(REDACCION);
+}
+
+/** Los clips que trae el archivo de un personaje, para exportarlos con él. */
+export function clipsDePersonajeGLB(id) {
+  return cargados.get(id)?.clips ?? [];
+}
+
 export function hayPersonajeGLB(id) {
   return cargados.has(id);
 }

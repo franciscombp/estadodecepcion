@@ -21,21 +21,96 @@ import * as THREE from 'three';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 
 import * as Props from '../models/props.js';
-import { crearPersonaje } from '../models/characters.js';
+import { crearPersonaje, crearPerseguidores } from '../models/characters.js';
+import {
+  cargarPersonajesGLB, crearPersonajeGLB, reposarGLB,
+  idsPersonajesGLB, clipsDePersonajeGLB,
+} from '../models/personajeGLB.js';
 import { PERSONAJES } from '../config/personajes.js';
 import { ESCENARIOS, obtenerEscenario } from '../config/escenarios.js';
 import { CATALOGO_POTENCIADORES } from '../config/balance.js';
 import { EDIFICIO_DEL_CRUCE, DECORADO_IMPORTADO, clonarPorNombre } from '../models/hitos.js';
+import { cargarHitos } from '../models/hitos.js';
 
 const PALETA = obtenerEscenario('bahia').colores;
+
+// ---------------------------------------------------------------------------
+// LO QUE HAY QUE HABER DESCARGADO ANTES DE PODER EXPORTAR NADA
+// ---------------------------------------------------------------------------
+// Dos familias de piezas no se generan con código: los edificios salen del
+// .glb de Quito y los personajes de sus seis archivos. El juego los descarga
+// en su pantalla de carga; esta página no tiene ninguna, así que si no se
+// espera aquí pasa lo de siempre —y ya pasó una vez con los edificios—: la
+// pieza aparece en la lista, se exporta, y lo que baja está VACÍO o es el
+// muñeco de cajas de reserva en vez del modelo.
+//
+// Se nota tarde y mal: el archivo se abre en Blender, tiene el nombre
+// correcto, y dentro hay otra cosa.
+let preparado = null;
+export function preparar(base = '/') {
+  if (!preparado) {
+    preparado = Promise.all([cargarHitos(base), cargarPersonajesGLB(base)]);
+  }
+  return preparado;
+}
+
+/**
+ * Un personaje del modelo, en su pose de reposo.
+ *
+ * SE LE PONE EN REPOSO A PROPÓSITO. Al crearlo, el mezclador escribe el primer
+ * fotograma de su ciclo, y exportar eso deja al muñeco a media zancada dentro
+ * del archivo: se abre en Blender con una pierna adelantada y no hay forma de
+ * saber si es la pose de reposo o un error del rig. En reposo sale en la cruz
+ * en la que vino, que es lo que espera cualquiera que abra un personaje.
+ */
+function personajeDelModelo(id) {
+  const m = crearPersonajeGLB(id);
+  if (!m) return new THREE.Group();
+  reposarGLB(m);
+  return m;
+}
+
+// Cómo se llama cada uno en la lista. Los ids son de código —`perseguidorAbajo`
+// no le dice nada a nadie— y quien abre esta página busca a una persona.
+const NOMBRE_REPARTO = {
+  tostadologo: 'El tostadólogo',
+  avecilla: 'Avecilla',
+  generico: 'El entrevistado (genérico)',
+  ministro: 'El mando policial',
+  policia: 'Antidisturbias (cerco)',
+  perseguidorAbajo: 'Perseguidor: el que carga',
+  perseguidorArriba: 'Perseguidor: Roy, el de arriba',
+  buencan: 'Buencán',
+  monki: 'Monki',
+};
 
 // El catálogo: qué se puede exportar y cómo se construye cada cosa. El `id` es
 // además el nombre del archivo que sale, para que al volver de Blender se sepa
 // dónde va sin tener que adivinar.
 export const CATALOGO = [
+  // Los JUGABLES. `crearPersonaje` devuelve el del modelo si está descargado
+  // —por eso `preparar()`— y el de cajas si no, así que la marca `glb` es la
+  // que hace que sus clips viajen dentro del archivo.
   { grupo: 'Personajes', piezas: PERSONAJES.map((p) => ({
-    id: `personaje-${p.id}`, nombre: p.nombre, hacer: () => crearPersonaje(p.id),
+    id: `personaje-${p.id}`, nombre: p.nombre, glb: p.id,
+    hacer: () => crearPersonaje(p.id),
   })) },
+
+  // EL REPARTO ENTERO, no sólo los cuatro jugables. Del modelo salen nueve
+  // personajes —el entrevistado de la portada, el mando policial, el
+  // antidisturbias del cerco y los dos del dúo perseguidor— y hasta ahora no
+  // había forma de bajar ninguno de esos cinco para retocarlo.
+  //
+  // Van con sus animaciones dentro (ver `exportar()`), así que lo que se abre
+  // en Blender es el personaje con su esqueleto y su ciclo, no una estatua.
+  { grupo: 'Reparto (del modelo)', piezas: [
+    ...idsPersonajesGLB().map((id) => ({
+      id: `modelo-${id}`, nombre: NOMBRE_REPARTO[id] ?? id, glb: id,
+      hacer: () => personajeDelModelo(id),
+    })),
+    { id: 'modelo-perseguidores', nombre: 'Dúo perseguidor (montado)',
+      hacer: () => crearPerseguidores() },
+  ] },
 
   { grupo: 'Decorado', piezas: Object.keys(ESCENARIOS).map((id) => ({
     id: `decorado-${id}`, nombre: `Cuadra de ${obtenerEscenario(id).nombre}`,
@@ -102,6 +177,28 @@ export const CATALOGO = [
   ] },
 ];
 
+/**
+ * Le quita al objeto lo que no cabe en un archivo.
+ *
+ * Los personajes del modelo llevan en `userData` su mezclador de animación, su
+ * esqueleto fichado y sus medidas. El mezclador apunta a la escena y la escena
+ * al mezclador, así que `GLTFExporter` —que serializa `userData` tal cual—
+ * tropieza con la referencia circular, escupe un aviso por consola y descarta
+ * el userData ENTERO, incluido el nombre por el que el juego busca la pieza
+ * al volver de Blender.
+ *
+ * Se limpia sobre la copia que se va a exportar, no sobre la del juego: cada
+ * `hacer()` construye una nueva.
+ */
+function limpiarParaExportar(objeto) {
+  objeto.traverse((o) => {
+    if (!o.userData) return;
+    delete o.userData.glb;
+    delete o.userData.medidas;
+    delete o.userData.partes;   // el dúo guarda aquí sus dos mitades
+  });
+}
+
 export function buscarPieza(id) {
   for (const g of CATALOGO) {
     const p = g.piezas.find((x) => x.id === id);
@@ -123,15 +220,32 @@ export function exportar(id) {
 
   const objeto = pieza.hacer();
   objeto.name = id;
+  limpiarParaExportar(objeto);
+
+  // LAS ANIMACIONES VIAJAN CON EL PERSONAJE. Sin esto lo que baja es una malla
+  // con huesos y ningún movimiento: se abre en Blender, se ve el esqueleto, y
+  // el ciclo de carrera que trae el archivo original no está por ninguna
+  // parte. `GLTFExporter` sólo escribe los clips que se le pasan a mano.
+  const animaciones = pieza.glb ? clipsDePersonajeGLB(pieza.glb) : [];
 
   return new Promise((resolver, rechazar) => {
     new GLTFExporter().parse(
       objeto,
       (resultado) => resolver(new Blob([resultado], { type: 'model/gltf-binary' })),
       (error) => rechazar(error),
-      // Binario: un .gltf suelto se parte en archivo y buffers, y eso ya no es
-      // «un archivo que arrastras a Blender».
-      { binary: true, onlyVisible: false },
+      {
+        // Binario: un .gltf suelto se parte en archivo y buffers, y eso ya no
+        // es «un archivo que arrastras a Blender».
+        binary: true,
+        onlyVisible: false,
+        animations: animaciones,
+        // OJO CON EL PESO. El atlas de los personajes va en webp dentro del
+        // .glb del juego —42 KB— pero `GLTFExporter` no sabe escribir webp y
+        // lo vuelca como PNG, que multiplica por diez. Se acepta: esto es un
+        // archivo para abrir en Blender, no para servir, y el PNG lo lee todo
+        // el mundo. Lo que se sirve sigue saliendo de
+        // `scripts/adelgazar-personajes.py`.
+      },
     );
   });
 }
