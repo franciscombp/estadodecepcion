@@ -75,6 +75,59 @@ Qué piezas admiten sustitución está en `PIEZAS_SUSTITUIBLES`
 
 ---
 
+## Mixamo, y por qué no hay botón de `.fbx`
+
+**No se puede exportar a FBX desde aquí.** Three trae exportadores a glTF, OBJ,
+PLY, STL, USDZ, DRACO, EXR y KTX2, y ni uno a FBX. FBX es un formato binario
+propietario de Autodesk; el subidor de Mixamo quiere binario, no el ASCII que sí
+se podría escribir a mano, así que fabricarlo para que falle justo en el único
+sitio donde importa no sale a cuenta.
+
+**Pero el esqueleto de estos personajes YA ES el de Mixamo**, hueso por hueso.
+Se abrió el archivo y se miró:
+
+```
+Hips
+  LeftUpLeg → LeftLeg → LeftFoot → LeftToeBase
+  RightUpLeg → …
+  Spine02 → Spine01 → Spine
+                        LeftShoulder → LeftArm → LeftForeArm → LeftHand
+                        RightShoulder → …
+                        neck → Head
+```
+
+Son los mismos veinticuatro huesos con los mismos nombres, sin el prefijo
+`mixamorig:` y con la columna numerada al revés (nuestro `Spine02` cuelga de la
+cadera; el de Mixamo se llama `Spine`, y el de arriba `Spine2`). Meshy usa esa
+convención porque se ha vuelto el estándar de facto.
+
+### Cómo subir un personaje a Mixamo
+
+Baja la pieza en `.glb` desde el creador y dale una vuelta por Blender:
+
+1. *File ▸ Import ▸ glTF 2.0* — el `.glb` del creador.
+2. *File ▸ Export ▸ FBX (.fbx)*, con **Path Mode: Copy** y el icono de
+   empaquetar activado, para que la textura viaje dentro.
+3. Súbelo a Mixamo, elige la animación, y descárgala en **FBX**.
+4. De vuelta a Blender, y de ahí a `.glb`.
+5. `npm run modelos -- ruta/al/personaje.glb` antes de dejarlo en su sitio.
+
+> **Se intentó saltarse Blender y no salió.** La idea era cargar el `.fbx` de
+> Mixamo en el propio creador —Three sí trae `FBXLoader`— y pasarle el ciclo a
+> nuestro esqueleto con `SkeletonUtils.retargetClip`. Lo que funciona: el `.fbx`
+> se lee (119 huesos, el clip entero), los nombres se emparejan solos —22 de 24;
+> los dos que faltan son `head_end` y `headfront`, extras de Meshy que ninguna
+> animación toca— y se detecta que Mixamo viene en centímetros. Lo que NO
+> funciona: la pose resultante sale aplastada. Medido con la cabeza y el pie
+> izquierdo, en las cinco combinaciones de opciones de `retargetClip` y también
+> renombrando las pistas a pelo: la cabeza acaba a 0,40 m y el pie a 0,51 m
+> —**la cabeza por debajo del pie**— cuando en reposo la cabeza está a 1,31 m.
+> Los nombres coinciden pero los ejes de los huesos no, y arreglarlo es escribir
+> un retargeteador de verdad. No se dejó a medias en el repositorio: hasta que
+> funcione, el camino es Blender.
+
+---
+
 ## Los dos tipos de personaje, que no se editan igual
 
 ### Los del modelo (siete de nueve)
