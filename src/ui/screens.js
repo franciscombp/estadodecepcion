@@ -167,10 +167,10 @@ function seccionDiario({ seccion, antetitulo, titular, bajada, clase }) {
  * @param {string} textoCompleto Qué decir cuando ya no queda nada por abrir.
  */
 function barraDeProgreso(hechos, proximo, catalogo, textoCompleto) {
-  const bloque = el('div', 'progreso');
+  const bloque = el('div', 'avance');
 
   if (!proximo) {
-    bloque.appendChild(el('div', 'progreso__pie progreso__pie--completo', textoCompleto));
+    bloque.appendChild(el('div', 'progreso-pie progreso-pie--completo', textoCompleto));
     return bloque;
   }
 
@@ -181,13 +181,23 @@ function barraDeProgreso(hechos, proximo, catalogo, textoCompleto) {
   const tramo = Math.max(1, proximo.tramos - desde);
   const parte = Math.max(0, Math.min(1, (hechos - desde) / tramo));
 
-  const carril = el('div', 'progreso__carril');
-  const relleno = el('span', 'progreso__relleno');
-  relleno.style.setProperty('--parte', `${(parte * 100).toFixed(1)}%`);
+  // LA BARRA ES LA DEL SISTEMA. `.progreso` con un `<span>` dentro es un
+  // componente de `mal-ds`, con su carril, su relleno de marca y su transición
+  // de ancho ya puestos; el juego tenía su propia versión con dos clases más y
+  // una animación de entrada escrita a mano, que es exactamente el tipo de
+  // duplicado que este cambio viene a quitar.
+  //
+  // El ancho se escribe en cero y se sube en el fotograma siguiente: así el
+  // relleno CRECE con la transición del propio sistema en vez de aparecer ya
+  // puesto, que es la diferencia entre un dato y un progreso.
+  const carril = el('div', 'progreso');
+  const relleno = el('span');
+  relleno.style.width = '0';
   carril.appendChild(relleno);
   bloque.appendChild(carril);
+  requestAnimationFrame(() => { relleno.style.width = `${(parte * 100).toFixed(1)}%`; });
 
-  bloque.appendChild(el('div', 'progreso__pie', T('ajustes.faltanTramos', {
+  bloque.appendChild(el('div', 'progreso-pie', T('ajustes.faltanTramos', {
     nombre: proximo.nombre,
     n: proximo.faltan,
     tramos: proximo.faltan === 1 ? T('ajustes.tramoSingular') : T('ajustes.tramoPlural'),

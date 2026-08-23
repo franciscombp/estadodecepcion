@@ -1,121 +1,155 @@
 # Sistema de estilo — Estado de Excepción
 
-Guía visual del juego. Codifica el lenguaje extraído de las referencias de
-arte del proyecto para que cualquiera pueda añadir pantallas, iconos o props
-sin que desentonen.
+> **El juego no tiene sistema de diseño propio.** Usa
+> [`mal-ds`](https://github.com/franciscombp/mal/tree/main/ds), el de la casa,
+> con el tema del periódico. Lo que hay en este documento es lo que el juego
+> añade ENCIMA de ese sistema, y —al final— la lista de lo que hay que
+> devolverle.
 
-Los valores viven en [`src/config/estilo.js`](../src/config/estilo.js). Este
-documento explica **por qué** son esos y **cuándo** usar cada uno.
+## Cómo se enchufa
 
----
-
-## La referencia en una frase
-
-> Noche tropical ecuatoriana vista a través de neón, con la solidez de
-> interfaz de un juego premium de tienda.
-
-Dos mitades que tienen que convivir:
-
-- **El mundo** es sucio, cálido y caótico: asfalto mojado, palmeras,
-  vallas publicitarias, luces de patrulla, polvo en el aire.
-- **La interfaz** es limpia, oscura y geométrica: paneles casi negros,
-  bordes de color nítidos, tipografía pesada, nada decorativo.
-
-El contraste entre ambas es deliberado. La interfaz no compite con la escena;
-se posa encima como el visor de una cámara.
-
----
-
-## Color
-
-### La regla que manda sobre todas
-
-**El color es semántico, nunca decorativo.** Cinco significados, cinco colores:
-
-| Color | Hex | Significa | Se usa en |
-|---|---|---|---|
-| 🟢 Verde | `#3dff9a` | **Tú.** Tu progreso, tu vida, lo que va bien | Jugador, estamina, distancia, éxito, ruta activa |
-| 🟡 Dorado | `#ffcf3f` | **Lo que recolectas** | Papeles, contador, líneas de carril, marca El Mercio |
-| 🔴 Rojo | `#ff3355` | **Peligro y ellos** | Perseguidor, obstáculos, alertas, fracaso, pausa |
-| 🔵 Cian | `#2affd5` | **Información neutra** | Etiquetas de datos, bordes informativos |
-| 🟠 Naranja | `#ff6b35` | **Evidencia** | USB, chats, fotos, lo valioso y escaso |
-
-Si un elemento nuevo no encaja en uno de esos cinco significados,
-**no lleva color**: va en gris (`#8b95ad`). La disciplina aquí es lo que hace
-que el jugador entienda el HUD sin leerlo — ve un destello rojo y sabe que
-algo va mal antes de procesar qué dice.
-
-### Fondos
-
-Casi negros, con matiz azulado. Nunca gris neutro: el azul hace que los
-neones se lean como luz y no como pintura.
-
-```
-#05070c  abismo      pantallas completas
-#0a0e17  noche       fondo base
-#0d1220  panel       paneles del HUD
-#141b2d  panelAlto   hover, elevación
+```html
+<html lang="es-EC" data-marca="mercio" data-tema="claro">
 ```
 
----
+| | |
+|---|---|
+| Dónde vive | `public/ds/` — copia literal, versionada, de `ds/` del repo `mal` |
+| Cómo se actualiza | `npm run ds -- /ruta/al/clon/de/mal` |
+| Qué versión hay | `public/ds/version.json` (hoy **1.0.15**) |
+| Cómo se carga | `public/ds-capa.css` → `@import url("./ds/mal/mal.css") layer(ds)` |
 
-## Anatomía de un panel del HUD
+**Va dentro de `@layer ds`, y eso es lo que hace que la migración se pueda
+hacer por partes.** Una regla sin capa le gana SIEMPRE a una regla en capa,
+tenga la especificidad que tenga: con el sistema en su capa y `src/style.css`
+fuera, el sistema se ve únicamente donde el juego no ha dicho nada. Adoptar un
+componente del sistema es, literalmente, **borrar** la regla del juego que lo
+estaba tapando.
 
-Todos los bloques del HUD son la misma receta:
+**Claro fijo, de momento.** `data-tema="claro"` desactiva el modo oscuro del
+sistema. No es que no funcione: es que el mundo 3D es una calle a mediodía y
+toda la hoja del juego está escrita dando por hecho papel claro —el velo de
+las pantallas, la tinta blanca del HUD sobre la foto—. El oscuro del periódico
+está ahí y es un proyecto aparte.
 
-```
-┌─────────────────────────────┐
-│  ETIQUETA          (10px)   │  ← gris, mayúsculas, tracking amplio
-│  VALOR             (28px)   │  ← color semántico, peso 900, glow
-└─────────────────────────────┘
-   relleno #0d1220 al 92%
-   borde 2px del color semántico al 35%
-   radio 14px
-   resplandor de tres capas
-```
+## Los colores no se escriben, se piden
 
-**La jerarquía es siempre la misma**: etiqueta pequeña y apagada arriba,
-valor grande y encendido abajo. El jugador aprende a saltarse las etiquetas
-después de la primera partida y solo escanea los números.
-
-### El resplandor va en tres capas
-
-Una sola `box-shadow` grande se ve sucia. Tres capas se leen como luz:
+`src/style.css` declara quince alias y ni un hexadecimal:
 
 ```css
-box-shadow:
-  0 0 8px  rgba(COLOR, 0.35),   /* halo cercano, define el borde */
-  0 0 22px rgba(COLOR, 0.18),   /* halo lejano, tiñe el entorno */
-  inset 0 0 12px rgba(COLOR, 0.06);  /* brillo interior, da volumen */
+--papel:       var(--mal-bg-2);        /* la página */
+--papel-blanco:var(--mal-surface);     /* la tarjeta */
+--papel-sombra:var(--mal-outline);     /* el filete */
+--tinta:       var(--mal-on-surface);
+--tinta-media: var(--mal-on-surface-2);
+--tinta-tenue: var(--mal-on-surface-3);
+--rojo-diario: var(--mal-primary);
+--azul-diario: var(--mal-secondary);
+--serif:       var(--mal-display);     /* PT Serif */
+--sans:        var(--mal-mono);        /* Montserrat */
 ```
 
-Está resuelto en `resplandor(rgb, intensidad)`.
+Los alias se quedan porque hablan el idioma del juego —aquí lo de abajo es
+papel y lo de encima es tinta— y porque 414 reglas los usan. Lo que se fue es
+el valor. Si el periódico ajusta su rojo en su `theme.json`, el juego se entera
+al actualizar el sistema.
+
+## Choques de nombre resueltos
+
+El sistema usa diez clases que el juego ya usaba. Ocho no molestan; dos sí, y
+se renombraron **en el juego**, porque el nombre es del sistema:
+
+| Clase | En el sistema | En el juego | Qué se hizo |
+|---|---|---|---|
+| `.hud` | la cabecera pegajosa del sitio | el marcador de la partida, a `inset: 0` | → `.hud-juego`. Sin esto, el `background` de la cabecera tapaba el juego entero con una sábana blanca |
+| `.marcador` | UNA cifra grande con su rótulo | la COLUMNA de cifras de la esquina | → `.marcador-corrida` |
+| `.progreso` | carril + `<span>` de relleno | lo mismo, con dos clases más | **adoptado**: se borró el del juego |
+
+## Lo que pone el sistema y lo que pone el juego
+
+El sistema viste **todo lo que no es correr**: las once pantallas, sus tokens,
+su tipografía y sus componentes. El juego pone **lo que un sistema de diseño
+no puede tener**: el mundo 3D, el HUD encima del lienzo y la coreografía de
+las partidas.
+
+| | Quién manda |
+|---|---|
+| Color, tipografía, espaciado, radios, sombras | el sistema |
+| Botones, tarjetas, listas, barras, insignias | el sistema (adopción en curso) |
+| El HUD sobre el lienzo | el juego · `.hud-juego` |
+| Iluminación, props, materiales del mundo | el juego · `src/config/estilo.js` |
+| La pantalla del sobre, los emblemas, los iconos de partida | el juego, **de momento** — ver abajo |
+
+### Del mundo 3D no opina el sistema
+
+`src/config/estilo.js` sigue teniendo su paleta y no es una duplicación: son
+colores de MATERIAL, no de interfaz. Un `MeshStandardMaterial` no entiende
+`var(--mal-primary)`, y la luz de una calle a mediodía no es un token de
+producto. Lo que sí comparten es el criterio: **el color es semántico, nunca
+decorativo.**
 
 ---
 
-## Tipografía
+## Lo que hay que devolverle al sistema
 
-**No cargamos fuentes externas.** El juego tiene que arrancar sin red, y una
-fuente que no llega deja el HUD descuadrado. La pila de sistema con peso 900
-y tracking apretado da el mismo carácter que las condensadas de referencia.
+La regla de la casa, tal como la puso quien encargó esto: *si el juego tiene
+algo que el sistema no tiene, se le añade al sistema sin romper lo que ya hay.*
+Esto es el inventario, y está ordenado por lo que más falta hace.
 
-| Uso | Tamaño | Peso | Tracking |
-|---|---|---|---|
-| Cifra grande (papeles, distancia) | `clamp(1.6rem, 7vw, 2.4rem)` | 900 | `-0.02em` |
-| Título de pantalla | `clamp(2rem, 10vw, 3.6rem)` | 900 | `-0.03em` |
-| Etiqueta de dato | `clamp(0.55rem, 2.2vw, 0.68rem)` | 800 | `0.16em` |
-| Cuerpo | `clamp(0.8rem, 3.2vw, 0.95rem)` | 600 | normal |
+### 1 · Un contenedor de HUD · `.hud-juego`
 
-**Las cifras del HUD llevan `font-variant-numeric: tabular-nums`.** Sin eso
-el marcador "baila" cada vez que un `1` sustituye a un `8`, y ese temblor se
-nota muchísimo a 60 fps.
+El sistema tiene la sección `juego` con sus piezas —`.marcador`, `.medidor`,
+`.vidas`, `.chip`, `.boton-juego`— pero **el ejemplo «Sobre el lienzo» monta el
+contenedor con estilos en línea**: `position:absolute;top:16px;left:16px` seis
+veces. No hay componente para lo único que todo HUD necesita, que es la rejilla
+que reparte las esquinas sobre un lienzo. El juego tiene uno hecho y probado.
 
-Etiquetas siempre en **mayúsculas con tracking amplio**. Valores en tamaño
-grande sin tracking extra.
+### 2 · La pantalla de premio · el sobre
+
+Un desbloqueo a pantalla completa —fondo de rayos, la pieza en el centro con su
+rebote, un toque para abrir— le sirve a los siete juegos del hub, no solo a
+éste. Va con su variante de tema: aquí es un sobre de redacción porque el juego
+es un periódico; en otro será otra cosa. Lo que se comparte es la maqueta y el
+tiempo, no el dibujo.
+
+### 3 · El rojo de marca en RGB · `--ref-marca-rgb`
+
+El sistema publica `--ref-borde-rgb` para poder graduar el filete, pero no el
+color de marca. Sin él no se puede escribir `rgba(rojo, .12)` sin volver a
+escribir el hexadecimal, que es justo lo que los tokens vienen a evitar. El
+juego lo tiene escrito a mano en `src/style.css` y es el único que queda.
+
+### 4 · Tres colores de fondo de caja que el tema no declara
+
+El tema del periódico no tiene pasteles de fondo. El juego usa tres:
+
+| | | Dónde |
+|---|---|---|
+| `--lila-diario` | `#ddbeff` | las tarjetas del sorteo de jueces |
+| `--verde-diario` | `#cdeac4` | la del juez que no es del gobierno |
+| `--verde-senal` | `#67b857` | los letreros verdes de la bifurcación |
+
+Y `--rojo-en-tinta` (`#ffb3a6`): el rojo de marca aclarado para leerse sobre el
+bloque negro. `#c53b2b` sobre `#141414` no llega ni a 3 : 1, así que hace falta
+una pareja del acento para fondo oscuro — que es un hueco del tema, no un
+capricho del juego.
+
+### 5 · Los iconos del juego
+
+`iconos.svg` trae 81 símbolos de trazo. El juego tiene **veintiséis dibujos a
+color** que no son iconos de interfaz —son objetos: un cuenco de encebollado,
+una linterna, un micrófono, cuatro emblemas de periodista— y que por eso no
+encajan en un sprite de trazo de 24. La pregunta para el sistema no es si estos
+entran, es si hace falta un segundo sprite ilustrado al lado del de trazo.
 
 ---
 
 ## Iconos
+
+> El sistema dice **«nada de emojis en la interfaz»** y trae un sprite de 81
+> símbolos de trazo (`ds/mal/iconos.svg`). Esa regla vale aquí igual. Lo que
+> sigue es para lo OTRO: los dibujos de objeto, que no son iconos de interfaz
+> y no caben en un sprite de trazo. Ver «lo que hay que devolverle al sistema».
 
 Ilustrados y a color, no lineales monocromos. Un cuenco de encebollado con su
 caldo naranja comunica "esto te recupera" más rápido que cualquier símbolo
@@ -202,26 +236,33 @@ Las tres reglas que no se rompen:
 
 ## Composición del HUD
 
+Cuatro cosas encima del lienzo y ni una más, que es lo que pone la referencia
+del género: la pausa arriba a la izquierda, la columna de cifras arriba a la
+derecha, las píldoras de lo que esté activo abajo, y **nada en el centro**.
+
 ```
 ┌──────────────────────────────────────────┐
-│ [⏸]   [🍲 ESTAMINA ▓▓▓▓░ 72%]   [📄 248] │  ← estado permanente
+│ [⏸]                                 1.345│
+│                                     984 m│  ← permanente, en las esquinas
+│                                  MEJOR  0│
+│                                     ● ● ●│
 │                                          │
-│ RUTA                        ┌──────────┐ │
-│ BAHÍA                       │ ⚠ AVISO  │ │  ← eventos temporales
-│  ●                          └──────────┘ │
-│  ○                                       │
-│  ○         (la escena respira aquí)      │
-│  ○                                       │
 │                                          │
-│ ┌────────┐    ┌──────────┐   ┌─────────┐ │
-│ │EVIDENCIA│   │ DISTANCIA│   │ DESLIZA │ │  ← resumen y ayuda
-│ └────────┘    └──────────┘   └─────────┘ │
+│            (por aquí se corre)           │
+│                                          │
+│                                          │
+│ ┌──────────────┐                         │
+│ │ ⚡ 7 s        │                         │  ← lo que está activo ahora
+│ └──────────────┘                         │
 └──────────────────────────────────────────┘
 ```
 
 **El centro se deja libre.** Es donde ocurre el juego y donde el jugador tiene
-la mirada. Cualquier cosa que se ponga ahí compite con la pista — los avisos
-flotantes entran por el tercio superior y se van solos en 2 segundos.
+la mirada; cualquier cosa que se ponga ahí compite con la pista. Aquí llegó a
+haber un rótulo de «Evidencia recolectada», la ficha de racha, los «+N»
+flotantes, el titular del barrio en dos líneas, la línea de progreso de
+escenario, tres avisos apilados y un pie de foto. Todo eso se lee en la
+pantalla de resultados, que es donde hay tiempo para leer.
 
 **Las esquinas cargan la información permanente**, que se consulta con la
 visión periférica sin apartar la vista del carril.
@@ -259,10 +300,22 @@ Si añades elementos, vigila `renderizador.info.render.calls` en consola.
 
 ## Añadir algo nuevo
 
-Antes de dar por buena una pantalla o un prop:
+Antes de escribir una regla de CSS, **la primera pregunta es si el sistema ya
+la tiene**. `ds/componentes.json` lleva los 83 componentes con su HTML, y el
+escaparate está en [una.red/ds](https://una.red/ds/).
 
-- [ ] ¿Su color significa algo de los cinco, o debería ser gris?
-- [ ] ¿La etiqueta va en mayúsculas con tracking, y el valor en peso 900?
+- [ ] ¿Existe ya en `mal-ds`? Si existe, se usa su clase y no se escribe nada.
+- [ ] Si NO existe: ¿es del juego (mundo, HUD, partida) o le serviría a
+      cualquier otro producto? Si es lo segundo, va al sistema.
+- [ ] ¿El color sale de un token, o hay un hexadecimal escrito?
+- [ ] Si hay que cambiar cómo se ve un componente del sistema:
+      **por token, nunca por selector.** Un override con más especificidad le
+      gana a sus modificadores y rompe el sistema para todos.
+- [ ] ¿La clase nueva choca con alguna de las 472 del sistema?
+
+Y lo de siempre:
+
+- [ ] ¿La etiqueta va en versales con tracking, y el valor en su cuerpo?
 - [ ] Las cifras, ¿llevan `tabular-nums`?
 - [ ] ¿Responde al toque en menos de 200 ms?
 - [ ] ¿Lo pulsable mide 48×48 px como mínimo?

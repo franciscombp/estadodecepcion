@@ -1,0 +1,160 @@
+/* mal-ds v1.0.15 · https://una.red/ds/ */
+/* ══════════════════════════════════════════════════════════════
+   MAL DS · capa de compatibilidad con el storybook de maldonado.pro
+   https://una.red/ds/mal/compat.css
+
+   PARA QUÉ. `maldonado.pro` nació con su propia hoja (`index.css`)
+   antes de que el sistema se centralizara. Su HTML habla en tokens
+   viejos —`hsl(var(--bg-000))`, `--text-000`, `--accent-main`— y con
+   algunos nombres de clase distintos. Esta capa traduce ese
+   vocabulario al de `mal.css`, para que ese sitio pueda consumir el
+   sistema central SIN reescribir su marcado.
+
+   CÓMO SE USA — las dos hojas, en este orden:
+
+       <link rel="stylesheet" href="https://una.red/ds/mal/mal.css">
+       <link rel="stylesheet" href="https://una.red/ds/mal/compat.css">
+
+   y se puede borrar `index.css`.
+
+   ES UN PUENTE, NO UN DESTINO. Lo suyo es ir migrando el marcado a
+   los tokens `--mal-*` y retirar esta hoja. Mientras exista, cada
+   token de aquí es deuda anotada.
+
+   OJO CON hsl(). La hoja vieja escribe `hsl(var(--bg-000))`, o sea
+   que sus variables guardaban *componentes* HSL sueltos («45 30%
+   96%»), no un color. Por eso aquí no valen los hex de `--mal-*`
+   directamente: hay que dar los componentes. Los de abajo son la
+   traducción exacta de la paleta de MAL a HSL.
+   ══════════════════════════════════════════════════════════════ */
+
+:root{
+  /* superficies · #E7E7E4 · #F1F1EF · #FAFAF9 · #DCDCD9 */
+  --bg-000:60 5% 90%;
+  --bg-050:60 5% 94%;
+  --bg-100:60 5% 98%;
+  --bg-200:60 4% 86%;
+  --bg-300:60 4% 82%;
+
+  /* tinta · #1B1B19 · #55554F · #5E5E59 */
+  --text-000:60 4% 10%;
+  --text-100:60 3% 22%;
+  --text-200:60 3% 33%;
+  --text-faint:60 3% 37%;
+
+  /* marca · #D6382B y el azul secundario */
+  --accent-main:4 68% 51%;
+  --accent-blue:230 74% 48%;
+  --accent-soft:4 68% 51% / .1;
+
+  --border-100:60 4% 10% / .14;
+  --border-200:60 4% 10% / .3;
+  /* --border-300 y --shadow-2xl los usa /renuncia/ y faltaban: sin ellos
+     `hsl(var(--border-300))` es inválido y el navegador tira la declaración
+     ENTERA, así que la página se quedaba sin esos bordes ni la sombra del
+     modal, en silencio. */
+  --border-300:60 4% 10% / .45;
+
+  --shadow-sm:var(--mal-sombra-sm);
+  --shadow-md:var(--mal-sombra-md);
+  --shadow-lg:var(--mal-sombra);
+  --shadow-2xl:var(--mal-elev-2);
+  --glass-bg:color-mix(in srgb, var(--mal-paper) 85%, transparent);
+
+  /* el carné usa colores planos, no componentes HSL */
+  --ticket-bg:var(--mal-paper);
+  --ticket-border:var(--mal-line-2);
+  --ticket-text-main:var(--mal-ink);
+  --ticket-text-label:var(--mal-ink-3);
+  --ticket-sep:var(--mal-line);
+  --ticket-photo-bg:var(--mal-bg-2);
+
+  /* tipografía: la hoja vieja mandaba Syne a TODO, incluido el cuerpo.
+     Aquí `--font-sans` pasa a Inter, que es la regla nueva; si alguna
+     página necesitara el display, tiene `--font-display`. */
+  --font-display:var(--mal-display);
+  --font-sans:var(--mal-texto);
+  --font-serif:var(--mal-display);
+  --font-mono:var(--mal-mono);
+
+  --space-xs:4px; --space-sm:8px; --space-md:16px; --space-lg:24px;
+  --space-xl:40px; --space-2xl:64px; --space-3xl:100px;
+
+  --radius-sm:6px;
+  --radius-md:var(--mal-r-s);
+  --radius-lg:var(--mal-r);
+  --radius-full:var(--mal-r-full);
+
+  --transition-fast:.15s cubic-bezier(.4,0,.2,1);
+  --transition-base:.3s cubic-bezier(.4,0,.2,1);
+  --transition-slow:.5s var(--mal-ease);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-tema="claro"]){
+    --bg-000:60 3% 8%;  --bg-050:60 3% 11%; --bg-100:60 3% 13%;
+    --bg-200:60 3% 17%; --bg-300:60 3% 20%;
+    --text-000:60 6% 92%; --text-100:60 3% 80%; --text-200:60 3% 70%; --text-faint:60 3% 55%;
+    --accent-main:5 84% 60%; --accent-blue:230 100% 77%; --accent-soft:5 84% 60% / .15;
+    --border-100:60 10% 91% / .14; --border-200:60 10% 91% / .32; --border-300:60 10% 91% / .48;
+  }
+}
+:root[data-tema="oscuro"]{
+  --bg-000:60 3% 8%;  --bg-050:60 3% 11%; --bg-100:60 3% 13%;
+  --bg-200:60 3% 17%; --bg-300:60 3% 20%;
+  --text-000:60 6% 92%; --text-100:60 3% 80%; --text-200:60 3% 70%; --text-faint:60 3% 55%;
+  --accent-main:5 84% 60%; --accent-blue:230 100% 77%; --accent-soft:5 84% 60% / .15;
+  --border-100:60 10% 91% / .14; --border-200:60 10% 91% / .32; --border-300:60 10% 91% / .48;
+}
+
+/* ─── alias de clase ──────────────────────────────────────────
+   Nombres que en la hoja vieja eran otros. La izquierda es lo que
+   dice el HTML de maldonado.pro; la derecha, lo que hace mal.css. */
+.bento-grid.variants{display:flex;flex-wrap:wrap;gap:24px;background:transparent;border:0}
+.vibrant-tag.green{background:#00E676;color:#000;transform:rotate(-3deg)}
+.vibrant-tag.blue{background:var(--mal-azul);color:#fff;transform:rotate(4deg)}
+.vibrant-tag.accent{background:var(--mal-rojo);color:var(--mal-sobre-rojo);transform:rotate(-2deg)}
+.tab-trigger.active{background:var(--mal-ink);color:var(--mal-bg)}
+.tag.featured{background:color-mix(in srgb, var(--mal-rojo) 10%, transparent);color:var(--mal-rojo-txt);border-color:transparent}
+.pricing-card.mentorship{background:color-mix(in srgb, var(--mal-rojo) 7%, transparent);border-color:color-mix(in srgb, var(--mal-rojo) 30%, transparent)}
+.pricing-card.mentorship h2{color:var(--mal-rojo-txt)}
+.container{width:min(100% - 2rem, var(--mal-ancho));margin-inline:auto}
+.hero{padding-block:clamp(3rem, 8vw, 7rem)}
+
+/* el acordeón viejo se abría con JavaScript y clases `.active`;
+   el nuevo usa <details>. Esto mantiene vivo el marcado antiguo. */
+.accordion-header{
+  width:100%;padding:20px 0;display:flex;justify-content:space-between;align-items:center;
+  background:none;border:0;cursor:pointer;text-align:left;font-size:17px;font-weight:600;
+  color:var(--mal-ink);font-family:var(--mal-texto);
+}
+.accordion-header span:last-child{transition:transform .3s;flex-shrink:0}
+.accordion-header.active span:last-child{transform:rotate(45deg)}
+.accordion-content{max-height:0;overflow:hidden;opacity:0;pointer-events:none;transition:all .3s;color:var(--mal-ink-2)}
+.accordion-content.active{max-height:600px;opacity:1;pointer-events:auto;padding-bottom:20px}
+
+/* ─── nombres del storybook original ──────────────────────────
+   El HTML de 2026 usa estos; el sistema los renombró. Aquí viven
+   los alias para que aquella página siga funcionando tal cual. */
+.glass{
+  width:100%;background:color-mix(in srgb, var(--mal-surface) 85%, transparent);
+  -webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);
+  border:var(--mal-borde);border-radius:var(--mal-r-full);padding:12px 24px;
+  display:flex;justify-content:space-between;align-items:center;gap:24px;box-shadow:var(--mal-elev-1);
+}
+.glass-full{
+  width:100%;background:color-mix(in srgb, var(--mal-surface) 85%, transparent);
+  -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
+  border-bottom:var(--mal-borde);padding:16px 24px;
+  display:flex;justify-content:space-between;align-items:center;gap:24px;
+}
+.nav-links-container{display:flex;align-items:center;gap:40px;overflow:hidden;width:100%;justify-content:flex-end}
+.nav-cta-wrapper{flex-shrink:0}
+.text-serif{font-family:var(--mal-display)}
+.dot-separator{color:var(--mal-outline-2)}
+.accordion{display:block}
+.border-y{border-block:var(--mal-borde)}
+@media (max-width:800px){
+  .nav-links-container{gap:16px}
+  .glass{padding:8px 16px}
+  .glass-full{padding:12px 16px}
+}

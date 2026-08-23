@@ -1,0 +1,24 @@
+/* ==========================================================================
+   EL SISTEMA DE DISEÑO, DENTRO DE UNA CAPA
+   ==========================================================================
+   Esta hoja no tiene estilos: existe solo para meter `mal-ds` en `layer(ds)`.
+
+   POR QUÉ HACE FALTA UN ARCHIVO PARA UNA LÍNEA. Un `<link rel=stylesheet>` no
+   se puede meter en una capa —no hay atributo que lo haga— y la única forma de
+   hacerlo es un `@import ... layer()`. Puesto en un `<style>` dentro del HTML,
+   Vite intenta resolverlo él con postcss y se cae con «Unable to resolve
+   @import ./ds/mal/mal.css»: no sabe de public/. Puesto aquí, en un archivo de
+   public/, Vite lo copia sin mirarlo y quien resuelve la ruta es el navegador,
+   que es quien tiene que resolverla.
+
+   Y VIVE FUERA DE public/ds A PROPÓSITO: `npm run ds` borra y rehace esa
+   carpeta entera para que sea copia literal del repo del sistema. Si esta
+   hoja estuviera dentro, cada actualización se la llevaría por delante.
+
+   Qué hace la capa: una regla SIN capa le gana siempre a una regla EN capa,
+   tenga la especificidad que tenga. Con el sistema aquí dentro y la hoja del
+   juego fuera, el sistema se ve donde el juego no ha dicho nada — y adoptar
+   un componente suyo pasa a ser BORRAR la regla del juego que lo tapaba.
+   ========================================================================== */
+
+@import url("./ds/mal/mal.css") layer(ds);

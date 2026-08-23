@@ -1,0 +1,20 @@
+{
+  "nombre": "mal-ds",
+  "version": "1.0.15",
+  "fecha": "2026-08-23",
+  "url": "https://una.red/ds/",
+  "hojas": {
+    "mal/mal.css": {
+      "sha": "960f4de332ce",
+      "bytes": 152475
+    },
+    "mal/compat.css": {
+      "sha": "af1779ccf6ba",
+      "bytes": 7703
+    },
+    "storybook.css": {
+      "sha": "51ad4caf05ab",
+      "bytes": 15474
+    }
+  }
+}

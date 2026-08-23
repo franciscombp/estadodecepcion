@@ -1,5 +1,9 @@
 <!DOCTYPE html>
-<html lang="es-EC">
+<!-- data-marca="mercio": el tema del periódico de mal-ds (public/ds).
+     El juego no tiene sistema de diseño propio — usa el de la casa, y de sus
+     cuatro pieles se pone la de EL MERCIO., que es de quien es el juego.
+     Ver docs/ESTILO.md. -->
+<html lang="es-EC" data-marca="mercio" data-tema="claro">
 <head>
   <meta charset="UTF-8" />
   <!-- viewport-fit=cover + user-scalable=no: pantalla completa en móvil y
@@ -53,6 +57,37 @@
   <meta name="apple-mobile-web-app-title" content="Estado Decepción" />
 
   <title>EL MERCIO — Estado de Excepción</title>
+
+  <!-- ══ EL SISTEMA DE DISEÑO ══════════════════════════════════════════
+       `mal-ds` con el tema del periódico. Vive en public/ds y lo actualiza
+       `npm run ds` desde un clon de github.com/franciscombp/mal.
+
+       VA DESDE public/ Y NO IMPORTADO DESDE src/style.css a propósito: así
+       Vite lo publica BYTE A BYTE como viene del repo —sin reescribirle los
+       `url()` de sus tipografías ni renombrarle nada— y lo que sirve el juego
+       es exactamente lo que dice su `version.json`.
+
+       Y VA DENTRO DE UNA CAPA, que es lo que hace que esto se pueda migrar
+       por partes en vez de de golpe. Una regla sin capa le gana SIEMPRE a una
+       regla en capa, tenga la especificidad que tenga; con el sistema en
+       `layer(ds)` y la hoja del juego fuera de capa, el sistema se ve
+       únicamente donde el juego no ha dicho nada.
+
+       Eso convierte la migración en un trabajo de RESTA: cada vez que se
+       adopta un componente del sistema, lo que se hace es BORRAR la regla del
+       juego que lo estaba tapando. Sin la capa había que ir arreglando choques
+       uno a uno —el sistema define diez clases que el juego ya usaba con otro
+       sentido, `.hud` la primera: para él es la cabecera pegajosa del sitio y
+       para el juego es el marcador de la partida— y cada choque salía a la
+       cara en una pantalla distinta.
+
+       La capa la pone `public/ds-capa.css`, que es un `@import ... layer(ds)`
+       y nada más; ahí está explicado por qué hace falta un archivo para una
+       línea. El `preload` de la hoja de dentro está porque un `@import`
+       encadena dos viajes —el navegador tiene que leer el envoltorio antes de
+       enterarse de que hay una hoja de verdad— y precargándola se solapan. -->
+  <link rel="preload" as="style" href="./ds/mal/mal.css" />
+  <link rel="stylesheet" href="./ds-capa.css" />
 </head>
 <body>
   <!-- Lienzo del juego -->

@@ -1,0 +1,2306 @@
+/* mal-ds v1.0.15 · https://una.red/ds/ */
+/* ══════════════════════════════════════════════════════════════
+   MAL DESIGN SYSTEM · v2
+   https://una.red/ds/mal/mal.css
+
+   UN SISTEMA, CUATRO TEMAS. Este archivo es todo el sistema: una.red,
+   maldonado.pro, elmercio.com, las apps y los juegos se pintan con el
+   mismo CSS. Lo único que cambia es `data-marca` en el <html>:
+
+     (nada)   MAL      la marca: crema cálida, filete, sombra blanda
+     mercio   prensa   blanco, PT Serif, radio 0, sin sombras
+     apps     producto app nativa, controles de 52 px, presión al pulsar
+     juegos   juego    sombra dura, borde de 2 px, relleno en degradado
+
+   LOS TEMAS NO CONVIVEN: un documento, un tema, y viste la página
+   entera. Ya no existen /ds/mercio/ ni /ds/apps/ como hojas aparte —
+   sus componentes viven aquí, porque un campo es un campo en cualquier
+   tema. Los alias --em-* y --app-* se resuelven contra los roles, así
+   que el marcado que ya estaba escrito sigue valiendo.
+
+   Claro y oscuro son OTRO eje: `data-tema="claro|oscuro"`, o nada y
+   manda el sistema operativo. Y `data-ds="invitado"` apaga el reset,
+   para vivir dentro de algo que ya maqueta (WordPress).
+
+   Tres capas de tokens, la arquitectura de Material:
+     1 referencia --ref-*   paletas, familias y expresión  ← lo único que cambia
+     2 sistema    --mal-*   roles derivados
+     3 componentes          hablan solo roles
+
+   TIPOGRAFÍA — tres voces, cada una con su trabajo:
+     Syne          SOLO display (h1, h2 grandes, cifras de portada).
+                   A tamaño de texto pierde legibilidad: no usar por
+                   debajo de ~1.4rem ni para párrafos.
+     Inter         subtítulos, cuerpo, interfaz. Todo lo que se lee.
+     JetBrains Mono rótulos, etiquetas, datos.
+
+   Regla de la casa: espacios alrededor de + y - dentro de
+   clamp()/calc(), o el navegador descarta la declaración entera.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─── fuentes ─────────────────────────────────────────────── */
+@font-face{font-family:"Syne";src:url("../fonts/syne.woff2") format("woff2");font-weight:400 800;font-display:swap}
+@font-face{font-family:"Inter";src:url("../fonts/inter.woff2") format("woff2");font-weight:300 800;font-style:normal;font-display:swap}
+@font-face{font-family:"Inter";src:url("../fonts/inter-italic.woff2") format("woff2");font-weight:300 800;font-style:italic;font-display:swap}
+@font-face{font-family:"JetBrains Mono";src:url("../fonts/jetbrains-mono.woff2") format("woff2");font-weight:100 800;font-display:swap}
+/* del tema del periódico: no pesan hasta que un tema las pide */
+@font-face{font-family:"PT Serif";src:url("../fonts/pt-serif.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"PT Serif";src:url("../fonts/pt-serif-bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:"PT Serif";src:url("../fonts/pt-serif-italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:"PT Serif";src:url("../fonts/pt-serif-bold-italic.woff2") format("woff2");font-weight:700;font-style:italic;font-display:swap}
+/* PT Serif Caption: el corte óptico para textos pequeños. Solo lo usa el
+   periódico, pero vive aquí para que TODA su tipografía tenga un único
+   dueño. Los seis archivos son los de Google Fonts, subconjunto latin,
+   byte a byte (comprobado por sha256). */
+@font-face{font-family:"PT Serif Caption";src:url("../fonts/pt-serif-caption.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"PT Serif Caption";src:url("../fonts/pt-serif-caption-italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:"Montserrat";src:url("../fonts/montserrat.woff2") format("woff2");font-weight:100 900;font-display:swap}
+
+/* ─── tokens ──────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   TOKENS EN TRES CAPAS
+   La arquitectura es la de Material 3; la piel, la de MAL. Lo que
+   hace themeable a un sistema no es su aspecto, es este orden:
+
+     1 REFERENCIA  las paletas y familias crudas. ES LO ÚNICO QUE
+                   CAMBIA POR MARCA.
+     2 SISTEMA     los roles semánticos (`primary`, `on-primary`,
+                   `surface`, `outline`…). Nombres estables.
+     3 COMPONENTES hablan SOLO roles, así que funcionan igual en
+                   los cuatro temas sin tocar una regla.
+
+   CUATRO MARCAS, UN SISTEMA. Se cambian con un atributo en la raíz:
+
+       <html data-marca="mercio">     periódico
+       <html data-marca="apps">       producto
+       <html data-marca="juegos">     juegos
+       <html>                         MAL, por defecto
+
+   y son ortogonales al claro/oscuro (`data-tema`), así que se
+   combinan: `<html data-marca="apps" data-tema="oscuro">`.
+
+   Los nombres de color de la primera época (`--mal-rojo`,
+   `--mal-ink`, `--mal-paper`…) siguen existiendo como ALIAS al pie
+   de esta sección, porque hay páginas que ya los usan. Lo nuevo va
+   en roles: en el tema del periódico `--mal-rojo` es rojo, pero en
+   el de apps es el color de la app, y un token que se llama «rojo»
+   y no es rojo miente.
+   ══════════════════════════════════════════════════════════════ */
+
+:root{
+  /* ─── 1 · REFERENCIA · MAL (la marca de la casa) ─────────── */
+  --ref-marca:#D6382B;        /* el rojo */
+  --ref-marca-2:#B52E23;      /* su hover */
+  --ref-marca-txt:#B52E23;    /* la versión que sí se lee como texto */
+  --ref-sobre-marca:#fff;     /* lo que va encima del color de marca */
+  --ref-acento:#1F3BD6;       /* acento secundario */
+  --ref-acento-2:#6B21C8;     /* terciario: el punto de EL MERCIO. */
+
+  --ref-n0:#F5F2EC;           /* lienzo */
+  --ref-n1:#EBE7DE;           /* rebaje */
+  --ref-n2:#FDFCF9;           /* superficie */
+  --ref-n3:#F3F0E9;           /* superficie alterna */
+  --ref-t0:#191817;           /* tinta */
+  --ref-t1:#54524B;           /* secundaria */
+  --ref-t2:#5C5A53;           /* terciaria */
+  --ref-borde-rgb:20,20,18;   /* el color del filete, en RGB para poder graduarlo (el grosor es --ref-borde) */
+
+  --ref-display:"Syne",system-ui,-apple-system,sans-serif;
+  --ref-marca-tipo:var(--ref-display);   /* la familia del logotipo, si es otra */
+  --ref-texto:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --ref-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --ref-peso-display:800;
+  --ref-tracking:-.04em;      /* el display geométrico pide tracking negativo */
+
+  /* ── EXPRESIÓN · lo que hace que dos temas no se parezcan aunque
+        compartan componente. No es color: es forma y materia. ── */
+  --ref-radio:1;              /* factor de forma · 0 = a escuadra */
+  --ref-borde:1px;            /* grosor del filete · 0 = sin borde */
+  --ref-densidad:1;           /* aire · <1 compacto, >1 editorial */
+  --ref-tap:44px;             /* altura mínima de un control */
+  --ref-elev-1:0 2px 8px rgba(0,0,0,.05);        /* reposo */
+  --ref-elev-2:0 8px 28px rgba(0,0,0,.09);       /* levantado */
+  --ref-relleno:var(--ref-n2);                   /* con qué se llena una superficie */
+  --ref-relleno-marca:var(--ref-marca);          /* …y una superficie de marca */
+  --ref-campo:var(--ref-n2);                     /* …y un campo de formulario */
+  --ref-linea:rgba(var(--ref-borde-rgb),.14);        /* color del filete de un contenedor */
+  --ref-acento-linea:1;                          /* filetes de acento (citas, avisos): 0 los quita */
+  --ref-vidrio:none;                             /* backdrop-filter de las superficies (ningún tema lo usa hoy) */
+  --ref-vidrio-barra:blur(12px);                 /* …el de las barras (la cabecera de UNA) */
+  --ref-relleno-barra:color-mix(in srgb, var(--ref-n0) 84%, transparent);  /* con qué se llena una barra */
+  --ref-fondo:var(--ref-n0);                     /* el fondo del documento (puede ser degradado) */
+  --ref-grano:"";            /* el grano del fondo · `none` lo quita del todo */
+  --ref-interlinea:1.6;      /* la interlínea del cuerpo */
+  --ref-salto:translateY(-2px);                  /* qué hace al pasar por encima */
+  --ref-presion:scale(.98);                      /* …y al pulsar */
+
+  color-scheme:light dark;
+}
+
+/* ══════════════ LOS ROLES ═════════════════════════════════════
+   Viven en la raíz, y solo ahí: los temas NO conviven en una misma
+   página. Cada sitio elige el suyo con `data-marca` en el <html> y
+   todo el documento va vestido igual — menús, fondos y componentes.
+
+   (Hubo una versión con ámbitos de clase `.em`/`.app`/`.juego` para
+   mezclar temas en una página. Se retiró: mezclarlos no es un caso
+   real y obligaba a repetir la lista de roles en cada ámbito, porque
+   una custom property que apunta a otra se computa donde se declara.) */
+:root, :root[data-marca]{
+  --mal-primary:var(--ref-marca);
+  --mal-primary-hover:var(--ref-marca-2);
+  --mal-primary-txt:var(--ref-marca-txt);
+  --mal-on-primary:var(--ref-sobre-marca);
+  --mal-primary-container:color-mix(in srgb, var(--ref-marca) 10%, transparent);
+  --mal-on-primary-container:var(--ref-marca-txt);
+  --mal-secondary:var(--ref-acento);
+  --mal-tertiary:var(--ref-acento-2);
+
+  --mal-bg:var(--ref-n0);
+  --mal-bg-2:var(--ref-n1);
+  --mal-surface:var(--ref-n2);
+  --mal-surface-alt:var(--ref-n3);
+  --mal-on-surface:var(--ref-t0);
+  --mal-on-surface-2:var(--ref-t1);
+  --mal-on-surface-3:var(--ref-t2);
+  --mal-outline:rgba(var(--ref-borde-rgb), .14);
+  --mal-outline-2:rgba(var(--ref-borde-rgb), .3);
+
+  --mal-ok:#1F7A3D; --mal-warn:#B45309; --mal-danger:#a8352c; --mal-info:#33618f;
+
+  /* tipografía · la escala es la misma; cambia la familia */
+  --mal-display:var(--ref-display);
+  --mal-texto:var(--ref-texto);
+  --mal-mono:var(--ref-mono);
+  /* ── escala tipográfica ───────────────────────────────────
+     Un paso por nivel, y el paso crece con el tamaño: 1,12 entre
+     h4 y el cuerpo; 1,7 entre el display y el h1. A 1280 px son
+     17 · 19 · 24 · 34 · 52 · 88. El salto de h2 a h3 valía 2,35
+     y por eso no había jerarquía: la sección y el subtítulo no se
+     parecían a nada intermedio.
+     `display` es el cartel — la portada, el logotipo, el hero —,
+     NO el h1 de una página cualquiera. */
+  --mal-t-mini:.75rem;        /* fechas, arrobas, lo más pequeño que se lee */
+  --mal-t-caption:.875rem;    /* pies, apoyos, metadatos */
+  --mal-t-micro:.75rem;       /* el rótulo en versalitas (mono, no es texto corrido) */
+  --mal-t-cuerpo:clamp(1rem, .95rem + .25vw, 1.0625rem);
+  --mal-t-lede:clamp(1.08rem, 1rem + .35vw, 1.3rem);
+  --mal-t-h4:clamp(1.0625rem, 1rem + .2vw, 1.1875rem);
+  --mal-t-h3:clamp(1.25rem, 1.05rem + .6vw, 1.6rem);
+  --mal-t-h2:clamp(1.6rem, 1.25rem + 1.1vw, 2.6rem);
+  --mal-t-h1:clamp(2.2rem, 1.6rem + 2.05vw, 3.6rem);
+  --mal-t-display:clamp(3rem, 1.9rem + 4.5vw, 6.5rem);
+  --mal-t-prosa:var(--mal-t-lede);   /* el texto corrido de un artículo */
+  --mal-t-cita:1.15em;        /* la cita, relativa a lo que la rodea */
+  --ref-cita-estilo:normal;   /* la cursiva es editorial: solo el periódico */
+  --ref-cita-sangria:var(--mal-e4);   /* el hueco del filete */
+  --ref-cita-alto:0;                  /* …o el de la comilla, si el tema la usa */
+  --ref-peso-cita:600;
+
+  /* forma · todo se multiplica por --ref-radio, así que el tema del
+     periódico lo pone a 0 y el sistema entero va a escuadra */
+  --mal-r:calc(18px * var(--ref-radio));
+  --mal-r-s:calc(10px * var(--ref-radio));
+  --mal-r-full:calc(999px * var(--ref-radio));
+
+  /* materia · derivada de la expresión del tema */
+  --mal-borde:var(--ref-borde) solid var(--ref-linea);           /* el filo de un contenedor */
+  --mal-borde-fuerte:var(--ref-borde) solid var(--mal-outline-2);
+  --mal-separador:var(--ref-borde) solid var(--mal-outline);     /* la raya entre dos filas */
+  --mal-acento-linea:calc(3px * var(--ref-acento-linea));        /* el filete de acento */
+  --mal-campo:var(--ref-campo);
+  --mal-vidrio:var(--ref-vidrio);
+  --mal-vidrio-barra:var(--ref-vidrio-barra);
+  --mal-relleno-barra:var(--ref-relleno-barra);
+  --mal-fondo:var(--ref-fondo);
+  --mal-marca-tipo:var(--ref-marca-tipo);
+  --mal-elev-1:var(--ref-elev-1);
+  --mal-elev-2:var(--ref-elev-2);
+  --mal-relleno:var(--ref-relleno);
+  --mal-relleno-marca:var(--ref-relleno-marca);
+  --mal-tap:var(--ref-tap);
+  --mal-salto:var(--ref-salto);
+  --mal-presion:var(--ref-presion);
+  /* espaciado · escala por densidad */
+  --mal-e1:calc(4px * var(--ref-densidad));   --mal-e2:calc(8px * var(--ref-densidad));
+  --mal-e3:calc(12px * var(--ref-densidad));  --mal-e4:calc(16px * var(--ref-densidad));
+  --mal-e5:calc(24px * var(--ref-densidad));  --mal-e6:calc(32px * var(--ref-densidad));
+  --mal-e7:calc(48px * var(--ref-densidad));  --mal-e8:calc(64px * var(--ref-densidad));
+
+  --mal-sombra:var(--ref-elev-2);
+  --mal-sombra-sm:var(--ref-elev-1);
+  --mal-sombra-md:var(--ref-elev-2);
+  --mal-ease:cubic-bezier(.2,.7,.2,1);
+  --mal-dur:.28s;
+  --mal-ancho:1200px;
+
+  /* ─── ALIAS heredados · no usar en código nuevo ──────────── */
+  --mal-paper:var(--mal-surface);
+  --mal-paper-2:var(--mal-surface-alt);
+  --mal-ink:var(--mal-on-surface);
+  --mal-ink-2:var(--mal-on-surface-2);
+  --mal-ink-3:var(--mal-on-surface-3);
+  --mal-line:var(--mal-outline);
+  --mal-line-2:var(--mal-outline-2);
+  --mal-rojo:var(--mal-primary);
+  --mal-rojo-2:var(--mal-primary-hover);
+  --mal-rojo-txt:var(--mal-primary-txt);
+  --mal-sobre-rojo:var(--mal-on-primary);
+  --mal-azul:var(--mal-secondary);
+  --mal-morado:var(--mal-tertiary);
+  --mal-verde:var(--mal-ok);
+  --mal-ambar:var(--mal-warn);
+
+}
+
+
+
+/* ══════════════════ MODO OSCURO · solo la referencia ══════════ */
+@media (prefers-color-scheme:dark){
+  :root:not([data-tema="claro"]){
+    --ref-marca:#EF4F41; --ref-marca-2:#F26A5E; --ref-marca-txt:#F26A5E;
+    --ref-sobre-marca:#151514; --ref-acento:#8AA0FF; --ref-acento-2:#A77BFF;
+    --ref-n0:#151514; --ref-n1:#1D1D1C; --ref-n2:#222220; --ref-n3:#2A2A28;
+    --ref-t0:#ECECEA; --ref-t1:#B3B3AE; --ref-t2:#8D8D87;
+    --ref-borde-rgb:235,235,228;
+    --mal-ok:#57B87A; --mal-warn:#E0A93A; --mal-danger:#f0a9a2; --mal-info:#a9c8ea;
+    --ref-elev-1:0 2px 8px rgba(0,0,0,.3);
+    --ref-elev-2:0 12px 36px rgba(0,0,0,.5);
+  }
+}
+:root[data-tema="oscuro"]{
+  --ref-marca:#EF4F41; --ref-marca-2:#F26A5E; --ref-marca-txt:#F26A5E;
+  --ref-sobre-marca:#151514; --ref-acento:#8AA0FF; --ref-acento-2:#A77BFF;
+  --ref-n0:#151514; --ref-n1:#1D1D1C; --ref-n2:#222220; --ref-n3:#2A2A28;
+  --ref-t0:#ECECEA; --ref-t1:#B3B3AE; --ref-t2:#8D8D87;
+  --ref-borde-rgb:235,235,228;
+  --mal-ok:#57B87A; --mal-warn:#E0A93A; --mal-danger:#f0a9a2; --mal-info:#a9c8ea;
+  --ref-elev-1:0 2px 8px rgba(0,0,0,.3);
+  --ref-elev-2:0 12px 36px rgba(0,0,0,.5);
+}
+
+/* ══════════════════ TEMA · EL MERCIO. ═════════════════════════
+   Prensa. Copia literal del theme.json del tema en producción:
+   serif de texto, Montserrat en rótulos y ESQUINAS A ESCUADRA
+   (el radio a 0 es deliberado en todo el periódico).            */
+:root[data-marca="mercio"]{
+  --ref-marca:#c53b2b; --ref-marca-2:#141414; --ref-marca-txt:#c53b2b;
+  --ref-sobre-marca:#ffffff; --ref-acento:#a6c7f2; --ref-acento-2:#c53b2b;
+  --ref-n0:#ffffff; --ref-n1:#f3f3f3; --ref-n2:#ffffff; --ref-n3:#fafafa;   /* base · surface · base · base-2 */
+  --ref-t0:#141414; --ref-t1:#282828; --ref-t2:#646464;                       /* contrast · -2 · -3 */
+  --ref-borde-rgb:20,20,20;
+  --ref-relleno:var(--ref-n1);  /* un contenedor es un rectángulo de tono sobre la página blanca */
+  --ref-display:"PT Serif",Georgia,"Times New Roman",serif;
+  --ref-texto:"PT Serif",Georgia,"Times New Roman",serif;
+  --ref-mono:"Montserrat","Helvetica Neue",Arial,sans-serif;
+  --ref-peso-display:700;
+  --ref-tracking:-.01em;
+  --ref-radio:0;              /* a escuadra */
+  --ref-borde:0px;            /* SIN LÍNEAS: la separación la hace el aire */
+  --ref-grano:none;           /* un periódico no lleva textura encima */
+  --ref-interlinea:1.5;       /* la de theme.json */
+  --ref-vidrio-barra:none; --ref-relleno-barra:var(--ref-n0);   /* barra blanca, sin efectos */
+  --ref-acento-linea:0;       /* ni filetes de acento: la cita lleva comilla */
+  /* Densidad 1, NO 1,35. El aire del periódico no sale de multiplicar la
+     escala: sale de que sus secciones llevan 64 px de padding puestos a
+     mano en cada bloque. Con 1,35 la escala del sistema (4·8·12·16·24·
+     32·48·64) pasaba a 5,4·10,8·16,2·21,6·32,4·43,2·64,8·86,4 y ningún
+     componente encajaba con el espaciado de WordPress, que usa la escala
+     literal. Este es el número que hace que las dos coincidan. */
+  --ref-densidad:1;
+  --ref-tap:44px;
+  --ref-elev-1:none;          /* SIN SOMBRAS: el papel no flota */
+  --ref-elev-2:none;
+  --ref-salto:none;           /* ni salta al pasar por encima */
+  --ref-presion:none;
+  --ref-campo:var(--ref-n1);  /* un campo es un rectángulo de tono, no un marco */
+  --ref-marca-tipo:"Montserrat","Helvetica Neue",Arial,sans-serif;  /* el logotipo */
+  --mal-outline:#e6e6e6; --mal-outline-2:#d0d0d0;
+  --mal-comilla:block;        /* la cita abre con comilla grande en vez de filete */
+  /* la escala del tema es de píxeles fijos: nada escala con la pantalla */
+  /* LA ESCALA REAL DEL PERIÓDICO, copiada del sitio en producción.
+     No son píxeles fijos: elmercio.com hereda la tipografía fluida de
+     twentytwentyfour, así que cada tamaño es un `clamp()` que crece con
+     la pantalla. Estos son los valores que emite WordPress desde
+     `theme.json`, medidos en el sitio vivo — no una aproximación.
+     Es plana a propósito (24 → 22 entre h2 y h3): en prensa la jerarquía
+     la hacen el peso, el aire y el rótulo, no el tamaño. */
+  --mal-t-mini:11px; --mal-t-micro:11px;
+  --mal-t-caption:14px;                                   /* caption, fijo */
+  --mal-t-cuerpo:clamp(14px, .875rem + ((1vw - 3.2px) * .417), 18px);
+  --mal-t-lede:20px;
+  --mal-t-h4:clamp(14px, .875rem + ((1vw - 3.2px) * .417), 18px);
+  --mal-t-h3:clamp(14.642px, .915rem + ((1vw - 3.2px) * .766), 22px);
+  --mal-t-h2:clamp(15.747px, .984rem + ((1vw - 3.2px) * .86), 24px);
+  --mal-t-h1:clamp(20px, 1.25rem + ((1vw - 3.2px) * 1.25), 32px);
+  --mal-t-display:clamp(24.034px, 1.502rem + ((1vw - 3.2px) * 1.663), 40px);
+  --mal-t-cita:clamp(14.642px, .915rem + ((1vw - 3.2px) * .766), 22px);
+  --mal-t-prosa:var(--mal-t-cuerpo);
+  --em-t-badge:9px;
+  --em-t-button:clamp(14px, .875rem + ((1vw - 3.2px) * .208), 16px);
+  --ref-cita-estilo:italic; --ref-peso-cita:400;   /* serif en cursiva: la cita de prensa */
+  --ref-cita-sangria:0; --ref-cita-alto:1.35em;    /* sin filete: manda la comilla */
+}
+@media (prefers-color-scheme:dark){
+  :root[data-marca="mercio"]:not([data-tema="claro"]){
+    --ref-marca:#e8604f; --ref-marca-txt:#e8604f; --ref-sobre-marca:#141414;
+    --ref-n0:#1a1a1a; --ref-n1:#222222; --ref-n2:#141414; --ref-n3:#1a1a1a;
+    --ref-t0:#f2f2f2; --ref-t1:#d8d8d8; --ref-t2:#a0a0a0; --ref-borde-rgb:242,242,242;
+    --mal-outline:#333333; --mal-outline-2:#454545;
+  }
+}
+:root[data-marca="mercio"][data-tema="oscuro"]{
+  --ref-marca:#e8604f; --ref-marca-txt:#e8604f; --ref-sobre-marca:#141414;
+  --ref-n0:#1a1a1a; --ref-n1:#222222; --ref-n2:#141414; --ref-n3:#1a1a1a;
+  --ref-t0:#f2f2f2; --ref-t1:#d8d8d8; --ref-t2:#a0a0a0; --ref-borde-rgb:242,242,242;
+  --mal-outline:#333333; --mal-outline-2:#454545;
+}
+
+/* ══════════════════ TEMA · APPS ═══════════════════════════════
+   Producto. Sin display: una app no tiene portada. Inter para
+   todo y el color reservado para la acción.                     */
+:root[data-marca="apps"]{
+  --ref-marca:#c41e1e; --ref-marca-2:#8b1515; --ref-marca-txt:#c41e1e;
+  --ref-sobre-marca:#ffffff; --ref-acento:#33618f; --ref-acento-2:#1f7a3d;
+  --ref-n0:#f6f5f1; --ref-n1:#edebe4; --ref-n2:#fffefb; --ref-n3:#f6f5f1;
+  --ref-t0:#1b1d1a; --ref-t1:#565b53; --ref-t2:#63685d;
+  --ref-borde-rgb:27,29,26;
+  --ref-display:var(--ref-texto);   /* sin tipografía de display */
+  --ref-peso-display:700;
+  --ref-tracking:-.02em;
+  --ref-radio:1.2; --ref-borde:1px;
+  --ref-densidad:1;
+  --ref-tap:52px;             /* el dedo manda: controles grandes */
+  /* APP NATIVA ACTUAL. Superficies sólidas sobre un fondo agrupado
+     (tarjetas blancas sobre gris cálido), separadores finísimos, y
+     SOLO las barras —la de arriba, la de pestañas, la de acciones,
+     las hojas— son translúcidas y desenfocan lo que pasa debajo. */
+  --ref-vidrio:none;                                     /* las superficies no son cristal */
+  --ref-vidrio-barra:blur(20px) saturate(180%);          /* las barras sí */
+  --ref-relleno-barra:color-mix(in srgb, var(--ref-n2) 78%, transparent);
+  --ref-relleno:var(--ref-n2);                           /* la tarjeta es sólida */
+  --ref-campo:var(--ref-n1);                             /* el campo es un rectángulo de tono */
+  --ref-linea:rgba(var(--ref-borde-rgb),.09);                /* hairline */
+  --ref-elev-1:0 1px 2px rgba(18,20,18,.04);             /* la tarjeta casi no flota */
+  --ref-elev-2:0 8px 28px rgba(18,20,18,.12);            /* lo que sí flota: hojas, menús */
+  --ref-fondo:var(--ref-n0);
+  --ref-salto:none;           /* en táctil no hay hover: la respuesta es al pulsar */
+  --ref-presion:scale(.97);
+  --mal-r:18px; --mal-r-s:12px;     /* la escala de producto: 12/18/26 */
+  /* la escala del sistema operativo: cuerpo de 17, y los títulos por
+     encima. Antes h3 valía 1rem y h4 heredaba 1,0625 del tema base,
+     así que el h4 salía MÁS GRANDE que el h3. */
+  --mal-t-cuerpo:1.0625rem; --mal-t-micro:.8125rem;
+  --mal-t-mini:.75rem; --mal-t-caption:.9375rem;   /* footnote y subhead */
+  --mal-t-h4:1.0625rem; --mal-t-h3:1.25rem; --mal-t-h2:1.375rem;
+  --mal-t-h1:1.75rem; --mal-t-lede:1.1875rem;
+  --mal-t-display:2.125rem;   /* el título grande de una pantalla */
+  --mal-t-cita:1.1em; --ref-peso-cita:500; --mal-t-prosa:var(--mal-t-cuerpo);
+}
+@media (prefers-color-scheme:dark){
+  :root[data-marca="apps"]:not([data-tema="claro"]){
+    --ref-marca:#ff6b6b; --ref-marca-2:#ff9999; --ref-marca-txt:#ff6b6b;
+    --ref-sobre-marca:#1a1d1a;
+    --ref-n0:#121412; --ref-n1:#252823; --ref-n2:#1a1d1a; --ref-n3:#1e211e;
+    --ref-t0:#e7e9e3; --ref-t1:#abb0a5; --ref-t2:#8f948a; --ref-borde-rgb:231,233,227;
+    --ref-relleno:var(--ref-n2);
+    --ref-relleno-barra:color-mix(in srgb, var(--ref-n2) 80%, transparent);
+    --ref-campo:var(--ref-n1);
+    --ref-linea:rgba(255,255,255,.08);
+    --ref-elev-1:0 1px 2px rgba(0,0,0,.3);
+    --ref-elev-2:0 12px 36px rgba(0,0,0,.5);
+  }
+}
+:root[data-marca="apps"][data-tema="oscuro"]{
+  --ref-marca:#ff6b6b; --ref-marca-2:#ff9999; --ref-marca-txt:#ff6b6b;
+  --ref-sobre-marca:#1a1d1a;
+  --ref-n0:#121412; --ref-n1:#252823; --ref-n2:#1a1d1a; --ref-n3:#1e211e;
+  --ref-t0:#e7e9e3; --ref-t1:#abb0a5; --ref-t2:#8f948a; --ref-borde-rgb:231,233,227;
+  --ref-relleno:var(--ref-n2);
+  --ref-relleno-barra:color-mix(in srgb, var(--ref-n2) 80%, transparent);
+  --ref-campo:var(--ref-n1);
+  --ref-linea:rgba(255,255,255,.08);
+  --ref-elev-1:0 1px 2px rgba(0,0,0,.3);
+  --ref-elev-2:0 12px 36px rgba(0,0,0,.5);
+}
+
+/* ══════════════════ TEMA · JUEGOS ═════════════════════════════
+   Nace de las paletas reales de Pambamesa y La fanesca: talavera,
+   rosa mexicano y maíz. Oscuro por defecto —se juega de noche— y
+   con más radio que ningún otro tema.                            */
+:root[data-marca="juegos"]{
+  --ref-marca:#e01b6a; --ref-marca-2:#b01254; --ref-marca-txt:#c2185b;
+  --ref-sobre-marca:#ffffff; --ref-acento:#1b5faa; --ref-acento-2:#f5a623;
+  --ref-n0:#f3f1ec; --ref-n1:#e3dfd6; --ref-n2:#ffffff; --ref-n3:#f8f6f2;
+  --ref-t0:#2b2129; --ref-t1:#5c4d58; --ref-t2:#6f626c;
+  --ref-borde-rgb:43,33,41;
+  --ref-peso-display:800;
+  --ref-tracking:-.03em;
+  --ref-radio:1.3;            /* más redondo que ningún otro */
+  --ref-borde:2px;            /* contorno marcado, de juguete */
+  --ref-densidad:1;
+  --ref-tap:52px;
+  /* VOLUMEN: la sombra no difumina, se apoya. El botón tiene grosor. */
+  --ref-elev-1:0 4px 0 var(--mal-primary-hover);
+  --ref-elev-2:0 7px 0 var(--mal-primary-hover), 0 14px 26px rgba(43,33,41,.28);
+  --ref-salto:translateY(-3px);
+  --ref-presion:translateY(3px);   /* al pulsar, se hunde hasta su sombra */
+  /* HOLOGRAMA. El degradado va SOLO entre los dos tonos oscuros —rosa y
+     talavera— porque el maíz de en medio dejaba el texto en 2,0:1: sobre
+     un degradado, el contraste hay que medirlo en la parada peor, no en
+     la media. El maíz se queda donde sí funciona: el destello del borde. */
+  --ref-relleno-marca:linear-gradient(135deg, var(--ref-marca) 0%, #8d2d8f 52%, var(--ref-acento) 100%);
+  --ref-destello:linear-gradient(135deg, var(--ref-acento-2), #ff77ab, var(--ref-acento));
+  --mal-ok:#6fae2e; --mal-warn:#f5a623;
+}
+@media (prefers-color-scheme:dark){
+  :root[data-marca="juegos"]:not([data-tema="claro"]){
+    --ref-marca:#ff77ab; --ref-marca-2:#f53d8a; --ref-marca-txt:#ff77ab;
+    --ref-sobre-marca:#1d1822; --ref-acento:#5f97d8; --ref-acento-2:#ffc93c;
+    --ref-n0:#1d1822; --ref-n1:#2f2733; --ref-n2:#272031; --ref-n3:#332b3a;
+    --ref-t0:#f3f1ec; --ref-t1:#cbc5b8; --ref-t2:#a99fb0; --ref-borde-rgb:243,241,236;
+  }
+}
+:root[data-marca="juegos"][data-tema="oscuro"]{
+  --ref-marca:#ff77ab; --ref-marca-2:#f53d8a; --ref-marca-txt:#ff77ab;
+  --ref-sobre-marca:#1d1822; --ref-acento:#5f97d8; --ref-acento-2:#ffc93c;
+  --ref-n0:#1d1822; --ref-n1:#2f2733; --ref-n2:#272031; --ref-n3:#332b3a;
+  --ref-t0:#f3f1ec; --ref-t1:#cbc5b8; --ref-t2:#a99fb0; --ref-borde-rgb:243,241,236;
+}
+
+
+/* ─── vidrio ──────────────────────────────────────────────────
+   Las superficies que, en el tema de APPS, se vuelven translúcidas y
+   desenfocan lo que tienen detrás. En los demás temas `--mal-vidrio`
+   es `none` y esta regla no hace nada. */
+.tarj,.card,.sheet,.menu__lista,.panel,.modal{
+  -webkit-backdrop-filter:var(--mal-vidrio);backdrop-filter:var(--mal-vidrio);
+}
+/* las barras: lo que en una app nativa es translúcido y desenfoca */
+.navbar,.cabecera-app,.barra-acciones,.hud,.modal--hoja,.sheet{
+  background:var(--mal-relleno-barra);
+  -webkit-backdrop-filter:var(--mal-vidrio-barra);backdrop-filter:var(--mal-vidrio-barra);
+}
+
+/* ─── base ────────────────────────────────────────────────── */
+/* EL RESET, EN SU PROPIA CAPA.
+   `margin:0;padding:0` sobre `*` vale (0,0,0), la misma especificidad que
+   las reglas de maquetación de WordPress —`:where(.is-layout-flow) > *`— y
+   que las de cualquier motor parecido. Cuando empatan gana la que va
+   después, así que con el sistema cargado al final el reset borraba el
+   ritmo vertical de todo el sitio anfitrión.
+   Metido en `@layer`, el reset pierde SIEMPRE contra cualquier regla sin
+   capa, tenga la especificidad que tenga. Es justo lo que queremos: sirve
+   para quitar los márgenes por defecto del navegador (que son de otro
+   origen y no compiten) y se aparta en cuanto el anfitrión opina.
+   `box-sizing` se queda fuera de la capa: de eso sí dependen los
+   componentes y nadie lo discute.
+
+   MODO INVITADO. Cuando el sistema entra en un CMS que ya tiene su propio
+   ritmo vertical, el anfitrión pone `data-ds="invitado"` en el <html> y el
+   reset no se aplica en absoluto. Hace falta porque hay contenido que se
+   apoya en los márgenes POR DEFECTO DEL NAVEGADOR —el hueco entre la foto
+   y el titular de elmercio.com son los 0,83 em que el navegador le da a un
+   <h2>, no una decisión de nadie— y contra el origen del navegador una
+   regla en capa sigue ganando. Subir la especificidad aquí es inofensivo:
+   dentro de `@layer` el reset pierde igualmente contra cualquier
+   componente, que va sin capa. */
+*,*::before,*::after{box-sizing:border-box}
+@layer reset{
+  html:not([data-ds="invitado"]) *,
+  html:not([data-ds="invitado"]) *::before,
+  html:not([data-ds="invitado"]) *::after{margin:0;padding:0}
+}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--mal-texto);font-weight:400;color:var(--mal-ink);background:var(--mal-fondo);
+  line-height:var(--ref-interlinea);font-size:var(--mal-t-cuerpo);
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+img,svg,iframe{display:block;max-width:100%}
+img,svg{height:auto}
+a{color:inherit;text-decoration-thickness:1px;text-decoration-color:var(--mal-line-2);text-underline-offset:.18em}
+a:hover{color:var(--mal-rojo-txt)}
+strong,b{font-weight:700}
+::selection{background:rgba(214,56,43,.24)}
+:focus-visible{outline:2px solid var(--mal-rojo);outline-offset:3px;border-radius:3px}
+.wrap{width:min(100% - 2 * clamp(1rem, 4vw, 2.75rem), var(--mal-ancho));margin-inline:auto}
+.salta{position:absolute;left:-9999px}
+.salta:focus{left:1rem;top:1rem;z-index:99;padding:.7rem 1rem;background:var(--mal-ink);color:var(--mal-bg);border-radius:var(--mal-r-s)}
+
+/* ─── tipografía ──────────────────────────────────────────── */
+/* display: Syne. Nunca por debajo de 1.4rem. */
+h1,h2,.display{font-family:var(--mal-display);font-weight:var(--ref-peso-display);letter-spacing:var(--ref-tracking);line-height:1.02;text-wrap:balance}
+.display{font-size:var(--mal-t-display);line-height:.92;letter-spacing:-.05em}
+h1{font-size:var(--mal-t-h1);line-height:1.02;letter-spacing:-.04em}
+h2{font-size:var(--mal-t-h2);line-height:1.08;letter-spacing:-.03em}
+/* subtítulos y todo lo que se lee: Inter */
+h3,h4,h5,h6{font-family:var(--mal-texto);font-weight:700;letter-spacing:-.015em;line-height:1.25;text-wrap:balance}
+h3{font-size:var(--mal-t-h3);line-height:1.22}
+h4{font-size:var(--mal-t-h4);line-height:1.3}
+h5,h6{font-size:1rem}
+p{text-wrap:pretty}
+.lede{font-family:var(--mal-texto);font-size:var(--mal-t-lede);line-height:1.45;color:var(--mal-ink-2);max-width:42ch}
+.intro{color:var(--mal-ink-2);max-width:56ch;text-wrap:pretty}
+.micro{font-family:var(--mal-mono);font-size:var(--mal-t-micro);letter-spacing:.12em;text-transform:uppercase;color:var(--mal-ink-3)}
+.kicker{
+  font-family:var(--mal-mono);font-size:var(--mal-t-micro);letter-spacing:.16em;text-transform:uppercase;
+  color:var(--mal-ink-3);display:flex;align-items:center;gap:.8rem;font-weight:500;
+}
+.kicker::before{content:"";flex:none;width:2.2rem;height:1px;background:var(--mal-rojo)}
+.prosa p + p{margin-top:1rem}
+.prosa{max-width:68ch}
+
+/* ─── cabecera ────────────────────────────────────────────── */
+.hud{
+  position:sticky;top:0;z-index:50;border-bottom:var(--mal-separador);
+  background:var(--mal-relleno-barra);
+  -webkit-backdrop-filter:var(--mal-vidrio-barra);backdrop-filter:var(--mal-vidrio-barra);
+}
+.hud__in{
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;padding-block:.75rem;
+  font-family:var(--mal-mono);font-size:var(--mal-t-micro);letter-spacing:.14em;text-transform:uppercase;
+}
+.hud__marca{display:flex;align-items:center;gap:.6rem;text-decoration:none;color:var(--mal-ink-2)}
+.hud__marca b{font-family:var(--mal-display);font-weight:800;font-size:1.1rem;letter-spacing:-.04em;text-transform:none;color:var(--mal-ink)}
+.hud__marca:hover b{color:var(--mal-rojo-txt)}
+.hud__punto{width:8px;height:8px;border-radius:50%;background:var(--mal-rojo);animation:mal-latir 2.4s ease-in-out infinite}
+.hud nav{display:flex;gap:clamp(.9rem, 2vw, 1.6rem)}
+.hud nav a{text-decoration:none;color:var(--mal-ink-2);padding:.35rem 0;border-bottom:1px solid transparent;white-space:nowrap}
+.hud nav a:hover,.hud nav a[aria-current]{color:var(--mal-ink);border-bottom-color:var(--mal-rojo)}
+@media (max-width:640px){
+  .hud__in{flex-wrap:wrap;row-gap:.25rem}
+  .hud nav{width:100%;overflow-x:auto;scrollbar-width:none;padding-bottom:.15rem}
+  .hud nav::-webkit-scrollbar{display:none}
+}
+
+/* ─── botones ─────────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+  min-height:var(--mal-tap);padding:0 var(--mal-e5);border-radius:var(--mal-r-full);
+  font-family:var(--mal-texto);font-weight:600;text-decoration:none;font-size:var(--mal-t-caption);color:var(--mal-ink);
+  border:var(--mal-borde-fuerte);background:var(--mal-campo);cursor:pointer;
+  transition:transform .18s var(--mal-ease), background .18s, color .18s, border-color .18s, box-shadow .18s;
+}
+.btn:hover{transform:var(--mal-salto);color:var(--mal-ink);border-color:var(--mal-ink)}
+.btn:active{transform:var(--mal-presion)}
+/* el botón de marca: en Juegos el relleno es un degradado y la sombra
+   es dura, así que el mismo selector sale volumétrico sin tocarlo. */
+.btn--rojo{
+  background:var(--mal-relleno-marca);color:var(--mal-sobre-rojo);
+  border-color:transparent;box-shadow:var(--mal-elev-1);
+}
+.btn--rojo:hover{background:var(--mal-relleno-marca);border-color:transparent;
+  color:var(--mal-sobre-rojo);box-shadow:var(--mal-elev-2)}
+.btn--rojo:active{box-shadow:none}
+/* el destello holográfico: donde el tema lo define, el botón de marca
+   gana un filo iridiscente arriba. En los demás temas no existe y la
+   regla no pinta nada. */
+.btn--rojo{position:relative;overflow:hidden}
+.btn--rojo::before{
+  content:"";position:absolute;inset:0 0 auto;height:2px;
+  background:var(--ref-destello, transparent);opacity:.9;
+}
+.btn--fantasma{background:transparent}
+.btn--sm{padding:.5rem .85rem;font-size:var(--mal-t-caption)}
+
+/* ─── secciones ───────────────────────────────────────────── */
+.sec{padding-block:calc(clamp(3.5rem, 8vw, 6.5rem) * var(--ref-densidad));border-top:var(--mal-borde)}
+.sec--primera{border-top:0}
+.sec__cab{
+  display:grid;grid-template-columns:minmax(0, 1.15fr) minmax(0, 1fr);gap:1.4rem clamp(2rem, 5vw, 5rem);
+  align-items:end;margin-bottom:clamp(1.8rem, 4vw, 3rem);
+}
+.sec__cab h2{margin-top:.9rem}
+@media (max-width:720px){.sec__cab{grid-template-columns:1fr}}
+
+/* ─── hero ────────────────────────────────────────────────── */
+.hero{position:relative;isolation:isolate;padding-block:clamp(3.5rem, 9vw, 7.5rem) clamp(3rem, 6vw, 5rem);overflow:hidden}
+.hero::before{
+  content:"";position:absolute;inset:0;z-index:-1;opacity:.55;
+  background-image:radial-gradient(var(--mal-line-2) 1px, transparent 1.5px);background-size:26px 26px;
+  -webkit-mask-image:radial-gradient(70% 80% at 72% 45%, #000 0%, transparent 100%);
+  mask-image:radial-gradient(70% 80% at 72% 45%, #000 0%, transparent 100%);
+}
+.hero__in{display:grid;grid-template-columns:minmax(0, 7fr) minmax(0, 5fr);gap:clamp(2rem, 5vw, 5rem);align-items:center}
+.hero h1{margin-top:1.2rem}
+.hero h1 em{font-style:normal;color:var(--mal-rojo)}
+.hero .lede{margin-top:1.6rem}
+.hero__acciones{margin-top:2rem;display:flex;gap:.7rem;flex-wrap:wrap}
+.hero__texto > *{animation:mal-subir .7s var(--mal-ease) both}
+.hero__texto > :nth-child(2){animation-delay:.06s}
+.hero__texto > :nth-child(3){animation-delay:.12s}
+.hero__texto > :nth-child(4){animation-delay:.18s}
+.hero__texto > :nth-child(5){animation-delay:.24s}
+.hero__red{animation:mal-aparecer 1.1s ease .25s both}
+@media (max-width:860px){.hero__in{grid-template-columns:1fr}.hero__red{display:none}}
+
+.hero--404{min-height:66vh;display:grid;align-items:center}
+.cifras{
+  margin-top:2rem;display:flex;flex-wrap:wrap;gap:.5rem .55rem;list-style:none;
+  font-family:var(--mal-mono);font-size:var(--mal-t-micro);letter-spacing:.08em;text-transform:uppercase;
+}
+/* inline-flex para que una píldora con icono no se descuadre: con `inline`
+   el .icono cae por debajo de la línea base y estira la caja. */
+.cifras li{display:inline-flex;align-items:center;gap:.4em;padding:.45rem .8rem;border:var(--mal-borde);border-radius:var(--mal-r-full);background:var(--mal-paper);color:var(--mal-ink-2)}
+.cifras b{color:var(--mal-ink);font-weight:600}
+
+/* ─── el mapa de la red (SVG) ─────────────────────────────── */
+.red{width:100%;height:auto;font-family:var(--mal-mono);overflow:visible}
+.red .anillo{fill:none;stroke:var(--mal-line);stroke-dasharray:2 5}
+.red line{stroke:var(--mal-line);stroke-width:1}
+.red .n{fill:var(--mal-ink);transition:r .15s ease}
+.red .n--medio{fill:var(--mal-rojo)}
+.red .n--juego{fill:var(--mal-ink)}
+.red .n--app{fill:var(--mal-ink-3)}
+.red text{fill:var(--mal-ink-2);font-size:var(--mal-t-mini);letter-spacing:.03em}
+.red a{text-decoration:none}
+.red a:hover text{fill:var(--mal-rojo-txt);font-weight:500}
+.red a:hover .n{r:7}
+.red .centro-c{fill:var(--mal-ink)}
+.red .centro{fill:var(--mal-bg);font-family:var(--mal-display);font-weight:800;font-size:24px;letter-spacing:-1.2px}
+
+/* ─── tarjetas ────────────────────────────────────────────── */
+.rej{display:grid;gap:1.1rem;grid-template-columns:repeat(auto-fill, minmax(min(100%, 320px), 1fr))}
+.rej--2{grid-template-columns:repeat(auto-fit, minmax(min(100%, 340px), 1fr))}
+.tarj{
+  position:relative;display:flex;flex-direction:column;background:var(--mal-relleno);
+  border:var(--mal-borde);border-radius:var(--mal-r);overflow:hidden;box-shadow:var(--mal-elev-1);
+  transition:transform var(--mal-dur) var(--mal-ease), box-shadow var(--mal-dur) ease, border-color var(--mal-dur) ease;
+}
+.tarj:hover{transform:var(--mal-salto);box-shadow:var(--mal-elev-2);border-color:var(--mal-line-2)}
+.tarj__cover{aspect-ratio:16 / 10;background:var(--mal-bg-2);overflow:hidden;display:grid;place-items:center}
+.tarj__cover img{width:100%;height:100%;object-fit:cover;object-position:top center;transition:transform .6s var(--mal-ease)}
+.tarj:hover .tarj__cover img{transform:scale(1.03)}
+.tarj__cover--icono{background:var(--fondo, var(--mal-bg-2));position:relative}
+.tarj__cover--icono::after{content:"";position:absolute;inset:0;background:radial-gradient(60% 60% at 50% 40%, rgba(255,255,255,.14), transparent 70%)}
+.tarj__cover--icono img{width:34%;height:auto;object-fit:contain;border-radius:22%;filter:drop-shadow(0 16px 30px rgba(0,0,0,.35))}
+.tarj:hover .tarj__cover--icono img{transform:scale(1.05) rotate(-1.5deg)}
+.tarj__cover--glifo{background:var(--fondo, var(--mal-ink));color:#fff;font-family:var(--mal-display);font-weight:800;font-size:clamp(3rem, 8vw, 5rem);letter-spacing:-.05em}
+/* la cabecera del periódico es papel y tinta SIEMPRE: no sigue el tema a propósito */
+.tarj__cover--em{background:#FCFAF6;color:#111;font-family:var(--mal-display);font-weight:800;font-size:clamp(5rem, 14vw, 11rem);letter-spacing:-.06em;line-height:1}
+.tarj__cover--em i{font-style:normal;color:var(--mal-morado)}
+.tarj__cuerpo{padding:var(--mal-e4) var(--mal-e5) var(--mal-e5);display:flex;flex-direction:column;gap:.5rem;flex:1}
+.tarj__kicker{font-family:var(--mal-mono);font-size:var(--mal-t-micro);letter-spacing:.14em;text-transform:uppercase;color:var(--mal-ink-3)}
+.tarj h3 a{text-decoration:none;color:inherit}
+.tarj h3 a::after{content:"";position:absolute;inset:0}
+.tarj:hover h3 a{color:var(--mal-rojo-txt)}
+.tarj p:not(.tarj__kicker):not(.tarj__acc){color:var(--mal-ink-2);font-size:var(--mal-t-caption);line-height:1.5}
+.tarj__tags{
+  display:flex;flex-wrap:wrap;gap:.35rem;list-style:none;margin-top:auto;padding-top:.5rem;
+  font-family:var(--mal-mono);font-size:var(--mal-t-micro);letter-spacing:.1em;text-transform:uppercase;color:var(--mal-ink-3);
+}
+.tarj__tags li{font-size:var(--mal-t-mini);border:var(--mal-borde);border-radius:var(--mal-r-full);padding:.22rem .55rem}
+.tarj__acc{display:flex;gap:1.1rem;align-items:baseline;margin-top:.5rem;font-size:var(--mal-t-caption);font-weight:600}
+.tarj__acc a{position:relative;z-index:1;text-decoration:none;color:var(--mal-rojo-txt)}
+.tarj__acc a:hover{text-decoration:underline}
+.tarj__acc .sec-link{color:var(--mal-ink-2);font-family:var(--mal-mono);font-weight:500;font-size:var(--mal-t-micro);letter-spacing:.12em;text-transform:uppercase}
+
+.tarj--destacada{grid-column:1 / -1;display:grid;grid-template-columns:minmax(0, 1.05fr) minmax(0, 1fr)}
+.tarj--destacada .tarj__cover{aspect-ratio:auto;min-height:340px;height:100%}
+.tarj--destacada .tarj__cover--icono img{width:38%}
+.tarj--destacada .tarj__cuerpo{padding:clamp(1.4rem, 3vw, 2.4rem)}
+.tarj--destacada h3{font-family:var(--mal-display);font-weight:var(--ref-peso-display);letter-spacing:var(--ref-tracking);font-size:var(--mal-t-h2)}
+.tarj--destacada p:not(.tarj__kicker):not(.tarj__acc){font-size:1.02rem}
+@media (max-width:720px){
+  .tarj--destacada{grid-template-columns:1fr}
+  .tarj--destacada .tarj__cover{aspect-ratio:16 / 10;min-height:0;height:auto}
+}
+
+/* la cita de un medio manda sobre su descripción */
+/* ─── LA CITA · un solo componente ────────────────────────────
+   `.cita`, `blockquote`, `.em-quote` y la del artículo son la misma
+   pieza. El tamaño es relativo (`--mal-t-cita`, 1,15em por defecto),
+   así que una cita dentro de una tarjeta pequeña no sale gritando.
+   Cómo se marca depende del tema, no del marcado:
+     · con filete cuando el tema tiene líneas (`--ref-acento-linea:1`)
+     · con comilla grande cuando no las tiene (`--mal-comilla:block`)
+   Antes había tres componentes con tres tamaños (20,8 · 21 · 22,2) y
+   solo uno pintaba la comilla. */
+.cita,blockquote,.em-quote{
+  position:relative;margin:0;text-wrap:pretty;
+  font-family:var(--mal-texto);font-size:var(--mal-t-cita);font-weight:var(--ref-peso-cita);
+  font-style:var(--ref-cita-estilo);letter-spacing:-.015em;line-height:1.4;color:var(--mal-ink);
+  padding-left:var(--ref-cita-sangria);padding-top:var(--ref-cita-alto);
+  border-left:var(--mal-acento-linea) solid var(--mal-primary);
+}
+/* La comilla ocupa su sitio: `--ref-cita-alto` le abre hueco arriba. Sin eso
+   se montaba sobre el párrafo anterior, que es justo lo que pasaba en el
+   periódico —el único tema que la enseña—. */
+.cita::before,blockquote::before,.em-quote::before{
+  content:"\201C";display:var(--mal-comilla, none);position:absolute;left:0;top:0;
+  font-family:var(--mal-display);font-size:2.6em;line-height:.9;color:var(--mal-primary);
+  font-style:normal;pointer-events:none;
+}
+/* quien firma la cita: un escalón por debajo y sin cursiva */
+.cita cite,blockquote cite,.em-quote cite,.cita__autor{
+  display:block;margin-top:var(--mal-e2);font-family:var(--mal-mono);font-size:var(--mal-t-micro);
+  font-style:normal;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--mal-ink-3);
+}
+
+/* ─── lista de enlaces ────────────────────────────────────── */
+.lista{list-style:none;border-top:var(--mal-separador)}
+.lista a{
+  display:grid;grid-template-columns:auto minmax(0, 1fr) auto;gap:1rem 1.3rem;align-items:center;
+  padding:1.1rem 0;border-bottom:var(--mal-separador);text-decoration:none;color:inherit;
+}
+.lista a:hover .nom{color:var(--mal-rojo-txt)}
+.lista .ico{width:48px;height:48px;border-radius:13px;object-fit:cover;background:var(--mal-paper);border:var(--mal-borde);filter:grayscale(1)}
+.lista a:hover .ico{filter:none}
+.ico--glifo{display:grid;place-items:center;font-family:var(--mal-mono);font-size:1rem;color:var(--mal-ink-2);filter:none !important}
+.lista .nom{font-weight:700;font-size:1.1rem;letter-spacing:-.015em;transition:color .15s}
+.lista .url{font-family:var(--mal-mono);font-size:var(--mal-t-micro);color:var(--mal-ink-3);letter-spacing:.08em;margin-left:.5rem}
+.lista .des{color:var(--mal-ink-2);font-size:var(--mal-t-caption)}
+.lista .fl{font-size:1.5rem;color:var(--mal-ink-3);transition:transform .2s ease, color .2s ease}
+.lista a:hover .fl{transform:translateX(5px);color:var(--mal-rojo)}
+
+/* ─── ficha de persona ────────────────────────────────────── */
+.quien{display:grid;grid-template-columns:auto minmax(0, 1fr);gap:clamp(1.5rem, 4vw, 3.5rem);align-items:start}
+.quien img{
+  width:clamp(130px, 18vw, 210px);aspect-ratio:1;object-fit:cover;border-radius:var(--mal-r);
+  border:var(--mal-borde);filter:grayscale(1) contrast(1.05);transition:filter .4s ease;
+}
+.quien img:hover{filter:none}
+.quien h2{margin-top:.9rem;max-width:20ch}
+.quien p{max-width:62ch;margin-top:1rem;color:var(--mal-ink-2)}
+.quien p strong{color:var(--mal-ink)}
+.enlaces{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:1.5rem;list-style:none}
+.enlaces a{
+  display:inline-block;font-family:var(--mal-mono);font-size:var(--mal-t-micro);letter-spacing:.12em;text-transform:uppercase;
+  text-decoration:none;padding:.6rem .95rem;border:var(--mal-borde-fuerte);border-radius:var(--mal-r-full);color:var(--mal-ink);
+  transition:border-color .15s, color .15s, transform .15s;
+}
+.enlaces a:hover{border-color:var(--mal-rojo);color:var(--mal-rojo-txt);transform:translateY(-2px)}
+@media (max-width:560px){.quien{grid-template-columns:1fr}}
+
+/* ─── aviso ───────────────────────────────────────────────── */
+.aviso{
+  border:var(--mal-borde-fuerte);border-left:var(--mal-acento-linea) solid var(--mal-primary);border-radius:var(--mal-r-s);
+  padding:var(--mal-e3) var(--mal-e4);background:var(--mal-relleno);color:var(--mal-ink-2);font-size:var(--mal-t-caption);
+}
+.aviso b{color:var(--mal-ink)}
+.aviso--ok{border-left-color:var(--mal-verde)}
+.aviso--atencion{border-left-color:var(--mal-ambar)}
+
+/* ─── marco de app embebida ───────────────────────────────── */
+.marco{
+  border:var(--mal-borde);border-radius:var(--mal-r);overflow:hidden;background:var(--mal-relleno);
+  box-shadow:var(--mal-elev-2);
+}
+.marco__barra{
+  display:flex;align-items:center;gap:.75rem;padding:.6rem .9rem;border-bottom:var(--mal-separador);
+  background:var(--mal-paper-2);font-family:var(--mal-mono);font-size:var(--mal-t-micro);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--mal-ink-3);
+}
+.marco__luces{display:flex;gap:.35rem;flex:none}
+.marco__luces i{width:9px;height:9px;border-radius:50%;background:var(--mal-line-2);display:block}
+.marco__url{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:none;letter-spacing:.04em}
+.marco__acc{display:flex;gap:.5rem;flex:none}
+.marco iframe{width:100%;height:min(78vh, 900px);border:0;background:var(--mal-bg-2);display:block}
+.marco--movil iframe{height:min(80vh, 860px)}
+
+/* ─── pie ─────────────────────────────────────────────────── */
+.pie{border-top:var(--mal-separador);padding-block:2.4rem 3.2rem;font-family:var(--mal-mono);font-size:var(--mal-t-micro);letter-spacing:.1em;text-transform:uppercase;color:var(--mal-ink-3)}
+.pie__in{display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem 2rem;align-items:center}
+.pie a{text-decoration:none;color:var(--mal-ink-2)}
+.pie a:hover{color:var(--mal-rojo-txt)}
+.pie ul{display:flex;gap:1.2rem;list-style:none;flex-wrap:wrap}
+
+/* ─── código, tablas y formularios ────────────────────────── */
+/* Lo mínimo para que un consumidor con un ejemplo de código, una
+   tabla o un formulario no tenga que inventárselo. */
+pre{
+  font-family:var(--mal-mono);font-size:var(--mal-t-mini);line-height:1.6;overflow-x:auto;
+  background:var(--mal-paper-2);border:var(--mal-borde);border-radius:var(--mal-r-s);
+  padding:1rem 1.1rem;color:var(--mal-ink-2);
+}
+pre code{background:none;border:0;padding:0;font-size:inherit}
+/* bloque de código con botón de copiar. `.btn-copy` ya existía, pero no
+   tenía dónde vivir fuera del storybook: sin esto, cualquier sitio que
+   quisiera enseñar una línea copiable tenía que inventarse la caja. */
+.codigo-bloque{position:relative}
+.codigo-bloque pre{margin:0;padding-right:6.5rem}
+.codigo-bloque .btn-copy{position:absolute;top:.6rem;right:.6rem}
+.tabla-env{overflow-x:auto;border:var(--mal-borde);border-radius:var(--mal-r-s)}
+table{border-collapse:collapse;width:100%;font-size:var(--mal-t-caption)}
+th,td{text-align:left;padding:.65rem .85rem;border-bottom:var(--mal-separador);vertical-align:top}
+th{font-family:var(--mal-mono);font-size:var(--mal-t-micro);letter-spacing:.12em;text-transform:uppercase;color:var(--mal-ink-3);font-weight:500}
+tbody tr:last-child td{border-bottom:0}
+label{display:block;font-weight:600;font-size:var(--mal-t-caption);margin-bottom:.3rem}
+input,select,textarea{
+  font-family:var(--mal-texto);font-size:1rem;color:var(--mal-ink);background:var(--mal-relleno);
+  border:var(--mal-borde-fuerte);border-radius:var(--mal-r-s);padding:0 var(--mal-e4);
+  min-height:var(--mal-tap);width:100%;max-width:34rem;
+}
+textarea{padding-block:var(--mal-e3);min-height:calc(var(--mal-tap) * 2.5)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--mal-rojo);outline-offset:1px;border-color:var(--mal-rojo)}
+
+/* ─── movimiento ──────────────────────────────────────────── */
+@keyframes mal-latir{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes mal-subir{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes mal-aparecer{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important;scroll-behavior:auto !important}
+}
+
+/* ─── páginas de embed (/apps/<id>/) ──────────────────────── */
+.emb{padding-block:clamp(1.5rem, 4vw, 3rem)}
+.emb__t{font-size:clamp(2rem, 1.4rem + 2.6vw, 3.4rem);margin-block:.7rem .4rem}
+.emb__d{max-width:62ch}
+.emb .marco{margin-top:1.4rem}
+.emb__n{margin-top:1rem}
+.emb__s{margin-top:clamp(2rem, 5vw, 3.5rem)}
+.emb__h2{font-size:clamp(1.4rem, 1.1rem + 1.2vw, 2rem);margin-block:.6rem 1rem}
+code{font-family:var(--mal-mono);font-size:.9em;background:var(--mal-paper-2);border:var(--mal-borde);border-radius:6px;padding:.1em .35em}
+/* el recuadro es para el código EN LÍNEA: si la clase pide la familia mono
+   como espécimen tipográfico, estorba. */
+code.text-mono,pre code,.sb-code code{background:none;border:0;padding:0;font-size:inherit}
+
+/* ══════════════════════════════════════════════════════════════
+   CAPA 2 · EL UI KIT COMPLETO
+   Portado del storybook original de maldonado.pro (`index.css`),
+   con sus mismas medidas y comportamiento, pero hablando en tokens
+   `--mal-*` en vez de los `hsl(var(--bg-000))` de aquella hoja.
+   Así el kit entero sigue el tema y se puede consumir desde fuera.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─── utilidades de texto ─────────────────────────────────── */
+.text-display,.text-sans{font-family:var(--mal-display)}
+.text-mono{font-family:var(--mal-mono)}
+.text-accent{color:var(--mal-rojo-txt)}
+.text-blue{color:var(--mal-azul)}
+.text-muted{color:var(--mal-ink-2)}
+.text-faint{color:var(--mal-ink-3)}
+
+/* ─── superficies y texturas ──────────────────────────────── */
+.bg-dotted{background-image:radial-gradient(color-mix(in srgb, var(--mal-ink) 12%, transparent) 1.2px, transparent 0);background-size:24px 24px}
+/* El grano del sistema, tal cual estaba en el storybook original:
+   una capa fija sobre TODO el documento, no un fondo por caja. Es lo
+   que le da al papel su textura, y en pantallas grandes se nota. */
+body{position:relative}
+/* El grano va sobre TODO el documento. Un tema lo quita con
+   `--ref-grano:none`: con `content:none` el pseudo-elemento ni se genera. */
+body::before{
+  content:var(--ref-grano);position:fixed;inset:0;pointer-events:none;z-index:10000;opacity:.4;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+/* y la versión por caja, para una superficie suelta */
+.bg-noise{position:relative}
+.bg-noise::after{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;z-index:1;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+.glow-blob{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;opacity:.4}
+
+/* ─── botones del kit (alias del storybook original) ──────── */
+.btn-primary{background:var(--mal-ink);color:var(--mal-bg);border-color:var(--mal-ink)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:var(--mal-sombra-md);color:var(--mal-bg)}
+.btn-outline{background:transparent;color:var(--mal-ink);border:var(--mal-borde-fuerte)}
+.btn-outline:hover{background:var(--mal-paper-2)}
+.btn-ghost{background:transparent;color:var(--mal-ink-2);border-color:transparent}
+.btn-ghost:hover{background:var(--mal-paper-2);color:var(--mal-ink)}
+.btn-install{
+  display:inline-flex;align-items:center;gap:12px;background:var(--mal-paper-2);
+  border:var(--mal-borde-fuerte);border-radius:var(--mal-r-s);padding:8px 16px;
+  font-family:var(--mal-mono);font-size:var(--mal-t-caption);color:var(--mal-ink-2);
+}
+.btn-install .prompt{color:var(--mal-rojo-txt);font-weight:700}
+
+/* ─── etiquetas e indicadores ─────────────────────────────── */
+.tag{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:var(--mal-paper-2);
+  border:var(--mal-borde);border-radius:var(--mal-r-full);font-family:var(--mal-mono);
+  font-size:var(--mal-t-mini);color:var(--mal-ink-2);text-transform:uppercase;letter-spacing:.05em;width:fit-content;
+}
+.tag--acento{background:color-mix(in srgb, var(--mal-rojo) 10%, transparent);color:var(--mal-rojo-txt);border-color:transparent}
+.metric-badge{
+  display:inline-flex;flex-direction:column;gap:4px;padding:16px 24px;background:var(--mal-paper-2);
+  border:var(--mal-borde);border-radius:var(--mal-r);
+}
+.metric-value{font-family:var(--mal-display);font-size:var(--mal-t-h1);font-weight:800;color:var(--mal-rojo-txt);line-height:1}
+.metric-label{font-family:var(--mal-mono);font-size:var(--mal-t-mini);text-transform:uppercase;letter-spacing:.1em;color:var(--mal-ink-2)}
+
+/* ─── pestañas ────────────────────────────────────────────── */
+.tabs-control{
+  display:flex;gap:4px;background:var(--mal-paper-2);border:var(--mal-borde);
+  padding:6px;border-radius:var(--mal-r-s);width:fit-content;
+}
+.tab-trigger{
+  padding:8px 16px;border-radius:6px;font-family:var(--mal-texto);font-size:var(--mal-t-caption);font-weight:600;
+  cursor:pointer;border:0;background:transparent;color:var(--mal-ink-2);transition:.15s;
+}
+.tab-trigger[aria-selected="true"],.tab-trigger.active{background:var(--mal-ink);color:var(--mal-bg)}
+
+/* ─── acordeón · sin JavaScript, con <details> ────────────── */
+.accordion-item{border-bottom:var(--mal-separador)}
+.accordion-item summary{
+  list-style:none;cursor:pointer;padding:20px 0;display:flex;justify-content:space-between;
+  align-items:center;gap:16px;font-weight:600;font-size:var(--mal-t-cuerpo);color:var(--mal-ink);
+}
+.accordion-item summary::-webkit-details-marker{display:none}
+.accordion-item summary::after{content:"+";font-family:var(--mal-mono);font-size:20px;color:var(--mal-ink-3);transition:transform .25s}
+.accordion-item[open] summary::after{transform:rotate(45deg)}
+.accordion-item .accordion-content{padding-bottom:20px;color:var(--mal-ink-2);font-size:var(--mal-t-caption)}
+
+/* ─── terminal ────────────────────────────────────────────── */
+.terminal{background:#0a0a0a;border:var(--mal-borde);border-radius:var(--mal-r-s);overflow:hidden;box-shadow:var(--mal-sombra-md)}
+.terminal-header{background:#1a1a1a;padding:12px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #333}
+.dot{width:10px;height:10px;border-radius:50%;display:block}
+.dot-red{background:#ff5f56}.dot-yellow{background:#ffbd2e}.dot-green{background:#27c93f}
+.terminal-body{padding:20px;font-family:var(--mal-mono);font-size:var(--mal-t-caption);color:#f0ede8;line-height:1.6}
+.t-line{margin-bottom:6px;display:flex;align-items:flex-start;gap:8px}
+.t-prompt{color:#ff6b5e;font-weight:700;flex-shrink:0}
+.t-line.success{color:#4caf72}
+.t-line.info{color:#c9c6c0}
+
+/* ─── bento y tarjetas de contenido ───────────────────────── */
+.bento-grid{
+  display:grid;grid-template-columns:repeat(3, 1fr);gap:1px;background:var(--mal-line-2);
+  border:var(--mal-borde);border-radius:var(--mal-r);overflow:hidden;
+}
+.bento-grid .card{background:var(--mal-paper);padding:32px;display:flex;flex-direction:column;gap:16px;transition:background .15s}
+.bento-grid .card:hover{background:var(--mal-paper-2)}
+.card-large{grid-column:span 2}
+.card.bordered{border:var(--mal-borde);border-radius:var(--mal-r)}
+.card.small{padding:20px;gap:8px}
+.bento-grid--sueltas{display:flex;flex-wrap:wrap;gap:24px;background:transparent;border:0}
+@media (max-width:800px){.bento-grid{grid-template-columns:1fr}.card-large{grid-column:span 1}}
+
+/* ─── precios ─────────────────────────────────────────────── */
+.pricing-card{
+  background:var(--mal-paper-2);border:var(--mal-borde);border-radius:var(--mal-r);
+  padding:32px;display:flex;flex-direction:column;gap:16px;position:relative;
+}
+.pricing-card.featured{border-color:var(--mal-rojo);box-shadow:0 0 24px color-mix(in srgb, var(--mal-rojo) 14%, transparent)}
+.price{font-family:var(--mal-display);font-size:var(--mal-t-h1);font-weight:800;letter-spacing:-.02em;line-height:1}
+.period{font-size:var(--mal-t-caption);color:var(--mal-ink-2)}
+
+/* ─── carné de identidad ──────────────────────────────────── */
+.ticket{
+  width:300px;background:var(--mal-paper);border:var(--mal-borde-fuerte);border-radius:12px;
+  display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--mal-elev-2);
+}
+.ticket-photo-full{width:100%;height:240px;background:var(--mal-bg-2);overflow:hidden}
+.ticket-photo-full img{width:100%;height:100%;object-fit:cover}
+.ticket-content{flex:1;padding:24px;display:flex;flex-direction:column}
+.ticket-group{margin-bottom:8px}
+.ticket-label-sm{
+  font-family:var(--mal-mono);font-size:var(--mal-t-mini);text-transform:uppercase;letter-spacing:.12em;
+  font-weight:700;color:var(--mal-ink-3);margin-bottom:6px;display:block;
+}
+.ticket-value-sm{font-family:var(--mal-display);font-size:var(--mal-t-h3);font-weight:800;line-height:1.1;color:var(--mal-ink);letter-spacing:-.02em}
+.ticket-signature-svg{width:140px;height:50px;opacity:.9;color:var(--mal-ink);margin:4px 0 20px}
+.ticket-separator{border:0;border-top:var(--mal-separador);margin:0 0 20px}
+.ticket-bottom-row{display:grid;grid-template-columns:1fr 1.2fr;gap:16px;margin-top:auto}
+
+/* ─── tarjeta social ──────────────────────────────────────── */
+.social-card{
+  background:var(--mal-paper);border:var(--mal-borde);border-radius:12px;overflow:hidden;
+  display:flex;flex-direction:column;transition:transform .15s, box-shadow .15s, border-color .15s;
+}
+.social-card:hover{transform:translateY(-4px);box-shadow:var(--mal-sombra-md);border-color:var(--mal-line-2)}
+.social-card-body{padding:20px 16px;font-family:var(--mal-mono);font-size:var(--mal-t-caption);line-height:1.6;color:var(--mal-ink-2);flex-grow:1}
+.social-card-footer{padding:12px 16px;display:flex;align-items:center;gap:12px;border-top:var(--ref-borde) dotted var(--mal-outline-2)}
+.social-avatar{
+  width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#fff;
+  font-weight:700;font-size:var(--mal-t-caption);text-transform:uppercase;flex-shrink:0;background:var(--mal-ink-2);
+}
+.social-info{display:flex;flex-direction:column;gap:2px}
+.social-name{font-size:var(--mal-t-caption);font-weight:700;color:var(--mal-ink)}
+.social-handle{font-size:var(--mal-t-mini);color:var(--mal-ink-3)}
+.social-card.accent{border-left:calc(4px * var(--ref-acento-linea)) solid var(--mal-rojo)}
+.social-card.pro{border-left:calc(4px * var(--ref-acento-linea)) solid var(--mal-morado)}
+
+/* ─── caso de portafolio ──────────────────────────────────── */
+.portfolio-case{display:grid;grid-template-columns:1fr 1fr;gap:clamp(2rem, 5vw, 5rem);align-items:center}
+@media (max-width:900px){.portfolio-case{grid-template-columns:1fr}}
+.case-content{display:flex;flex-direction:column;gap:20px}
+.case-tag{font-family:var(--mal-mono);color:var(--mal-rojo-txt);font-weight:700;font-size:var(--mal-t-mini);text-transform:uppercase;letter-spacing:.1em}
+.case-title{font-family:var(--mal-display);font-size:var(--mal-t-h2);line-height:1.05;font-weight:800;letter-spacing:-.03em}
+.case-metrics-grid{display:grid;grid-template-columns:repeat(2, 1fr);gap:16px;margin-top:8px}
+.portfolio-stack{position:relative;aspect-ratio:4/3;perspective:1000px}
+.portfolio-card{
+  position:absolute;inset:0;border-radius:var(--mal-r);overflow:hidden;border:var(--mal-borde);
+  background:var(--mal-paper-2);box-shadow:var(--mal-sombra-md);
+}
+.portfolio-card:nth-child(2){transform:rotate(-4deg) translate(-10px, 10px);z-index:1}
+.portfolio-card:nth-child(1){z-index:2}
+.portfolio-card img{width:100%;height:100%;object-fit:cover}
+
+/* ─── pasos de proceso ────────────────────────────────────── */
+.feature-stepper{display:flex;flex-direction:column}
+.feature-step{padding:20px 24px;border-top:var(--mal-separador);position:relative;transition:background .3s}
+.feature-step::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--mal-rojo);transform:scaleY(0);transition:transform .3s}
+.feature-step.active{background:var(--mal-paper-2)}
+.feature-step.active::before{transform:scaleY(1)}
+.feature-step-title{font-weight:700;font-size:var(--mal-t-cuerpo);color:var(--mal-ink)}
+.feature-step-desc{font-size:var(--mal-t-caption);color:var(--mal-ink-2);margin-top:8px}
+
+/* ─── módulos y listas de característica ──────────────────── */
+.plugin-card{
+  background:var(--mal-paper);border:var(--mal-borde);border-radius:var(--mal-r);padding:24px;
+  max-width:280px;display:flex;flex-direction:column;gap:16px;box-shadow:var(--mal-sombra-sm);transition:transform .3s, box-shadow .3s;
+}
+.plugin-card:hover{transform:translateY(-4px);box-shadow:var(--mal-sombra-md)}
+.plugin-card-image{width:100%;aspect-ratio:16/9;background:var(--mal-rojo);border-radius:var(--mal-r-s);display:grid;place-items:center;font-size:var(--mal-t-h1)}
+.plugin-card-title{font-size:var(--mal-t-caption);font-weight:700;color:var(--mal-ink);line-height:1.3}
+.plugin-card-desc{font-size:var(--mal-t-caption);color:var(--mal-ink-2);line-height:1.5}
+.list-features{display:flex;flex-direction:column;border-top:var(--mal-separador)}
+.list-feature-item{display:grid;grid-template-columns:320px 1fr;gap:60px;padding:40px 0;border-bottom:var(--mal-separador)}
+.list-feature-header{display:flex;align-items:flex-start;gap:20px}
+.list-feature-icon{font-size:24px;flex-shrink:0;margin-top:4px}
+.list-feature-title{font-family:var(--mal-display);font-size:clamp(1.4rem, 1.1rem + 1vw, 1.75rem);font-weight:800;line-height:1.1;letter-spacing:-.03em}
+.list-feature-points{list-style:none;display:flex;flex-direction:column;gap:14px}
+.list-feature-points li{position:relative;padding-left:24px;font-size:var(--mal-t-cuerpo);line-height:1.5;color:var(--mal-ink-2)}
+.list-feature-points li::before{content:"•";position:absolute;left:0;color:var(--mal-rojo);font-size:22px;line-height:1}
+@media (max-width:800px){.list-feature-item{grid-template-columns:1fr;gap:20px}}
+
+/* ─── pila de tarjetas y paginación ───────────────────────── */
+.stacked-cards-container{position:relative;width:100%;max-width:320px;height:240px}
+.stacked-card{
+  position:absolute;inset:0;background:var(--mal-paper);border:var(--mal-borde);
+  border-radius:var(--mal-r);padding:24px;display:flex;flex-direction:column;gap:10px;
+  transition:transform .4s cubic-bezier(.175,.885,.32,1.275);
+}
+.stacked-card:nth-child(3){transform:translate(16px, 16px);z-index:1}
+.stacked-card:nth-child(2){transform:translate(8px, 8px);z-index:2}
+.stacked-card:nth-child(1){z-index:3;box-shadow:var(--mal-sombra-md)}
+.pagination-wrap{display:flex;align-items:center;gap:16px;margin-top:24px}
+.pagination-dots{display:flex;gap:8px}
+.dot-indicator{width:6px;height:6px;border-radius:50%;background:var(--mal-line-2)}
+.dot-indicator.active{background:var(--mal-rojo);width:14px;border-radius:3px}
+.nav-arrow{
+  width:34px;height:34px;border:var(--mal-borde);border-radius:50%;display:grid;
+  place-items:center;cursor:pointer;background:var(--mal-paper);color:var(--mal-ink-2);transition:.15s;
+}
+.nav-arrow:hover{background:var(--mal-paper-2);border-color:var(--mal-ink);color:var(--mal-ink)}
+
+/* ─── texto en cluster ────────────────────────────────────── */
+.text-cluster-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:20px}
+.text-cluster-base{font-family:var(--mal-display);font-size:clamp(28px, 5vw, 62px);font-weight:800;letter-spacing:-.04em;line-height:1}
+.vibrant-tag{
+  font-family:var(--mal-display);padding:8px 24px;border-radius:14px;font-weight:800;
+  font-size:clamp(22px, 4vw, 48px);display:inline-block;box-shadow:var(--mal-elev-1);
+  transition:transform .3s cubic-bezier(.175,.885,.32,1.275);
+}
+.vibrant-tag.verde{background:#00E676;color:#000;transform:rotate(-3deg)}
+.vibrant-tag.azul{background:var(--mal-azul);color:#fff;transform:rotate(4deg)}
+.vibrant-tag.acento{background:var(--mal-rojo);color:var(--mal-sobre-rojo);transform:rotate(-2deg)}
+.vibrant-tag:hover{transform:scale(1.05) rotate(0deg)}
+
+/* ─── blog ────────────────────────────────────────────────── */
+.blog-card{
+  display:flex;flex-direction:column;background:var(--mal-paper);border:var(--mal-borde);
+  border-radius:var(--mal-r);overflow:hidden;height:100%;text-decoration:none;transition:transform .3s, box-shadow .3s, border-color .3s;
+}
+.blog-card:hover{transform:translateY(-4px);box-shadow:var(--mal-sombra-md);border-color:var(--mal-line-2)}
+.blog-card-image{width:100%;aspect-ratio:16/9;background:var(--mal-bg-2);overflow:hidden;border-bottom:var(--mal-separador)}
+.blog-card-image img{width:100%;height:100%;object-fit:cover;transition:transform .6s}
+.blog-card:hover .blog-card-image img{transform:scale(1.05)}
+.blog-card-content{padding:24px;display:flex;flex-direction:column;flex-grow:1;gap:14px}
+.blog-card-meta{
+  display:flex;justify-content:space-between;font-family:var(--mal-mono);font-size:var(--mal-t-mini);
+  color:var(--mal-ink-3);text-transform:uppercase;letter-spacing:.05em;
+}
+.blog-card-title{font-size:var(--mal-t-h3);font-weight:700;color:var(--mal-ink);line-height:1.25;letter-spacing:-.02em;transition:color .15s}
+.blog-card:hover .blog-card-title{color:var(--mal-rojo-txt)}
+.blog-card-excerpt{font-size:var(--mal-t-caption);color:var(--mal-ink-2);line-height:1.6;flex-grow:1}
+.author-meta{display:flex;align-items:center;gap:12px;margin-top:auto;padding-top:16px;border-top:var(--ref-borde) dotted var(--mal-outline-2)}
+.author-avatar{width:36px;height:36px;border-radius:50%;overflow:hidden;border:var(--mal-borde-fuerte);flex-shrink:0;background:var(--mal-bg-2)}
+.author-avatar img{width:100%;height:100%;object-fit:cover}
+.author-info{display:flex;flex-direction:column}
+.author-name{font-size:var(--mal-t-caption);font-weight:700;color:var(--mal-ink)}
+.author-date{font-size:var(--mal-t-mini);color:var(--mal-ink-3)}
+.filter-bar{display:flex;gap:12px;flex-wrap:wrap}
+.filter-chip{
+  padding:8px 16px;border-radius:var(--mal-r-full);background:var(--mal-paper-2);
+  border:var(--mal-borde);font-size:var(--mal-t-caption);font-weight:600;color:var(--mal-ink-2);
+  cursor:pointer;text-decoration:none;transition:.15s;
+}
+.filter-chip:hover{background:var(--mal-bg-2);color:var(--mal-ink)}
+.filter-chip.active,.filter-chip[aria-current]{background:var(--mal-ink);color:var(--mal-bg);border-color:var(--mal-ink)}
+
+/* ─── artículo ────────────────────────────────────────────── */
+.article-container{max-width:800px;margin-inline:auto}
+.article-meta{
+  display:flex;align-items:center;gap:12px;font-family:var(--mal-mono);font-size:var(--mal-t-mini);
+  color:var(--mal-ink-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:20px;flex-wrap:wrap;
+}
+.article-title{font-family:var(--mal-display);font-size:var(--mal-t-h1);font-weight:800;line-height:1;letter-spacing:-.035em;margin-bottom:20px}
+.article-subtitle{font-size:var(--mal-t-h4);line-height:1.5;color:var(--mal-ink-2)}
+.article-hero-image{width:100%;aspect-ratio:21/9;background:var(--mal-bg-2);border-radius:var(--mal-r);overflow:hidden;margin:32px 0 40px;border:var(--mal-borde)}
+.article-hero-image img{width:100%;height:100%;object-fit:cover}
+.prose p{margin-bottom:24px}
+.prose strong{color:var(--mal-ink)}
+.prose h2{font-family:var(--mal-display);font-size:var(--mal-t-h2);font-weight:800;color:var(--mal-ink);margin:44px 0 16px;line-height:1.2;letter-spacing:-.03em}
+.prose a{color:var(--mal-rojo-txt);text-decoration:underline;text-underline-offset:4px}
+.prose ul,.prose ol{margin-bottom:24px;padding-left:24px}
+.prose li{margin-bottom:10px}
+.prose li::marker{color:var(--mal-rojo)}
+/* la cita del artículo es la misma `.cita` de arriba; aquí solo el aire */
+.prose blockquote{padding-block:var(--mal-e2);margin-block:var(--mal-e5)}
+.prose figcaption{text-align:center;font-family:var(--mal-mono);font-size:var(--mal-t-caption);color:var(--mal-ink-3);margin-top:-12px;margin-bottom:32px}
+.article-author-box{
+  display:flex;gap:24px;align-items:center;padding:28px;background:var(--mal-paper-2);
+  border:var(--mal-borde);border-radius:var(--mal-r);margin-top:48px;
+}
+.article-author-box .author-avatar{width:72px;height:72px}
+.author-box-content{display:flex;flex-direction:column;gap:8px}
+.author-box-name{font-size:var(--mal-t-h4);font-weight:800;color:var(--mal-ink)}
+.author-box-bio{font-size:var(--mal-t-caption);color:var(--mal-ink-2);line-height:1.5}
+
+/* ─── navegación de sitio (píldora y ancho completo) ──────── */
+.nav-glass{
+  width:100%;background:color-mix(in srgb, var(--mal-paper) 85%, transparent);
+  -webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);
+  border:var(--mal-borde);border-radius:var(--mal-r-full);padding:12px 24px;
+  display:flex;justify-content:space-between;align-items:center;box-shadow:var(--mal-sombra-sm);gap:24px;
+}
+.nav-glass--full{border-radius:0;border-width:0 0 1px;padding:16px 24px}
+.logo{font-family:var(--mal-display);font-weight:800;font-size:var(--mal-t-h3);letter-spacing:-.04em}
+.nav-links-scroll{display:flex;gap:28px;align-items:center;overflow-x:auto;scrollbar-width:none}
+.nav-links-scroll::-webkit-scrollbar{display:none}
+.nav-links-scroll a{white-space:nowrap;text-decoration:none;font-size:var(--mal-t-caption);font-weight:500;color:var(--mal-ink-2)}
+.nav-links-scroll a:hover{color:var(--mal-ink)}
+
+/* ─── marquesina ──────────────────────────────────────────── */
+/* OJO: en el sitio de Anny la marquesina está prohibida. Aquí es
+   parte del kit de MAL, donde sí se usa. Se para con reduced-motion. */
+.marquee-container{
+  width:100%;overflow:hidden;padding:32px 0;border-block:var(--mal-separador);
+  background:var(--mal-paper-2);display:flex;align-items:center;
+}
+.marquee-content{display:flex;gap:40px;white-space:nowrap;width:max-content;animation:mal-marquesina 26s linear infinite}
+.marquee-item{
+  font-family:var(--mal-display);font-size:clamp(28px, 5vw, 56px);font-weight:800;
+  letter-spacing:-.04em;color:var(--mal-ink);display:flex;align-items:center;gap:20px;
+}
+.marquee-item::after{content:"•";color:var(--mal-rojo)}
+@keyframes mal-marquesina{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.marquee-content{animation:none}}
+
+/* ─── hero de página ──────────────────────────────────────── */
+.hero-title{font-family:var(--mal-display);font-size:clamp(40px, 7vw, 80px);line-height:1;font-weight:800;letter-spacing:-.04em}
+.hero-subtitle{font-size:var(--mal-t-h3);color:var(--mal-ink-2);line-height:1.5;max-width:540px}
+
+
+/* ══════════════════════════════════════════════════════════════
+   CAPA 3 · PRODUCTO
+   Venía de `apps.css`, que era un sistema aparte. Ya no lo es: un
+   campo, una barra inferior o una hoja no son «de las apps», son
+   componentes del sistema que en el tema de producto se ven de una
+   manera y en el del periódico de otra. Los tokens `--app-*` que
+   usaban se resuelven contra los roles, así que siguen valiendo.
+   ══════════════════════════════════════════════════════════════ */
+:root{
+  --app-bg:var(--mal-bg);            --app-surface:var(--mal-surface);
+  --app-surface-2:var(--mal-bg-2);   --app-sheet:var(--mal-surface-alt);
+  --app-ink:var(--mal-on-surface);   --app-ink-2:var(--mal-on-surface-2);
+  --app-ink-3:var(--mal-on-surface-3);
+  --app-line:var(--mal-outline);     --app-line-strong:var(--mal-outline-2);
+  --app-brand:var(--mal-primary);    --app-brand-deep:var(--mal-primary-hover);
+  --app-on-brand:var(--mal-on-primary);
+  --app-ok:var(--mal-ok); --app-warn:var(--mal-warn);
+  --app-danger:var(--mal-danger); --app-info:var(--mal-info);
+  --app-on-danger:#fff;
+  --app-ok-soft:color-mix(in oklab, var(--mal-ok) 10%, var(--mal-surface));
+  --app-warn-soft:color-mix(in oklab, var(--mal-warn) 10%, var(--mal-surface));
+  --app-danger-soft:color-mix(in oklab, var(--mal-danger) 9%, var(--mal-surface));
+  --app-info-soft:color-mix(in oklab, var(--mal-info) 10%, var(--mal-surface));
+  --app-font:var(--ref-texto);       --app-mono:var(--ref-mono);
+  --app-t-micro:var(--mal-t-micro);  --app-t-caption:.8125rem;
+  --app-t-body:1rem; --app-t-title:1.125rem; --app-t-screen:1.5rem;
+  --app-t-display:clamp(2rem, 1.4rem + 2.6vw, 3rem);
+  --app-r-s:var(--mal-r-s); --app-r-m:var(--mal-r); --app-r-l:calc(26px * var(--ref-radio));
+  --app-r-full:var(--mal-r-full);
+  --app-sombra-1:var(--mal-elev-1); --app-sombra-2:var(--mal-elev-2);
+  --app-ease:var(--mal-ease); --app-dur:260ms;
+  --app-tap:var(--mal-tap); --app-ancho:520px;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-tema="claro"]){--app-on-danger:#1a1d1a} }
+:root[data-tema="oscuro"]{--app-on-danger:#1a1d1a}
+
+/* ─── botones ─────────────────────────────────────────────── */
+/* el .btn base vive en la capa UI; aquí solo sus variantes de producto */
+.btn-tonal{background:color-mix(in oklab, var(--app-brand) 8%, var(--app-surface));
+  color:var(--app-brand);border-color:color-mix(in oklab, var(--app-brand) 30%, transparent)}
+.btn-quiet{background:var(--app-surface);color:var(--app-ink);border-color:var(--app-line-strong)}
+.btn-ghost{background:transparent;color:var(--app-ink-2);border-color:transparent}
+.btn-danger{background:var(--app-danger);color:var(--app-on-danger)}
+.btn-block{width:100%}
+.icon-btn{
+  display:inline-grid;place-items:center;width:var(--app-tap);height:var(--app-tap);
+  border-radius:var(--app-r-full);border:var(--mal-borde);background:var(--app-surface);
+  color:var(--app-ink-2);cursor:pointer;
+}
+
+/* ─── superficies ─────────────────────────────────────────── */
+.card{
+  background:var(--app-surface);border:var(--mal-borde);border-radius:var(--app-r-m);
+  padding:1rem;box-shadow:var(--app-sombra-1);
+}
+.card-flat{box-shadow:none}
+.hint-card{
+  background:color-mix(in oklab, var(--app-brand) 8%, var(--app-surface));
+  border:var(--ref-borde) solid color-mix(in oklab, var(--app-brand) 30%, transparent);border-radius:var(--app-r-m);
+  padding:.9rem 1rem;font-size:var(--app-t-caption);color:var(--app-ink-2);
+}
+.empty-state{
+  text-align:center;padding:2.5rem 1rem;color:var(--app-ink-3);
+  border:var(--ref-borde) dashed var(--mal-outline-2);border-radius:var(--app-r-m);
+}
+
+/* ─── campos ──────────────────────────────────────────────── */
+.field{display:flex;flex-direction:column;gap:.35rem}
+.field > label{font-size:var(--app-t-caption);font-weight:600;color:var(--app-ink-2)}
+.input,input[type=text],input[type=number],input[type=email],select,textarea{
+  font-family:inherit;font-size:1rem;color:var(--app-ink);background:var(--app-surface);
+  min-height:var(--app-tap);padding:.65rem .85rem;border:var(--mal-borde-fuerte);
+  border-radius:var(--app-r-s);width:100%;
+  transition:border-color .15s, box-shadow .15s;
+}
+.input:focus,input:focus,select:focus,textarea:focus{
+  outline:0;border-color:var(--app-brand);
+  box-shadow:0 0 0 3px color-mix(in oklab, var(--app-brand) 18%, transparent);
+}
+.field-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+
+/* ─── chips y segmentado ──────────────────────────────────── */
+.chip{
+  display:inline-flex;align-items:center;gap:.35rem;min-height:var(--app-tap);padding:.35rem .9rem;
+  border-radius:var(--app-r-full);border:var(--mal-borde-fuerte);
+  background:var(--app-surface);color:var(--app-ink-2);font-size:var(--app-t-caption);
+  font-weight:500;cursor:pointer;
+}
+.chip[aria-pressed=true],.chip.is-on{
+  background:var(--app-brand);border-color:var(--app-brand);color:var(--app-on-brand);
+}
+.seg{
+  display:inline-flex;padding:3px;gap:3px;min-height:var(--app-tap);align-items:center;border-radius:var(--app-r-full);
+  background:var(--app-surface-2);border:var(--mal-borde);
+}
+.seg button{
+  border:0;background:transparent;border-radius:var(--app-r-full);padding:.7rem 1rem;min-height:38px;
+  font:inherit;font-size:var(--app-t-caption);font-weight:600;color:var(--app-ink-2);cursor:pointer;
+}
+.seg button[aria-selected=true]{background:var(--app-surface);color:var(--app-ink);box-shadow:var(--app-sombra-1)}
+
+/* ─── insignias y estados ─────────────────────────────────── */
+.badge{
+  display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .55rem;border-radius:var(--app-r-full);
+  font-size:var(--app-t-micro);font-weight:600;background:var(--app-surface-2);color:var(--app-ink-2);
+}
+.badge-ok{background:var(--app-ok-soft);color:var(--app-ok)}
+.badge-warn{background:var(--app-warn-soft);color:var(--app-warn)}
+.badge-danger{background:var(--app-danger-soft);color:var(--app-danger)}
+.badge-info{background:var(--app-info-soft);color:var(--app-info)}
+
+/* ─── filas de lista ──────────────────────────────────────── */
+.list-row{
+  display:grid;grid-template-columns:auto 1fr auto;gap:.85rem;align-items:center;
+  min-height:var(--app-tap);padding:.75rem 0;border-bottom:var(--mal-separador);
+}
+.list-row:last-child{border-bottom:0}
+.icon-circle{
+  display:grid;place-items:center;width:40px;height:40px;border-radius:var(--app-r-full);
+  background:color-mix(in oklab, var(--app-brand) 8%, var(--app-surface));color:var(--app-brand);flex:none;
+}
+
+/* ─── barra de progreso / resultado ───────────────────────── */
+.result-bar{height:10px;border-radius:var(--app-r-full);background:var(--app-surface-2);overflow:hidden}
+.result-bar > span{display:block;height:100%;background:var(--app-brand);border-radius:inherit;transition:width var(--app-dur) var(--app-ease)}
+.result-bar.result-winner > span{background:var(--app-ok)}
+
+/* ─── navegación inferior ─────────────────────────────────── */
+.navbar{
+  position:sticky;bottom:0;display:flex;justify-content:space-around;gap:.25rem;
+  padding:.4rem .5rem calc(.4rem + env(safe-area-inset-bottom));
+  background:var(--mal-relleno-barra);
+  -webkit-backdrop-filter:var(--mal-vidrio-barra);backdrop-filter:var(--mal-vidrio-barra);
+  border-top:var(--mal-separador);
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:.15rem;
+  min-height:var(--app-tap);padding:.4rem 0;border:0;background:none;cursor:pointer;
+  font-size:var(--app-t-micro);font-weight:600;color:var(--app-ink-3);text-decoration:none;
+}
+.nav-item[aria-current=page]{color:var(--app-brand)}
+
+/* ─── hoja inferior ───────────────────────────────────────── */
+.sheet{
+  background:var(--app-sheet);border-radius:var(--app-r-l) var(--app-r-l) 0 0;
+  padding:1rem 1.15rem 1.5rem;box-shadow:var(--app-sombra-2);
+}
+.sheet-handle{width:38px;height:4px;border-radius:var(--app-r-full);background:var(--app-line-strong);margin:0 auto .85rem}
+.sheet-title{font-size:var(--app-t-title);font-weight:700}
+.sheet-sub{font-size:var(--app-t-caption);color:var(--app-ink-3)}
+
+/* [hidden] tiene que ganarle a display:flex — si no, el paso 1 y el
+   botón de volver salen a la vez. Trampa real de la POC de acolita. */
+[hidden]{display:none !important}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+}
+
+
+
+/* ─── tinte por app ───────────────────────────────────────────
+   El tema de producto es neutro; cada app le pone su color. Va en
+   la raíz y junto al tema a propósito: con un selector de menos
+   peso, `:root[data-marca="apps"]` le ganaría y el color de la app
+   no se vería nunca. Y mueve `--ref-marca`, no solo el alias, para
+   que un componente del sistema —un `.btn--rojo`— también se tiña. */
+:root[data-app="quanto"]{--ref-marca:#c41e1e;--ref-marca-2:#8b1515;--ref-marca-txt:#c41e1e;
+  --ref-sobre-marca:#fff;--app-brand:#c41e1e;--app-brand-deep:#8b1515;--app-on-brand:#fff}
+:root[data-app="agro"]{--ref-marca:#1f7a3d;--ref-marca-2:#175c2e;--ref-marca-txt:#1f7a3d;
+  --ref-sobre-marca:#fff;--app-brand:#1f7a3d;--app-brand-deep:#175c2e;--app-on-brand:#fff}
+:root[data-app="jacky"]{--ref-marca:#2f7657;--ref-marca-2:#205c43;--ref-marca-txt:#2f7657;
+  --ref-sobre-marca:#fff;--app-brand:#2f7657;--app-brand-deep:#205c43;--app-on-brand:#fff}
+:root[data-app="cds"]{--ref-marca:#33618f;--ref-marca-2:#26496b;--ref-marca-txt:#33618f;
+  --ref-sobre-marca:#fff;--app-brand:#33618f;--app-brand-deep:#26496b;--app-on-brand:#fff}
+@media (prefers-color-scheme:dark){
+  :root:not([data-tema="claro"])[data-app="quanto"]{--ref-marca:#ff6b6b;--ref-marca-2:#ff9999;
+    --ref-marca-txt:#ff6b6b;--ref-sobre-marca:#1a1d1a;--app-brand:#ff6b6b;--app-on-brand:#1a1d1a}
+  :root:not([data-tema="claro"])[data-app="agro"]{--ref-marca:#5cbf85;--ref-marca-2:#8fd8a9;
+    --ref-marca-txt:#5cbf85;--ref-sobre-marca:#12210f;--app-brand:#5cbf85;--app-on-brand:#12210f}
+  :root:not([data-tema="claro"])[data-app="jacky"]{--ref-marca:#6dc39b;--ref-marca-2:#9adcbd;
+    --ref-marca-txt:#6dc39b;--ref-sobre-marca:#0f3d2e;--app-brand:#6dc39b;--app-on-brand:#0f3d2e}
+  :root:not([data-tema="claro"])[data-app="cds"]{--ref-marca:#8ab4e0;--ref-marca-2:#b3d1ef;
+    --ref-marca-txt:#8ab4e0;--ref-sobre-marca:#12233a;--app-brand:#8ab4e0;--app-on-brand:#12233a}
+}
+:root[data-tema="oscuro"][data-app="quanto"]{--ref-marca:#ff6b6b;--ref-marca-2:#ff9999;
+  --ref-marca-txt:#ff6b6b;--ref-sobre-marca:#1a1d1a;--app-brand:#ff6b6b;--app-on-brand:#1a1d1a}
+:root[data-tema="oscuro"][data-app="agro"]{--ref-marca:#5cbf85;--ref-marca-2:#8fd8a9;
+  --ref-marca-txt:#5cbf85;--ref-sobre-marca:#12210f;--app-brand:#5cbf85;--app-on-brand:#12210f}
+:root[data-tema="oscuro"][data-app="jacky"]{--ref-marca:#6dc39b;--ref-marca-2:#9adcbd;
+  --ref-marca-txt:#6dc39b;--ref-sobre-marca:#0f3d2e;--app-brand:#6dc39b;--app-on-brand:#0f3d2e}
+:root[data-tema="oscuro"][data-app="cds"]{--ref-marca:#8ab4e0;--ref-marca-2:#b3d1ef;
+  --ref-marca-txt:#8ab4e0;--ref-sobre-marca:#12233a;--app-brand:#8ab4e0;--app-on-brand:#12233a}
+
+/* tipografía de producto · se usa igual en cualquier tema */
+.caption{font-size:var(--app-t-caption);color:var(--mal-on-surface-3)}
+.tabular{font-family:var(--mal-mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.display-num{
+  font-family:var(--mal-mono);font-size:var(--app-t-display);font-weight:600;
+  font-variant-numeric:tabular-nums;letter-spacing:-.03em;line-height:1;
+}
+.display-num small{font-family:var(--mal-texto);font-size:.35em;font-weight:500;
+  color:var(--mal-on-surface-3);margin-left:.3em}
+.screen-title{font-size:var(--app-t-screen);font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.app-col{width:min(100% - 2rem, var(--app-ancho));margin-inline:auto}
+
+/* ══════════════════════════════════════════════════════════════
+   CAPA 4 · PRENSA
+   Venía de `mercio.css`. Misma idea: una tarjeta de noticia, una
+   lista numerada de opinión o una franja de destacados sirven en
+   cualquier tema; en el del periódico se ven como prensa porque el
+   tema pone serif, radio 0 y cero sombra.
+   ══════════════════════════════════════════════════════════════ */
+:root{
+  --em-base:var(--mal-surface);        --em-base-2:var(--mal-surface-alt);
+  --em-surface:var(--mal-bg-2);        --em-surface-2:var(--mal-on-surface-2);
+  --em-inverse:var(--mal-on-surface);  --em-contrast:var(--mal-on-surface);
+  --em-contrast-2:var(--mal-on-surface-2); --em-contrast-3:var(--mal-on-surface-3);
+  --em-accent:var(--mal-primary);      --em-accent-blue:var(--ref-acento);
+  --em-border:var(--mal-outline);
+  --em-serif:var(--ref-display);       --em-sans:var(--ref-mono);
+  --em-t-badge:9px; --em-t-caption:14px; --em-t-button:16px;
+  --em-t-body:var(--mal-t-cuerpo); --em-t-h3:var(--mal-t-h3);
+  --em-t-h2:var(--mal-t-h2); --em-t-h1:var(--mal-t-h1); --em-t-display:40px;
+  --em-4:var(--mal-e1); --em-8:var(--mal-e2); --em-12:var(--mal-e3);
+  --em-16:var(--mal-e4); --em-20:var(--mal-e4); --em-24:var(--mal-e5);
+  --em-32:var(--mal-e6); --em-48:var(--mal-e7); --em-64:var(--mal-e8);
+  --em-radio:var(--mal-r-s); --em-ancho:1280px;
+  --em-franja:#141414; --em-franja-txt:#fafafa; --em-franja-meta:#a8a8a8;
+}
+
+/* ─── titulares ───────────────────────────────────────────── */
+.em-h1{font-family:var(--em-serif);font-size:var(--em-t-h1);font-weight:700;line-height:1.15;letter-spacing:-.3px}
+.em-h2{font-family:var(--em-serif);font-size:var(--em-t-h2);font-weight:700;line-height:1.2;letter-spacing:-.2px}
+.em-h3{font-family:var(--em-serif);font-size:var(--em-t-h3);font-weight:700;line-height:1.2}
+.em-h4{font-family:var(--em-serif);font-size:var(--em-t-body);font-weight:700;line-height:1.3}
+.em-display{font-family:var(--em-serif);font-size:var(--em-t-display);font-weight:700;line-height:1.1;letter-spacing:-.4px}
+.em-caption{font-family:var(--em-sans);font-size:var(--em-t-caption);font-weight:var(--em-sans-peso,500);color:var(--em-contrast-3)}
+p a,.em-link{color:var(--em-contrast);text-decoration:underline}
+/* el enlace de texto tiene más peso que los componentes: hay que devolvérselo
+   o un botón dentro de un <p> sale subrayado. */
+/* `p a` tiene más peso que cualquier componente: hay que devolvérselo
+   a todo lo que es botón o marca, incluidos los del sistema (.btn, .tag…),
+   o salen subrayados dentro de un párrafo. */
+.em-btn,.em-logo,.em-nav a,.em-card h3 a,.em-opinion a,
+.btn,.tag,.chip,.filter-chip,.enlaces a,.lista a{text-decoration:none}
+p a:hover,.em-link:hover{color:var(--em-accent)}
+
+/* ─── la marca: "EL MERCIO." con el punto en rojo ─────────── */
+.em-logo{
+  font-family:var(--em-serif);font-weight:700;letter-spacing:-.5px;line-height:1;
+  color:var(--em-contrast);text-decoration:none;display:inline-block;
+}
+.em-logo i{font-style:normal;color:var(--em-accent)}
+
+/* ══════════════════════════════════════════════════════════════
+   LA REGLA TIPOGRÁFICA DEL PERIÓDICO (Francisco, 2026-08-23)
+
+     · Montserrat   logotipo, marca, botones, iniciales y rótulos.
+                    SIEMPRE en mayúscula y NUNCA por debajo de 500:
+                    la Montserrat ligera se deshace al lado de una serif.
+     · PT Serif 700 titulares.
+     · PT Serif 400 texto.
+
+   Con solo dos pesos en la serif, **la jerarquía la hace el tamaño**, no
+   el peso. Por eso ningún titular baja de 700 ni sube de ahí: lo que
+   distingue un h1 de un h2 es la escala, no la grasa.
+
+   `--em-sans-peso` es el suelo de peso de la sans; quien necesite más lo
+   pide, pero nadie puede pedir menos.
+   ══════════════════════════════════════════════════════════════ */
+:root[data-marca="mercio"]{
+  --em-sans-peso:500;
+  --em-sans-tracking:.06em;
+}
+/* Los RÓTULOS, en mayúscula: son etiquetas de una o dos palabras.
+   Ojo con la frontera —una descripción de sección, un pie de foto o una
+   frase legal también van en la sans, y en versalitas no se leen—. Esas
+   llevan la sans y el peso, pero NO la caja alta: son `.em-frase`. */
+:root[data-marca="mercio"] :is(.em-kicker,.em-badge,.em-meta,
+  .em-post-nav__label,.em-podcast-rss time,.em-menu-toggle,
+  .em-nav,.em-nav-links){
+  text-transform:uppercase;
+  letter-spacing:var(--em-sans-tracking);
+  font-weight:var(--em-sans-peso);
+}
+/* La sans en frases: mismo peso mínimo, caja normal. */
+:root[data-marca="mercio"] :is(.em-caption,.em-section-description,
+  .em-article figcaption,.em-figcaption,.em-frase){
+  font-family:var(--em-sans);
+  font-weight:var(--em-sans-peso);
+  text-transform:none;
+  letter-spacing:normal;
+}
+/* El logotipo y los botones piden su propio peso, más alto. */
+:root[data-marca="mercio"] :is(.em-logo,.em-btn,.btn){text-transform:uppercase}
+
+/* ─── rótulo de sección / badge ───────────────────────────── */
+.em-badge{
+  font-family:var(--em-sans);font-size:var(--em-t-badge);font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--em-base);background:var(--em-accent);
+  padding:var(--em-4) var(--em-8);border-radius:var(--em-radio);display:inline-block;
+}
+.em-badge--oscuro{background:var(--em-inverse)}
+.em-kicker{
+  font-family:var(--em-sans);font-size:var(--mal-t-mini);font-weight:700;letter-spacing:1.2px;
+  text-transform:uppercase;color:var(--em-accent);
+}
+.em-meta{font-family:var(--em-sans);font-size:var(--em-t-caption);font-weight:var(--em-sans-peso,500);color:var(--em-contrast-3)}
+
+/* ─── botón ───────────────────────────────────────────────── */
+.em-btn{
+  display:inline-block;font-family:var(--em-sans);font-size:var(--em-t-button);font-weight:700;
+  letter-spacing:.2px;color:var(--em-base);background:var(--em-accent);text-decoration:none;
+  padding:var(--em-12) var(--em-24);border:0;border-radius:var(--em-radio);cursor:pointer;
+  transition:background .2s ease;
+}
+.em-btn:hover{background:var(--em-inverse);color:var(--em-base)}
+.em-btn--linea{background:transparent;color:var(--em-contrast);border:var(--ref-borde) solid var(--em-contrast);background:var(--mal-campo)}
+.em-btn--linea:hover{background:var(--em-contrast);color:var(--em-base)}
+
+/* ─── cabecera del periódico ──────────────────────────────── */
+.em-header{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--em-24);
+  padding:var(--em-16) 0;border-bottom:var(--mal-separador);background:var(--em-base);
+}
+/* El color va en el CONTENEDOR, no en el enlace: el `<a>` que genera el
+   bloque de navegación de WordPress lleva `color:inherit` con más peso que
+   cualquier regla nuestra, y la cabecera hereda un gris (#e6e6e6, el token
+   de borde) que WordPress le cuelga por el `has-border-color`. Vistiendo el
+   `<nav>` heredan el enlace y su etiqueta, sin `!important` y sin tener que
+   nombrar ninguna clase del núcleo. */
+.em-nav,.em-nav-links{color:var(--em-contrast);display:flex;gap:var(--em-20);font-family:var(--em-sans);font-size:var(--em-t-caption);font-weight:700}
+.em-nav a,.em-nav-links a{color:var(--em-contrast);text-decoration:none;text-transform:uppercase;letter-spacing:.4px}
+.em-nav a:hover,.em-nav-links a:hover{color:var(--em-accent)}
+@media (max-width:720px){
+  .em-header{flex-wrap:wrap;row-gap:var(--em-12)}
+  .em-nav,.em-nav-links{width:100%;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .em-nav::-webkit-scrollbar,.em-nav-links::-webkit-scrollbar{display:none}
+}
+
+/* ─── tarjeta de noticia ──────────────────────────────────── */
+.em-card{background:var(--em-base);border:var(--mal-borde);border-radius:var(--em-radio)}
+.em-card__img{aspect-ratio:16 / 9;width:100%;object-fit:cover;background:var(--em-surface);display:block}
+.em-card__body{padding:var(--em-16)}
+.em-card__body > * + *{margin-top:var(--em-8)}
+.em-card h3 a{color:var(--em-contrast);text-decoration:none}
+.em-card h3 a:hover{color:var(--em-accent)}
+.em-cards{display:grid;gap:var(--em-24);grid-template-columns:repeat(auto-fill, minmax(min(100%, 260px), 1fr))}
+
+/* ─── lista numerada de opinión ───────────────────────────── */
+.em-opinion{list-style:none;counter-reset:em-op;padding-inline-start:0;margin:0}
+.em-opinion li{
+  counter-increment:em-op;display:grid;grid-template-columns:auto 1fr;gap:var(--em-16);
+  padding:var(--em-16) 0;border-bottom:var(--mal-separador);
+}
+.em-opinion li::before{
+  content:counter(em-op,decimal-leading-zero);font-family:var(--em-sans);font-weight:800;
+  font-size:var(--em-t-h2);color:var(--em-accent);line-height:1;
+}
+.em-opinion a{color:var(--em-contrast);text-decoration:none;font-weight:700}
+.em-opinion a:hover{color:var(--em-accent)}
+
+/* ─── franja oscura (destacados) ──────────────────────────── */
+.em-dark{background:var(--em-franja);color:var(--em-franja-txt);padding:var(--em-32) 0}
+.em-dark h1,.em-dark h2,.em-dark h3,.em-dark h4,.em-dark p,.em-dark a{color:var(--em-franja-txt)}
+.em-dark .em-meta,.em-dark .em-caption{color:var(--em-franja-meta)}
+.em-dark .em-quote{color:var(--em-franja-txt)}
+.em-dark .em-card{background:transparent;border-color:#3a3a3a}
+
+/* ─── cita ────────────────────────────────────────────────── */
+/* `.em-quote` es la `.cita` del sistema; el tema le pone serif en cursiva */
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CAPA 5 · LO QUE FALTABA DEL STORYBOOK ORIGINAL
+   Componentes que estaban en el `index.css` de maldonado.pro y no
+   se habían portado. Van con tokens, así que también cambian de
+   cara con el tema.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─── contenedores y rejillas ─────────────────────────────────── */
+.container{width:min(100% - 2 * var(--mal-e5), var(--mal-ancho));margin-inline:auto}
+.grid-layout{display:grid;grid-template-columns:repeat(3, 1fr);gap:var(--mal-e5);margin-top:var(--mal-e6)}
+@media (max-width:992px){.grid-layout{grid-template-columns:1fr}}
+
+/* ─── carrusel arrastrable ────────────────────────────────────── */
+.testimonials-section{
+  padding-block:var(--mal-e8);overflow:hidden;background:var(--mal-surface-alt);
+  border-block:var(--mal-borde);
+}
+.carousel-container{width:100%;overflow:hidden;position:relative;padding-block:var(--mal-e4)}
+.carousel-track{display:flex;gap:var(--mal-e5);width:max-content;will-change:transform;cursor:grab}
+.carousel-track:active{cursor:grabbing}
+.carousel-track .social-card{width:min(88vw, 380px);flex-shrink:0}
+.social-card-header{
+  display:flex;justify-content:space-between;align-items:center;gap:var(--mal-e3);
+  padding:var(--mal-e3) var(--mal-e4);border-bottom:var(--mal-borde);background:var(--mal-surface-alt);
+}
+
+/* ─── consola: la sección y el texto que se teclea ────────────── */
+.terminal-section{border-top:var(--mal-borde);padding-block:var(--mal-e8)}
+.terminal-window{max-width:800px;margin-inline:auto}
+.t-text{white-space:pre-wrap}
+
+/* ─── artículo: la cabecera que faltaba ───────────────────────── */
+.article-header{margin-block:var(--mal-e8) var(--mal-e7)}
+
+/* ─── cabecera de sección de blog ─────────────────────────────── */
+.mal-pensamientos-header{margin-bottom:var(--mal-e7)}
+.mal-pensamientos-tagline{font-size:var(--mal-t-lede);color:var(--mal-on-surface-2);max-width:60ch;margin-top:var(--mal-e3)}
+
+/* ─── caso de portafolio: piezas sueltas ──────────────────────── */
+.case-visual{
+  position:relative;aspect-ratio:4/3;border-radius:var(--mal-r);
+  display:flex;align-items:center;justify-content:center;
+}
+.case-desc{color:var(--mal-on-surface-2)}
+
+/* ─── carné: contenedor y detalles ────────────────────────────── */
+.ticket-container{perspective:1200px;display:flex;justify-content:center;align-items:center;padding:var(--mal-e4)}
+.ticket-signature-area{margin:var(--mal-e1) 0 var(--mal-e4)}
+.ticket-meta-col{display:flex;flex-direction:column}
+
+/* ─── texto en cluster: contenedor y adorno ───────────────────── */
+.text-cluster-container{
+  padding:var(--mal-e8) var(--mal-e6);background:var(--mal-surface);display:flex;
+  flex-direction:column;align-items:center;justify-content:center;overflow:hidden;
+  position:relative;min-height:380px;width:100%;
+}
+.text-cluster-visual{
+  width:60px;height:60px;display:grid;place-items:center;font-size:var(--mal-t-h1);opacity:.9;
+  animation:mal-flotar 6s ease-in-out infinite;
+}
+@keyframes mal-flotar{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-14px) rotate(5deg)}}
+
+/* ─── mapa mental ─────────────────────────────────────────────── */
+.mind-map-container{position:relative;width:100%;aspect-ratio:600/400;display:grid;place-items:center;overflow:visible}
+.mind-map-svg{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;color:var(--mal-on-surface-2)}
+.mind-map-center{
+  z-index:10;background:var(--mal-surface);border:calc(2 * var(--ref-borde)) solid var(--ref-linea);
+  padding:var(--mal-e4) var(--mal-e6);border-radius:var(--mal-r-full);display:flex;
+  align-items:center;gap:var(--mal-e3);box-shadow:var(--mal-elev-2);
+  font-family:var(--mal-display);font-weight:var(--ref-peso-display);font-size:var(--mal-t-h2);
+  letter-spacing:var(--ref-tracking);color:var(--mal-on-surface);
+}
+.mind-map-node{
+  position:absolute;z-index:5;font-size:var(--mal-t-caption);font-weight:600;white-space:nowrap;
+  color:var(--mal-on-surface-2);background:var(--mal-surface);padding:4px 12px;
+  border-radius:var(--mal-r-s);text-decoration:none;transition:color .3s, transform .3s;
+}
+.mind-map-node:hover{color:var(--mal-primary-txt);transform:scale(1.08)}
+.mind-map-node.category{font-size:var(--mal-t-cuerpo);font-weight:700;color:var(--mal-on-surface)}
+
+/* ─── paneles de pestaña ──────────────────────────────────────── */
+.tab-panel[hidden]{display:none}
+
+/* ─── espécimen tipográfico ───────────────────────────────────── */
+.type-sample{
+  display:grid;grid-template-columns:140px 1fr;align-items:baseline;gap:var(--mal-e5);
+  padding-block:var(--mal-e4);border-bottom:var(--mal-borde);
+}
+.type-sample:last-child{border-bottom:0}
+@media (max-width:640px){.type-sample{grid-template-columns:1fr;gap:var(--mal-e2)}}
+
+/* ─── aviso y botón de copiar (del storybook original) ────────── */
+.notice{
+  background:color-mix(in srgb, var(--mal-primary) 8%, transparent);
+  border:var(--ref-borde) solid color-mix(in srgb, var(--mal-primary) 22%, transparent);
+  border-radius:var(--mal-r-s);padding:var(--mal-e4) var(--mal-e5);
+  display:flex;align-items:flex-start;gap:var(--mal-e3);font-size:var(--mal-t-caption);color:var(--mal-on-surface-2);
+}
+.notice b{color:var(--mal-on-surface)}
+.btn-copy{
+  background:var(--mal-surface-alt);border:var(--mal-borde-fuerte);border-radius:var(--mal-r-s);
+  padding:4px 10px;font-family:var(--mal-mono);font-size:var(--mal-t-mini);cursor:pointer;
+  color:var(--mal-on-surface-2);transition:.2s;
+}
+.btn-copy:hover{background:var(--mal-bg-2);color:var(--mal-on-surface)}
+.btn-copy.copied{color:var(--mal-ok);border-color:var(--mal-ok)}
+
+/* ══════════════════════════════════════════════════════════════
+   CAPA 6 · EL SISTEMA COMPLETO
+   Lo que pide cada proyecto —el periódico, las apps, los juegos, el
+   portafolio— resuelto una sola vez. Todo habla roles y expresión,
+   así que en EL MERCIO sale sin líneas ni sombras, en APPS es vidrio
+   y en Juegos tiene volumen, sin que ninguna regla de aquí lo sepa.
+   Nada de emojis: los iconos salen del sprite `iconos.svg`.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─── iconos ───────────────────────────────────────────────────── */
+.icono{width:1.25em;height:1.25em;flex:none;vertical-align:-.28em;fill:none;stroke:currentColor}
+.icono--s{width:1em;height:1em;vertical-align:-.18em}
+.icono--l{width:1.6em;height:1.6em}
+.icono--xl{width:2.2em;height:2.2em}
+.icono--girando{animation:mal-girar 1s linear infinite}
+@keyframes mal-girar{to{transform:rotate(360deg)}}
+
+/* ─── fondos ──────────────────────────────────────────────────── */
+/* el fondo del documento ya lo pone el tema; estas son las utilidades
+   para una sección o una caja. */
+.fondo--aurora{
+  background:
+    radial-gradient(60% 50% at 12% 8%, color-mix(in srgb, var(--mal-primary) 24%, transparent), transparent 70%),
+    radial-gradient(50% 45% at 88% 22%, color-mix(in srgb, var(--mal-secondary) 20%, transparent), transparent 70%),
+    radial-gradient(70% 55% at 50% 105%, color-mix(in srgb, var(--mal-tertiary) 18%, transparent), transparent 70%),
+    var(--mal-bg);
+}
+.fondo--malla{background-image:radial-gradient(color-mix(in srgb, var(--mal-ink) 12%, transparent) 1.2px, transparent 0);background-size:24px 24px}
+.fondo--tono{background:var(--mal-surface-alt)}
+.fondo--tinta{background:var(--mal-on-surface);color:var(--mal-bg)}
+.fondo--marca{background:var(--mal-relleno-marca);color:var(--mal-on-primary)}
+
+/* ─── contenedores ─────────────────────────────────────────────── */
+.panel{
+  background:var(--mal-relleno);border:var(--mal-borde);border-radius:var(--mal-r);
+  padding:var(--mal-e5);box-shadow:var(--mal-elev-1);
+}
+.panel--tono{background:var(--mal-surface-alt);box-shadow:none}
+.panel--hundido{background:var(--mal-bg-2);box-shadow:none;border-color:transparent}
+.panel--marca{background:var(--mal-relleno-marca);color:var(--mal-on-primary);border-color:transparent}
+.panel--marca .kicker,.panel--marca .micro{color:inherit;opacity:.8}
+.panel--flotante{box-shadow:var(--mal-elev-2)}
+.panel--compacto{padding:var(--mal-e4)}
+/* vidrio explícito: translúcido en CUALQUIER tema, para lo que flota
+   sobre una imagen o un lienzo (el panel de pausa de un juego). */
+.vidrio{
+  background:color-mix(in srgb, var(--mal-surface) 70%, transparent);
+  -webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%);
+  border:var(--ref-borde) solid rgba(255,255,255,.45);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6), var(--mal-elev-2);
+  border-radius:var(--mal-r);
+}
+/* el separador: una raya donde el tema la tenga, aire donde no */
+.separador{border:0;border-top:var(--mal-separador);margin-block:var(--mal-e5)}
+.separador--aire{border:0;height:var(--mal-e6)}
+.separador--ornamento{border:0;text-align:center;margin-block:var(--mal-e6);color:var(--mal-on-surface-3);letter-spacing:.8em}
+.separador--ornamento::before{content:"\00B7 \00B7 \00B7"}
+/* ritmo */
+.pila{display:flex;flex-direction:column;gap:var(--mal-e4)}
+.pila--estrecha{gap:var(--mal-e2)}
+.pila--ancha{gap:var(--mal-e6)}
+.fila{display:flex;flex-wrap:wrap;align-items:center;gap:var(--mal-e3)}
+.fila--entre{justify-content:space-between}
+.columna-lectura{max-width:68ch;margin-inline:auto}
+
+/* ─── formularios ──────────────────────────────────────────────── */
+.formulario{display:flex;flex-direction:column;gap:var(--mal-e5)}
+.formulario__acciones{display:flex;gap:var(--mal-e3);flex-wrap:wrap;justify-content:flex-end;margin-top:var(--mal-e2)}
+.grupo-campos{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:var(--mal-e4)}
+.grupo-campos > legend{font-weight:700;font-size:var(--mal-t-h4);margin-bottom:var(--mal-e2);padding:0}
+.campo{display:flex;flex-direction:column;gap:var(--mal-e2)}
+.campo > label,.campo__etiqueta{font-weight:600;font-size:var(--mal-t-caption);color:var(--mal-on-surface)}
+.campo__pista{font-size:var(--mal-t-caption);color:var(--mal-on-surface-3)}
+.campo__error{font-size:var(--mal-t-caption);color:var(--mal-danger);display:none;align-items:center;gap:.4em}
+.campo--error .campo__error{display:flex}
+.campo--error input,.campo--error select,.campo--error textarea,.campo--error .entrada{
+  border-color:var(--mal-danger);box-shadow:0 0 0 3px color-mix(in srgb, var(--mal-danger) 14%, transparent);
+}
+.campo--ok input,.campo--ok .entrada{border-color:var(--mal-ok)}
+.campo--inactivo{opacity:.55;pointer-events:none}
+/* el control: una sola regla para nativos y para `.entrada` */
+.entrada,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{
+  font-family:var(--mal-texto);font-size:1rem;color:var(--mal-on-surface);background:var(--mal-campo);
+  border:var(--mal-borde-fuerte);border-radius:var(--mal-r-s);padding:0 var(--mal-e4);
+  min-height:var(--mal-tap);width:100%;max-width:none;
+  transition:border-color .15s, box-shadow .15s, background .15s;
+}
+textarea{padding-block:var(--mal-e3);min-height:calc(var(--mal-tap) * 2.6);resize:vertical;line-height:1.5}
+.entrada:focus,input:focus,select:focus,textarea:focus{
+  outline:0;border-color:var(--mal-primary);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--mal-primary) 18%, transparent);
+}
+input::placeholder,textarea::placeholder{color:var(--mal-on-surface-3)}
+input:disabled,select:disabled,textarea:disabled{opacity:.55}
+.entrada--grande{min-height:calc(var(--mal-tap) * 1.25);font-size:1.15rem}
+.entrada--mono{font-family:var(--mal-mono);font-variant-numeric:tabular-nums}
+/* con prefijo o sufijo: $ 20,00 · 2 850 m */
+.grupo-entrada{display:flex;align-items:stretch;border:var(--mal-borde-fuerte);border-radius:var(--mal-r-s);background:var(--mal-campo);overflow:hidden}
+.grupo-entrada:focus-within{border-color:var(--mal-primary);box-shadow:0 0 0 3px color-mix(in srgb, var(--mal-primary) 18%, transparent)}
+.grupo-entrada > input,.grupo-entrada > .entrada{border:0;background:transparent;box-shadow:none;min-width:0;flex:1}
+.grupo-entrada > input:focus{box-shadow:none}
+.grupo-entrada__fijo{display:flex;align-items:center;padding-inline:var(--mal-e4);color:var(--mal-on-surface-3);font-family:var(--mal-mono);font-size:var(--mal-t-caption);white-space:nowrap}
+.grupo-entrada__fijo + input{padding-left:0}
+/* buscar */
+.buscar{position:relative}
+.buscar .icono{position:absolute;left:var(--mal-e4);top:50%;transform:translateY(-50%);color:var(--mal-on-surface-3);pointer-events:none}
+.buscar input{padding-left:calc(var(--mal-e4) * 2 + 1.25em);border-radius:var(--mal-r-full)}
+/* select con su chevrón */
+.seleccion{position:relative}
+.seleccion select{appearance:none;-webkit-appearance:none;padding-right:calc(var(--mal-e4) * 2 + 1em);cursor:pointer}
+.seleccion::after{
+  content:"";position:absolute;right:var(--mal-e4);top:50%;width:.6em;height:.6em;
+  border-right:2px solid var(--mal-on-surface-2);border-bottom:2px solid var(--mal-on-surface-2);
+  transform:translateY(-70%) rotate(45deg);pointer-events:none;
+}
+/* casillas y radios: el nativo, vestido */
+.casilla{display:flex;align-items:flex-start;gap:var(--mal-e3);cursor:pointer;min-height:var(--mal-tap);padding-block:var(--mal-e1)}
+.casilla input{
+  appearance:none;-webkit-appearance:none;flex:none;width:22px;height:22px;margin-top:.15em;
+  border:2px solid var(--mal-outline-2);border-radius:calc(6px * var(--ref-radio));
+  background:var(--mal-campo);display:grid;place-items:center;cursor:pointer;transition:.15s;
+}
+.casilla input[type=radio]{border-radius:50%}
+.casilla input::before{content:"";width:12px;height:12px;transform:scale(0);transition:transform .15s var(--mal-ease)}
+.casilla input[type=checkbox]::before{
+  width:6px;height:11px;border-right:2.5px solid var(--mal-on-primary);border-bottom:2.5px solid var(--mal-on-primary);
+  transform:rotate(45deg) scale(0);margin-top:-3px;
+}
+.casilla input[type=radio]::before{border-radius:50%;background:var(--mal-on-primary)}
+.casilla input:checked{background:var(--mal-primary);border-color:var(--mal-primary)}
+.casilla input:checked::before{transform:scale(1)}
+.casilla input[type=checkbox]:checked::before{transform:rotate(45deg) scale(1)}
+.casilla input:focus-visible{outline:2px solid var(--mal-primary);outline-offset:2px}
+.casilla__texto{display:flex;flex-direction:column;gap:.15em}
+.casilla__texto small{color:var(--mal-on-surface-3)}
+/* interruptor, al estilo del teléfono */
+.interruptor{display:inline-flex;align-items:center;gap:var(--mal-e3);cursor:pointer;min-height:var(--mal-tap)}
+.interruptor input{
+  appearance:none;-webkit-appearance:none;width:52px;height:32px;border-radius:999px;flex:none;
+  background:var(--mal-outline-2);position:relative;cursor:pointer;transition:background .2s;
+}
+.interruptor input::before{
+  content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;
+  background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25);transition:transform .2s var(--mal-ease);
+}
+.interruptor input:checked{background:var(--mal-primary)}
+.interruptor input:checked::before{transform:translateX(20px)}
+.interruptor input:focus-visible{outline:2px solid var(--mal-primary);outline-offset:3px}
+/* deslizador */
+input[type=range]{appearance:none;-webkit-appearance:none;width:100%;height:var(--mal-tap);background:transparent;padding:0;border:0;min-height:0}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:var(--mal-outline-2)}
+input[type=range]::-moz-range-track{height:6px;border-radius:999px;background:var(--mal-outline-2)}
+input[type=range]::-webkit-slider-thumb{
+  appearance:none;-webkit-appearance:none;width:26px;height:26px;border-radius:50%;margin-top:-10px;
+  background:var(--mal-primary);border:3px solid var(--mal-surface);box-shadow:var(--mal-elev-1);cursor:pointer;
+}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--mal-primary);border:3px solid var(--mal-surface);cursor:pointer}
+/* paso: −  12  + */
+.paso{display:inline-flex;align-items:stretch;border:var(--mal-borde-fuerte);border-radius:var(--mal-r-full);background:var(--mal-campo);overflow:hidden}
+.paso button{
+  width:var(--mal-tap);min-height:var(--mal-tap);border:0;background:transparent;color:var(--mal-on-surface);
+  font-size:1.3rem;cursor:pointer;display:grid;place-items:center;
+}
+.paso button:hover{background:var(--mal-bg-2)}
+.paso output{min-width:3.2em;display:grid;place-items:center;font-family:var(--mal-mono);font-variant-numeric:tabular-nums;font-weight:600}
+/* código de verificación */
+.codigo{display:flex;gap:var(--mal-e2)}
+.codigo input{width:var(--mal-tap);text-align:center;font-family:var(--mal-mono);font-size:1.3rem;padding:0}
+/* teclado numérico: el de Quanto */
+.teclado{display:grid;grid-template-columns:repeat(3, 1fr);gap:var(--mal-e2);max-width:340px}
+.teclado button{
+  min-height:calc(var(--mal-tap) * 1.25);border:var(--mal-borde);border-radius:var(--mal-r-s);
+  background:var(--mal-campo);color:var(--mal-on-surface);font-family:var(--mal-mono);font-size:1.4rem;
+  font-weight:600;cursor:pointer;box-shadow:var(--mal-elev-1);transition:transform .1s, background .15s;
+}
+.teclado button:active{transform:var(--mal-presion);box-shadow:none}
+.teclado button.teclado__accion{color:var(--mal-primary-txt);font-family:var(--mal-texto);font-size:var(--mal-t-h3)}
+.teclado button.teclado__ok{background:var(--mal-relleno-marca);color:var(--mal-on-primary);border-color:transparent}
+
+/* ─── selectores ───────────────────────────────────────────────── */
+.chip .icono{margin-left:-.2em}
+label.chip{cursor:pointer}
+label.chip input{position:absolute;opacity:0;width:0;height:0}
+label.chip:has(input:checked){background:var(--mal-primary);border-color:var(--mal-primary);color:var(--mal-on-primary)}
+.seg--lleno{display:flex;width:100%}
+.seg--lleno button{flex:1}
+/* opción: una tarjeta que se elige. Para «una decisión por pantalla». */
+.opciones{display:grid;gap:var(--mal-e3);grid-template-columns:repeat(auto-fit, minmax(min(100%, 150px), 1fr))}
+.opcion{
+  position:relative;display:flex;flex-direction:column;gap:var(--mal-e2);padding:var(--mal-e4);
+  min-height:var(--mal-tap);cursor:pointer;background:var(--mal-campo);border:var(--mal-borde-fuerte);
+  border-radius:var(--mal-r);transition:border-color .15s, background .15s, transform .1s;
+}
+.opcion input{position:absolute;opacity:0;width:0;height:0}
+.opcion .icono{width:1.6em;height:1.6em;color:var(--mal-primary-txt)}
+.opcion b{font-size:1rem}
+.opcion small{color:var(--mal-on-surface-3)}
+.opcion:hover{border-color:var(--mal-outline-2)}
+.opcion:has(input:checked){
+  border-color:var(--mal-primary);background:color-mix(in srgb, var(--mal-primary) 9%, var(--mal-campo));
+  box-shadow:0 0 0 1px var(--mal-primary);
+}
+.opcion:has(input:focus-visible){outline:2px solid var(--mal-primary);outline-offset:2px}
+.opcion--fila{flex-direction:row;align-items:center}
+/* pestañas de filete, para lo editorial */
+.tabs-control--linea{background:transparent;border:0;border-bottom:var(--mal-separador);border-radius:0;padding:0;gap:var(--mal-e4)}
+.tabs-control--linea .tab-trigger{border-radius:0;padding:var(--mal-e3) 0;border-bottom:2px solid transparent;margin-bottom:-1px;background:none}
+.tabs-control--linea .tab-trigger[aria-selected="true"],.tabs-control--linea .tab-trigger.active{background:none;color:var(--mal-on-surface);border-bottom-color:var(--mal-primary)}
+
+/* ─── menús y navegación ───────────────────────────────────────── */
+.menu{position:relative;display:inline-block}
+.menu > summary{list-style:none;cursor:pointer}
+.menu > summary::-webkit-details-marker{display:none}
+.menu__lista{
+  position:absolute;top:calc(100% + 6px);left:0;z-index:40;min-width:220px;padding:var(--mal-e2);
+  background:var(--mal-relleno);border:var(--mal-borde);border-radius:var(--mal-r-s);
+  box-shadow:var(--mal-elev-2);display:flex;flex-direction:column;gap:2px;
+  animation:mal-subir .18s var(--mal-ease);
+}
+.menu--der .menu__lista{left:auto;right:0}
+.menu--arriba .menu__lista{top:auto;bottom:calc(100% + 6px)}
+.menu__item{
+  display:flex;align-items:center;gap:var(--mal-e3);padding:var(--mal-e2) var(--mal-e3);
+  min-height:40px;border-radius:calc(var(--mal-r-s) - 2px);text-decoration:none;color:var(--mal-on-surface);
+  font-size:var(--mal-t-caption);background:none;border:0;width:100%;text-align:left;cursor:pointer;font-family:inherit;
+}
+.menu__item:hover,.menu__item:focus-visible{background:var(--mal-bg-2);color:var(--mal-on-surface);outline:0}
+.menu__item .icono{color:var(--mal-on-surface-3)}
+.menu__item--peligro{color:var(--mal-danger)}
+.menu__item--peligro .icono{color:inherit}
+.menu__sep{border:0;border-top:var(--mal-separador);margin:var(--mal-e1) 0}
+.menu__titulo{font-family:var(--mal-mono);font-size:var(--mal-t-micro);letter-spacing:.12em;text-transform:uppercase;color:var(--mal-on-surface-3);padding:var(--mal-e2) var(--mal-e3) var(--mal-e1)}
+.menu__atajo{margin-left:auto;font-family:var(--mal-mono);font-size:var(--mal-t-micro);color:var(--mal-on-surface-3)}
+/* migas */
+.migas{display:flex;flex-wrap:wrap;align-items:center;gap:var(--mal-e2);list-style:none;font-size:var(--mal-t-caption);color:var(--mal-on-surface-3)}
+.migas a{color:var(--mal-on-surface-2);text-decoration:none}
+.migas a:hover{color:var(--mal-primary-txt)}
+.migas li + li::before{content:"/";margin-right:var(--mal-e2);opacity:.5}
+.migas [aria-current]{color:var(--mal-on-surface);font-weight:600}
+/* cabecera de app: volver · título · acción */
+.cabecera-app{
+  position:sticky;top:0;z-index:30;display:grid;grid-template-columns:var(--mal-tap) 1fr var(--mal-tap);
+  align-items:center;gap:var(--mal-e2);padding:var(--mal-e2) var(--mal-e3);
+  background:color-mix(in srgb, var(--mal-relleno) 92%, transparent);border-bottom:var(--mal-separador);
+}
+.cabecera-app__titulo{text-align:center;font-weight:700;font-size:1.05rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cabecera-app__sub{display:block;font-weight:400;font-size:var(--mal-t-mini);color:var(--mal-on-surface-3)}
+/* cajón lateral */
+.cajon{display:flex;flex-direction:column;gap:2px;padding:var(--mal-e3);background:var(--mal-relleno);border:var(--mal-borde);border-radius:var(--mal-r)}
+.cajon__titulo{font-family:var(--mal-mono);font-size:var(--mal-t-micro);letter-spacing:.14em;text-transform:uppercase;color:var(--mal-on-surface-3);padding:var(--mal-e3) var(--mal-e3) var(--mal-e1)}
+.cajon__item{
+  display:flex;align-items:center;gap:var(--mal-e3);padding:0 var(--mal-e3);min-height:var(--mal-tap);
+  border-radius:var(--mal-r-s);text-decoration:none;color:var(--mal-on-surface-2);font-weight:500;
+}
+.cajon__item:hover{background:var(--mal-bg-2);color:var(--mal-on-surface)}
+.cajon__item[aria-current]{background:color-mix(in srgb, var(--mal-primary) 10%, transparent);color:var(--mal-primary-txt);font-weight:600}
+.cajon__item .icono{color:inherit;opacity:.85}
+/* barra de acciones flotante */
+.barra-acciones{
+  position:sticky;bottom:var(--mal-e4);z-index:20;display:flex;gap:var(--mal-e2);justify-content:center;
+  width:fit-content;margin-inline:auto;padding:var(--mal-e2);border-radius:var(--mal-r-full);
+  background:var(--mal-relleno);border:var(--mal-borde);box-shadow:var(--mal-elev-2);
+}
+/* paginación numerada */
+.paginas{display:flex;gap:var(--mal-e1);list-style:none;align-items:center}
+.paginas a,.paginas span{
+  display:grid;place-items:center;min-width:40px;height:40px;padding-inline:var(--mal-e2);
+  border-radius:var(--mal-r-s);text-decoration:none;color:var(--mal-on-surface-2);font-variant-numeric:tabular-nums;
+}
+.paginas a:hover{background:var(--mal-bg-2);color:var(--mal-on-surface)}
+.paginas [aria-current]{background:var(--mal-on-surface);color:var(--mal-bg);font-weight:600}
+
+/* ─── retroalimentación ────────────────────────────────────────── */
+.toast{
+  position:fixed;left:50%;bottom:calc(var(--mal-e5) + env(safe-area-inset-bottom));transform:translateX(-50%);
+  z-index:1000;display:flex;align-items:center;gap:var(--mal-e3);max-width:min(92vw, 420px);
+  padding:var(--mal-e3) var(--mal-e4);border-radius:var(--mal-r-full);
+  background:var(--mal-on-surface);color:var(--mal-bg);box-shadow:var(--mal-elev-2);
+  font-size:var(--mal-t-caption);animation:mal-toast .25s var(--mal-ease);
+}
+.toast .icono{flex:none}
+.toast--ok .icono{color:var(--mal-ok)}
+.toast--error .icono{color:var(--mal-danger)}
+.toast[hidden]{display:none}
+@keyframes mal-toast{from{opacity:0;transform:translate(-50%, 12px)}to{opacity:1;transform:translate(-50%, 0)}}
+/* modal con <dialog>: el navegador pone el foco y cierra con Escape */
+.modal{
+  border:var(--mal-borde);border-radius:var(--mal-r);padding:0;max-width:min(92vw, 520px);width:100%;
+  background:var(--mal-relleno);color:var(--mal-on-surface);box-shadow:var(--mal-elev-2);
+  margin:auto;
+}
+.modal::backdrop{background:rgba(10,10,8,.45);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.modal[open]{animation:mal-subir .22s var(--mal-ease)}
+.modal__cab{display:flex;align-items:center;justify-content:space-between;gap:var(--mal-e3);padding:var(--mal-e4) var(--mal-e5) 0}
+.modal__cab h2,.modal__cab h3{font-family:var(--mal-texto);font-size:var(--mal-t-h3);font-weight:700;letter-spacing:-.01em}
+.modal__cuerpo{padding:var(--mal-e4) var(--mal-e5);color:var(--mal-on-surface-2)}
+.modal__pie{display:flex;gap:var(--mal-e2);justify-content:flex-end;flex-wrap:wrap;padding:0 var(--mal-e5) var(--mal-e5)}
+/* …y la versión hoja, que sube desde abajo en el teléfono */
+.modal--hoja{
+  margin:auto 0 0;max-width:none;border-radius:calc(26px * var(--ref-radio)) calc(26px * var(--ref-radio)) 0 0;
+  padding-top:var(--mal-e3);
+}
+.modal--hoja::before{content:"";display:block;width:38px;height:4px;border-radius:999px;background:var(--mal-outline-2);margin:0 auto var(--mal-e2)}
+.modal--hoja[open]{animation:mal-hoja .28s var(--mal-ease)}
+@keyframes mal-hoja{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+/* pista (tooltip), sin JS */
+[data-pista]{position:relative}
+[data-pista]::after{
+  content:attr(data-pista);position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%) translateY(4px);
+  background:var(--mal-on-surface);color:var(--mal-bg);font-size:var(--mal-t-mini);font-family:var(--mal-texto);
+  padding:.4em .7em;border-radius:calc(6px * var(--ref-radio));white-space:nowrap;pointer-events:none;
+  opacity:0;transition:opacity .15s, transform .15s;z-index:50;
+}
+[data-pista]:hover::after,[data-pista]:focus-visible::after{opacity:1;transform:translateX(-50%) translateY(0)}
+/* progreso */
+.progreso{height:8px;border-radius:999px;background:var(--mal-bg-2);overflow:hidden}
+.progreso > span{display:block;height:100%;background:var(--mal-relleno-marca);border-radius:inherit;transition:width .3s var(--mal-ease)}
+.progreso--lectura{position:fixed;top:0;left:0;right:0;height:3px;border-radius:0;z-index:999;background:transparent}
+.progreso--lectura > span{width:0}
+.girando{
+  width:1.25em;height:1.25em;border-radius:50%;border:2px solid var(--mal-outline-2);
+  border-top-color:var(--mal-primary);animation:mal-girar .8s linear infinite;display:inline-block;vertical-align:-.25em;
+}
+.btn--cargando{pointer-events:none;opacity:.7}
+.btn--cargando::before{content:"";width:1em;height:1em;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;animation:mal-girar .8s linear infinite}
+.esqueleto{
+  background:linear-gradient(90deg, var(--mal-bg-2) 25%, var(--mal-surface-alt) 50%, var(--mal-bg-2) 75%);
+  background-size:200% 100%;animation:mal-brillo 1.4s linear infinite;border-radius:var(--mal-r-s);
+  color:transparent;min-height:1em;
+}
+@keyframes mal-brillo{from{background-position:200% 0}to{background-position:-200% 0}}
+.con-punto{position:relative}
+.con-punto::after{
+  content:attr(data-cuenta);position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding-inline:5px;
+  border-radius:999px;background:var(--mal-primary);color:var(--mal-on-primary);font-family:var(--mal-mono);
+  font-size:var(--mal-t-micro);font-weight:600;display:grid;place-items:center;border:2px solid var(--mal-surface);
+}
+.con-punto:not([data-cuenta])::after{content:"";min-width:0;width:10px;height:10px;padding:0}
+.aviso{display:flex;gap:var(--mal-e3);align-items:flex-start}
+.aviso .icono{flex:none;margin-top:.15em;color:var(--mal-primary-txt)}
+.aviso--ok .icono{color:var(--mal-ok)}
+.aviso--atencion .icono{color:var(--mal-warn)}
+.aviso--peligro{border-left-color:var(--mal-danger)}
+.aviso--peligro .icono{color:var(--mal-danger)}
+.aviso--info{border-left-color:var(--mal-info)}
+.aviso--info .icono{color:var(--mal-info)}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.5;pointer-events:none}
+
+/* ─── datos ────────────────────────────────────────────────────── */
+.avatar{width:40px;height:40px;border-radius:50%;object-fit:cover;background:var(--mal-bg-2);display:inline-grid;place-items:center;font-weight:700;font-size:var(--mal-t-caption);color:var(--mal-on-surface-2);flex:none;overflow:hidden}
+.avatar--s{width:28px;height:28px;font-size:var(--mal-t-micro)}
+.avatar--l{width:64px;height:64px;font-size:1.2rem}
+.avatar--xl{width:96px;height:96px;font-size:1.6rem;border-radius:var(--mal-r)}
+.avatares{display:flex}
+.avatares .avatar{border:2px solid var(--mal-surface);margin-left:-10px}
+.avatares .avatar:first-child{margin-left:0}
+.kpi{display:flex;flex-direction:column;gap:var(--mal-e1);padding:var(--mal-e4);background:var(--mal-relleno);border:var(--mal-borde);border-radius:var(--mal-r);box-shadow:var(--mal-elev-1)}
+.kpi__etiqueta{font-family:var(--mal-mono);font-size:var(--mal-t-micro);letter-spacing:.12em;text-transform:uppercase;color:var(--mal-on-surface-3)}
+.kpi__valor{font-family:var(--mal-mono);font-size:clamp(1.6rem, 1.2rem + 1.5vw, 2.4rem);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.03em;line-height:1}
+.kpi__delta{font-size:var(--mal-t-caption);font-weight:600;display:flex;align-items:center;gap:.3em}
+.kpi__delta--sube{color:var(--mal-ok)}
+.kpi__delta--baja{color:var(--mal-danger)}
+.tabla{width:100%;border-collapse:collapse;font-size:var(--mal-t-caption)}
+.tabla th{font-family:var(--mal-mono);font-size:var(--mal-t-micro);letter-spacing:.12em;text-transform:uppercase;color:var(--mal-on-surface-3);font-weight:500;text-align:left;padding:var(--mal-e3) var(--mal-e4);border-bottom:var(--mal-separador)}
+.tabla td{padding:var(--mal-e3) var(--mal-e4);border-bottom:var(--mal-separador);vertical-align:top}
+.tabla tbody tr:hover{background:var(--mal-surface-alt)}
+.tabla--cebra tbody tr:nth-child(even){background:var(--mal-surface-alt)}
+.tabla .num{font-family:var(--mal-mono);font-variant-numeric:tabular-nums;text-align:right}
+.tabla-env{border:var(--mal-borde);border-radius:var(--mal-r-s);overflow-x:auto;background:var(--mal-relleno)}
+/* un fragmento de código no se parte por su guion: `data-marca="mercio"`
+   cortado en dos líneas deja de leerse. Si no cabe, que scroll el .tabla-env. */
+.tabla code{white-space:nowrap}
+
+/* ─── juego ────────────────────────────────────────────────────── */
+.marcador{font-family:var(--mal-mono);font-variant-numeric:tabular-nums;font-weight:700;letter-spacing:-.03em;line-height:1;font-size:clamp(1.8rem, 1.2rem + 2.5vw, 3rem)}
+.marcador small{display:block;font-family:var(--mal-texto);font-size:var(--mal-t-micro);font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--mal-on-surface-3);margin-top:var(--mal-e1)}
+.medidor{display:flex;gap:3px;height:12px}
+.medidor > i{flex:1;border-radius:3px;background:var(--mal-bg-2)}
+.medidor > i.lleno{background:var(--mal-relleno-marca)}
+.vidas{display:flex;gap:var(--mal-e1);color:var(--mal-primary)}
+.vidas .icono{width:1.4em;height:1.4em}
+.vidas .icono.perdida{color:var(--mal-outline-2)}
+.boton-juego{min-height:calc(var(--mal-tap) * 1.3);font-size:1.1rem;padding-inline:var(--mal-e6)}
+
+/* ─── blog y editorial ─────────────────────────────────────────── */
+.indice{position:sticky;top:var(--mal-e5);list-style:none;display:flex;flex-direction:column;gap:2px;font-size:var(--mal-t-caption)}
+.indice__titulo{font-family:var(--mal-mono);font-size:var(--mal-t-micro);letter-spacing:.14em;text-transform:uppercase;color:var(--mal-on-surface-3);margin-bottom:var(--mal-e2)}
+.indice a{display:block;padding:var(--mal-e1) var(--mal-e3);color:var(--mal-on-surface-2);text-decoration:none;border-left:var(--mal-acento-linea) solid transparent;border-radius:0 var(--mal-r-s) var(--mal-r-s) 0}
+.indice a:hover{color:var(--mal-on-surface);background:var(--mal-surface-alt)}
+.indice a[aria-current]{color:var(--mal-primary-txt);border-left-color:var(--mal-primary);font-weight:600}
+.figura{margin-block:var(--mal-e6)}
+.figura img{width:100%;border-radius:var(--mal-r);border:var(--mal-borde)}
+.figura figcaption{font-family:var(--mal-mono);font-size:var(--mal-t-mini);color:var(--mal-on-surface-3);margin-top:var(--mal-e2);text-align:center}
+.figura--sangrada{margin-inline:calc(var(--mal-e7) * -1)}
+.nota-pie{font-size:var(--mal-t-caption);color:var(--mal-on-surface-2);border-top:var(--mal-separador);padding-top:var(--mal-e4);margin-top:var(--mal-e7)}
+.nota-pie ol{padding-left:1.4em}
+.nota-pie li{margin-bottom:var(--mal-e2)}
+.nota-pie li::marker{color:var(--mal-primary-txt);font-family:var(--mal-mono)}
+.suscribir{
+  display:grid;gap:var(--mal-e3);padding:var(--mal-e6);background:var(--mal-surface-alt);border:var(--mal-borde);border-radius:var(--mal-r);
+}
+.suscribir h3{font-family:var(--mal-display);font-weight:var(--ref-peso-display);letter-spacing:var(--ref-tracking);font-size:var(--mal-t-h3)}
+.suscribir p{color:var(--mal-on-surface-2)}
+.suscribir form{display:flex;gap:var(--mal-e2);flex-wrap:wrap}
+.suscribir form input{flex:1;min-width:200px}
+.compartir{display:flex;gap:var(--mal-e2);align-items:center;flex-wrap:wrap}
+.compartir__etiqueta{font-family:var(--mal-mono);font-size:var(--mal-t-micro);letter-spacing:.12em;text-transform:uppercase;color:var(--mal-on-surface-3);margin-right:var(--mal-e2)}
+.relacionados{display:grid;gap:var(--mal-e4);grid-template-columns:repeat(auto-fit, minmax(min(100%, 220px), 1fr))}
+.relacionado{display:flex;flex-direction:column;gap:var(--mal-e2);text-decoration:none;color:inherit}
+.relacionado__img{aspect-ratio:16/10;background:var(--mal-bg-2);border-radius:var(--mal-r-s);border:var(--mal-borde)}
+.relacionado h4{font-size:1rem;line-height:1.3}
+.relacionado:hover h4{color:var(--mal-primary-txt)}
+.continuar{display:grid;grid-template-columns:1fr 1fr;gap:var(--mal-e4);border-top:var(--mal-separador);padding-top:var(--mal-e5);margin-top:var(--mal-e7)}
+.continuar a{display:flex;flex-direction:column;gap:var(--mal-e1);text-decoration:none;color:inherit;padding:var(--mal-e4);border:var(--mal-borde);border-radius:var(--mal-r);background:var(--mal-relleno)}
+.continuar a:hover{border-color:var(--mal-primary)}
+.continuar a:last-child{text-align:right;align-items:flex-end}
+.continuar .micro{color:var(--mal-on-surface-3)}
+.comentario{display:grid;grid-template-columns:auto 1fr;gap:var(--mal-e3);padding-block:var(--mal-e4);border-bottom:var(--mal-separador)}
+.comentario__cab{display:flex;gap:var(--mal-e2);align-items:baseline;flex-wrap:wrap}
+.comentario__cab b{font-size:var(--mal-t-caption)}
+.comentario__cab time{font-size:var(--mal-t-mini);color:var(--mal-on-surface-3)}
+.comentario p{color:var(--mal-on-surface-2);font-size:var(--mal-t-caption);margin-top:var(--mal-e1)}
+.comentario--respuesta{margin-left:calc(40px + var(--mal-e3))}
+/* La columna de lectura usa LA MISMA escala del tema, no una suya: con
+   dos escalas, en el periódico el h2 de un artículo (29 px) salía más
+   grande que el de la portada (24). Lo único propio es el tamaño del
+   texto corrido —`--mal-t-prosa`— porque una columna de 68 caracteres
+   pide un punto más que una tarjeta. */
+.prose{font-size:var(--mal-t-prosa);line-height:1.7;color:var(--mal-on-surface-2);max-width:68ch}
+.prose > * + *{margin-top:var(--mal-e5)}
+.prose h2{font-size:var(--mal-t-h2);margin-top:var(--mal-e7)}
+.prose h3{font-size:var(--mal-t-h3);margin-top:var(--mal-e6)}
+.prose h4{font-size:var(--mal-t-h4);margin-top:var(--mal-e5)}
+.prose > :is(h2,h3,h4) + *{margin-top:var(--mal-e3)}
+.prose code{font-size:.88em}
+.prose pre{font-size:.85rem}
+.prose img{border-radius:var(--mal-r);border:var(--mal-borde)}
+.prose hr{border:0;border-top:var(--mal-separador);margin-block:var(--mal-e7)}
+.prose table{font-size:var(--mal-t-caption)}
+.lectura-meta{display:flex;gap:var(--mal-e3);flex-wrap:wrap;align-items:center;font-family:var(--mal-mono);font-size:var(--mal-t-micro);letter-spacing:.1em;text-transform:uppercase;color:var(--mal-on-surface-3)}
+.lectura-meta .icono{width:1em;height:1em}
+
+/* ─── la marca del sitio usa su familia propia ─────────────────── */
+.hud__marca b,.logo,.em-logo{font-family:var(--mal-marca-tipo)}
+
+/* ─── el tema del periódico: lo que el aire tiene que sostener ─── */
+/* sin filetes, las filas se separan con más padding y las superficies
+   con tono. Esto solo pinta donde --ref-borde es 0. */
+:root[data-marca="mercio"] .list-row,:root[data-marca="mercio"] .lista a,:root[data-marca="mercio"] .comentario{padding-block:var(--mal-e4)}
+:root[data-marca="mercio"] :is(.kpi,.card){background:var(--mal-relleno)}
+:root[data-marca="mercio"] .em-card{background:transparent}
+:root[data-marca="mercio"] .menu__lista{background:var(--mal-surface);box-shadow:0 0 0 1px var(--mal-outline)}
+:root[data-marca="mercio"] .toast{border-radius:0}
+
+@media (prefers-reduced-motion:reduce){
+  .icono--girando,.girando,.btn--cargando::before,.esqueleto{animation:none}
+}
+
+/* ─── app nativa: título grande, listas agrupadas, filas ──────── */
+.cabecera-app--grande{grid-template-columns:var(--mal-tap) 1fr var(--mal-tap)}
+.titulo-grande{
+  font-family:var(--mal-texto);font-size:clamp(1.9rem, 1.5rem + 1.6vw, 2.4rem);font-weight:700;
+  letter-spacing:-.025em;line-height:1.1;padding:var(--mal-e2) var(--mal-e4) var(--mal-e3);
+}
+.titulo-grande small{display:block;font-size:var(--mal-t-caption);font-weight:400;color:var(--mal-on-surface-3);letter-spacing:0;margin-top:var(--mal-e1)}
+/* lista agrupada: el patrón de los ajustes del teléfono */
+.grupo{display:flex;flex-direction:column;gap:var(--mal-e2);margin-block:var(--mal-e4)}
+.grupo__titulo,.grupo__nota{font-size:var(--mal-t-mini);color:var(--mal-on-surface-3);padding-inline:var(--mal-e4)}
+.grupo__titulo{font-family:var(--mal-mono);letter-spacing:.1em;text-transform:uppercase;font-size:var(--mal-t-micro)}
+.lista-agrupada{list-style:none;background:var(--mal-relleno);border-radius:var(--mal-r);border:var(--mal-borde);overflow:hidden;box-shadow:var(--mal-elev-1)}
+.fila-app{
+  display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:var(--mal-e3);
+  min-height:var(--mal-tap);padding:var(--mal-e2) var(--mal-e4);color:inherit;text-decoration:none;
+  background:none;border:0;width:100%;text-align:left;font:inherit;cursor:pointer;
+}
+.fila-app + .fila-app,.lista-agrupada li + li .fila-app{box-shadow:inset 0 var(--ref-borde) 0 var(--mal-outline)}
+.lista-agrupada li + li .fila-app{margin-left:calc(var(--mal-e4) + 40px + var(--mal-e3));padding-left:0;width:auto}
+.lista-agrupada li + li .fila-app.fila-app--sin-icono{margin-left:var(--mal-e4)}
+.fila-app:hover{background:var(--mal-surface-alt)}
+.fila-app:active{background:var(--mal-bg-2)}
+.fila-app__icono{width:40px;height:40px;border-radius:calc(10px * var(--ref-radio));display:grid;place-items:center;color:var(--mal-on-primary);background:var(--mal-primary);flex:none}
+.fila-app__icono--tono{background:color-mix(in srgb, var(--mal-primary) 12%, transparent);color:var(--mal-primary-txt)}
+.fila-app__texto{display:flex;flex-direction:column;min-width:0}
+.fila-app__texto b{font-weight:500;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fila-app__texto small{color:var(--mal-on-surface-3);font-size:var(--mal-t-mini)}
+.fila-app__valor{color:var(--mal-on-surface-3);font-size:var(--mal-t-caption);font-variant-numeric:tabular-nums}
+.fila-app__chevron{color:var(--mal-outline-2);width:1.1em;height:1.1em}
+.fila-app .interruptor{min-height:0}
+/* tarjeta de app: sólida, compacta */
+.tarjeta-app{background:var(--mal-relleno);border:var(--mal-borde);border-radius:var(--mal-r);padding:var(--mal-e4);box-shadow:var(--mal-elev-1);display:flex;flex-direction:column;gap:var(--mal-e2)}
+/* la barra de pestañas, con icono y etiqueta */
+.navbar .nav-item .icono{width:1.5em;height:1.5em}
+/* una pantalla de app: columna, cabecera arriba, barra abajo */
+.pantalla{display:flex;flex-direction:column;min-height:100dvh;background:var(--mal-fondo)}
+.pantalla__cuerpo{flex:1;padding:var(--mal-e4);display:flex;flex-direction:column;gap:var(--mal-e4)}
+
+/* ══════════════════════════════════════════════════════════════
+   CAPA 7 · PRENSA, PORTADO DEL TEMA WORDPRESS `el-mercio`
+   elmercio.com/wp-content/themes/el-mercio → theme.json (tokens) y
+   assets/css/theme.css (lo que los bloques no expresan). 2026-08-23.
+   Los nombres son los de producción para que el tema pueda consumir
+   esta hoja sin renombrar nada. Lo que es WordPress puro (.wp-block-*)
+   se traduce a la clase de componente equivalente.
+   ══════════════════════════════════════════════════════════════ */
+
+/* la tipografía del theme.json, solo en el tema del periódico */
+:root[data-marca="mercio"] h1{line-height:1.15;letter-spacing:-.3px}
+:root[data-marca="mercio"] h2{line-height:1.2;letter-spacing:-.2px}
+:root[data-marca="mercio"] h3{line-height:1.2;letter-spacing:0}
+:root[data-marca="mercio"] h4{line-height:1.3;letter-spacing:0}
+:root[data-marca="mercio"] .btn{font-family:var(--em-sans);font-size:var(--em-t-button);font-weight:700;letter-spacing:.2px}
+:root[data-marca="mercio"] .badge{font-size:var(--em-t-badge);letter-spacing:1px}
+:root[data-marca="mercio"] :is(a,button,input,select,textarea,summary):focus-visible{outline:2px solid var(--em-accent);outline-offset:3px;border-radius:0}
+
+/* la marca: Montserrat a tamaño display, el punto en rojo */
+/* La marca va a 700, y el `<strong>` que lleva dentro NO la engorda: sin
+   esta segunda regla el navegador aplica `bolder` sobre 700 y la dibuja a
+   900 sintético. La Montserrat se declara de 100 a 900 para que cualquier
+   peso que se pida sea real y no interpolado por el navegador. */
+.em-logo{font-family:var(--mal-marca-tipo);font-size:var(--em-t-display);font-weight:700;line-height:1.1;letter-spacing:0;white-space:nowrap}
+.em-logo strong,.em-logo b{font-weight:700}
+.em-logo:hover{color:var(--em-contrast)}
+.em-logo .em-logo-dot{color:var(--em-accent)}
+
+/* cabecera pegajosa: la sombra aparece solo al desplazarse (mal.js pone .is-scrolled) */
+.em-header{position:sticky;top:0;z-index:500;transition:box-shadow .25s ease}
+.em-header.is-scrolled{box-shadow:0 2px 12px rgba(20,20,20,.08)}
+.em-nav a,.em-nav-links a{font-size:var(--em-t-caption);letter-spacing:.5px}
+.em-menu-toggle{display:none;align-items:center;gap:var(--em-8);background:none;border:0;color:var(--em-contrast);font-family:var(--em-sans);font-weight:700;font-size:var(--em-t-caption);text-transform:uppercase;letter-spacing:.5px;cursor:pointer;min-height:var(--mal-tap)}
+/* menú plegado: grande y editorial, no la lista pequeña por defecto */
+.em-nav.es-abierto{position:fixed;inset:0;z-index:600;display:flex;flex-direction:column;gap:var(--em-24);padding:var(--em-32);background:var(--em-inverse);overflow:auto}
+.em-nav.es-abierto a{font-family:var(--em-serif);font-size:var(--em-t-h1);font-weight:700;text-transform:none;letter-spacing:0;color:var(--em-base)}
+/* con el menú abierto el botón tiene que quedar POR ENCIMA del panel:
+   el overlay es hermano suyo dentro de la misma cabecera, así que sin
+   esto lo tapa y no hay forma de cerrarlo con el ratón. */
+.em-menu-toggle[aria-expanded="true"]{position:relative;z-index:601;color:var(--em-base)}
+@media (max-width:781px){
+  .em-menu-toggle{display:inline-flex}
+  .em-nav:not(.es-abierto){display:none}
+}
+
+/* bandas oscuras: se remapean SOLO los tres tokens de texto */
+.em-dark{--em-contrast:#ffffff;--em-contrast-2:#a0a0a0;--em-contrast-3:#a0a0a0}
+
+/* Lista de opinión numerada por contador: reordena los posts y los números
+   siguen bien. OJO con los nombres, son los de producción y no son
+   intercambiables: `.em-opinion-list` y `.em-opinion-item` van en el <ul>
+   (el post-template del bloque), `.em-opinion-list-item` en la fila. Aquí
+   solo va el contador y la tipografía: la caja de la fila la arma el propio
+   bloque de WordPress, y si el DS le impusiera un grid rompería la portada. */
+.em-opinion-list,.em-opinion-item{counter-reset:em-opinion-item;list-style:none;margin:0;padding:0}
+.em-opinion-list-item{align-items:baseline}
+.em-opinion-list-number{font-family:var(--em-sans);font-weight:800;font-size:var(--em-t-h2);color:var(--em-accent);line-height:1;min-width:1.4em}
+.em-opinion-list-number::before{counter-increment:em-opinion-item;content:counter(em-opinion-item)}
+.em-opinion-headline{display:block;font-family:var(--em-serif);font-weight:700;color:var(--em-contrast);text-decoration:none}
+.em-opinion-headline:hover{color:var(--em-accent)}
+
+/* Necflis: la insignia flota sobre la miniatura */
+.em-necflis-thumb-wrap{position:relative}
+.em-necflis-badge{position:absolute;top:var(--em-12);left:var(--em-12);z-index:2}
+
+/* podcast: la lista de episodios como filas de la tarjeta */
+.em-podcast-rss{list-style:none;margin:0;padding:0}
+.em-podcast-rss li{display:flex;align-items:center;justify-content:space-between;gap:var(--em-24);border-bottom:1px solid var(--em-border);padding:var(--em-12) 0}
+.em-podcast-rss a{flex:1 0 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--em-serif);font-size:var(--em-t-body);color:var(--em-contrast)}
+.em-podcast-rss time{flex-shrink:0;display:block;font-family:var(--em-sans);font-size:var(--em-t-caption);color:var(--em-contrast-3)}
+
+/* anterior / siguiente */
+.em-post-nav{display:flex;justify-content:space-between;gap:var(--em-24);flex-wrap:wrap}
+.em-post-nav a{display:flex;align-items:baseline;gap:8px;max-width:380px;padding:var(--em-8) 0;font-family:var(--em-serif);font-size:var(--em-t-body);font-weight:700;color:var(--em-contrast);text-decoration:none}
+.em-post-nav a:hover{color:var(--em-accent);text-decoration:underline}
+.em-post-nav__next{flex-direction:row-reverse;margin-left:auto;text-align:right}
+.em-post-nav__label{display:block;font-family:var(--em-sans);font-size:var(--em-t-caption);font-weight:700;color:var(--em-contrast-3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:4px}
+
+/* artículo: barra de progreso, capitular, medida de lectura, pies de foto */
+.em-progress{position:fixed;top:0;left:0;margin:0;height:3px;width:0%;background:var(--em-accent);z-index:999;transition:width .1s linear}
+/* La inicial es una mayúscula suelta, y por tanto marca: va en Montserrat.
+   Con la serif se confundía con el texto que abre. */
+.em-article .em-prosa > p:first-of-type::first-letter{float:left;font-family:var(--em-sans);font-weight:700;font-size:4.2em;line-height:.78;padding-right:12px;padding-top:8px;color:var(--em-contrast)}
+.em-article .em-prosa > :is(p,ul,ol,blockquote){max-width:68ch}
+.em-prosa > * + *{margin-top:var(--em-16)}
+.em-article figcaption,.em-figcaption{font-family:var(--em-sans);font-size:var(--em-t-caption);color:var(--em-contrast-3);margin-top:var(--em-8);line-height:1.4}
+
+/* rejillas de tarjetas: titulares a 2 líneas, entradillas a 3, zoom corto en la foto */
+.em-card{overflow:hidden}
+.em-card__img{transition:transform .35s ease}
+.em-card:hover .em-card__img{transform:scale(1.03)}
+.em-card__excerpt{color:var(--em-contrast-2)}
+.em-cards-4up .em-card h3{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.em-cards-4up .em-card__excerpt{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+/* el titular ES el enlace: sin subrayado hasta el hover */
+.em-card h3 a,.em-titular a{text-decoration:none;text-underline-offset:.18em;text-decoration-thickness:1px}
+.em-card h3 a:hover,.em-card h3 a:focus-visible,.em-titular a:hover{text-decoration:underline;color:var(--em-accent)}
+
+/* cabecera de sección: titular y descripción alineados por la base */
+.em-section-header-row{display:flex;justify-content:space-between;align-items:baseline;gap:var(--em-24);flex-wrap:wrap}
+.em-section-header-row h2 a{text-decoration:none;color:inherit}
+.em-section-description{padding-bottom:3px;max-width:46ch;font-family:var(--em-sans);font-size:var(--em-t-caption);color:var(--em-contrast-3);text-align:right}
+
+/* portada: secciones pegadas, separadas por un hairline (translúcido sobre banda oscura) */
+:root .em-home-main > *{margin-block:0}
+.em-home-main > * + *{border-top:1px solid var(--em-border)}
+.em-home-main > * + .em-dark{border-top-color:rgba(255,255,255,.12)}
+.em-section-padded{padding:var(--em-64)}
+
+/* revistas: la portada entera, como un ejemplar, con su lomo */
+.em-revista-portada{position:relative;line-height:0}
+.em-revista-portada img{display:block;width:100%;height:auto;max-height:78vh;object-fit:contain;box-shadow:0 18px 50px rgba(0,0,0,.55)}
+.em-revista-portada::after{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:linear-gradient(to right,rgba(255,255,255,.28),rgba(255,255,255,0));pointer-events:none}
+.em-revista-rack img,.em-revista-mini img{box-shadow:0 6px 18px rgba(20,20,20,.22)}
+.em-revista-expositor :is(h2,h3){text-wrap:balance}
+
+/* garabatos: la viñeta entera, sin recorte */
+.em-garabato img{display:block;width:100%;height:auto;max-height:420px;object-fit:contain;background:var(--em-base);border:1px solid var(--em-border)}
+.em-garabato figure{margin:0}
+
+/* solo para lectores de pantalla */
+/* solo para lectores de pantalla. `.sr-only` es el nombre del sistema;
+   `.em-sr-only` es el que ya escribe el tema de WordPress del periódico. */
+.sr-only,
+.em-sr-only{position:absolute !important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+
+/* anuncios automáticos de Google: solo el margen alrededor, nunca el tamaño */
+.google-auto-placed{margin:var(--em-48) 0 !important}
+.google-auto-placed .adsbygoogle{margin:0 auto !important}
+
+@media (max-width:960px){
+  .em-section-padded{padding:var(--em-32) var(--em-24)}
+  .em-section-header-row{flex-direction:column;align-items:flex-start}
+  .em-section-description{text-align:left}
+  .em-revista-portada img{max-height:60vh;margin:0 auto;width:auto}
+}
+@media (prefers-reduced-motion:reduce){
+  .em-header,.em-progress,.em-card__img{transition:none !important}
+  .em-card:hover .em-card__img{transform:none !important}
+}

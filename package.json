@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "modelos": "python3 scripts/adelgazar-personajes.py",
-    "animaciones": "node scripts/hornear-animaciones.mjs"
+    "animaciones": "node scripts/hornear-animaciones.mjs",
+    "ds": "node scripts/traer-ds.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

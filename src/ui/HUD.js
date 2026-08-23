@@ -88,7 +88,7 @@ export class HUD {
     if (this.raiz) return;
 
     this.raiz = document.createElement('div');
-    this.raiz.className = 'hud';
+    this.raiz.className = 'hud-juego';
     this.raiz.innerHTML = `
       <!-- ══ EL HUD, COMO LO MONTA LA REFERENCIA ══
            Subway Surfers pone CUATRO cosas encima del juego y ni una más: la
@@ -106,7 +106,7 @@ export class HUD {
            toasts apilados y un pie de foto con crédito. Todo eso se lee en la
            pantalla de resultados, que es donde hay tiempo para leer. -->
 
-      <div class="hud__superior">
+      <div class="hud-juego__superior">
         <!-- Arriba a la izquierda: SOLO la pausa. -->
         <button class="boton-icono boton-icono--rojo" data-campo="pausa"
                 type="button" aria-label="Pausar">
@@ -117,16 +117,16 @@ export class HUD {
              de la corrida, los metros, el récord con su etiqueta, y los puntos
              de intento. En la referencia son cuatro renglones y ninguno lleva
              fondo propio: van sueltos sobre la calle, con sombra. -->
-        <div class="marcador">
-          <div class="marcador__linea marcador__linea--fuerte">
+        <div class="marcador-corrida">
+          <div class="marcador-corrida__linea marcador-corrida__linea--fuerte">
             <span class="contador__valor" data-campo="papeles">0</span>
           </div>
-          <div class="marcador__linea">
-            <span class="marcador__cifra" data-campo="distancia">0 m</span>
+          <div class="marcador-corrida__linea">
+            <span class="marcador-corrida__cifra" data-campo="distancia">0 m</span>
           </div>
-          <div class="marcador__record">
-            <span class="marcador__rotulo">MEJOR</span>
-            <span class="marcador__cifra" data-campo="record">0</span>
+          <div class="marcador-corrida__record">
+            <span class="marcador-corrida__rotulo">MEJOR</span>
+            <span class="marcador-corrida__cifra" data-campo="record">0</span>
           </div>
           <div class="intentos" data-campo="intentos"></div>
         </div>
@@ -245,12 +245,12 @@ export class HUD {
 
   mostrar() {
     this.montar();
-    this.raiz.classList.add('hud--visible');
+    this.raiz.classList.add('hud-juego--visible');
     this.visible = true;
   }
 
   ocultar() {
-    if (this.raiz) this.raiz.classList.remove('hud--visible');
+    if (this.raiz) this.raiz.classList.remove('hud-juego--visible');
     this.visible = false;
   }
 
@@ -353,7 +353,7 @@ export class HUD {
     // Correr por arriba cambia el marco de la pantalla. Es un aviso periférico
     // de "ojo, esto se acaba" que no obliga a leer nada.
     if (datos.porArriba !== c.porArriba) {
-      this.raiz.classList.toggle('hud--elevado', !!datos.porArriba);
+      this.raiz.classList.toggle('hud-juego--elevado', !!datos.porArriba);
       c.porArriba = datos.porArriba;
     }
 
@@ -507,7 +507,7 @@ export class HUD {
   /**
    * Enciende o apaga un modo de prioridad y lo refleja en la raíz del HUD.
    *
-   * El CSS hace el resto: `.hud--tramite` y `.hud--rotulo` atenúan o retiran lo
+   * El CSS hace el resto: `.hud-juego--tramite` y `.hud-juego--rotulo` atenúan o retiran lo
    * que estorba a la pieza que manda en ese momento.
    *
    * @param {'tramite'|'rotulo'} modo
@@ -516,7 +516,7 @@ export class HUD {
   _prioridad(modo, activo) {
     if (activo) this.prioridad.add(modo);
     else this.prioridad.delete(modo);
-    this.raiz?.classList.toggle(`hud--${modo}`, activo);
+    this.raiz?.classList.toggle(`hud-juego--${modo}`, activo);
 
     // Se barren los avisos que ya estuvieran puestos. Bloquear solo los nuevos
     // no bastaba: un aviso dura 2,4 segundos, así que recoger una evidencia

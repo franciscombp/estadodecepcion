@@ -1,40 +1,28 @@
 /* ==========================================================================
-   TIPOGRAFÍAS — PT Serif (titulares y cifras) + Montserrat (interfaz)
+   LAS TIPOGRAFÍAS LAS PONE EL SISTEMA DE DISEÑO
    ==========================================================================
-   Autoalojadas: el juego es un PWA offline y una fuente de CDN es una fuente
-   que a veces no está. Montserrat es la variable de Google (un archivo cubre
-   del 400 al 800); PT Serif va en dos pesos estáticos. Subconjunto latino.
+   Aquí había tres `@font-face` con copias propias de PT Serif y Montserrat.
+   Las trae `mal-ds` (public/ds), que es el dueño de la tipografía de EL
+   MERCIO.: PT Serif en cuatro cortes, PT Serif Caption —el corte óptico para
+   textos pequeños, que el juego no tenía— y Montserrat variable. Son los
+   archivos de Google Fonts, subconjunto latino, byte a byte.
+
+   Tener dos copias del mismo tipo no es solo peso: son dos subconjuntos que
+   se desincronizan, y el día que una tenga un glifo que la otra no, el mismo
+   texto se ve distinto en dos pantallas del mismo juego.
    ========================================================================== */
-
-@font-face {
-  font-family: 'PT Serif';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('./assets/fonts/ptserif-400.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'PT Serif';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('./assets/fonts/ptserif-700.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Montserrat';
-  font-style: normal;
-  font-weight: 400 800;
-  font-display: swap;
-  src: url('./assets/fonts/montserrat.woff2') format('woff2');
-}
 
 /* ==========================================================================
    ESTADO DE EXCEPCIÓN — Estilos
    ==========================================================================
-   Sistema visual documentado en docs/ESTILO.md. Los tokens viven también en
-   src/config/estilo.js para el código que los necesita en JS.
+   EL SISTEMA DE DISEÑO ES `mal-ds`, NO ESTA HOJA. Los tokens, la tipografía y
+   los componentes los pone él (public/ds, tema `data-marca="mercio"`), cargado
+   dentro de `@layer ds` desde index.html. Lo que hay aquí es lo que el sistema
+   no tiene: el mundo, el HUD sobre el lienzo y las pantallas de partida — y,
+   por ahora, lo que todavía no se le ha devuelto.
+   Ver docs/ESTILO.md, que lleva el inventario de lo pendiente.
+   Los colores del MUNDO 3D viven en src/config/estilo.js: son de material, no
+   de interfaz, y un MeshStandardMaterial no entiende var(--mal-primary).
 
    Mobile-first. Todo se dimensiona con clamp() para que el mismo layout
    funcione de un teléfono de 360 px a un monitor sin media queries por
@@ -103,7 +91,7 @@
   --tipo: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
-/* EL ACENTO YA NO CAMBIA POR ESCENARIO. Ver la nota en `.hud`: el barrio lo
+/* EL ACENTO YA NO CAMBIA POR ESCENARIO. Ver la nota en `.hud-juego`: el barrio lo
    distingue el mundo, no la cabecera. El atributo se sigue poniendo porque el
    resto del código lo consulta. */
 
@@ -210,7 +198,18 @@ html, body {
    HUD
    ========================================================================== */
 
-.hud {
+/* SE LLAMA `.hud-juego` Y NO `.hud`, y esto no es cosmética.
+   `mal-ds` usa `.hud` para la CABECERA PEGAJOSA DEL SITIO —la barra de arriba
+   de una.red, con su filete, su fondo y su desenfoque—. Aquí `.hud` era el
+   marcador de la partida, que va a `inset: 0`, o sea a pantalla completa.
+   Enchufando el sistema, el `background` de su cabecera se aplicaba a esa
+   pantalla completa y el juego desaparecía debajo de una sábana blanca. La
+   captura estaba, y no había nada más que una calle en blanco y el botón de
+   pausa flotando.
+   El sistema no tiene nombre para el contenedor de un HUD —su sección `juego`
+   monta el ejemplo con estilos en línea—, así que este es de los que hay que
+   devolverle: ver docs/ESTILO.md. */
+.hud-juego {
   position: absolute;
   inset: 0;
   display: none;
@@ -268,7 +267,7 @@ html, body {
   font-family: var(--sans);
 }
 
-.hud--visible {
+.hud-juego--visible {
   display: flex;
   animation: hud-entra var(--t-medio) var(--rebote);
 }
@@ -294,8 +293,8 @@ html, body {
    dejarla atenuada al 22 % durante la bifurcación y no valía: el cartel es
    opaco y le parte el nombre por la mitad, así que lo que se leía era media
    palabra colgando por el costado. O se ve entera o no se ve. */
-.hud--tramite .riel,
-.hud--rotulo /* LA LÍNEA DE RUTA, RETIRADA. Era una hilera de nodos que decía por qué tramo
+.hud-juego--tramite .riel,
+.hud-juego--rotulo /* LA LÍNEA DE RUTA, RETIRADA. Era una hilera de nodos que decía por qué tramo
    del escenario ibas, y no se entendía: sin etiqueta ni escala, cuatro puntos
    encendiéndose no dicen nada, y encima competían por la mirada con el carril.
    El marcado se queda —el estado se sigue llevando— y basta con quitar este
@@ -304,10 +303,10 @@ html, body {
 /* En el túnel el contador marca cero —te acaban de confiscar los papeles— y un
    cero grande al lado de un «12 / 45» solo confunde sobre cuál es la cuenta
    buena. Se queda visible, pero en segundo plano. */
-.hud--tramite .contador { opacity: 0.32; }
+.hud-juego--tramite .contador { opacity: 0.32; }
 
-.hud .riel,
-.hud .contador {
+.hud-juego .riel,
+.hud-juego .contador {
   transition: opacity var(--t-medio) ease;
 }
 
@@ -321,7 +320,7 @@ html, body {
 /* DEL FIGMA: la fila alta es una cabecera de página — rótulo a la izquierda,
    cifra al centro-derecha y la pausa como cuadrado rojo— cerrada por un
    filete fino. Sin cápsulas ni vidrios: texto sobre la calle. */
-.hud__superior {
+.hud-juego__superior {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -364,8 +363,8 @@ html, body {
    retira cuando otra pieza manda (señal de salida, expediente del trámite). */
 
 
-.hud--rotulo .caso-corrida,
-.hud--tramite .caso-corrida { opacity: 0; }
+.hud-juego--rotulo .caso-corrida,
+.hud-juego--tramite .caso-corrida { opacity: 0; }
 
 @keyframes latido {
   0%, 100% { opacity: 1; }
@@ -423,7 +422,14 @@ html, body {
    récord con su etiqueta, y los puntos de intento al final. Sin caja, sin
    fondo y sin filete: van sueltas sobre la calle y las sostiene su sombra.
    Cualquier recuadro aquí convierte el HUD en un tablero de aplicación. */
-.marcador {
+/* SE LLAMA `.marcador-corrida` Y NO `.marcador` porque `.marcador` es del
+   sistema y significa otra cosa: allí es UNA cifra grande con su rótulo
+   debajo (`18 420 / puntos`), y esto es la COLUMNA de cifras de la esquina —
+   la de la corrida, los metros, el récord y los intentos—. Sin renombrarla, la
+   columna heredaba el cuerpo de 3 rem y el Montserrat de aquella.
+   La cifra suelta del sistema sí encaja en esta pantalla y está pendiente de
+   adoptarse: ver docs/ESTILO.md. */
+.marcador-corrida {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -432,13 +438,13 @@ html, body {
   line-height: 1;
 }
 
-.marcador__linea {
+.marcador-corrida__linea {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.marcador__cifra {
+.marcador-corrida__cifra {
   font-family: var(--sans);
   font-size: 0.95rem;
   font-weight: 700;
@@ -447,14 +453,14 @@ html, body {
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
 }
 
-.marcador__record {
+.marcador-corrida__record {
   display: flex;
   align-items: baseline;
   gap: 6px;
   margin-top: 2px;
 }
 
-.marcador__rotulo {
+.marcador-corrida__rotulo {
   font-family: var(--sans);
   font-size: 0.6rem;
   font-weight: 800;
@@ -463,7 +469,7 @@ html, body {
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
-.marcador .intentos { margin-top: 5px; }
+.marcador-corrida .intentos { margin-top: 5px; }
 
 .contador {
   position: relative;
@@ -1693,8 +1699,8 @@ html, body {
 
 /* Pantallas bajas en horizontal: compactamos el HUD para no tapar la pista. */
 @media (max-height: 460px) {
-  .hud { padding: 6px 8px; }
-  .hud__medio { padding-top: 6px; }
+  .hud-juego { padding: 6px 8px; }
+  .hud-juego__medio { padding-top: 6px; }
   .panel { padding: 6px 9px; }
   .riel__nodos { flex-direction: row; width: auto; }
   .riel__nodos::before {
@@ -1726,19 +1732,40 @@ html, body {
    ========================================================================== */
 
 :root {
-  /* DEL FIGMA (EM · Design System). El papel deja el crema sepia y pasa al
-     gris editorial: superficie #f3f3f3, blanco para tarjetas, tinta #141414 y
-     UN rojo (#c53b2b) que es a la vez acento de texto y color interactivo. */
-  --papel: #f3f3f3;          /* bg/surface */
-  --papel-blanco: #ffffff;   /* bg/primary */
-  --papel-sombra: #e6e6e6;   /* border/default y subtle */
-  --tinta: #141414;          /* text/primary */
-  --tinta-media: #282828;    /* interactive/outline */
-  --tinta-tenue: #646464;    /* text/tertiary */
-  --rojo-diario: #c53b2b;    /* text/accent · interactive/primary */
+  /* ── LOS COLORES SON LOS DEL SISTEMA, NO LOS DEL JUEGO ──────────────────
+     Estos nombres son ALIAS. Cada uno apunta a un rol de `mal-ds` con el tema
+     del periódico puesto (`data-marca="mercio"` en el <html>), y no a un
+     hexadecimal.
+     Los valores salían del mismo Figma que el sistema, así que al enchufarlos
+     coinciden uno a uno —#f3f3f3, #141414, #c53b2b— y no se mueve un píxel.
+     Lo que cambia es de quién son: si mañana el periódico ajusta su rojo en
+     `theme.json`, el juego se entera al actualizar el sistema (`npm run ds`),
+     no cuando alguien se acuerde de venir a esta línea.
+
+     Los alias se quedan —414 reglas de esta hoja los usan— porque hablan el
+     idioma del juego: aquí lo de abajo es papel y lo de encima es tinta. Lo
+     que se fue es el hexadecimal. */
+  --papel: var(--mal-bg-2);            /* ref-n1 · la página */
+  --papel-blanco: var(--mal-surface);  /* ref-n2 · la tarjeta */
+  --papel-sombra: var(--mal-outline);  /* el filete */
+  --tinta: var(--mal-on-surface);
+  --tinta-media: var(--mal-on-surface-2);
+  --tinta-tenue: var(--mal-on-surface-3);
+  --rojo-diario: var(--mal-primary);
+  --azul-diario: var(--mal-secondary); /* ref-acento */
+
+  /* EL ROJO EN RGB, para poder graduarlo con `rgba()`. El sistema publica su
+     filete en componentes (`--ref-borde-rgb`) pero no su color de marca, así
+     que este se queda escrito. Es lo primero de la lista de lo que hay que
+     devolverle al sistema: ver docs/ESTILO.md. */
   --rojo-rgb-diario: 197, 59, 43;
+
+  /* LO QUE EL SISTEMA NO TIENE (todavía). Tres colores de fondo de caja que
+     el juego usa y el tema del periódico no declara: el lila y el verde del
+     sorteo de jueces y el verde de los letreros de la bifurcación. Se quedan
+     aquí escritos y marcados, no escondidos entre los demás, para que se vea
+     de un vistazo qué le falta al tema. */
   --lila-diario: #ddbeff;    /* accent/purple */
-  --azul-diario: #a6c7f2;    /* accent/blue */
   /* El verde pálido del juez honesto. Estaba escrito a mano como #cdeac4 en
      DOS reglas distintas del sorteo, que es como se acaba teniendo dos verdes
      casi iguales. Es de la misma familia que el lila y el azul —un pastel de
@@ -1751,7 +1778,7 @@ html, body {
      0.97 en `.pantalla--plana`—, así que el Archivo, que no lleva `--plana`,
      salía un punto más transparente que las otras nueve. Un punto no se ve;
      que existan dos valores para lo mismo sí se acaba viendo. */
-  --velo-pagina: rgba(243, 243, 243, 0.97);
+  --velo-pagina: color-mix(in srgb, var(--mal-bg-2) 97%, transparent);
 
   /* LOS TRES DERIVADOS DEL ROJO Y DEL VERDE, que estaban escritos a mano en
      seis reglas repartidas por la hoja. No son colores nuevos: son el mismo
@@ -1769,8 +1796,11 @@ html, body {
   --rojo-en-tinta: #ffb3a6;
   --verde-listo: #2f6b3a;
   --verde-senal: #67b857;    /* los letreros de la bifurcación */
-  --serif: 'PT Serif', Georgia, 'Times New Roman', serif;
-  --sans: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Las dos familias del periódico, tal como las nombra el sistema: el
+     `display` y el `texto` de EL MERCIO. son la misma serif, y su `mono` —el
+     rol de rótulos y cifras— es Montserrat. */
+  --serif: var(--mal-display);
+  --sans: var(--mal-mono);
 
   /* LOS ESTILOS CON NOMBRE DE LA MAQUETA.
 
@@ -2909,7 +2939,7 @@ html, body {
    Un marco tenue mientras se corre por encima de la calle. Es información
    periférica: confirma que estás arriba sin obligar a mirar nada. */
 
-.hud--elevado::after {
+.hud-juego--elevado::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -6085,37 +6115,16 @@ html, body {
 }
 
 /* --- LA BARRA DE LO QUE FALTA ------------------------------------------- */
-/* Ver `barraDeProgreso` en ui/screens.js: por qué se mide desde el escalón
+/* El carril y el relleno son `.progreso` del sistema, tal cual. Aquí solo va
+   el hueco alrededor y el pie, que es texto y no barra.
+   Ver `barraDeProgreso` en ui/screens.js: por qué se mide desde el escalón
    anterior y no desde cero. */
 
-.progreso {
+.avance {
   margin-top: 9px;
 }
 
-.progreso__carril {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--papel-sombra);
-  overflow: hidden;
-}
-
-.progreso__relleno {
-  display: block;
-  width: var(--parte, 0%);
-  height: 100%;
-  background: var(--rojo-diario);
-  /* Crece al entrar: una barra que aparece ya llena es un dato, una que se
-     llena delante de ti es progreso. Es el mismo truco que la cifra que sube
-     en la portada del final. */
-  animation: progreso-llenar 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes progreso-llenar {
-  from { width: 0; }
-  to   { width: var(--parte, 0%); }
-}
-
-.progreso__pie {
+.progreso-pie {
   margin-top: 6px;
   font-family: var(--sans);
   font-size: var(--t-micro);
@@ -6125,13 +6134,13 @@ html, body {
   text-align: center;
 }
 
-.progreso__pie--completo {
+.progreso-pie--completo {
   color: var(--rojo-diario);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .marca-nueva,
-  .progreso__relleno {
-    animation: none;
-  }
+  .marca-nueva { animation: none; }
+  /* La barra del sistema crece con una transición, no con una animación: se
+     corta poniéndola a cero, y el relleno aparece ya en su sitio. */
+  .progreso > span { transition: none; }
 }
