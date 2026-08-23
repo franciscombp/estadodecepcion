@@ -779,10 +779,12 @@ export function crearMonki() {
  * termine.
  */
 export function crearMinistro() {
-  // También sale del modelo, con su traje y su maletín colgados de los huesos
-  // (ver personajeGLB.js). Se le ve de pie al lado del periodista en la
-  // portada, y era el único que quedaba de cajas justo al lado de uno que no.
-  const conEsqueleto = crearPersonajeGLB('ministro');
+  // Sale del archivo `generico.glb`: gafas, jersey gris, pantalón marrón. Un
+  // ciudadano cualquiera, que es exactamente lo que pide la regla —no es
+  // nadie, es un cargo— y lo que el autor le asignó: el genérico es a quien
+  // entrevistan. Antes se sacaba del cuerpo del tostadólogo quitándole el
+  // sombrero y colgándole un traje de cajas; ahora tiene cara propia.
+  const conEsqueleto = crearPersonajeGLB('generico');
   if (conEsqueleto) return conEsqueleto;
 
   const g = crearHumanoide({

@@ -1256,6 +1256,99 @@ se juega un barrio concreto.
 
 ---
 
+### 6.22 · Treinta y un megas de imagen que el juego tiraba a la basura — **resuelto**
+
+Llegaron seis modelos nuevos —genérico, ministro, policía, Roy y los dos
+protagonistas rehechos— y pesaban **31 MB entre los seis**. El 95 % de cada
+archivo era UNA imagen: un atlas de 2048×2048 en PNG, entre 4,3 y 5,2 MB.
+
+Y el cargador la tiraba. La línea era ésta, y no tenía condición ninguna:
+
+```js
+piel.material = material({ vertexColors: true, ... });
+```
+
+O sea que el juego bajaba treinta y un megas, los descodificaba, y luego
+sustituía el material que los usaba por otro que pintaba los personajes él
+mismo, isla a isla. Se pagaba entero un trabajo para no usarlo.
+
+**Lo que cuesta un atlas.** Interpretando los mismos bytes en el navegador,
+alternando gordo y fino para que un tirón del contenedor no se llevara la
+medida:
+
+| | bytes | interpretar |
+|---|---|---|
+| con atlas de 2048² | 5,1 MB | 2.290 ms |
+| con atlas de 512² | 0,29 MB | 1.670 ms |
+| **sin ninguna imagen** | **0,24 MB** | **2 ms** |
+
+Y el detalle que decide el diseño: **el coste no depende del tamaño de la
+imagen**. Con el atlas reducido a 32×32 el archivo tarda lo mismo que con el de
+512×512. Lo que se paga es que HAYA una imagen —el camino de textura del
+cargador, con su `createImageBitmap`—, no cómo de grande sea. Encoger la imagen
+recupera bytes; sólo quitarla recupera tiempo.
+
+**Y aun así se queda.** Porque puestos uno al lado del otro no hay discusión:
+
+- La pintura por islas da manchas planas y una cara sin cara. Clasifica trozos
+  de malla por el hueso del que cuelgan y les asigna un color de una paleta.
+- El atlas del modelador trae ojos, cejas, barba, labios, la tela con su
+  sombra, el chaleco con POLICÍA escrito en la espalda y la banda tricolor de
+  Roy. Nada de eso lo puede inventar un clasificador de islas.
+
+Es el caso raro en que la respuesta correcta no es la que dice el contador de
+bytes. Se paga el camino de textura y se recorta la imagen a lo que de verdad
+hace falta.
+
+**Cuánto se recorta, medido.** No comparando las imágenes píxel a píxel —la
+mitad del atlas son huecos que no toca ninguna cara— sino el color en el
+centroide UV de CADA triángulo, en Lab, original contra candidato, con los seis
+modelos y sus ~4.200 triángulos cada uno:
+
+| candidato | KB medio | ΔE medio | % ΔE>5 | peor |
+|---|---|---|---|---|
+| webp 1024 q90 | 110,4 | 1,88 | 5,9 % | 51,5 |
+| **webp 512 q90** | **42,7** | **2,44** | **9,6 %** | 58,7 |
+| png 512 (64 colores) | 108,2 | 2,73 | 13,1 % | 71,4 |
+| webp 256 q90 | 17,5 | 3,58 | 17,9 % | 72,4 |
+
+512 q90. Un ΔE de 2,4 está en el límite de lo que se distingue con las dos
+muestras pegadas, y aquí no lo están: el personaje ocupa 0,30 del alto de la
+pantalla, unos 320 px en un móvil. Renderizados uno encima de otro, el de 2048
+y el de 512 no se diferencian. 1024 costaría 2,6 veces más bytes para bajar el
+ΔE de 2,44 a 1,88, y no se paga. El PNG, para llegar a los mismos bytes, hay que
+cuantizarlo a 64 colores y da MÁS error que el webp.
+
+El error que queda tampoco está repartido: se concentra en los bordes entre
+islas del atlas, que es donde el reescalado mezcla dos colores planos. Ese borde
+en la malla es una arista que la luz ya rompe.
+
+**Total: 31,0 MB → 1,78 MB.** La PWA entera, con los cuatro barrios y los nueve
+personajes, precachea ahora 3,6 MB.
+
+Se hace a mano, con `scripts/adelgazar-personajes.py`, no en el build: los
+`.glb` versionados ya salen finos. El webp entra en el `.glb` por
+`EXT_texture_webp`, que `GLTFLoader` trae de serie.
+
+**Dos cosas más que salieron de aquí.** El material de fábrica de estos
+archivos es **emisivo del 100 %** (`emissiveFactor [1,1,1]` con el mismo atlas
+de mapa), que es como salen de Meshy: el personaje se ilumina solo, no le entra
+la luz del barrio, no le llega la niebla y va igual de brillante de noche en el
+Apagón que a mediodía en la Bahía. Se le pasa sólo el mapa de color a un
+material del juego.
+
+Y la pose de reposo de estos archivos es la de BIND, o sea **la cruz**: el
+primer policía del cerco salió plantado con los brazos en aspa. No se le llama a
+`reposarGLB()`; se le pasa su ciclo de carrera mientras se acerca y la pose de
+estar de pie cuando se planta.
+
+**Lo que sigue por islas.** Buencán y Monki no tienen archivo propio: salen del
+cuerpo del tostadólogo. Si heredaran también su atlas irían los tres con la
+misma camisa oscura y el mismo pantalón gris, y a ocho metros y de espaldas lo
+único que los separa es la ropa. Ésos se quedan con la paleta.
+
+---
+
 ## 7 · Cómo se prueba cada pantalla sin jugar
 
 `/creador/pantallas/` abre cualquiera de las diez con datos de ejemplo, sobre

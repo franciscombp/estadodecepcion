@@ -12,14 +12,12 @@
 // modelo no son sus medidas: es su animación.
 //
 // ---------------------------------------------------------------------------
-// EL PROBLEMA DEL COLOR, Y CÓMO SE RESUELVE
+// EL COLOR: DOS CAMINOS, Y POR QUÉ HAY DOS
 // ---------------------------------------------------------------------------
-// El archivo llega de UN SOLO COLOR: un material blanco, sin texturas y con
-// unas UVs que no llevan ninguna imagen detrás. Un personaje gris.
-//
-// No se le pone una imagen: se le pone color SEGÚN SU MALLA. La malla ya trae
-// la información —el sombrero es un trozo de geometría separado del cráneo,
-// la mochila es otro, las gafas otro— y lo único que hay que hacer es leerla:
+// LOS PRIMEROS DOS ARCHIVOS venían de UN SOLO COLOR: material blanco, sin
+// texturas, y unas UVs que no llevaban ninguna imagen detrás. Así que el color
+// se sacaba de la MALLA, que ya traía la información: el sombrero es un trozo
+// de geometría separado del cráneo, la mochila es otro, las gafas otro.
 //
 //   1. Se agrupan los triángulos en ISLAS (trozos de malla que se tocan). El
 //      modelo tiene veintitantas: el ala del sombrero, la cara, el pelo, cada
@@ -33,16 +31,36 @@
 // POR QUÉ POR TRIÁNGULO Y NO POR VÉRTICE. Los vértices de esta malla están
 // compartidos entre caras, así que un color por vértice se interpola: el borde
 // del sombrero se degradaría hacia la piel en vez de cortar. Se desindexa la
-// geometría y cada cara lleva su color entero. Cuesta pasar de 2.268 vértices
-// a 11.937 —medio megabyte de más en la tarjeta, una vez, para los dos
-// personajes— y a cambio los cortes son cortes.
+// geometría y cada cara lleva su color entero, y los cortes son cortes.
+//
+// LOS SEIS ARCHIVOS NUEVOS SÍ VIENEN PINTADOS, y no se parece. Puestos uno al
+// lado del otro no hay discusión: la pintura por islas da manchas planas y una
+// cara sin cara, y el atlas del modelador trae ojos, cejas, barba, labios, la
+// tela con su sombra, el chaleco con POLICÍA escrito en la espalda y la banda
+// tricolor de Roy. Nada de eso lo puede inventar un clasificador de islas.
+//
+// Así que cada personaje declara CÓMO se pinta:
+//
+//   'atlas'  se respeta la imagen del archivo y sólo se le cambia el material
+//            —el que traen es emisivo puro (emissiveFactor [1,1,1]), o sea
+//            que se ilumina solo y se saltaría la luz de todo el barrio—.
+//   'islas'  el camino de arriba. Lo siguen los DERIVADOS: Buencán y Monki
+//            salen del cuerpo del tostadólogo porque no tienen archivo propio,
+//            y si heredaran también su atlas irían los tres vestidos igual.
+//
+// LO QUE COSTABA EL ATLAS, Y LO QUE CUESTA AHORA. Cada archivo traía 5 MB de
+// PNG a 2048x2048: 31 MB entre los seis, y 2.290 ms de interpretar cada uno.
+// Se recomprimieron a 512x512 en webp (ver scripts/adelgazar-personajes.py):
+// 1.78 MB en total, y midiendo el color triángulo a triángulo en Lab el error
+// medio es de 2.4 dE, que al tamaño al que se ve el personaje —0.30 del alto
+// de la pantalla— no se distingue.
 //
 // ---------------------------------------------------------------------------
 // LO QUE SE LE QUITA
 // ---------------------------------------------------------------------------
-//   · Las UVs. No hay ninguna imagen que mapear y ocupaban 18 KB por modelo.
-//   · El material blanco de fábrica, que se sustituye por uno plano con color
-//     por vértice. Un material y una llamada de dibujo por personaje.
+//   · El material de fábrica, siempre. El de los archivos nuevos es emisivo al
+//     100% y dejaría a los personajes planos y ajenos a la luz de la escena.
+//   · Las UVs, sólo en el camino 'islas': ahí no hay ninguna imagen que mapear.
 //   · La geometría se comparte entre copias (SkeletonUtils.clone clona el
 //     esqueleto pero no los búferes), así que tener varios en pantalla no
 //     multiplica la memoria.
@@ -61,6 +79,14 @@ import { clone as clonarConEsqueleto } from 'three/examples/jsm/utils/SkeletonUt
 // Los mismos tonos que tenían los personajes de cajas, para que cambiar el
 // modelo no cambie de quién es la camisa verde.
 const PALETAS = {
+  // Sólo quedan los tres que pinta el clasificador de islas: el cuerpo del
+  // que salen (el tostadólogo, por si algún día vuelve a hacer falta) y los
+  // dos derivados. Los demás van con el atlas del modelador y su paleta era
+  // código muerto: describía una ropa que ya no lleva nadie.
+  //
+  // Las tres ropas van lo más lejos posible unas de otras —gris azulado y
+  // teja— porque a ocho metros y de espaldas es lo único que los separa.
+
   tostadologo: {
     piel: 0xd9a06b,
     antebrazo: 0xd9a06b,   // Manga corta
@@ -77,25 +103,7 @@ const PALETAS = {
     correa: 0x14161c,
     gafas: 0x0a0e17,
   },
-  avecilla: {
-    piel: 0xc98b5e,
-    antebrazo: 0xc98b5e,   // Manga corta
-    ropa: 0x14b8a6,       // Verde azulado
-    pantalon: 0x6a4b85,   // Morado, y claro por lo mismo que el otro pantalón
-    zapato: 0x18181f,
-    sombrero: 0xd9a441,
-    copa: 0xbe8b2e,
-    pelo: 0x2b1a12,       // Los rizos
-    mochila: 0x1c2028,
-    correa: 0x14161c,
-    gafas: 0x0a0e17,
-    instrumento: 0xd9a441, // El ukelele
-  },
 
-  // Los tres que salen del cuerpo del tostadólogo. Sin sombrero ni mochila, lo
-  // único que los separa a ocho metros y de espaldas es el color de la ropa y
-  // lo que llevan puesto en la cabeza, así que las tres ropas van lo más lejos
-  // posible unas de otras: gris azulado, teja y azul marino.
   buencan: {
     piel: 0xcf9a70,
     antebrazo: 0x2f3a4f,   // De traje: la manga llega a la muñeca
@@ -105,6 +113,7 @@ const PALETAS = {
     pelo: 0x2a1c14,
     gafas: 0x0a0e17,
   },
+
   monki: {
     piel: 0xe0b088,
     antebrazo: 0xe0b088,   // Túnica sin mangas
@@ -114,88 +123,73 @@ const PALETAS = {
     pelo: 0x241a12,
     gafas: 0x0a0e17,
   },
-  ministro: {
-    piel: 0xd8b08c,
-    antebrazo: 0x1f2c4a,   // De traje
-    ropa: 0x1f2c4a,       // Traje azul
-    pantalon: 0x2c3a5c,
-    zapato: 0x18181f,
-    pelo: 0x241a12,
-    gafas: 0x0a0e17,
-  },
-
-  // Los perseguidores van los dos de oscuro y a contraluz: lo que tienen que
-  // leerse desde ocho metros por delante es una silueta, no una cara.
-  perseguidorAbajo: {
-    piel: 0xc08a5e,
-    antebrazo: 0x1f2333,
-    ropa: 0x1f2333,       // Traje oscuro
-    pantalon: 0x232838,
-    zapato: 0x141414,
-    pelo: 0x1a1410,
-    gafas: 0x0a0e17,
-  },
-  perseguidorArriba: {
-    piel: 0xe0b088,
-    antebrazo: 0xf2f2f2,
-    ropa: 0xf2f2f2,       // Camisa blanca
-    pantalon: 0x2a3550,
-    zapato: 0x141414,
-    pelo: 0x241a12,
-    gafas: 0x0a0e17,
-  },
 };
 
 // ---------------------------------------------------------------------------
 // LA REDACCIÓN
 // ---------------------------------------------------------------------------
-// Llegaron DOS modelos y hacen falta CINCO personajes. El resto se saca del
-// mismo cuerpo que el tostadólogo, que es lo que hace que todos tengan el
-// mismo estilo: la misma malla, el mismo esqueleto y el mismo ciclo de
-// carrera, y encima ni un triángulo más de descarga.
+// Ahora hay SEIS archivos, uno por cara, y quedan DOS personajes sin el suyo.
+// Cada uno declara:
 //
-// Cada uno declara tres cosas:
 //   archivo    de qué .glb sale su cuerpo
-//   quitar     qué piezas de ese cuerpo NO lleva. El sombrero de paja y la
-//              mochila de prensa son del tostadólogo y de nadie más.
-//   accesorios lo suyo, colgado de sus huesos
+//   pintado    'atlas' (la imagen del modelador) o 'islas' (color por trozo
+//              de malla). Ver la cabecera.
+//   quitar     sólo en 'islas': qué piezas de ese cuerpo NO lleva. El sombrero
+//              de paja y la mochila de prensa son del tostadólogo y de nadie
+//              más.
+//   accesorios sólo en 'islas': lo suyo, colgado de sus huesos. Los del atlas
+//              ya vienen vestidos; colgarles encima una corbata de cajas sería
+//              ponerle una corbata a una corbata.
 //
-// El ministro sale de aquí también, aunque no sea jugable: se le ve de pie en
-// la portada del juego y en la cinemática, al lado del periodista, y era el
-// único que quedaba de cajas justo al lado de uno que no.
+// QUIÉN ES QUIÉN EN LOS ARCHIVOS. Se abrieron los seis y se miraron antes de
+// repartir papeles, porque el nombre del archivo y quien sale dentro no
+// siempre coinciden:
+//
+//   tostadologo  sombrero, gafas de sol, camisa oscura, pantalón gris
+//   avecilla     rizos, jersey verde, vaqueros
+//   generico     gafas, jersey gris, pantalón marrón — un ciudadano cualquiera
+//   ministro     calvo, barba, gafas y CHALECO DE POLICÍA: el mando, no un
+//                señor de traje. Es al que se le suben a caballito.
+//   policia      casco, pasamontañas y equipo antidisturbios
+//   roy          camisa celeste y BANDA TRICOLOR
+//
+// LOS PAPELES los repartió el autor: el genérico es a quien entrevistan, Roy
+// es el que se sube al ministro, y el policía es el que suele hacer
+// barbaridades (va en el cerco, ver game/Cerco.js).
 const REDACCION = {
-  tostadologo: { archivo: 'tostadologo' },
-  avecilla: { archivo: 'avecilla' },
+  tostadologo: { archivo: 'tostadologo', pintado: 'atlas' },
+  avecilla: { archivo: 'avecilla', pintado: 'atlas' },
 
+  // EL ENTREVISTADO de la portada y de la cinemática. No es nadie: es un
+  // cargo, y por eso el modelo se llama «genérico». Ni un rasgo que apunte a
+  // una persona concreta —se satiriza el cargo y el trámite, nunca una cara
+  // (ver docs/GUION.md)—.
+  generico: { archivo: 'generico', pintado: 'atlas' },
+
+  // EL MANDO POLICIAL. Es el de abajo del dúo perseguidor, así que sale dos
+  // veces con el mismo archivo: los bytes se bajan una sola vez.
+  ministro: { archivo: 'ministro', pintado: 'atlas' },
+  perseguidorAbajo: { archivo: 'ministro', pintado: 'atlas' },
+  perseguidorArriba: { archivo: 'roy', pintado: 'atlas' },
+
+  // EL ANTIDISTURBIOS del cerco.
+  policia: { archivo: 'policia', pintado: 'atlas' },
+
+  // LOS DOS QUE NO TIENEN ARCHIVO. Salen del cuerpo del tostadólogo, y por eso
+  // van por el camino de las islas: heredar también su atlas los dejaría a los
+  // tres con la misma camisa oscura y el mismo pantalón gris, y lo único que
+  // los separa a ocho metros y de espaldas es la ropa.
   buencan: {
     archivo: 'tostadologo',
+    pintado: 'islas',
     quitar: new Set(['sombrero', 'copa', 'mochila', 'correa', 'gafas']),
     accesorios: ponerBuencan,
   },
   monki: {
     archivo: 'tostadologo',
+    pintado: 'islas',
     quitar: new Set(['sombrero', 'copa', 'mochila', 'correa', 'gafas']),
     accesorios: ponerMonki,
-  },
-  ministro: {
-    archivo: 'tostadologo',
-    quitar: new Set(['sombrero', 'copa', 'mochila', 'correa', 'gafas']),
-    accesorios: ponerMinistro,
-  },
-
-  // Los dos que vienen detrás. Salen del mismo cuerpo por lo mismo que los
-  // demás, y además porque se les ve TODA la partida por encima del hombro:
-  // eran los últimos de cajas, y con los cinco de delante ya modelados
-  // cantaban más que nadie.
-  perseguidorAbajo: {
-    archivo: 'tostadologo',
-    quitar: new Set(['sombrero', 'copa', 'mochila', 'correa', 'gafas']),
-    accesorios: ponerPerseguidorAbajo,
-  },
-  perseguidorArriba: {
-    archivo: 'tostadologo',
-    quitar: new Set(['sombrero', 'copa', 'mochila', 'correa']),
-    accesorios: ponerPerseguidorArriba,
   },
 };
 
@@ -609,83 +603,6 @@ function ponerMonki(huesos, modelo) {
   anclar(umbo, tronco, modelo);
 }
 
-/** EL DE ABAJO: traje oscuro y corbata chillona. Es el que carga. */
-function ponerPerseguidorAbajo(huesos, modelo) {
-  const tronco = huesos.get('Spine01')?.nodo ?? huesos.get('Spine')?.nodo;
-  const corbata = caja(0.05, 0.22, 0.02, 0xff4f6d, 0.35);
-  corbata.position.set(0, PECHO.y, PECHO.fondo + 0.015);
-  anclar(corbata, tronco, modelo);
-
-  const camisa = caja(0.1, 0.2, 0.02, 0xd8d4cc, 0.12);
-  camisa.position.set(0, PECHO.y + 0.02, PECHO.fondo);
-  anclar(camisa, tronco, modelo);
-}
-
-/** EL DE ARRIBA: camisa blanca, gafas y el pelo peinado. Va encima. */
-function ponerPerseguidorArriba(huesos, modelo) {
-  const cabeza = huesos.get('Head')?.nodo;
-  const pelo = caja(CRANEO.ancho + 0.02, 0.07, CRANEO.fondo + 0.01, 0x241a12);
-  pelo.position.set(0, CRANEO.coronilla - 0.02, -0.01);
-  anclar(pelo, cabeza, modelo);
-
-  const tronco = huesos.get('Spine01')?.nodo ?? huesos.get('Spine')?.nodo;
-  const corbata = caja(0.045, 0.2, 0.02, 0x9c1f2e, 0.16);
-  corbata.position.set(0, PECHO.y, PECHO.fondo + 0.015);
-  anclar(corbata, tronco, modelo);
-}
-
-/**
- * EL MINISTRO — traje, corbata, insignia y maletín.
- *
- * No es nadie. Es un cargo, y lleva el uniforme de cualquier ministro de
- * cualquier gobierno: ni un rasgo que apunte a una persona concreta. No es
- * timidez, es la regla editorial del proyecto —se satiriza el cargo y el
- * trámite, nunca una cara (ver docs/GUION.md)—.
- */
-function ponerMinistro(huesos, modelo) {
-  const cabeza = huesos.get('Head')?.nodo;
-
-  // Pelo peinado con raya, en dos bloques de distinta altura.
-  const pelo = caja(CRANEO.ancho + 0.02, 0.07, CRANEO.fondo + 0.01, 0x241a12);
-  pelo.position.set(0, CRANEO.coronilla - 0.02, -0.01);
-  anclar(pelo, cabeza, modelo);
-  const copete = caja(0.12, 0.05, 0.2, 0x241a12);
-  copete.position.set(-0.05, CRANEO.coronilla + 0.02, -0.01);
-  anclar(copete, cabeza, modelo);
-
-  const tronco = huesos.get('Spine01')?.nodo ?? huesos.get('Spine')?.nodo;
-
-  const camisa = caja(0.11, 0.22, 0.02, 0xf4f1e8, 0.2);
-  camisa.position.set(0, PECHO.y + 0.02, PECHO.fondo);
-  anclar(camisa, tronco, modelo);
-
-  const corbata = caja(0.05, 0.22, 0.02, 0x8a1c2a, 0.16);
-  corbata.position.set(0, PECHO.y, PECHO.fondo + 0.015);
-  anclar(corbata, tronco, modelo);
-
-  for (const s of [-1, 1]) {
-    const solapa = caja(0.075, 0.2, 0.02, 0x16203a);
-    solapa.position.set(s * 0.075, PECHO.y + 0.03, PECHO.fondo + 0.005);
-    solapa.rotation.z = s * 0.26;
-    anclar(solapa, tronco, modelo);
-  }
-
-  // La insignia: un cuadradito dorado que no dice de qué es, y ese es el
-  // chiste —siempre hay una y nunca se sabe de qué—.
-  const insignia = caja(0.035, 0.035, 0.015, 0xd8b45a, 0.5);
-  insignia.position.set(0.095, PECHO.y + 0.1, PECHO.fondo + 0.01);
-  anclar(insignia, tronco, modelo);
-
-  // Maletín en la mano izquierda.
-  const mano = huesos.get('LeftHand')?.nodo;
-  const maletin = caja(0.2, 0.16, 0.06, 0x3a2a1c);
-  maletin.position.set(0.62, 1.05, 0);
-  anclar(maletin, mano, modelo);
-  const asa = caja(0.07, 0.03, 0.02, 0x241a12);
-  asa.position.set(0.62, 1.14, 0);
-  anclar(asa, mano, modelo);
-}
-
 // ---------------------------------------------------------------------------
 // CARGA
 // ---------------------------------------------------------------------------
@@ -919,13 +836,33 @@ async function cargarUno(id, base) {
 
   const paleta = PALETAS[id];
   crudos.set(id, { geometria: piel.geometry, huesos: piel.skeleton.bones });
-  piel.geometry = pintar(piel.geometry, piel.skeleton.bones, paleta, ficha.quitar);
-  piel.material = material({
-    vertexColors: true,
-    roughness: 0.68,
-    metalness: 0.0,
-    flatShading: true,
-  });
+
+  if (ficha.pintado === 'atlas') {
+    // SE RESPETA LA IMAGEN Y SE CAMBIA EL MATERIAL. El que trae el archivo es
+    // emisivo del todo —emissiveFactor [1,1,1] con el mismo atlas de mapa—,
+    // que es como salen de Meshy: el personaje se ilumina solo, no le entra la
+    // luz del barrio, no le llega la niebla y va igual de brillante de noche
+    // en el Apagón que a mediodía en la Bahía. Se le pasa el mapa de color a
+    // un material del juego y se acabó.
+    const mapa = piel.material.map || piel.material.emissiveMap || null;
+    piel.material = material({
+      map: mapa,
+      roughness: 0.68,
+      metalness: 0.0,
+      // SIN flatShading, al revés que en el camino de las islas. Ahí las caras
+      // planas eran lo que hacía que se leyeran los trozos; aquí el atlas ya
+      // trae la sombra pintada y facetar la malla sólo la ensucia.
+      side: THREE.DoubleSide,
+    });
+  } else {
+    piel.geometry = pintar(piel.geometry, piel.skeleton.bones, paleta, ficha.quitar);
+    piel.material = material({
+      vertexColors: true,
+      roughness: 0.68,
+      metalness: 0.0,
+      flatShading: true,
+    });
+  }
   // Se ve de espaldas y a contraluz media partida: sin esto, cualquier giro
   // de cámara que lo pille de lado enseña el interior de la malla.
   piel.frustumCulled = false;

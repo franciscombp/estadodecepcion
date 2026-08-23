@@ -16,6 +16,7 @@
 import * as THREE from 'three';
 import { CERCO } from '../config/balance.js';
 import { crearPolicia } from '../models/props.js';
+import { esGLB, animarCarreraGLB, poseMinistroGLB } from '../models/personajeGLB.js';
 
 export class Cerco {
   constructor(escena) {
@@ -75,6 +76,18 @@ export class Cerco {
       // Trote hasta que se plantan.
       const trote = t < 0.85 ? Math.abs(Math.sin(this.tiempo * 9 + i)) * 0.09 : 0;
       policia.position.y = trote;
+
+      // EL DEL ARCHIVO CORRE DE VERDAD. El de cajas se apañaba con el rebote
+      // de arriba —sube y baja, y el ojo lo lee como pasos— pero al que trae
+      // esqueleto eso lo deja botando con las piernas quietas. Mientras se
+      // acerca se le pasa su ciclo de carrera; cuando se planta, la pose de
+      // estar de pie, que es la misma que usa el entrevistado en la portada:
+      // respira despacio y ya está. Un policía plantado y perfectamente
+      // inmóvil se lee como un maniquí, y lo que tiene que dar es cerco.
+      if (esGLB(policia)) {
+        if (t < 0.85) animarCarreraGLB(policia, dt, 14);
+        else poseMinistroGLB(policia, this.tiempo, 1);
+      }
     });
 
     return t;

@@ -38,6 +38,7 @@ import { CARRILES, OBSTACULOS, PALETA, TUNEL, ELEVADO } from '../config/balance.
 import { ANCHO_PISTA } from '../game/Track.js';
 import { COLOR3D } from '../config/estilo.js';
 import { clonarEdificioDelCruce } from './hitos.js';
+import { crearPersonajeGLB } from './personajeGLB.js';
 
 // ---------------------------------------------------------------------------
 // MATERIALES
@@ -4486,6 +4487,18 @@ export function crearGaleriaTramite(largo, colores, nombre) {
  * se construye para leerse de golpe —casco, visera, escudo— y nada más.
  */
 export function crearPolicia() {
+  // EL DEL ARCHIVO, si está. `policia.glb` trae casco, pasamontañas y equipo
+  // antidisturbios pintados: es «el que suele hacer barbaridades», y de lo que
+  // hay en el juego es lo único que aparece cuando ya perdiste. Las cajas de
+  // abajo se quedan de reserva —si el archivo no carga, el cerco sigue
+  // apareciendo y el juego no depende de que el modelo esté—.
+  // OJO: NO se le llama a `reposarGLB()`. La pose de reposo de estos archivos
+  // es la de BIND, o sea la cruz, y el policía salía plantado con los brazos
+  // en aspa como un espantapájaros. Se deja en el primer fotograma del ciclo
+  // de carrera, que es una zancada, y `Cerco` se encarga de moverlo.
+  const delArchivo = crearPersonajeGLB('policia');
+  if (delArchivo) return delArchivo;
+
   const g = new THREE.Group();
 
   const matUniforme = mat(0x39415a, 0.16, 0.8);
