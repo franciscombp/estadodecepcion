@@ -326,7 +326,13 @@ async function arrancar() {
       case 'victoria':
         hud.ocultar();
         hud.limpiarAvisos();
-        pantallas.mostrar(pantallas.victoria(datos));
+        // EL SOBRE VA DELANTE, y solo aquí. En la derrota va detrás de la
+        // portada —que es el remate de la corrida y no lleva nada delante—,
+        // pero la página de victoria es TERMINAL: lleva los tres botones de
+        // salida y meter el sobre detrás obligaría a repintarla entera para
+        // recuperar la navegación. Delante funciona igual de bien: la victoria
+        // ya es buena noticia, y el sobre es la primera del día.
+        pantallas.mostrar(pantallas.conHallazgos(datos, () => pantallas.victoria(datos)));
         break;
 
       case 'gameover':
@@ -453,6 +459,10 @@ async function arrancar() {
       pruebas: ['Video del Nissan huyendo', 'Video del Cayenne llegando', 'Audio editado'],
       escenario: 'bahia',
       motivo: 'captura',
+      // Para poder abrir el sobre desde el constructor sin haber jugado.
+      personajesNuevos: [{ id: 'buencan' }],
+      potenciadoresNuevos: [{ id: 'salvoconducto' }],
+      paginasNuevas: [],
       jueces: 6,
       velocidad: 7,
       marcasPrevias: { evidenciaHistorica: 0, distanciaHistorica: 0, mejorEvidencia: 500 },
@@ -470,6 +480,14 @@ async function arrancar() {
         { id: 'ranking', nombre: 'Ranking', abrir: (d) => pantallas.deportes(d) },
         { id: 'victoria', nombre: 'Victoria', abrir: (d) => pantallas.victoria(d) },
         { id: 'gameover', nombre: 'Derrota', abrir: (d) => pantallas.gameOver(d) },
+        {
+          id: 'hallazgo',
+          nombre: 'Sobre sin remitente',
+          abrir: (d) => pantallas.hallazgos(
+            pantallas._colaDeHallazgos(d),
+            () => pantallas.mostrar(pantallas.menu()),
+          ),
+        },
         { id: 'pausa', nombre: 'Pausa', abrir: () => pantallas.pausa() },
       ],
       /**

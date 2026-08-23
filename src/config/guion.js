@@ -91,6 +91,26 @@ export const GUION = {
     abandonar: { t: 'Abandonar la corrida', ayuda: 'Botón secundario.' },
   },
 
+  hallazgo: {
+    _nombre: 'Sobre sin remitente',
+    _nota: 'La pantalla completa que anuncia lo que se acaba de desbloquear: un fichaje, un potenciador o una página del Archivo. Sale entre la portada del final y el expediente, una vez por cada cosa nueva.',
+    seccion: { t: 'exclusiva', ayuda: 'Lo que va tras la barra en la mancheta: «EL MERCIO./exclusiva».' },
+    antetituloCerrado: { t: 'LLEGÓ A LA REDACCIÓN', ayuda: 'Encima del sobre cerrado.' },
+    nombreCerrado: { t: 'Sobre sin remitente', ayuda: 'Lo que se lee mientras el sobre está cerrado.' },
+    abrir: { t: 'Toca para abrir', ayuda: 'El pie, con el sobre cerrado.' },
+    continuar: { t: 'Toca para continuar', ayuda: 'El pie, ya abierto el sobre.' },
+    cuenta: { t: '{n} de {total}', ayuda: 'El contador de sobres. Huecos: {n}, {total}. Solo sale si hay más de uno.' },
+    fichaje: { t: 'FICHAJE EN LA REDACCIÓN', ayuda: 'Antetítulo cuando lo que sale es un personaje.' },
+    potenciador: { t: 'NUEVO EN EL ARSENAL', ayuda: 'Antetítulo cuando lo que sale es un potenciador.' },
+    pagina: { t: 'PÁGINA ABIERTA EN EL ARCHIVO', ayuda: 'Antetítulo cuando lo que sale es una página del periódico.' },
+    subPagina: { t: 'Página {n}', ayuda: 'Bajo el nombre de la página. Hueco: {n}.' },
+    descPagina: {
+      t: 'Ya se puede leer en el Archivo.',
+      ayuda: 'La línea que explica qué hacer con una página recién abierta.',
+      largo: true,
+    },
+  },
+
   captura: {
     _nombre: 'Fin de partida',
     _nota: 'La primera plana que sale al perder.',

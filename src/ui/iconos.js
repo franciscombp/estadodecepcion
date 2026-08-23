@@ -311,6 +311,134 @@ export const mano = (t) => svg(`
 `, { tamano: t });
 
 // ---------------------------------------------------------------------------
+// LA REDACCIÓN — un emblema por periodista
+// ---------------------------------------------------------------------------
+// Hacen falta desde que existe la pantalla del sobre: fichar a alguien se
+// anuncia a pantalla completa, y con el sello de la cabecera para los cuatro,
+// las cuatro veces salía exactamente la misma imagen. Un desbloqueo que no
+// enseña QUÉ has desbloqueado no es un desbloqueo.
+//
+// No son retratos: son la silueta por la que se les distingue en la calle, que
+// es lo mismo que los distingue en el juego. Cada uno lleva lo que dice su
+// ficha en `config/personajes.js` —el sombrero, los rizos, la boina, el
+// casco—, sobre la misma cabeza de papel para que se lean como una serie.
+
+/** La cabeza y los hombros que comparten los cuatro. */
+const bustoBase = (piel = '#e8b98f') => `
+  <path d="M9 42c0-6.6 6.7-9.6 15-9.6s15 3 15 9.6v6H9z" fill="#141414"/>
+  <path d="M18.6 31.4h10.8v6.2c0 2.4-2.4 3.8-5.4 3.8s-5.4-1.4-5.4-3.8z" fill="${piel}"/>
+  <ellipse cx="24" cy="21" rx="9" ry="10.4" fill="${piel}"/>
+`;
+
+/** TOSTADÓLOGO — sombrero de paja y gafas redondas. */
+export const perTostadologo = (t) => svg(`
+  ${bustoBase()}
+  <circle cx="20.2" cy="21" r="3.4" fill="#ffffff" stroke="#141414" stroke-width="1.4"/>
+  <circle cx="28.4" cy="21" r="3.4" fill="#ffffff" stroke="#141414" stroke-width="1.4"/>
+  <path d="M23.6 21h1.2" stroke="#141414" stroke-width="1.4"/>
+  <path d="M7 15.6h34c0 1.9-1.4 2.9-4 2.9H11c-2.6 0-4-1-4-2.9z" fill="#b08046"/>
+  <path d="M15 15.6c0-5 3.6-8.2 9-8.2s9 3.2 9 8.2z" fill="#c99a5c"/>
+  <path d="M15.2 13.4h17.6" stroke="#8a5f31" stroke-width="1.8"/>
+`, { tamano: t, viewBox: '0 0 48 48' });
+
+/** AVECILLA — rizos y ukulele. */
+export const perAvecilla = (t) => svg(`
+  <g fill="#2f2018">
+    <circle cx="12.6" cy="18" r="4.4"/><circle cx="13.4" cy="25.6" r="3.8"/>
+    <circle cx="35.4" cy="18" r="4.4"/><circle cx="34.6" cy="25.6" r="3.8"/>
+    <circle cx="17" cy="11.4" r="4.6"/><circle cx="24" cy="9.4" r="4.8"/><circle cx="31" cy="11.4" r="4.6"/>
+  </g>
+  ${bustoBase('#d99f74')}
+  <path d="M15.4 14.6c1.4-3 5-4.6 8.6-4.6s7.2 1.6 8.6 4.6c-2.6-1.6-5.4-2.2-8.6-2.2s-6 .6-8.6 2.2z" fill="#2f2018"/>
+  <circle cx="20.6" cy="21.4" r="1.5" fill="#141414"/>
+  <circle cx="27.4" cy="21.4" r="1.5" fill="#141414"/>
+  <g transform="rotate(-24 34 38)">
+    <rect x="31.6" y="26" width="2.4" height="9" rx="1" fill="#8a5f31"/>
+    <ellipse cx="32.8" cy="39.4" rx="5.4" ry="6.4" fill="#c99a5c"/>
+    <circle cx="32.8" cy="38.6" r="2" fill="#8a5f31"/>
+  </g>
+`, { tamano: t, viewBox: '0 0 48 48' });
+
+/** BUENCAN — boina y corbata. */
+export const perBuencan = (t) => svg(`
+  ${bustoBase('#c98d63')}
+  <path d="M22.4 33.6h3.2l-1.6 3 3 9-2.9 2.4-2.9-2.4 3-9z" fill="#c53b2b"/>
+  <circle cx="20.6" cy="21.4" r="1.5" fill="#141414"/>
+  <circle cx="27.4" cy="21.4" r="1.5" fill="#141414"/>
+  <path d="M20 26.4c1.4 1.2 6.6 1.2 8 0" stroke="#141414" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+  <path d="M13.4 14.4c0-4.6 4.8-7.6 10.6-7.6s10.6 3 10.6 7.6c0 1.8-2 2.6-5 2.6H18.4c-3 0-5-.8-5-2.6z" fill="#141414"/>
+  <path d="M13.4 14.4h21.2c0 1.5-1.6 2.2-4 2.2H17.4c-2.4 0-4-.7-4-2.2z" fill="#282828"/>
+  <circle cx="24" cy="7.2" r="1.7" fill="#282828"/>
+`, { tamano: t, viewBox: '0 0 48 48' });
+
+/** MONKI — casco de prensa, con la palabra puesta donde se lee de lejos. */
+export const perMonki = (t) => svg(`
+  ${bustoBase('#a9713f')}
+  <circle cx="20.6" cy="23.2" r="1.5" fill="#141414"/>
+  <circle cx="27.4" cy="23.2" r="1.5" fill="#141414"/>
+  <path d="M13.2 20c0-6.6 4.8-11.2 10.8-11.2S34.8 13.4 34.8 20v1.4H13.2z" fill="#c53b2b"/>
+  <rect x="10.6" y="20.6" width="26.8" height="3.6" rx="1.8" fill="#ffffff"/>
+  <path d="M13.6 15.6c1.8-2.8 5.6-4.6 10.4-4.6s8.6 1.8 10.4 4.6z" fill="#e05a49" opacity=".8"/>
+  <rect x="14.4" y="21.4" width="19.2" height="2" fill="#141414" opacity=".08"/>
+`, { tamano: t, viewBox: '0 0 48 48' });
+
+const PERIODISTAS = {
+  tostadologo: perTostadologo,
+  avecilla: perAvecilla,
+  buencan: perBuencan,
+  monki: perMonki,
+};
+
+/** El emblema de un periodista. Si el id no está, el de la cabecera. */
+export function periodista(id, tamano = 48) {
+  return (PERIODISTAS[id] ?? sello)(tamano);
+}
+
+/**
+ * PÁGINA DEL ARCHIVO — un ejemplar doblado con su titular.
+ *
+ * Antes esto usaba `portada`, que es el icono del POTENCIADOR Portada —un x2
+ * dentro de un cuadro— y anunciaba «página abierta en el Archivo» con un
+ * multiplicador. Dos cosas distintas con el mismo nombre.
+ */
+export const paginaDiario = (t) => svg(`
+  <rect x="7" y="6" width="34" height="38" rx="1.5" fill="#ffffff" stroke="#141414" stroke-width="2"/>
+  <path d="M7 6h34v6H7z" fill="#141414"/>
+  <rect x="11" y="16" width="26" height="5" rx="1" fill="#c53b2b"/>
+  <g fill="#e6e6e6">
+    <rect x="11" y="24" width="12" height="12" rx="1"/>
+    <rect x="25" y="24" width="12" height="2"/>
+    <rect x="25" y="28" width="12" height="2"/>
+    <rect x="25" y="32" width="9" height="2"/>
+    <rect x="11" y="38" width="26" height="2"/>
+  </g>
+`, { tamano: t, viewBox: '0 0 48 48' });
+
+// ---------------------------------------------------------------------------
+// EL SOBRE
+// ---------------------------------------------------------------------------
+
+/**
+ * SOBRE SIN REMITENTE — la caja sorpresa de este juego.
+ *
+ * Un runner reparte lo que desbloquea dentro de una caja que se abre; aquí lo
+ * que llega a una redacción es un sobre, y llega sin remitente. Es la misma
+ * mecánica y la misma promesa —hay algo dentro y no sabes qué— contada con lo
+ * que hay en esta oficina.
+ *
+ * Va cerrado, con el lacre rojo de la casa: la solapa se dibuja aparte para
+ * poder abrirla desde CSS (ver `.hallazgo__solapa`).
+ */
+export const sobre = (t) => svg(`
+  <rect x="2" y="14" width="44" height="30" rx="2" fill="#ffffff" stroke="#e6e6e6" stroke-width="2"/>
+  <path d="M2 44 24 27l22 17z" fill="#f3f3f3"/>
+  <path d="M2 44 24 27l22 17" stroke="#e6e6e6" stroke-width="1.6" fill="none"/>
+  <path d="M2 15 24 31 46 15" stroke="#e6e6e6" stroke-width="1.6" fill="none"/>
+  <circle cx="24" cy="30" r="6.4" fill="#c53b2b"/>
+  <path d="M24 26.2l1.2 2.6 2.8.3-2.1 1.9.6 2.8L24 32.3l-2.5 1.5.6-2.8-2.1-1.9 2.8-.3z" fill="#ffffff" opacity=".9"/>
+`, { tamano: t, viewBox: '0 0 48 48' });
+
+// ---------------------------------------------------------------------------
 // MARCA
 // ---------------------------------------------------------------------------
 

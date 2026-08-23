@@ -1083,8 +1083,6 @@ export class Pantallas {
       cuerpoVictoria.appendChild(this._pintarRuta(datos.ruta));
     }
 
-    this._pintarDesbloqueos(datos, cuerpoVictoria);
-
     const botones = el('div', 'botones');
     botones.appendChild(boton(T('comunes.reintentar'), 'boton--principal',
       () => this.juego.iniciarPartida()));
@@ -1095,6 +1093,209 @@ export class Pantallas {
     contenido.appendChild(botones);
 
     escalonar(plana);
+    return pantalla;
+  }
+
+  // -------------------------------------------------------------------------
+  // EL SOBRE — lo que se acaba de desbloquear, a pantalla completa
+  // -------------------------------------------------------------------------
+  //
+  // POR QUÉ EXISTE ESTA PANTALLA. Fichar a alguien pasa dos veces en toda la
+  // vida del juego y abrir un potenciador, cinco. Eran los momentos más raros
+  // que reparte el juego y se anunciaban con un recuadro pálido de sesenta
+  // píxeles pegado al final de la tabla de posiciones — y encima esa tabla
+  // SOLO SALE SI LA CORRIDA TE SUBIÓ DE PUESTO (ver `hayAscenso`). O sea que
+  // la mayoría de las veces el aviso no se enseñaba en ningún sitio: se
+  // desbloqueaba un personaje y el jugador se enteraba semanas después, al
+  // abrir Ajustes y ver una ficha que ya no decía «???».
+  //
+  // Un desbloqueo tiene que PARAR EL JUEGO. Los runners llevan treinta años
+  // resolviéndolo igual: pantalla entera, fondo de rayos, la cosa en el
+  // centro, grande, y un toque para abrir. Eso es lo que hay aquí, contado con
+  // lo que hay en esta redacción: llega un sobre sin remitente, lo abres, y
+  // dentro está lo que sea.
+  //
+  // Y NO SE PUEDE SALTAR SIN VERLO. Ocupa toda la pantalla y pide un toque por
+  // sobre: no es un aviso al margen de otra cosa, es la cosa.
+
+  /**
+   * Lo que esta corrida abrió, en el orden en que se cuenta.
+   *
+   * Los personajes van PRIMERO: de las tres clases de hallazgo es la que menos
+   * se repite en toda la partida, y la primera que se abre es la que se
+   * recuerda. Detrás los potenciadores —que cambian cómo se corre— y al final
+   * las páginas, que son lectura para después.
+   *
+   * @returns {Array<{clase:string, antetitulo:string, nombre:string,
+   *   sub:string, desc:string, icono:string}>}
+   */
+  _colaDeHallazgos(datos) {
+    if (!datos) return [];
+    const cola = [];
+
+    for (const per of datos.personajesNuevos ?? []) {
+      // La `ficha` y no la `nota`: la nota es la línea de la lista («Boina y
+      // traje») y aquí sobra sitio para la de verdad, que es la que explica
+      // por qué ese periodista incomoda.
+      const def = PERSONAJES.find((p) => p.id === per.id) ?? per;
+      cola.push({
+        clase: 'hallazgo--personaje',
+        antetitulo: T('hallazgo.fichaje'),
+        nombre: def.nombre,
+        sub: def.seccion ?? '',
+        desc: def.ficha ?? def.nota ?? '',
+        icono: Icono.periodista(def.id, 130),
+      });
+    }
+
+    for (const pot of datos.potenciadoresNuevos ?? []) {
+      const def = CATALOGO_POTENCIADORES.find((p) => p.id === pot.id) ?? pot;
+      cola.push({
+        clase: 'hallazgo--potenciador',
+        antetitulo: T('hallazgo.potenciador'),
+        nombre: def.nombre,
+        sub: '',
+        desc: def.descripcion ?? '',
+        icono: Icono.iconoPotenciador(def.id, 112),
+      });
+    }
+
+    for (const pag of datos.paginasNuevas ?? []) {
+      cola.push({
+        clase: 'hallazgo--pagina',
+        antetitulo: T('hallazgo.pagina'),
+        nombre: pag.nombre,
+        sub: T('hallazgo.subPagina', { n: pag.numero }),
+        desc: T('hallazgo.descPagina'),
+        icono: Icono.paginaDiario(112),
+      });
+    }
+
+    return cola;
+  }
+
+  /**
+   * Mete la cola de sobres ANTES de la pantalla que venga, si hay algo que
+   * enseñar. Si no hay nada, no se nota que esto existe.
+   *
+   * @param {Function} hacer Devuelve la pantalla siguiente.
+   */
+  conHallazgos(datos, hacer) {
+    const cola = this._colaDeHallazgos(datos);
+    if (!cola.length) return hacer();
+    return this.hallazgos(cola, () => this.mostrar(hacer()));
+  }
+
+  /**
+   * La pantalla del sobre. Un toque abre; otro pasa al siguiente.
+   *
+   * @param {Array} cola Lo que hay que enseñar, en orden.
+   * @param {Function} alTerminar Qué hacer cuando no quede ninguno.
+   */
+  hallazgos(cola, alTerminar = () => this.juego.volverAlMenu()) {
+    const { pantalla, contenido } = pantallaBase();
+    pantalla.classList.add('pantalla--hallazgo');
+
+    // LOS RAYOS. Un abanico de rayos saliendo del centro es el recurso más
+    // viejo del oficio para decir «mira aquí», y no es una importación de otro
+    // juego: es el estallido de los anuncios de prensa, que es de donde lo
+    // sacaron los juegos. Se dibuja con un degradado cónico repetido —cuesta
+    // cero, no hay imagen que cargar— y gira despacio detrás de todo.
+    const rayos = el('div', 'hallazgo__rayos');
+    pantalla.insertBefore(rayos, contenido);
+
+    // La mancheta, con el contador de sobres pegado. El contador va ARRIBA y no
+    // bajo el nombre: cuando el sobre está abierto, ese sitio lo ocupa la
+    // sección del periodista o el número de la página, y el jugador se quedaba
+    // sin saber si venían más. Aquí está siempre, y no estorba.
+    const cabecera = cabeceraMarca(T('hallazgo.seccion'));
+    if (cola.length > 1) {
+      const cuenta = el('span', 'hallazgo__cuenta');
+      cabecera.appendChild(cuenta);
+      this._cuentaHallazgo = cuenta;
+    } else {
+      this._cuentaHallazgo = null;
+    }
+    contenido.appendChild(cabecera);
+
+    const escena = el('div', 'hallazgo__escena');
+
+    const pieza = el('div', 'hallazgo__pieza');
+    const disco = el('div', 'hallazgo__disco');
+    pieza.appendChild(disco);
+    escena.appendChild(pieza);
+
+    const texto = el('div', 'hallazgo__texto');
+    const antetitulo = el('div', 'hallazgo__antetitulo');
+    const nombre = el('h1', 'hallazgo__nombre');
+    const sub = el('div', 'hallazgo__sub');
+    const desc = el('p', 'hallazgo__desc');
+    texto.append(antetitulo, nombre, sub, desc);
+    escena.appendChild(texto);
+
+    contenido.appendChild(escena);
+
+    const pie = el('div', 'hallazgo__pie');
+    contenido.appendChild(pie);
+
+    let i = 0;
+    let abierto = false;
+
+    const pintarCerrado = () => {
+      abierto = false;
+      pantalla.classList.remove('hallazgo--abierto');
+      pantalla.classList.add('hallazgo--cerrado');
+      pieza.className = 'hallazgo__pieza';
+      disco.innerHTML = Icono.sobre(126);
+      antetitulo.textContent = T('hallazgo.antetituloCerrado');
+      nombre.textContent = T('hallazgo.nombreCerrado');
+      sub.textContent = '';
+      desc.textContent = '';
+      if (this._cuentaHallazgo) {
+        this._cuentaHallazgo.textContent = T('hallazgo.cuenta', { n: i + 1, total: cola.length });
+      }
+      pie.textContent = T('hallazgo.abrir');
+    };
+
+    const pintarAbierto = () => {
+      abierto = true;
+      const h = cola[i];
+      pantalla.classList.remove('hallazgo--cerrado');
+      pantalla.classList.add('hallazgo--abierto');
+      // Se rehace el nodo de la pieza para que la animación de entrada vuelva
+      // a dispararse: reañadir una clase sobre el mismo elemento no reinicia
+      // un `animation`, y el segundo sobre salía ya puesto, sin rebote.
+      pieza.className = `hallazgo__pieza hallazgo__pieza--sale ${h.clase}`;
+      disco.innerHTML = h.icono;
+      antetitulo.textContent = h.antetitulo;
+      nombre.textContent = h.nombre;
+      sub.textContent = h.sub;
+      desc.textContent = h.desc;
+      pie.textContent = T('hallazgo.continuar');
+      this.audio?.hallazgo?.();
+    };
+
+    const tocar = () => {
+      if (!abierto) { pintarAbierto(); return; }
+      i += 1;
+      if (i >= cola.length) { alTerminar(); return; }
+      pintarCerrado();
+    };
+
+    pantalla.addEventListener('click', tocar);
+    // Y con el teclado, que el juego entero se puede jugar sin tocar la
+    // pantalla y esta pantalla bloquea el paso.
+    const teclado = (e) => {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+        e.preventDefault();
+        tocar();
+      }
+    };
+    window.addEventListener('keydown', teclado);
+    pantalla.addEventListener('pantalla:desmontada',
+      () => window.removeEventListener('keydown', teclado), { once: true });
+
+    pintarCerrado();
     return pantalla;
   }
 
@@ -1119,10 +1320,14 @@ export class Pantallas {
     // de hoja. Las tres opciones de antes —volver, archivo, menú— cabían mal y
     // encima obligaban a decidir antes de haber terminado de leer.
     const botones = el('div', 'botones');
+    // EL SOBRE VA AQUÍ, entre la portada y el expediente. La portada es el
+    // remate de la corrida y no puede llevar nada delante; el expediente y la
+    // tabla son recuento, y un recuento después de una buena noticia se lee
+    // mejor que al revés.
     botones.appendChild(boton(T('comunes.continuar'), 'boton--principal',
-      () => this.mostrar((datos.pruebas?.length)
+      () => this.mostrar(this.conHallazgos(datos, () => ((datos.pruebas?.length)
         ? this.botin(datos)
-        : this.deportes(datos))));
+        : this.deportes(datos))))));
     contenido.appendChild(botones);
 
     escalonar(contenido);
@@ -1312,11 +1517,12 @@ export class Pantallas {
 
     contenido.appendChild(hoja);
 
-    // Lo desbloqueado por esta corrida, si lo hubo. No está en el marco, pero
-    // tampoco cabe en ningún otro sitio: es lo único de esta pantalla que
-    // habla del futuro. Va como aviso flotante y no como bloque, para no
-    // meterle una fila más a una maqueta que está medida.
-    if (datos) this._pintarDesbloqueos(datos, contenido);
+    // AQUÍ YA NO VA LO DESBLOQUEADO. Estaba, como aviso flotante al pie, y era
+    // el peor sitio posible por dos razones: un recuadro pálido de sesenta
+    // píxeles para anunciar el segundo fichaje de toda la partida, y encima
+    // esta pantalla SOLO SALE SI LA CORRIDA TE SUBIÓ DE PUESTO. La mayoría de
+    // las veces el aviso no llegaba a enseñarse. Ahora hay una pantalla entera
+    // para eso (ver `hallazgos`).
 
     return pantalla;
   }
@@ -1758,54 +1964,6 @@ export class Pantallas {
       T('captura.pieFoto', { lugar: esc.nombre })));
 
     return figura;
-  }
-
-  /**
-   * Lo que esta corrida desbloqueó y lo que falta para lo siguiente.
-   *
-   * Va al final del resumen a propósito: es lo último que se lee antes de
-   * decidir si se pulsa «volver a correr», y es la única parte de la pantalla
-   * que habla del futuro en vez del pasado.
-   */
-  _pintarDesbloqueos(datos, contenido) {
-    // Los personajes van PRIMERO. Fichar a alguien pasa cuatro veces en toda
-    // la vida del juego y un potenciador se abre cinco: de los dos avisos, el
-    // que menos se repite es el que merece ir arriba.
-    for (const per of datos.personajesNuevos ?? []) {
-      const caja = el('div', 'desbloqueo desbloqueo--personaje');
-      const icono = el('span', 'desbloqueo__icono');
-      icono.innerHTML = Icono.sello(34);
-      caja.appendChild(icono);
-
-      const texto = el('span', 'desbloqueo__texto');
-      texto.appendChild(el('span', 'desbloqueo__etiqueta', T('captura.fichaje')));
-      texto.appendChild(el('span', 'desbloqueo__nombre', per.nombre));
-      texto.appendChild(el('span', 'desbloqueo__desc', per.nota));
-      caja.appendChild(texto);
-
-      contenido.appendChild(caja);
-    }
-
-    for (const pot of datos.potenciadoresNuevos ?? []) {
-      const caja = el('div', 'desbloqueo');
-      const icono = el('span', 'desbloqueo__icono');
-      icono.innerHTML = Icono.iconoPotenciador(pot.id, 34);
-      caja.appendChild(icono);
-
-      const texto = el('span', 'desbloqueo__texto');
-      texto.appendChild(el('span', 'desbloqueo__etiqueta', T('captura.potenciador')));
-      texto.appendChild(el('span', 'desbloqueo__nombre', pot.nombre));
-      texto.appendChild(el('span', 'desbloqueo__desc', pot.descripcion));
-      caja.appendChild(texto);
-
-      contenido.appendChild(caja);
-    }
-
-    // AQUÍ NO VA la pista de "a dos tramos de Fuente anónima". Estaba, y no
-    // decía nada: en una página que ya cuenta lo que pasó, un contador de algo
-    // que no ha pasado es ruido. La cuenta atrás sí tiene sitio en el menú,
-    // junto a las casillas cerradas del arsenal, porque ahí se ve QUÉ falta y
-    // el número tiene a qué referirse.
   }
 
   _pintarRuta(ruta) {

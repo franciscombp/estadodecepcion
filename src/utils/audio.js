@@ -191,6 +191,21 @@ export class Audio {
     }
   }
 
+  /**
+   * Se abre un sobre: lo que sale de él es lo más raro que reparte el juego.
+   *
+   * Es el arpegio de la evidencia subido una octava y con una quinta encima,
+   * que es como suena algo que no pasa todos los días. Se distingue del
+   * `resultadoRuleta(true)` a propósito: aquel es alivio —te salvaste— y éste
+   * es hallazgo.
+   */
+  hallazgo() {
+    [523, 784, 1047, 1568].forEach((f, i) => {
+      this._tono({ frecuencia: f, duracion: 0.42, tipo: 'triangle', volumen: 0.2, retardo: i * 0.07 });
+    });
+    this._tono({ frecuencia: 261, duracion: 0.7, tipo: 'sine', volumen: 0.14, retardo: 0.02 });
+  }
+
   /** Entrar a un escenario nuevo. */
   cambioEscenario() {
     this._tono({ frecuencia: 196, frecuenciaFinal: 587, duracion: 0.5, tipo: 'triangle', volumen: 0.2 });

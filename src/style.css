@@ -5721,3 +5721,258 @@ html, body {
   gap: 7px;
   margin-top: 9px;
 }
+
+/* ===========================================================================
+   EL SOBRE — la pantalla de lo que se acaba de desbloquear
+   ===========================================================================
+   Ver `Pantallas.hallazgos` en ui/screens.js: por qué existe y qué sustituye.
+
+   La gramática es la de cualquier runner cuando reparte algo —pantalla
+   entera, rayos saliendo del centro, la cosa grande y quieta, un toque para
+   abrir— pero dibujada con lo que ya usa el periódico: papel, tinta, el rojo
+   de la casa y las dos tipografías de siempre. No hay ni un color nuevo. */
+
+.pantalla--hallazgo {
+  justify-content: stretch;
+  /* El resplandor del centro: el papel se blanquea justo donde va la pieza.
+     Es lo que hace que los rayos parezcan salir DE ALGO en vez de ser una
+     trama de fondo, y es exactamente el mismo recurso que el degradado blanco
+     del centro en cualquier pantalla de premio. */
+  background:
+    radial-gradient(circle at 50% 44%,
+      var(--papel-blanco) 0%,
+      rgba(255, 255, 255, 0.86) 16%,
+      rgba(255, 255, 255, 0) 46%),
+    var(--velo-pagina);
+  cursor: pointer;
+}
+
+/* LOS RAYOS. Un degradado cónico repetido: veinticuatro cuñas alternas, casi
+   invisibles de una en una, que juntas hacen el abanico. Cero peticiones, cero
+   imágenes, y escala a cualquier pantalla.
+
+   El degradado radial de encima apaga el centro y los bordes: sin él, las
+   cuñas se cruzan en el medio —justo donde va la pieza— y se ve una estrella
+   sucia detrás del icono. */
+.hallazgo__rayos {
+  position: absolute;
+  /* Más grande que la pantalla y centrado: girando, un cuadrado justo deja
+     ver las esquinas vacías. */
+  top: 50%;
+  left: 50%;
+  width: 240vmax;
+  height: 240vmax;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background:
+    repeating-conic-gradient(
+      from 0deg at 50% 50%,
+      rgba(var(--rojo-rgb-diario), 0.13) 0deg 7.5deg,
+      transparent 7.5deg 15deg
+    );
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 3.5%, #000 16%, #000 34%, transparent 50%);
+  mask-image: radial-gradient(circle at 50% 50%, transparent 3.5%, #000 16%, #000 34%, transparent 50%);
+  animation: hallazgo-girar 44s linear infinite;
+}
+
+@keyframes hallazgo-girar {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.pantalla--hallazgo .pantalla__contenido {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+}
+
+/* La escena se come todo el hueco que sobra y centra lo suyo: la pieza tiene
+   que quedar en el medio de la pantalla, no debajo de la mancheta. */
+.hallazgo__escena {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(14px, 4vw, 24px);
+  width: 100%;
+}
+
+/* LA PIEZA. Flota siempre —un objeto quieto en el centro de una pantalla
+   vacía parece una ilustración; flotando, parece que está ahí— y al abrirse
+   entra con un rebote que se pasa de largo antes de asentarse. */
+.hallazgo__pieza {
+  position: relative;
+  animation: hallazgo-flotar 3.4s ease-in-out infinite;
+}
+
+.hallazgo__pieza--sale {
+  animation:
+    hallazgo-brotar 620ms var(--rebote) both,
+    hallazgo-flotar 3.4s ease-in-out 620ms infinite;
+}
+
+@keyframes hallazgo-flotar {
+  0%, 100% { transform: translateY(-5px) rotate(-1.2deg); }
+  50%      { transform: translateY(5px) rotate(1.2deg); }
+}
+
+@keyframes hallazgo-brotar {
+  0%   { transform: scale(0.35) rotate(-14deg); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* EL DISCO. El icono va dentro de un círculo de papel con el filete de la
+   casa: es el sello de una portada, y de paso le da al icono un tamaño fijo
+   pase lo que pase con su caja. */
+.hallazgo__disco {
+  display: grid;
+  place-items: center;
+  width: clamp(190px, 56vw, 244px);
+  height: clamp(190px, 56vw, 244px);
+  border-radius: 50%;
+  background: var(--papel-blanco);
+  border: 2px solid var(--tinta);
+  box-shadow:
+    0 0 0 8px var(--papel),
+    0 0 0 9px var(--papel-sombra),
+    0 18px 34px rgba(20, 20, 20, 0.14);
+}
+
+/* Abierto, el filete del disco es rojo: lo que hay dentro es de la casa.
+   Cerrado se queda en tinta, que es un sobre y no una noticia todavía. */
+.hallazgo--abierto .hallazgo__disco {
+  border-color: var(--rojo-diario);
+}
+
+/* El contador de sobres, pegado a la mancheta. Es un dato de navegación —
+   cuántos quedan— así que se compone como tal: chico, en versales y tenue. */
+.hallazgo__cuenta {
+  margin-left: auto;
+  font-family: var(--sans);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tinta-tenue);
+}
+
+.pantalla--hallazgo .plana__cabecera {
+  display: flex;
+  align-items: baseline;
+  width: 100%;
+}
+
+.hallazgo__disco svg {
+  display: block;
+}
+
+.hallazgo__texto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+/* El antetítulo es el que dice QUÉ CLASE de cosa ha salido, y por eso es lo
+   primero que se lee: en rojo, en versales y apretado, como el antetítulo de
+   cualquier otra página de esta cabecera. */
+.hallazgo__antetitulo {
+  font-family: var(--sans);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rojo-diario);
+}
+
+.hallazgo__nombre {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: clamp(1.75rem, 8vw, 2.375rem);
+  line-height: 1.08;
+  color: var(--tinta);
+}
+
+.hallazgo__sub {
+  font-family: var(--sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tinta-tenue);
+}
+
+.hallazgo__desc {
+  font-family: var(--serif);
+  font-size: clamp(0.9375rem, 4vw, 1.0625rem);
+  line-height: 1.45;
+  color: var(--tinta-media);
+  max-width: 30ch;
+  margin-top: 2px;
+}
+
+/* Los cuatro textos entran escalonados al abrir, que es lo que hace que se
+   lea de arriba abajo en vez de aparecer de golpe. */
+.hallazgo--abierto .hallazgo__antetitulo { animation: hallazgo-subir 380ms ease-out 140ms both; }
+.hallazgo--abierto .hallazgo__nombre     { animation: hallazgo-subir 380ms ease-out 220ms both; }
+.hallazgo--abierto .hallazgo__sub        { animation: hallazgo-subir 380ms ease-out 290ms both; }
+.hallazgo--abierto .hallazgo__desc       { animation: hallazgo-subir 380ms ease-out 350ms both; }
+
+@keyframes hallazgo-subir {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* EL PIE. «Toca para abrir» no es un botón porque no lo es: toda la pantalla
+   responde, y dibujar un botón mentiría sobre dónde hay que tocar. Late para
+   que se lea como una invitación y no como un rótulo. */
+.hallazgo__pie {
+  font-family: var(--sans);
+  font-size: clamp(1rem, 4.4vw, 1.125rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--tinta);
+  padding-bottom: 6px;
+  animation: hallazgo-latir 1.9s ease-in-out infinite;
+}
+
+@keyframes hallazgo-latir {
+  0%, 100% { opacity: 0.55; transform: translateY(0); }
+  50%      { opacity: 1; transform: translateY(-3px); }
+}
+
+/* SIN MOVIMIENTO. Quien pide que no se le mueva la pantalla lo pide para toda
+   la pantalla, y aquí hay cuatro cosas girando, flotando y latiendo a la vez.
+   Se quedan todas quietas y puestas: la información no está en el movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  .hallazgo__rayos,
+  .hallazgo__pieza,
+  .hallazgo__pieza--sale,
+  .hallazgo__pie,
+  .hallazgo--abierto .hallazgo__antetitulo,
+  .hallazgo--abierto .hallazgo__nombre,
+  .hallazgo--abierto .hallazgo__sub,
+  .hallazgo--abierto .hallazgo__desc {
+    animation: none;
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+
+  .hallazgo__pieza,
+  .hallazgo__pieza--sale,
+  .hallazgo__pie,
+  .hallazgo--abierto .hallazgo__antetitulo,
+  .hallazgo--abierto .hallazgo__nombre,
+  .hallazgo--abierto .hallazgo__sub,
+  .hallazgo--abierto .hallazgo__desc {
+    transform: none;
+  }
+}
