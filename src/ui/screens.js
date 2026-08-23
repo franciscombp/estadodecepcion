@@ -1305,12 +1305,10 @@ export class Pantallas {
     // sección del periodista o el número de la página, y el jugador se quedaba
     // sin saber si venían más. Aquí está siempre, y no estorba.
     const cabecera = cabeceraMarca(T('hallazgo.seccion'));
+    let cuenta = null;
     if (cola.length > 1) {
-      const cuenta = el('span', 'hallazgo__cuenta');
+      cuenta = el('span', 'hallazgo__cuenta');
       cabecera.appendChild(cuenta);
-      this._cuentaHallazgo = cuenta;
-    } else {
-      this._cuentaHallazgo = null;
     }
     contenido.appendChild(cabecera);
 
@@ -1347,9 +1345,7 @@ export class Pantallas {
       nombre.textContent = T('hallazgo.nombreCerrado');
       sub.textContent = '';
       desc.textContent = '';
-      if (this._cuentaHallazgo) {
-        this._cuentaHallazgo.textContent = T('hallazgo.cuenta', { n: i + 1, total: cola.length });
-      }
+      if (cuenta) cuenta.textContent = T('hallazgo.cuenta', { n: i + 1, total: cola.length });
       pie.textContent = T('hallazgo.abrir');
     };
 
