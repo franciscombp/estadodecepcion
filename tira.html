@@ -14,6 +14,13 @@ suelo.rotation.x = -Math.PI/2; esc.add(suelo);
 await cargarPersonajesGLB('/');
 const g = await new GLTFLoader().parseAsync(await (await fetch('/modelos/animaciones.glb')).arrayBuffer(), '');
 // El ministro solo: en reposo y en cuatro instantes del ciclo de cargar.
+//
+// OJO: esto pone el clip CRUDO de animaciones.glb, que está horneado sobre el
+// esqueleto del tostadólogo. Para todo el que no comparta su pose de reposo
+// —el mando, el antidisturbias y los dos del dúo se separan más de ciento
+// veinte grados en la cadera— lo que se ve aquí es un ovillo, y NO es lo que
+// se ve en el juego: allí los clips pasan por src/models/retarget.js. Esta
+// página sirve para mirar el horneado, no para juzgar a un personaje.
 const quien = q.get('p') || 'ministro';
 const cual = q.get('a') || 'cargando';
 const clip = g.animations.find(c => c.name === cual);
