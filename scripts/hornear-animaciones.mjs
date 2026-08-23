@@ -35,10 +35,29 @@ const SALIDA = path.join(AQUI, '..', 'public', 'modelos', 'animaciones.glb');
 const SERVIDOR = process.env.SERVIDOR ?? 'http://localhost:5173';
 
 // Qué clip sale de qué archivo. El nombre es con el que el juego lo pide.
+//
+// LOS TRES DE LA PARTIDA. `correr` es el ciclo de siempre; `salto` y `rol` no
+// se reproducen a su ritmo sino con la aguja puesta donde diga el juego (ver
+// personajeGLB.js).
+//
+// Y LOS CUATRO DE LA PORTADA, que es una escena de entrevista y no una
+// partida: el periodista aguanta el micrófono, el entrevistado gesticula, y al
+// final los dos salen corriendo. `microfono` sale de un «torch idle» —sostener
+// una antorcha y sostener un micrófono son el mismo gesto— y `arrancar` es un
+// arranque de carrera, que empieza de pie y no a media zancada como el ciclo.
+//
+// Y CADA UNO A LOS FOTOGRAMAS QUE PIDE. Los de acción van a 30: en 0,73 s de
+// zancada, veintitrés cuadros ya son justos. Los de estar de pie van a 15,
+// porque son gestos lentos y a 30 lo único que se duplica es el peso —el de
+// discutir dura veinte segundos y pasaba de doscientos kilobytes él solo—.
 const RECETA = [
-  ['correr', '/scripts/animaciones/correr.fbx'],
-  ['salto', '/scripts/animaciones/salto.fbx'],
-  ['rol', '/scripts/animaciones/rol.fbx'],
+  ['correr', '/scripts/animaciones/correr.fbx', 30],
+  ['salto', '/scripts/animaciones/salto.fbx', 30],
+  ['rol', '/scripts/animaciones/rol.fbx', 30],
+  ['microfono', '/scripts/animaciones/microfono.fbx', 15],
+  ['discutir', '/scripts/animaciones/discutir.fbx', 15],
+  ['secreto', '/scripts/animaciones/secreto.fbx', 15],
+  ['arrancar', '/scripts/animaciones/arrancar.fbx', 30],
 ];
 
 // El Chromium que traiga el entorno, si está donde suele. Sin esto, Playwright
@@ -65,12 +84,12 @@ const salida = await pagina.evaluate(async (receta) => {
 
   const clips = [];
   const informe = [];
-  for (const [nombre, url] of receta) {
+  for (const [nombre, url, fps] of receta) {
     const { escena, clips: deFuera } = M.leerFBX(await (await fetch(url)).arrayBuffer());
     if (!deFuera.length) throw new Error(`${url} no trae ninguna animación`);
     const modelo = P.crearPersonajeGLB('tostadologo');
     P.reposarGLB(modelo);
-    const r = M.pasarAlPersonaje(modelo, escena, deFuera[0], { nombre });
+    const r = M.pasarAlPersonaje(modelo, escena, deFuera[0], { nombre, fps });
     clips.push(r.clip);
     informe.push(`  ${nombre.padEnd(8)} ${r.clip.duration.toFixed(2)} s · ${r.cuadros} cuadros`
       + ` · ${r.emparejados.length} huesos · escala ${r.escala.toFixed(3)}`

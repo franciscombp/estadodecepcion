@@ -1588,17 +1588,45 @@ las tres dejaban algo casi correcto:
   pasar por el suelo. En los tres es exactamente el que tiene que rozar el
   asfalto.
 
-**El resultado**, horneado en `public/modelos/animaciones.glb`:
+**El resultado**, horneado en `public/modelos/animaciones.glb`. Tres para la
+partida y cuatro para la portada, que es una escena de entrevista y no una
+carrera:
 
-| | duración | cuadros | escala | posado |
+| | duración | cuadros | fps | para qué |
 |---|---|---|---|---|
-| correr | 0,73 s | 23 | 0,916 | 0,918 m |
-| salto | 1,70 s | 52 | 0,916 | 0,876 m |
-| rol | 1,17 s | 36 | 0,916 | 0,862 m |
+| correr | 0,73 s | 23 | 30 | el ciclo de la partida |
+| salto | 1,70 s | 52 | 30 | con la aguja puesta por el juego |
+| rol | 1,17 s | 36 | 30 | ídem |
+| microfono | 6,33 s | 96 | 15 | el periodista aguantando el micro |
+| discutir | 20,80 s | 313 | 15 | el entrevistado manoteando |
+| secreto | 6,00 s | 91 | 15 | el entrevistado en confianza |
+| arrancar | 1,63 s | 50 | 30 | el arranque, de pie a corriendo |
 
-**93 KB los tres**, y un solo archivo para los seis personajes: comparten
+**375 KB los siete**, y un solo archivo para los seis personajes: comparten
 esqueleto y nombres de hueso, y las pistas van nombradas por hueso, así que el
 mismo clip se ata a cualquiera. Se rehornea con `npm run animaciones`.
+
+Los de estar de pie van a 15 fps y no a 30: son gestos lentos y a 30 lo único
+que se duplica es el peso. Y se **aplanan las pistas quietas**: en una pose de
+estar de pie discutiendo los pies no hacen nada en veinte segundos, y guardar
+seiscientas veinticinco copias del mismo cuaternión son ocho kilobytes por hueso
+quieto. Si ninguna clave se separa más de medio grado de la primera, la pista se
+queda con dos. Entre las dos cosas, el archivo baja de **608 a 375 KB**.
+
+Medio grado es el umbral porque por debajo no se ve ni con el personaje
+ocupando la pantalla entera, y porque un mocap real nunca da un hueso
+EXACTAMENTE quieto: siempre tiembla en el sexto decimal.
+
+**El micrófono es una antorcha.** El clip se bajó de Mixamo como «torch idle»
+porque sostener una antorcha y sostener un micrófono son el mismo gesto: brazo
+derecho adelantado a la altura del pecho, puño cerrado, y el peso cambiando de
+pie cada tantos segundos. Lo que se le cuelga al puño ya lo pone la cinemática,
+y lo cuelga del mismo hueso que antes.
+
+**Y el entrevistado no está quieto:** primero suelta algo en confianza y después
+se pone a discutir. Son los dos clips encadenados por reloj, veintisiete
+segundos de ciclo. El orden es el chiste y por eso no se sortea: se acerca a
+decir algo que no debería, y en cuanto se le repregunta empieza a manotear.
 
 #### Cómo se enganchan, que tiene su detalle
 

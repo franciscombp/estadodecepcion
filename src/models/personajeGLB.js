@@ -1177,16 +1177,58 @@ const EJE_Y = new THREE.Vector3(0, 1, 0);   // la torsión del tronco
 // La regla es una sola: en cada instante hay UN clip a peso 1 y los demás a 0,
 // o ninguno y entonces manda lo escrito a mano. `mandaElClip()` es quien lo
 // decide, y devuelve la acción elegida o null.
-function mandaElClip(g, nombre, peso = 1) {
+function mandaElClip(g, nombre, peso = 1, dt = 0) {
   const acciones = g.acciones;
   if (!acciones || !acciones[nombre]) return null;
+  // CON `dt` SE FUNDE, SIN `dt` SE CORTA. Al salir de la cinemática el
+  // personaje viene del clip de arranque y entra en el de carrera: sin fundido
+  // eso es un salto de pose en el primer fotograma de cada partida, y se ve.
+  // El salto y el rol no lo necesitan —empiezan con una silueta tan distinta
+  // que el corte no se lee— y además no reciben `dt`.
+  const paso = dt > 0 ? 1 - Math.exp(-14 * dt) : 1;
   for (const [otro, accion] of Object.entries(acciones)) {
-    accion.setEffectiveWeight(otro === nombre ? peso : 0);
+    const objetivo = otro === nombre ? peso : 0;
+    const actual = accion.getEffectiveWeight();
+    accion.setEffectiveWeight(actual + (objetivo - actual) * paso);
   }
   // El ciclo de carrera del propio archivo —el paseo con el que vino— se
   // apaga: lo sustituyen éstos.
   if (g.correr) g.correr.setEffectiveWeight(0);
   return acciones[nombre];
+}
+
+/**
+ * Varios clips a la vez, con la aguja puesta por reloj.
+ *
+ * Lo usan las poses de la portada y la cinemática, que no tienen `dt`: reciben
+ * el tiempo acumulado de la escena y con eso basta —`time = tiempo % duración`
+ * y el mezclador se limita a evaluar—. Además hace falta poder mezclar DOS:
+ * la salida de la entrevista es un fundido del micrófono al arranque de
+ * carrera, y con un solo clip a peso 1 eso sería un corte.
+ *
+ * @param {Object<string,number>} mezcla nombre del clip → peso
+ * @returns {boolean} si había clips que tocar
+ */
+function tocarClips(g, mezcla, tiempo) {
+  if (!g.acciones) return false;
+  let alguno = false;
+  for (const [nombre, accion] of Object.entries(g.acciones)) {
+    const peso = mezcla[nombre] ?? 0;
+    accion.setEffectiveWeight(peso);
+    if (peso <= 0) continue;
+    const duracion = accion.getClip().duration;
+    accion.time = duracion > 0 ? (tiempo % duracion) : 0;
+    accion.timeScale = 0;
+    alguno = true;
+  }
+  if (g.correr) g.correr.setEffectiveWeight(0);
+  if (alguno) {
+    g.cuerpo.rotation.set(0, 0, 0);
+    g.cuerpo.position.set(0, 0, 0);
+    g.cuerpo.scale.setScalar(1);
+    g.mezclador.update(0);
+  }
+  return alguno;
 }
 
 /** Suelta los huesos: ningún clip manda, y lo escrito a mano vuelve a valer. */
@@ -1204,7 +1246,7 @@ export function animarCarreraGLB(modelo, dt, velocidad = 20) {
   // nota en todo lo que un ciclo escrito a mano no acierta: el peso que cae
   // sobre el pie de apoyo, el hombro que se adelanta con el brazo contrario,
   // la cabeza que llega tarde.
-  const conClip = mandaElClip(g, 'correr');
+  const conClip = mandaElClip(g, 'correr', 1, dt);
   if (conClip) {
     const clip = conClip.getClip();
     // LA CADENCIA. El clip trae un ciclo entero —dos pasos— en 0,73 s, o sea
@@ -1554,10 +1596,25 @@ export function poseDerrotaGLB(modelo) {
 export function poseEntrevistaGLB(modelo, tiempo, intensidad = 1) {
   const g = modelo.userData.glb;
   if (!g) return null;
-  sueltaElClip(g);
   const { huesos } = g;
   const k = Math.min(1, Math.max(0, intensidad));
 
+  // EL MICRÓFONO ES UNA ANTORCHA. El clip se bajó de Mixamo como «torch idle»
+  // porque sostener una antorcha y sostener un micrófono son el mismo gesto:
+  // el brazo derecho adelantado a la altura del pecho, el puño cerrado, y el
+  // peso cambiando de pie cada tantos segundos. Lo que se le cuelga al puño ya
+  // es cosa de la cinemática.
+  //
+  // Y `intensidad` deja de ser «cuánto de la pose» para ser un FUNDIDO: a 1
+  // está entrevistando, a 0 ya está corriendo, y por el medio se mezclan los
+  // dos clips. Ese medio es la fase en la que la cámara retrocede y aparecen
+  // los perseguidores, y antes era la pose escrita a mano desvaneciéndose
+  // hacia la cruz de reposo —el personaje se quedaba blando un segundo—.
+  if (tocarClips(g, { microfono: k, arrancar: 1 - k }, tiempo)) {
+    return huesos.get('RightHand')?.nodo ?? null;
+  }
+
+  sueltaElClip(g);
   orientar(modelo);
   reposar(huesos);
   g.cuerpo.rotation.x = 0;
@@ -1590,10 +1647,31 @@ export function poseEntrevistaGLB(modelo, tiempo, intensidad = 1) {
 export function poseMinistroGLB(modelo, tiempo = 0, presencia = 1) {
   const g = modelo.userData.glb;
   if (!g) return;
-  sueltaElClip(g);
   const { huesos } = g;
   const k = Math.min(1, Math.max(0, presencia));
 
+  // EL ENTREVISTADO NO ESTÁ QUIETO: primero suelta algo en confianza y después
+  // se pone a discutir. Son dos clips encadenados —«contar un secreto» de 6 s
+  // y «discutir de pie» de 20,8— y se alternan por reloj.
+  //
+  // El orden es el chiste, y por eso no se sortea: se acerca a decir algo que
+  // no debería, y en cuanto se le repregunta empieza a manotear. En la portada
+  // el ciclo entero dura veintisiete segundos, que es tiempo de sobra para que
+  // nadie lo vea repetirse.
+  const secreto = g.acciones?.secreto;
+  const discutir = g.acciones?.discutir;
+  if (secreto && discutir) {
+    const ciclo = secreto.getClip().duration + discutir.getClip().duration;
+    const donde = ((tiempo % ciclo) + ciclo) % ciclo;
+    const enSecreto = donde < secreto.getClip().duration;
+    // `presencia` va al PESO del clip: mientras se lo llevan, el gesto se
+    // desvanece en vez de cortarse. Lo que encoge y aleja al personaje es
+    // `_colocarMinistro()`, en la cinemática, y eso no se toca desde aquí.
+    tocarClips(g, enSecreto ? { secreto: k } : { discutir: k }, tiempo);
+    return;
+  }
+
+  sueltaElClip(g);
   orientar(modelo);
   reposar(huesos);
   g.cuerpo.rotation.set(0, 0, 0);

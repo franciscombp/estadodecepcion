@@ -255,6 +255,8 @@ export function pasarAlPersonaje(modelo, fuente, clip, opciones = {}) {
     `${cadera.nuestro.name}.position`, tiempos, posCadera);
   pistas.push(pistaCadera);
 
+  aplanarPistasQuietas(pistas, cuadros);
+
   const resultado = new AnimationClip(nombre, clip.duration, pistas);
 
   // --- Y SE POSA EN EL SUELO -----------------------------------------------
@@ -285,6 +287,49 @@ export function pasarAlPersonaje(modelo, fuente, clip, opciones = {}) {
     cuadros,
     alturaCadera: cadera0 ? cadera0.y : 0,
   };
+}
+
+/**
+ * Deja en dos claves las pistas que no se mueven.
+ *
+ * En un ciclo de carrera se mueven los veintidós huesos. En una pose de estar
+ * de pie discutiendo, no: los pies no hacen nada en veinte segundos, y guardar
+ * seiscientas veinticinco copias del mismo cuaternión son ocho kilobytes por
+ * hueso quieto. Se comparan todas las claves con la primera y, si ninguna se
+ * separa más de medio grado, la pista se queda con la primera y la última.
+ *
+ * Medio grado es el umbral porque por debajo de eso no se ve ni con el
+ * personaje ocupando la pantalla entera, y porque un mocap real nunca da un
+ * hueso EXACTAMENTE quieto: siempre tiembla en el sexto decimal.
+ */
+function aplanarPistasQuietas(pistas, cuadros) {
+  const LIMITE = Math.cos((0.5 * Math.PI / 180) / 2);   // medio grado, en coseno
+  for (const pista of pistas) {
+    const v = pista.values;
+    const anchura = pista.getValueSize();
+    if (cuadros < 3) continue;
+
+    let quieta = true;
+    for (let f = 1; f < cuadros && quieta; f++) {
+      if (anchura === 4) {
+        // Cuaterniones: el producto escalar da el coseno de medio ángulo.
+        let punto = 0;
+        for (let k = 0; k < 4; k++) punto += v[k] * v[f * 4 + k];
+        if (Math.abs(punto) < LIMITE) quieta = false;
+      } else {
+        for (let k = 0; k < anchura; k++) {
+          if (Math.abs(v[k] - v[f * anchura + k]) > 1e-4) { quieta = false; break; }
+        }
+      }
+    }
+    if (!quieta) continue;
+
+    const t = pista.times;
+    pista.times = new Float32Array([t[0], t[cuadros - 1]]);
+    const dos = new Float32Array(anchura * 2);
+    for (let k = 0; k < anchura; k++) { dos[k] = v[k]; dos[anchura + k] = v[k]; }
+    pista.values = dos;
+  }
 }
 
 /**
