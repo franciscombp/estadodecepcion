@@ -1149,7 +1149,9 @@ export function animarSalto(personaje, subida = 0) {
 const _asiento = new THREE.Vector3();
 const _cadera = new THREE.Vector3();
 
-export function animarPerseguidores(grupo, tiempo, dt = 1 / 60, metrosPorSegundo = -1) {
+export function animarPerseguidores(
+  grupo, tiempo, dt = 1 / 60, metrosPorSegundo = -1, separacion = 0,
+) {
   const partes = grupo.userData?.partes;
   if (!partes) return;
 
@@ -1165,11 +1167,34 @@ export function animarPerseguidores(grupo, tiempo, dt = 1 / 60, metrosPorSegundo
     // guion los esté moviendo. Se le pasa la velocidad de verdad y la cadencia
     // sale de ahí, así que los pies se quedan quietos sobre el asfalto. En la
     // partida no se le pasa nada y corre como siempre.
+    //
+    // Y AGACHADO SÓLO SI LLEVA A ALGUIEN. Cuando van separados —la llegada de
+    // la cinemática— no hay nadie encima a quien hacerle sitio, así que corre
+    // con el ciclo normal; con 'cargando' iba encorvado al lado de un Roy que
+    // caminaba por su pie, y parecía que le dolía la espalda.
+    const suelto = separacion > 0.5;
     if (metrosPorSegundo >= 0 && animarCaminarGLB(partes.abajo, dt, metrosPorSegundo)) {
       // nada más: el de abajo anda
     } else {
-      animarCarreraGLB(partes.abajo, dt, 24, 'cargando');
+      animarCarreraGLB(partes.abajo, dt, 24, suelto ? 'correr' : 'cargando');
     }
+
+    // ROY VA POR SU PIE CUANDO VA SUELTO. Esto se veía fatal y costó nombrarlo:
+    // el de arriba tenía SIEMPRE la pose de ir sentado —piernas dobladas, peso
+    // hacia atrás— y en la llegada de la cinemática Intro._separados lo bajaba
+    // al suelo con esa misma pose. O sea, un hombre sentado en el aire a la
+    // altura del asfalto, avanzando de lado. Con separación no se le pone la
+    // pose de montado: anda o corre como cualquiera, y su sitio lo escribe
+    // quien lo separó.
+    if (suelto) {
+      if (!(metrosPorSegundo >= 0 && animarCaminarGLB(partes.arriba, dt, metrosPorSegundo))) {
+        animarCarreraGLB(partes.arriba, dt, 20);
+      }
+      partes.arriba.position.z = 0;
+      partes.arriba.rotation.z = 0;
+      return;
+    }
+
     poseMontadoGLB(partes.arriba, tiempo);
 
     // ROY SE SIENTA DONDE ESTÉN LOS HOMBROS, no a una altura fija. El de abajo
@@ -1195,6 +1220,11 @@ export function animarPerseguidores(grupo, tiempo, dt = 1 / 60, metrosPorSegundo
       caderaRoy.getWorldPosition(_cadera);
       grupo.worldToLocal(_cadera);
       partes.arriba.position.y = _asiento.y - _cadera.y + 0.06;
+      // Se guarda para que el montaje de la cinemática interpole hasta la
+      // altura DE VERDAD y no hasta la constante de reserva: si no, el último
+      // fotograma del montaje pega un salto de unos centímetros al pasar el
+      // mando a este cálculo.
+      partes.alturaMontado = partes.arriba.position.y;
       // Y TAMBIÉN EN Z. El que carga corre inclinado hacia adelante, así que
       // sus hombros se adelantan medio palmo respecto a sus pies; con Roy
       // clavado en el eje se quedaba montado en la nuca en vez de encima, y de

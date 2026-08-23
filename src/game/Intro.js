@@ -90,27 +90,66 @@ const SITIO_MINISTRO = { x: -1.05, y: 0, z: 0.48 };
 // y algo por delante, y desde ahí el sitio de carrera cae fuera de cuadro —a
 // la espalda del objetivo— o encima del periodista, según la distancia.
 //
-// Este punto está calculado a mano contra CAMARA_ENTREVISTA: queda a unos
-// trece metros del objetivo y a cinco grados del eje de la cámara, o sea
-// calle arriba y al fondo. Se les ve LLEGAR, que es lo único que tienen que
-// contar en esta escena. Si se toca la cámara de la entrevista, hay que
-// recalcular esto: no es una posición cualquiera, es la que cae en cuadro.
+// Estos dos puntos están calculados contra CAMARA_ENTREVISTA midiendo la caja
+// del modelo proyectada a NDC. Si se toca la cámara de la entrevista, hay que
+// recalcularlos: no son posiciones cualesquiera, son las que caen en cuadro.
 //
-// Y va DENTRO DEL PASILLO por lo mismo que la cámara: a -4 de eje quedaban
-// detrás de la fila de locales de La Bahía. Llegaban puntualmente y no los
-// veía nadie, que en una escena de tres segundos es no llegar.
-const SITIO_RESCATE = { x: -2.6, z: -6.0 };
+// VIENEN DEL PRIMER TÉRMINO, y esto es un cambio de plano entero.
+//
+// Antes llegaban calle arriba, desde (-3.2, -14). Medido en pantalla, durante
+// los siete segundos de la fase ocupaban entre el 6,7 % y el 10,6 % del alto
+// del cuadro, y la mitad del cuerpo se les iba por el borde derecho (el lado
+// derecho de su caja llegaba a NDC 1,18, o sea fuera). Eran una mancha en la
+// esquina de arriba a la derecha: no es que se entendiera mal de dónde salían,
+// es que no se veía que saliera nadie.
+//
+// Sobre el eje de la cámara no se puede: se midió el eje entero sobre el suelo
+// —va por (0.49k, 0.86k)— y la pareja pasa del 39 % de alto de cuadro en k=2 al
+// 233 % en k=6, pero en ningún punto se sale por abajo. Con la cámara a 2,3 m
+// y mirando casi horizontal, la cabeza de alguien de 1,8 m se queda pegada al
+// centro del cuadro por cerca que esté; a k=6.5 ya corta el plano cercano y lo
+// que se dibuja es el interior del personaje.
+//
+// Así que entran POR LA ESQUINA DE ABAJO A LA DERECHA, que es lo mismo contado
+// de otra manera. Se barrió el suelo entero buscando el punto que cumpliera
+// tres cosas a la vez: la caja entera fuera de cuadro, a más de metro y medio
+// del plano de la cámara, y pegada al borde para entrar enseguida. (3.5, 2.6)
+// da NDC horizontal 1.36..4.97 —fuera por la derecha—, los pies en -1.83
+// —fuera por abajo—, 95 % de alto de cuadro y 3,9 m de cámara. O sea: aparecen
+// del tamaño del plano, en el borde, y encogen mientras cruzan.
+const SITIO_APARICION = { x: 3.5, z: 2.6 };
 
-// De dónde vienen: calle arriba y al fondo, diminutos.
-const SITIO_APARICION = { x: -3.2, z: -14.0 };
+// Dónde acaba la llegada: encima del entrevistado, un poco por detrás.
+//
+// A su izquierda de pantalla no cabe: el cuadro es vertical y estrecho (FOV 38
+// en un 393×852), y un metro a -X ya se sale por el borde. Plantados detrás de
+// él, en cambio, la pareja cae en NDC -0.9..0.2 —dentro— y él se queda en su
+// mismo sitio de pantalla, que es lo que hace que se lea que se lo llevan A ÉL
+// y no que la escena se ha reorganizado.
+//
+// De paso, el camino de un punto al otro pasa por delante de la periodista a
+// mitad de recorrido: un cuerpo que barre el cuadro. No es un accidente que
+// haya que corregir, es el momento en que se lleva el plano.
+const SITIO_RESCATE = { x: -1.5, z: -0.3 };
 
-// Por dónde se van. NO es marcha atrás por donde vinieron: la salida se hace
-// casi toda en X, y el motivo es de encuadre, no de guion. Desde esta cámara,
-// alejarse en -Z empuja la figura hacia el BORDE DERECHO del cuadro —se salían
-// medio cuerpo—, mientras que alejarse en -X la lleva hacia el centro y al
-// fondo. Con esta salida los tres se van juntos, hacia dentro de la imagen y
-// encogiendo, que es como se ve a alguien marcharse.
-const SALIDA_RESCATE = { x: 4.5, z: 2.0 };
+// Por dónde se van: calle arriba, al fondo.
+//
+// No es desandar el camino: han entrado por delante y salen por detrás, sin
+// darse la vuelta. Se van hacia -Z, que desde el sitio nuevo de rescate lleva
+// la figura al centro del cuadro y al fondo (medido en (-3,-6): NDC 0.08..0.70,
+// y 14 % de alto). Con el sitio de rescate viejo esto empujaba al borde
+// derecho —de ahí la salida en X que había antes—, pero ese problema se fue
+// con el sitio viejo.
+const SALIDA_RESCATE = { x: 1.6, z: 6.5 };
+
+// Hacia dónde miran al aparecer. Se saca del propio camino en vez de escribirlo
+// a mano: el primer fotograma de la fase no tiene fotograma anterior del que
+// medir el rumbo, así que sin esto la pareja aparecía mirando a donde mirase
+// la partida anterior y giraba en el aire durante el primer tercio de segundo.
+const RUMBO_RESCATE = Math.atan2(
+  SITIO_RESCATE.x - SITIO_APARICION.x,
+  SITIO_RESCATE.z - SITIO_APARICION.z,
+);
 
 // Cámara del primer plano de la entrevista. Va de lado y algo por delante:
 // desde detrás solo se le vería la espalda y el sombrero, y lo que tiene que
@@ -368,8 +407,13 @@ export class Intro {
           - retirada * SALIDA_RESCATE.x,
         THREE.MathUtils.lerp(SITIO_APARICION.z, SITIO_RESCATE.z, llegada)
           - retirada * SALIDA_RESCATE.z,
-        0, // de cara al periodista: vienen hacia él, no de espaldas
+        null, // mirando hacia donde andan
         dt,
+        // A tamaño real. El 0.72 de ESCALA_LEJOS es un truco de la cámara de
+        // carrera —que los mira desde delante y a doce metros— y aquí, con la
+        // pareja a tres metros del objetivo, sólo los haría parecer muñecos.
+        1,
+        1, // sueltos: llegan andando cada uno por su pie
       );
       this._separados(perseguidor, 1);
       return false;
@@ -413,6 +457,8 @@ export class Intro {
         PERSEGUIDOR.Z_LEJOS,
         Math.PI,
         dt,
+        PERSEGUIDOR.ESCALA_LEJOS,
+        1,
       );
       this._separados(perseguidor, 1);
       return false;
@@ -426,6 +472,7 @@ export class Intro {
       this._colocarMinistro(0, this.tiempo, dt);
       this._plantarPerseguidores(
         perseguidor, PERSEGUIDOR.DESVIO_EN_PANTALLA * 3.6, PERSEGUIDOR.Z_LEJOS, Math.PI, dt,
+        PERSEGUIDOR.ESCALA_LEJOS, 1 - f,
       );
       this._separados(perseguidor, 1 - f);
       return false;
@@ -553,6 +600,12 @@ export class Intro {
   /** Los deja fuera de cuadro, muy atrás. */
   _perseguidoresLejos(perseguidor) {
     perseguidor.modelo.visible = false;
+    // Y SE OLVIDA DÓNDE ESTABAN. velocidadDe() mide contra el fotograma
+    // anterior, y el fotograma anterior a una aparición es el sitio donde se
+    // les escondió: sin borrarlo, el primer paso de la llegada se calcula
+    // sobre un teletransporte de diez metros y salen pedaleando.
+    delete perseguidor.modelo.userData._dondeEstaba;
+    perseguidor.modelo.rotation.y = RUMBO_RESCATE;
   }
 
   /**
@@ -568,19 +621,37 @@ export class Intro {
    * De paso se dejan los campos cuadrados, para que el primer fotograma de la
    * corrida no dé un salto.
    */
-  _plantarPerseguidores(perseguidor, x, z, giro = Math.PI, dt = 1 / 60) {
+  _plantarPerseguidores(perseguidor, x, z, giro = Math.PI, dt = 1 / 60,
+                        escala = PERSEGUIDOR.ESCALA_LEJOS, separacion = 1) {
     perseguidor.modelo.visible = true;
     perseguidor.modelo.position.set(x, 0, z);
-    perseguidor.modelo.scale.setScalar(PERSEGUIDOR.ESCALA_LEJOS);
-    perseguidor.modelo.rotation.y = giro;
+    perseguidor.modelo.scale.setScalar(escala);
     perseguidor.zVisualActual = z;
     perseguidor.xVisualActual = x;
-    perseguidor.escalaActual = PERSEGUIDOR.ESCALA_LEJOS;
+    perseguidor.escalaActual = escala;
 
     // Y ANDAN LO QUE SE LES ESTÉ MOVIENDO. La velocidad no se declara, se mide
     // del propio desplazamiento: si mañana el guion alarga la llegada, los
     // pasos se enteran solos.
-    animarPerseguidores(perseguidor.modelo, this.tiempo, dt, velocidadDe(perseguidor.modelo, dt));
+    const v = velocidadDe(perseguidor.modelo, dt);
+
+    // giro === null significa «mira hacia donde andas». Hace falta desde que
+    // el rescate entra por el primer término: el camino de aparición a rescate
+    // es una diagonal, y con un giro fijo cruzaban el cuadro de lado, andando
+    // hacia un sitio y mirando a otro —el mismo deslizamiento con estilo que ya
+    // se había arreglado en el entrevistado—.
+    //
+    // Se persigue, no se copia: un cambio de rumbo instantáneo en el primer
+    // fotograma en que se mueven es un latigazo.
+    if (giro === null) {
+      const rumbo = perseguidor.modelo.userData._rumbo ?? perseguidor.modelo.rotation.y;
+      perseguidor.modelo.rotation.y
+        += anguloCorto(rumbo - perseguidor.modelo.rotation.y) * (1 - Math.exp(-9 * dt));
+    } else {
+      perseguidor.modelo.rotation.y = giro;
+    }
+
+    animarPerseguidores(perseguidor.modelo, this.tiempo, dt, v, separacion);
   }
 
   /**
