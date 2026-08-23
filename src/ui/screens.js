@@ -146,6 +146,55 @@ function seccionDiario({ seccion, antetitulo, titular, bajada, clase }) {
   return { pantalla, contenido, plana };
 }
 
+/**
+ * LA BARRA DE LO QUE FALTA.
+ *
+ * Aquí había una línea de texto: «Fuente anónima a 2 tramos». Dice el dato y
+ * no dice nada más — no se sabe si dos tramos es mucho o poco, ni cuánto
+ * llevas, ni si estás cerca. Una barra que se llena sí: es la forma más vieja
+ * que existe de convertir un número en una promesa, y es exactamente por eso
+ * que la lleva puesta todo el género.
+ *
+ * El relleno NO se mide desde cero: se mide desde el escalón anterior. Con
+ * cero como origen, el jugador que ya abrió el potenciador de los 15 y va a
+ * por el de los 22 ve la barra al 68 % nada más desbloquear el anterior, y a
+ * partir de ahí se mueve un dedo por partida. Entre escalón y escalón, la
+ * barra recorre el ancho entero cada vez.
+ *
+ * @param {number} hechos   Tramos recorridos.
+ * @param {?{nombre:string, tramos:number, faltan:number}} proximo
+ * @param {Array<{tramos:number}>} catalogo Para saber de dónde viene el tramo.
+ * @param {string} textoCompleto Qué decir cuando ya no queda nada por abrir.
+ */
+function barraDeProgreso(hechos, proximo, catalogo, textoCompleto) {
+  const bloque = el('div', 'progreso');
+
+  if (!proximo) {
+    bloque.appendChild(el('div', 'progreso__pie progreso__pie--completo', textoCompleto));
+    return bloque;
+  }
+
+  const anteriores = catalogo
+    .map((x) => x.tramos)
+    .filter((t) => t <= hechos);
+  const desde = anteriores.length ? Math.max(...anteriores) : 0;
+  const tramo = Math.max(1, proximo.tramos - desde);
+  const parte = Math.max(0, Math.min(1, (hechos - desde) / tramo));
+
+  const carril = el('div', 'progreso__carril');
+  const relleno = el('span', 'progreso__relleno');
+  relleno.style.setProperty('--parte', `${(parte * 100).toFixed(1)}%`);
+  carril.appendChild(relleno);
+  bloque.appendChild(carril);
+
+  bloque.appendChild(el('div', 'progreso__pie', T('ajustes.faltanTramos', {
+    nombre: proximo.nombre,
+    n: proximo.faltan,
+    tramos: proximo.faltan === 1 ? T('ajustes.tramoSingular') : T('ajustes.tramoPlural'),
+  })));
+  return bloque;
+}
+
 /** Ladillo: el rótulo que separa bloques dentro de una sección impresa. */
 function ladillo(texto) {
   return el('div', 'plana__seccion', texto);
@@ -452,6 +501,12 @@ export class Pantallas {
   // exactamente lo mismo con otro contenido.
 
   ajustes() {
+    // Se abre la Redacción: lo que estuviera marcado como nuevo deja de estarlo
+    // A PARTIR DE LA PRÓXIMA VEZ. Se lee el estado antes de marcar, porque si
+    // no la propia visita que viene a ver los puntos rojos se los borra antes
+    // de pintarlos.
+    const marcarDespues = () => this.cuaderno.marcarVistoEnRedaccion?.();
+
     const { pantalla, contenido, plana } = seccionDiario({
       seccion: T('ajustes.seccion'),
       antetitulo: T('ajustes.titularCorto'),
@@ -519,6 +574,7 @@ export class Pantallas {
     contenido.appendChild(botones);
 
     escalonar(plana);
+    marcarDespues();
     return pantalla;
   }
 
@@ -544,6 +600,18 @@ export class Pantallas {
       const abierto = abiertos.has(def.id);
       const ficha = el('button', `elector__ficha ${abierto ? '' : 'elector__ficha--cerrada'}`.trim());
       ficha.type = 'button';
+
+      // EL RETRATO PRIMERO, y esto es el cambio. Cuatro botones con un nombre
+      // escrito no son una plantilla de redacción, son una lista: se elige
+      // leyendo, y elegir personaje es de las pocas cosas del juego que se
+      // deciden MIRANDO. Ahora cada ficha lleva su emblema —el mismo que sale
+      // en el sobre al ficharlo, para que la cara que te anunciaron sea la que
+      // luego encuentras aquí— y el bloqueado lo enseña en silueta: se ve que
+      // hay alguien y no se ve quién.
+      const retrato = el('span', 'elector__retrato');
+      retrato.innerHTML = Icono.periodista(def.id, 54);
+      ficha.appendChild(retrato);
+
       ficha.appendChild(el('span', 'elector__nombre', abierto ? def.nombre : '???'));
       // Debajo del nombre, la SECCIÓN. Es una palabra y hace todo el trabajo
       // del lore: cuatro fichas que ponen Política, Sociedad, Investigación y
@@ -552,10 +620,18 @@ export class Pantallas {
       ficha.title = abierto ? `${def.nombre} — ${def.nota}` : T('ajustes.fichaje', { tramos: def.tramos });
 
       if (!abierto) {
-        ficha.appendChild(el('span', 'elector__candado', `${def.tramos} tramos`));
+        ficha.appendChild(el('span', 'elector__candado', T('ajustes.candadoTramos', { n: def.tramos })));
         ficha.disabled = true;
-      } else if (def.id === elegido) {
-        ficha.classList.add('elector__ficha--elegida');
+      } else {
+        if (def.id === elegido) ficha.classList.add('elector__ficha--elegida');
+        // EL PUNTO ROJO. Lo abriste al terminar una corrida y esta es la
+        // primera vez que pasas por donde vive: se marca hasta que la ves. Sin
+        // esto, el sobre anuncia un fichaje y la pantalla donde está no dice
+        // nada — el premio se queda sin sitio al que ir a mirarlo.
+        if (this.cuaderno.esNuevoEnRedaccion?.(def.id)) {
+          ficha.classList.add('elector__ficha--nueva');
+          ficha.appendChild(el('span', 'marca-nueva', T('ajustes.etiquetaNuevo')));
+        }
       }
 
       ficha.addEventListener('click', () => {
@@ -571,7 +647,15 @@ export class Pantallas {
       return ficha;
     });
 
-    return personajes;
+    const bloque = el('div', 'coleccion');
+    bloque.appendChild(personajes);
+    bloque.appendChild(barraDeProgreso(
+      this.cuaderno.tramosRecorridos,
+      this.cuaderno.proximoPersonaje?.(),
+      PERSONAJES,
+      T('ajustes.plantillaCompleta'),
+    ));
+    return bloque;
   }
 
   /**
@@ -583,26 +667,38 @@ export class Pantallas {
    */
   _pintarArsenal() {
     const abiertos = new Set(this.cuaderno.potenciadoresDesbloqueados());
-    const proximo = this.cuaderno.proximoPotenciador();
 
-    const bloque = el('div', 'arsenal');
-
+    const bloque = el('div', 'coleccion');
     const fila = el('div', 'arsenal__fila');
     for (const pot of CATALOGO_POTENCIADORES) {
       const abierto = abiertos.has(pot.id);
       const casilla = el('div', `arsenal__casilla ${abierto ? '' : 'arsenal__casilla--cerrada'}`.trim());
-      casilla.innerHTML = Icono.iconoPotenciador(pot.id, 26);
+      const cuadro = el('span', 'arsenal__cuadro');
+      cuadro.innerHTML = Icono.iconoPotenciador(pot.id, 30);
+      if (!abierto) cuadro.appendChild(el('span', 'arsenal__candado', '?'));
+      casilla.appendChild(cuadro);
+      // EL NOMBRE DEBAJO. Cinco iconos sin rótulo son cinco adivinanzas: el
+      // imán, el x2 y la bota se distinguen, pero «Fuente anónima» y
+      // «Salvoconducto» no están en el dibujo. Y sin saber cómo se llaman, la
+      // línea de «X a dos tramos» de abajo no tiene a qué referirse.
+      casilla.appendChild(el('span', 'arsenal__nombre', abierto ? pot.nombre : '???'));
       casilla.title = abierto
         ? `${pot.nombre} — ${pot.descripcion}`
         : `${pot.nombre} — se abre a los ${pot.tramos} tramos`;
-      if (!abierto) casilla.appendChild(el('span', 'arsenal__candado', '?'));
+      if (abierto && this.cuaderno.esNuevoEnRedaccion?.(pot.id)) {
+        casilla.classList.add('arsenal__casilla--nueva');
+        casilla.appendChild(el('span', 'marca-nueva', T('ajustes.etiquetaNuevo')));
+      }
       fila.appendChild(casilla);
     }
     bloque.appendChild(fila);
 
-    bloque.appendChild(el('div', 'arsenal__pista', proximo
-      ? `${proximo.nombre} a ${proximo.faltan} ${proximo.faltan === 1 ? 'tramo' : 'tramos'}`
-      : T('ajustes.arsenalCompleto')));
+    bloque.appendChild(barraDeProgreso(
+      this.cuaderno.tramosRecorridos,
+      this.cuaderno.proximoPotenciador(),
+      CATALOGO_POTENCIADORES,
+      T('ajustes.arsenalCompleto'),
+    ));
 
     return bloque;
   }

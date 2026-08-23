@@ -3123,10 +3123,14 @@ html, body {
   margin-bottom: 16px;
 }
 
+/* SEIS EN DOS FILAS DE TRES, no seis en una. Medido a 393 de ancho: en una
+   sola fila cada casilla se queda en sesenta píxeles y «Botas de campo» sale
+   en tres líneas de cuatro letras. En rejilla de tres caben ciento diez, que
+   es donde el nombre más largo entra en dos. */
 .arsenal__fila {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  justify-content: space-between;
 }
 
 .arsenal__casilla {
@@ -5974,5 +5978,160 @@ html, body {
   .hallazgo--abierto .hallazgo__sub,
   .hallazgo--abierto .hallazgo__desc {
     transform: none;
+  }
+}
+
+/* ===========================================================================
+   LA COLECCIÓN — el elector de periodista y el arsenal, en la Redacción
+   ===========================================================================
+   Son las dos pantallas donde vive lo que el juego reparte, y estaban puestas
+   como listas: cuatro botones con un nombre escrito y cinco iconos sin rótulo.
+   Ahora son un muestrario —retrato, nombre, sección, y una barra que dice
+   cuánto falta para el siguiente—, que es lo que hace un juego con lo que te
+   ha dado: enseñarlo. */
+
+.coleccion {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+/* --- EL RETRATO DE CADA PERIODISTA --------------------------------------- */
+
+.elector__retrato {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  margin-bottom: 2px;
+}
+
+.elector__retrato svg { display: block; }
+
+/* EN SILUETA EL QUE NO ESTÁ FICHADO. Se ve que hay alguien y no se ve quién,
+   que es justo lo que hace falta: el hueco tira, la respuesta no. `contrast(0)`
+   aplana el dibujo entero a un gris y `brightness` lo baja al valor del papel
+   sombreado; con `grayscale` a secas se seguían distinguiendo la boina y el
+   casco. */
+.elector__ficha--cerrada .elector__retrato svg {
+  filter: grayscale(1) contrast(0) brightness(1.55);
+}
+
+/* La ficha crece un poco: ahora tiene un retrato dentro. */
+.elector__ficha { padding: 10px 3px 9px; }
+
+/* --- LO RECIÉN ABIERTO --------------------------------------------------- */
+/* El punto rojo de toda la vida. Va como etiqueta y no como punto porque en
+   una pantalla impresa un círculo rojo flotando no significa nada; una
+   etiqueta con la palabra puesta, sí. */
+
+.marca-nueva {
+  position: absolute;
+  top: -7px;
+  right: -4px;
+  padding: 2px 6px 1px;
+  background: var(--rojo-diario);
+  color: var(--papel-blanco);
+  font-family: var(--sans);
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 2px;
+  box-shadow: 0 2px 6px rgba(197, 59, 43, 0.35);
+  animation: nueva-latir 1.6s ease-in-out infinite;
+}
+
+@keyframes nueva-latir {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.08); }
+}
+
+.elector__ficha--nueva,
+.arsenal__casilla--nueva {
+  position: relative;
+  overflow: visible;
+  border-color: var(--rojo-diario);
+}
+
+/* --- EL ARSENAL, CON NOMBRE --------------------------------------------- */
+
+.arsenal__casilla {
+  position: relative;
+  flex-direction: column;
+  gap: 4px;
+  aspect-ratio: auto;
+  padding: 8px 2px 7px;
+}
+
+.arsenal__cuadro {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+}
+
+.arsenal__nombre {
+  max-width: 100%;
+  font-family: var(--sans);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0;
+  text-align: center;
+  color: var(--tinta-tenue);
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* --- LA BARRA DE LO QUE FALTA ------------------------------------------- */
+/* Ver `barraDeProgreso` en ui/screens.js: por qué se mide desde el escalón
+   anterior y no desde cero. */
+
+.progreso {
+  margin-top: 9px;
+}
+
+.progreso__carril {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--papel-sombra);
+  overflow: hidden;
+}
+
+.progreso__relleno {
+  display: block;
+  width: var(--parte, 0%);
+  height: 100%;
+  background: var(--rojo-diario);
+  /* Crece al entrar: una barra que aparece ya llena es un dato, una que se
+     llena delante de ti es progreso. Es el mismo truco que la cifra que sube
+     en la portada del final. */
+  animation: progreso-llenar 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes progreso-llenar {
+  from { width: 0; }
+  to   { width: var(--parte, 0%); }
+}
+
+.progreso__pie {
+  margin-top: 6px;
+  font-family: var(--sans);
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--tinta-tenue);
+  text-align: center;
+}
+
+.progreso__pie--completo {
+  color: var(--rojo-diario);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marca-nueva,
+  .progreso__relleno {
+    animation: none;
   }
 }

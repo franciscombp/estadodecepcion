@@ -1960,11 +1960,47 @@ jugador. Contado en la misma partida y contra la posición sin desviar: de 113 a
 Lo que queda son los grupos que tapan dos carriles a la vez: ahí no hay hueco, y
 se pasa por dentro durante una décima.
 
+### 6.37 · Un fichaje se anunciaba con un recuadro de sesenta píxeles
+
+Y la mitad de las veces no se anunciaba en absoluto. El aviso de lo que se
+desbloqueaba vivía al pie de la tabla de posiciones, y esa tabla **sólo sale si
+la corrida te subió de puesto**: sin ascenso, el expediente lleva directo al
+menú. O sea que el segundo fichaje de toda la partida se lo encontraba el
+jugador semanas después, al abrir Ajustes y ver una ficha que ya no decía «???».
+
+Ahora hay una pantalla entera —el sobre sin remitente— entre la portada del
+final y el expediente. Una por cosa abierta, con su contador, y no se puede
+pasar sin darle un toque a cada una.
+
+En la victoria va delante y no detrás: esa página es terminal —lleva los tres
+botones de salida— y meter el sobre después obligaría a repintarla entera para
+recuperar la navegación.
+
+### 6.38 · Y el premio no tenía dónde ir a verse
+
+Las dos pantallas donde vive lo que el juego reparte estaban puestas como
+listas: cuatro botones con un nombre escrito y seis iconos sin rótulo.
+
+| | antes | ahora |
+|---|---|---|
+| elegir periodista | cuatro botones de texto | retrato, nombre y sección; el cerrado en silueta |
+| el arsenal | seis iconos sin nombre en una fila | rejilla de tres, con el nombre debajo |
+| lo que falta | una línea: «Fuente anónima a 2 tramos» | barra que se llena, medida **desde el escalón anterior** |
+| lo recién abierto | nada | etiqueta «Nuevo» hasta que se visita |
+
+La barra no se mide desde cero a propósito: con cero como origen, quien acaba de
+abrir el potenciador de los 15 tramos y va a por el de los 22 la ve al 68 % y a
+partir de ahí se le mueve un dedo por partida. Entre escalón y escalón recorre
+el ancho entero.
+
+Y seis casillas en una fila daban sesenta píxeles cada una: «Botas de campo»
+salía en tres líneas de cuatro letras. En rejilla de tres caben ciento diez.
+
 ---
 
 ## 7 · Cómo se prueba cada pantalla sin jugar
 
-`/creador/pantallas/` abre cualquiera de las diez con datos de ejemplo, sobre
+`/creador/pantallas/` abre cualquiera de las once con datos de ejemplo, sobre
 tres teléfonos (SE 375×667, iPhone 15 393×852, ancho 430×932) y con las zonas
 seguras de iOS inyectables. Sale de `window.__catalogo`, que la previsualización
 carga con `?debug=1`.
@@ -1972,6 +2008,23 @@ carga con `?debug=1`.
 Es lo que hace que revisar la pantalla de sorteo o la de victoria cueste un clic
 en vez de una partida entera, y por eso las pantallas raras dejaron de ser las
 que nadie revisa.
+
+**El sobre** (`hallazgo`) es la más rara de todas —hace falta desbloquear algo
+para verla— y por eso lleva su propia entrada en el catálogo. Los datos de
+ejemplo traen un fichaje y un potenciador; para probar los tres tipos a la vez:
+
+```js
+__catalogo.abrir('hallazgo', {
+  personajesNuevos: [{ id: 'buencan' }],
+  potenciadoresNuevos: [{ id: 'salvoconducto' }],
+  paginasNuevas: [{ numero: 3, nombre: 'Las elecciones' }],
+})
+```
+
+**Las marcas de «Nuevo» de la Redacción** salen de `vistosEnRedaccion` en el
+progreso guardado. Para forzarlas, se pone la lista a `[]` en localStorage antes
+de abrir la pantalla; para que no salga ninguna, se deja a `null` y el propio
+cuaderno la rellena con lo que ya estuviera abierto.
 
 ### Y cómo se fotografía el mundo, que tiene más trampa
 

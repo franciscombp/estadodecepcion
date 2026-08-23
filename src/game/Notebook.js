@@ -46,6 +46,16 @@ const ESTADO_INICIAL = {
   partidasJugadas: 0,
   rutasRecorridas: [],    // Historial de escenarios visitados
   personajePreferido: 'tostadologo',
+  // Qué fichajes y potenciadores ya se han visto EN LA REDACCIÓN. No es lo
+  // mismo que estar desbloqueado: el sobre te lo anuncia al terminar la
+  // corrida, pero la ficha sigue marcada como nueva hasta que abres la
+  // pantalla donde vive. Es el punto rojo de toda la vida, y sirve para lo
+  // mismo: que lo que te dieron tenga un sitio al que ir a verlo.
+  // `null` significa «nunca se ha mirado esto». Al cargar una partida que ya
+  // venía jugada se rellena con todo lo que esa partida tuviera abierto (ver
+  // `_cargar`): si no, quien vuelve al juego se encuentra la Redacción entera
+  // marcada como nueva, y una pantalla donde TODO es nuevo no marca nada.
+  vistosEnRedaccion: null,
   // Dónde te capturaron la última vez. La partida siguiente arranca ahí:
   // volver siempre a la Bahía rompía la continuidad de la temporada y
   // convertía cada muerte en un reinicio del relato, no en un capítulo.
@@ -62,6 +72,13 @@ export class Notebook {
   constructor() {
     this.almacenamientoDisponible = this._comprobarAlmacenamiento();
     this.estado = this._cargar();
+    // Ver `vistosEnRedaccion` en el estado inicial: `null` es «nunca se ha
+    // mirado». Se resuelve aquí, con el progreso ya cargado, porque hace falta
+    // saber qué estaba abierto para decidir qué NO es nuevo.
+    if (this.estado.vistosEnRedaccion == null) {
+      this.estado.vistosEnRedaccion = [];
+      if ((this.estado.partidasJugadas ?? 0) > 0) this.marcarVistoEnRedaccion();
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -91,7 +108,14 @@ export class Notebook {
       const guardado = JSON.parse(crudo);
       // Fusionamos con el estado inicial para tolerar versiones antiguas
       // a las que les falten campos nuevos.
-      return { ...ESTADO_INICIAL, ...Notebook._migrar(guardado) };
+      const estado = { ...ESTADO_INICIAL, ...Notebook._migrar(guardado) };
+
+      // LO QUE YA TENÍAS NO ES NUEVO. La marca de «recién abierto» llegó
+      // después que el juego: sin esto, la primera visita a la Redacción de
+      // quien ya llevaba veinte tramos enseñaba cuatro fichajes y seis
+      // potenciadores marcados a la vez.
+      if (estado.vistosEnRedaccion == null) estado.vistosEnRedaccion = null;
+      return estado;
     } catch (e) {
       console.warn('[Cuaderno] Progreso corrupto, se empieza de cero.', e);
       return { ...ESTADO_INICIAL };
@@ -513,6 +537,35 @@ export class Notebook {
     return PERSONAJES
       .filter((p) => this.tramosRecorridos >= p.tramos)
       .map((p) => p.id);
+  }
+
+  /**
+   * ¿Está desbloqueado y todavía sin visitar en la Redacción?
+   *
+   * @param {string} id Un personaje o un potenciador; los ids no chocan.
+   */
+  esNuevoEnRedaccion(id) {
+    if (this.estado.vistosEnRedaccion?.includes(id)) return false;
+    return this.personajesDesbloqueados().includes(id)
+      || this.potenciadoresDesbloqueados().includes(id);
+  }
+
+  /**
+   * Se acaba de abrir la Redacción: lo que hubiera de nuevo ya se vio.
+   *
+   * Se marca TODO lo desbloqueado y no solo lo que se estaba enseñando: si
+   * mañana la pantalla deja de pintar una de las dos listas, la otra no se
+   * queda con el punto rojo puesto para siempre.
+   */
+  marcarVistoEnRedaccion() {
+    const vistos = new Set(this.estado.vistosEnRedaccion ?? []);
+    const antes = vistos.size;
+    for (const id of this.personajesDesbloqueados()) vistos.add(id);
+    for (const id of this.potenciadoresDesbloqueados()) vistos.add(id);
+    if (vistos.size === antes) return false;
+    this.estado.vistosEnRedaccion = [...vistos];
+    this.guardar();
+    return true;
   }
 
   /** El siguiente por fichar, con cuánto falta. Null si ya están todos. */

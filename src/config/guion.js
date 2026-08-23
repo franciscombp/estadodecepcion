@@ -310,6 +310,19 @@ export const GUION = {
       largo: true,
     },
     fichaje: { t: 'Se ficha a los {tramos} tramos', ayuda: 'Personaje aún cerrado. Hueco: {tramos}.' },
+    candadoTramos: { t: '{n} tramos', ayuda: 'Lo que se lee bajo la ficha de un periodista cerrado. Hueco: {n}.' },
+    etiquetaNuevo: { t: 'Nuevo', ayuda: 'La marca de lo que se acaba de desbloquear y todavía no se ha visto aquí.' },
+    faltanTramos: {
+      t: '{nombre} a {n} {tramos}',
+      ayuda: 'Bajo la barra de progreso. Huecos: {nombre}, {n}, {tramos}.',
+    },
+    tramoSingular: { t: 'tramo', ayuda: 'El singular, para cuando falta uno.' },
+    tramoPlural: { t: 'tramos', ayuda: 'El plural.' },
+    plantillaCompleta: {
+      t: 'Plantilla completa. La redacción no da para más.',
+      ayuda: 'Cuando están fichados los cuatro periodistas.',
+      largo: true,
+    },
     arsenalCompleto: {
       t: 'Arsenal completo. Ahora solo queda el expediente perfecto.',
       ayuda: 'Cuando están todos los potenciadores.',
