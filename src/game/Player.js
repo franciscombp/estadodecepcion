@@ -79,6 +79,13 @@ export class Player {
     // puede sacar de ahí: a mitad de la agachada valdría lo mismo subiendo que
     // bajando, y el personaje rodaría hacia adelante y luego hacia atrás.
     this.avanceRodada = 0;
+    // POR DÓNDE VA EL SALTO, 0..1. El clip de Mixamo dura 1,70 s y el vuelo
+    // dura lo que dure —depende del impulso, del potenciador y de si se pulsó
+    // caída rápida—, así que al clip no se le deja correr a su ritmo: se le
+    // pone la aguja donde toca. Sin esto, un salto corto aterrizaba con el
+    // muñeco todavía boca abajo a mitad del mortal.
+    this.avanceSalto = 0;
+    this.vueloPrevisto = 0;
 
     // ---- Buffer de salto --------------------------------------------------
     // Si pulsas saltar poco antes de aterrizar, el salto se guarda y se ejecuta
@@ -144,6 +151,12 @@ export class Player {
       // que en la calle, así que la altura ganada también.
       this.velocidadY = SALTO.VELOCIDAD_INICIAL * this.multiplicadorSalto;
       this.estaEnElAire = true;
+      // CUÁNTO VA A DURAR EL VUELO, calculado en el despegue: subir y bajar
+      // con aceleración constante son 2·v₀/g. Es una previsión, no una ley
+      // —la caída rápida lo acorta y aterrizar sobre una tarima también— así
+      // que el avance se recorta a 1 y el aterrizaje real manda.
+      this.vueloPrevisto = (2 * this.velocidadY) / SALTO.GRAVEDAD;
+      this.avanceSalto = 0;
       // Saltar cancela la agachada, activa y pendiente.
       this.estaAgachado = false;
       this.temporizadorAgachado = 0;
@@ -228,6 +241,9 @@ export class Player {
 
       this.velocidadY -= gravedad * dt;
       this.y += this.velocidadY * dt;
+      if (this.vueloPrevisto > 0) {
+        this.avanceSalto = Math.min(1, this.avanceSalto + dt / this.vueloPrevisto);
+      }
 
       if (this.y <= this.alturaSuelo) {
         // Aterrizaje. El suelo puede no ser el asfalto: si hay una tarima
@@ -349,7 +365,7 @@ export class Player {
         aplicarPoseAgachadoGLB(this.modelo, this.factorAgachado, this.avanceRodada);
       } else if (this.estaEnElAire) {
         this.poseManual = true;
-        animarSaltoGLB(this.modelo, subida);
+        animarSaltoGLB(this.modelo, subida, this.avanceSalto);
       } else {
         // Se deshace la pose escrita a mano SOLO al volver de ella. Hacerlo
         // cada fotograma dejaba el cuerpo en cruz durante el instante que va

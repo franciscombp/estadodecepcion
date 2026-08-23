@@ -796,13 +796,43 @@ async function cargarUno(id, base) {
  * Si alguno falla, ese personaje se queda con su versión de cajas y ya está:
  * el juego no depende de que el archivo esté.
  */
+/**
+ * LOS CICLOS DE FUERA. `public/modelos/animaciones.glb` trae tres clips
+ * —correr, salto y rol— retargeteados desde Mixamo (ver
+ * `scripts/hornear-animaciones.mjs`). Son 93 KB de cuaterniones: ni malla, ni
+ * material, ni textura.
+ *
+ * UN SOLO ARCHIVO PARA LOS SEIS. Comparten esqueleto y nombres de hueso, y las
+ * pistas van nombradas por hueso (`Hips.quaternion`), así que el mismo clip se
+ * ata a cualquiera de ellos.
+ *
+ * Si el archivo no está, el juego sigue: quedan los ciclos escritos a mano, que
+ * es lo que había antes y lo que se usa con los personajes de cajas.
+ */
+const clipsDeFuera = new Map();
+
+async function cargarAnimaciones(base) {
+  const r = await fetch(`${base}modelos/animaciones.glb`);
+  if (!r.ok) throw new Error(`No está animaciones.glb (${r.status})`);
+  const gltf = await new GLTFLoader().parseAsync(await r.arrayBuffer(), '');
+  for (const c of gltf.animations) clipsDeFuera.set(c.name, c);
+}
+
 export function cargarPersonajesGLB(base = '/') {
   if (promesaCarga) return promesaCarga;
   promesaCarga = Promise.all(
-    Object.keys(REDACCION).map((id) => cargarUno(id, base).catch((e) => {
-      console.warn(`[Personajes] Sin modelo para ${id}, se usa el procedural.`, e);
-      return false;
-    })),
+    // Las animaciones PRIMERO en la lista pero en paralelo: cada personaje que
+    // se cree después las encontrará, y si no llegan no pasa nada.
+    [
+      cargarAnimaciones(base).catch((e) => {
+        console.warn('[Personajes] Sin animaciones de fuera, se usan las escritas a mano.', e);
+        return false;
+      }),
+      ...Object.keys(REDACCION).map((id) => cargarUno(id, base).catch((e) => {
+        console.warn(`[Personajes] Sin modelo para ${id}, se usa el procedural.`, e);
+        return false;
+      })),
+    ],
   );
   return promesaCarga;
 }
@@ -887,10 +917,22 @@ export function crearPersonajeGLB(id) {
   const mezclador = new THREE.AnimationMixer(cuerpo);
   const correr = fuente.clips[0] ? mezclador.clipAction(fuente.clips[0]) : null;
   if (correr) correr.play();
+
+  // LAS ACCIONES DE LOS CICLOS DE FUERA, una por clip y todas a peso CERO.
+  // Se dejan sonando desde el principio y lo que se toca es el peso: crear la
+  // acción la primera vez que hace falta cuesta un enganche de bindings a
+  // mitad de partida, y eso es un tirón justo en el fotograma del salto.
+  const acciones = {};
+  for (const [nombre, clip] of clipsDeFuera) {
+    const a = mezclador.clipAction(clip);
+    a.play();
+    a.setEffectiveWeight(0);
+    acciones[nombre] = a;
+  }
   mezclador.update(0);
 
   grupo.userData.medidas = fuente.medidas;
-  grupo.userData.glb = { mezclador, correr, cuerpo, ...esqueleto };
+  grupo.userData.glb = { mezclador, correr, acciones, cuerpo, ...esqueleto };
   grupo.userData.nombre = id;
 
   // --- LO QUE SE MUEVE DESPUÉS DEL CUERPO ----------------------------------
@@ -1124,10 +1166,67 @@ const CADENCIA = { LENTA: 9.2, RAPIDA: 13.4, V_LENTA: 15, V_RAPIDA: 32 };
 
 const EJE_Y = new THREE.Vector3(0, 1, 0);   // la torsión del tronco
 
+// ---------------------------------------------------------------------------
+// QUIÉN MANDA SOBRE LOS HUESOS EN CADA MOMENTO
+// ---------------------------------------------------------------------------
+// Conviven dos formas de mover al personaje y no se pueden mezclar a lo tonto:
+// el mezclador reescribe cada fotograma TODO hueso que su clip toque, así que
+// una pose escrita a mano puesta antes se pierde entera, y un clip sonando
+// debajo de una pose escrita a mano la pisa al fotograma siguiente.
+//
+// La regla es una sola: en cada instante hay UN clip a peso 1 y los demás a 0,
+// o ninguno y entonces manda lo escrito a mano. `mandaElClip()` es quien lo
+// decide, y devuelve la acción elegida o null.
+function mandaElClip(g, nombre, peso = 1) {
+  const acciones = g.acciones;
+  if (!acciones || !acciones[nombre]) return null;
+  for (const [otro, accion] of Object.entries(acciones)) {
+    accion.setEffectiveWeight(otro === nombre ? peso : 0);
+  }
+  // El ciclo de carrera del propio archivo —el paseo con el que vino— se
+  // apaga: lo sustituyen éstos.
+  if (g.correr) g.correr.setEffectiveWeight(0);
+  return acciones[nombre];
+}
+
+/** Suelta los huesos: ningún clip manda, y lo escrito a mano vuelve a valer. */
+function sueltaElClip(g) {
+  if (g.acciones) for (const a of Object.values(g.acciones)) a.setEffectiveWeight(0);
+  if (g.correr) g.correr.setEffectiveWeight(0);
+}
+
 export function animarCarreraGLB(modelo, dt, velocidad = 20) {
   const g = modelo.userData.glb;
   if (!g) return;
   const { huesos } = g;
+
+  // EL CICLO DE MIXAMO, SI ESTÁ. Es un ciclo grabado sobre una persona, y se
+  // nota en todo lo que un ciclo escrito a mano no acierta: el peso que cae
+  // sobre el pie de apoyo, el hombro que se adelanta con el brazo contrario,
+  // la cabeza que llega tarde.
+  const conClip = mandaElClip(g, 'correr');
+  if (conClip) {
+    const clip = conClip.getClip();
+    // LA CADENCIA. El clip trae un ciclo entero —dos pasos— en 0,73 s, o sea
+    // 2,74 pasos por segundo tal cual. Se estira para ir de 2,9 a 4,3 pasos
+    // según la velocidad: es la misma horquilla que se afinó a mano, y por el
+    // mismo motivo —el jugador nota la aceleración por las piernas antes que
+    // por el marcador—.
+    const t = Math.max(0, Math.min(1,
+      (velocidad - CADENCIA.V_LENTA) / (CADENCIA.V_RAPIDA - CADENCIA.V_LENTA)));
+    const pasos = 2.9 + 1.4 * t;
+    conClip.timeScale = (pasos * clip.duration) / 2;
+    g.cuerpo.rotation.set(0, 0, 0);
+    g.cuerpo.position.set(0, 0, 0);
+    g.mezclador.update(dt);
+    menear(dt);
+    return;
+  }
+
+  // Y SI NO ESTÁ, el ciclo escrito a mano de siempre. No es un adorno: los
+  // personajes de cajas no tienen otro, y si `animaciones.glb` no llega el
+  // juego tiene que seguir corriendo.
+  sueltaElClip(g);
 
   // LA CADENCIA SUBE CON LA VELOCIDAD, pero mucho menos que ella: de 2,9 a 4,3
   // pasos por segundo entre la velocidad de salida y la punta. Igualarla sería
@@ -1235,10 +1334,33 @@ export function animarCarreraGLB(modelo, dt, velocidad = 20) {
  * fotograma siguiente— y se coloca el cuerpo a mano.
  * @param {number} subida +1 despegando, 0 en lo alto, −1 cayendo.
  */
-export function animarSaltoGLB(modelo, subida = 0) {
+export function animarSaltoGLB(modelo, subida = 0, avance = -1) {
   const g = modelo.userData.glb;
   if (!g) return;
   const { huesos } = g;
+
+  // EL SALTO DE MIXAMO, SI ESTÁ Y SI EL JUGADOR SABE POR DÓNDE VA. El clip
+  // dura 1,70 s y el vuelo del juego dura lo que dure —depende del impulso,
+  // del potenciador y de si se pulsó caída rápida—, así que no se reproduce a
+  // su ritmo: se le pone la aguja donde toca. `avance` va de 0 (acaba de
+  // despegar) a 1 (aterriza), y el clip se recorre entero en ese trayecto.
+  //
+  // Así el aterrizaje del clip cae SIEMPRE en el fotograma en que el personaje
+  // toca el suelo, corto o largo. Reproduciéndolo a su ritmo, un salto rápido
+  // aterrizaba con el muñeco todavía boca abajo.
+  if (avance >= 0) {
+    const accion = mandaElClip(g, 'salto');
+    if (accion) {
+      accion.time = accion.getClip().duration * Math.max(0, Math.min(1, avance));
+      accion.timeScale = 0;
+      g.cuerpo.rotation.set(0, 0, 0);
+      g.cuerpo.position.set(0, 0, 0);
+      g.mezclador.update(0);
+      return;
+    }
+  }
+
+  sueltaElClip(g);
   orientar(modelo);
   reposar(huesos);
 
@@ -1255,9 +1377,9 @@ export function animarSaltoGLB(modelo, subida = 0) {
   doblar(huesos, 'RightFoot', 0.25 * sube);
 
   // Brazos arriba al impulsarse, atrás al caer.
-  const avance = -0.9 - 0.5 * sube + 1.2 * cae;
+  const braceo = -0.9 - 0.5 * sube + 1.2 * cae;
   for (const lado of ['Left', 'Right']) {
-    brazo(huesos, lado, 1.25, avance, -0.5 - 0.5 * sube);
+    brazo(huesos, lado, 1.25, braceo, -0.5 - 0.5 * sube);
   }
 
   doblar(huesos, 'Spine', 0.18 * sube - 0.1 * cae);
@@ -1325,8 +1447,24 @@ export function aplicarPoseAgachadoGLB(modelo, factor, avance = 0) {
   cuerpo.scale.setScalar(1);
 
   const f = Math.min(1, Math.max(0, factor));
-  if (f <= 0.001) return;
+  if (f <= 0.001) { sueltaElClip(g); return; }
 
+  // EL ROL DE MIXAMO, SI ESTÁ. Mismo trato que el salto: la aguja se pone
+  // donde diga `avance`, no se reproduce a su ritmo, porque la agachada del
+  // juego dura 0,55 s y el clip 1,17 s. El peso va con `factor`, así que la
+  // entrada y la salida se mezclan con lo que hubiera antes en vez de saltar
+  // de una pose a otra en un fotograma.
+  const accion = mandaElClip(g, 'rol', f);
+  if (accion) {
+    accion.time = accion.getClip().duration * Math.max(0, Math.min(1, avance));
+    accion.timeScale = 0;
+    cuerpo.rotation.set(0, 0, 0);
+    cuerpo.position.set(0, 0, 0);
+    g.mezclador.update(0);
+    return;
+  }
+
+  sueltaElClip(g);
   orientar(modelo);
   reposar(huesos);
 
@@ -1383,6 +1521,7 @@ export function aplicarPoseAgachadoGLB(modelo, factor, avance = 0) {
 export function poseDerrotaGLB(modelo) {
   const g = modelo.userData.glb;
   if (!g) return;
+  sueltaElClip(g);
   const { huesos, cuerpo } = g;
   orientar(modelo);
   reposar(huesos);
@@ -1415,6 +1554,7 @@ export function poseDerrotaGLB(modelo) {
 export function poseEntrevistaGLB(modelo, tiempo, intensidad = 1) {
   const g = modelo.userData.glb;
   if (!g) return null;
+  sueltaElClip(g);
   const { huesos } = g;
   const k = Math.min(1, Math.max(0, intensidad));
 
@@ -1450,6 +1590,7 @@ export function poseEntrevistaGLB(modelo, tiempo, intensidad = 1) {
 export function poseMinistroGLB(modelo, tiempo = 0, presencia = 1) {
   const g = modelo.userData.glb;
   if (!g) return;
+  sueltaElClip(g);
   const { huesos } = g;
   const k = Math.min(1, Math.max(0, presencia));
 
@@ -1481,6 +1622,7 @@ export function poseMinistroGLB(modelo, tiempo = 0, presencia = 1) {
 export function poseMontadoGLB(modelo, tiempo = 0) {
   const g = modelo.userData.glb;
   if (!g) return;
+  sueltaElClip(g);
   const { huesos } = g;
 
   orientar(modelo);
@@ -1505,6 +1647,10 @@ export function poseMontadoGLB(modelo, tiempo = 0) {
 export function reposarGLB(modelo) {
   const g = modelo.userData.glb;
   if (!g) return;
+  // Primero se sueltan los clips: si alguno se quedara con peso, volvería a
+  // escribir los huesos en cuanto alguien llamara al mezclador y la pose de
+  // reposo duraría un fotograma.
+  sueltaElClip(g);
   reposar(g.huesos);
   g.cuerpo.rotation.set(0, 0, 0);
   g.cuerpo.position.set(0, 0, 0);

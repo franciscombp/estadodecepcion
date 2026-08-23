@@ -1546,6 +1546,86 @@ Dos números que salieron de mirar la tira de fotogramas, no de elegirlos:
 
 ---
 
+### 6.26 · Las animaciones de Mixamo, retargeteadas a mano — **resuelto**
+
+Con los `.fbx` delante se pudo cerrar lo que en §6.25 quedó abierto.
+`SkeletonUtils.retargetClip` sigue sin servir —da el muñeco aplastado, con la
+cabeza por debajo del pie— así que se escribió el retargeteador.
+
+**No copia la rotación LOCAL de cada hueso, que es lo que falla.** Los nombres
+coinciden pero los ejes no: un hueso no guarda una dirección, guarda una
+rotación respecto a su padre, y «cero» significa cosas distintas en cada
+esqueleto. Copia la orientación EN EL MUNDO, corrigiendo por la diferencia
+entre las dos poses de reposo:
+
+```
+Δ            = inv(reposoMundoOrigen) · reposoMundoDestino
+mundoDestino = mundoOrigen · Δ
+localDestino = inv(mundoPadreDestino) · mundoDestino
+```
+
+Δ se calcula una vez. Los huesos se recorren de la cadera hacia afuera, porque
+convertir a local pide el padre YA recalculado en ese fotograma.
+
+**Tres trampas, las tres medidas y las tres silenciosas** —ninguna daba error,
+las tres dejaban algo casi correcto:
+
+- **El esqueleto de Mixamo está centrado en la cadera, no en el suelo.** Su
+  cadera está a −8,2 y sus dedos a −99,9. Sacando el factor de escala de la Y de
+  la cadera a secas salía **negativo** (−0,108), o sea con el salto invertido, y
+  el personaje seguía pareciendo casi bien. Se mide la altura de la cadera
+  **sobre sus pies**.
+- **La pista de la cadera no va en metros.** La posición de un hueso se escribe
+  en el sistema de su padre, y estos archivos traen el armazón con escala 0,01:
+  la cadera está a 0,884 m del suelo pero su `position.y` vale **88,4**. Se
+  restaba un desnivel de 0,121 metros a una pista que va por 88 —un 0,14 %— y
+  los números decían que la corrección se había aplicado. El salto subía 1,3 cm
+  en vez de 1,3 m.
+- **Se posa en el suelo midiendo, no a ojo.** Se reproduce el clip entero, se
+  busca el punto más bajo que alcanza cualquier hueso en cualquier fotograma y
+  se compara con el punto más bajo en reposo. En la carrera ese punto es el pie
+  que apoya; en el salto, el pie de la agachada previa; en el rol, la espalda al
+  pasar por el suelo. En los tres es exactamente el que tiene que rozar el
+  asfalto.
+
+**El resultado**, horneado en `public/modelos/animaciones.glb`:
+
+| | duración | cuadros | escala | posado |
+|---|---|---|---|---|
+| correr | 0,73 s | 23 | 0,916 | 0,918 m |
+| salto | 1,70 s | 52 | 0,916 | 0,876 m |
+| rol | 1,17 s | 36 | 0,916 | 0,862 m |
+
+**93 KB los tres**, y un solo archivo para los seis personajes: comparten
+esqueleto y nombres de hueso, y las pistas van nombradas por hueso, así que el
+mismo clip se ata a cualquiera. Se rehornea con `npm run animaciones`.
+
+#### Cómo se enganchan, que tiene su detalle
+
+**El clip no se reproduce a su ritmo, salvo la carrera.** El salto dura 1,70 s
+en el archivo y el vuelo del juego dura lo que dure —depende del impulso, del
+potenciador y de si se pulsó caída rápida—; la agachada dura 0,55 s y el rol
+1,17 s. Así que a esos dos se les pone la aguja donde toca: `avance` va de 0 a 1
+y el clip se recorre entero en ese trayecto. El aterrizaje del clip cae SIEMPRE
+en el fotograma en que el personaje toca el suelo.
+
+El avance del salto sale de una previsión hecha en el despegue —subir y bajar
+con aceleración constante son 2·v₀/g— recortada a 1, porque la caída rápida lo
+acorta y aterrizar sobre una tarima también.
+
+**Y en cada instante manda UN clip o ninguno.** El mezclador reescribe cada
+fotograma todo hueso que su clip toque, así que una pose escrita a mano puesta
+antes se pierde entera, y un clip sonando debajo de una pose escrita a mano la
+pisa al fotograma siguiente. Las acciones se crean todas al construir el
+personaje y se dejan sonando a peso cero: crear una a mitad de partida cuesta un
+enganche de bindings, y eso es un tirón justo en el fotograma del salto.
+
+**Los ciclos escritos a mano se quedan** como reserva. No es nostalgia: los
+personajes de cajas no tienen otro, y si `animaciones.glb` no llega el juego
+tiene que seguir corriendo.
+
+---
+
 ## 7 · Cómo se prueba cada pantalla sin jugar
 
 `/creador/pantallas/` abre cualquiera de las diez con datos de ejemplo, sobre
