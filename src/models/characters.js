@@ -985,11 +985,28 @@ function _perseguidoresDelModelo(abajo, arriba) {
   const grupo = new THREE.Group();
   grupo.add(abajo);
 
-  const ESCALA = 0.86;
-  const CORONILLA = 1.62;   // Medida del cráneo de este modelo.
-  const INGLE = 0.8;
-  arriba.scale.setScalar(ESCALA);
-  arriba.position.set(0, CORONILLA - INGLE * ESCALA + 0.04, -0.06);
+  // DÓNDE SE SIENTA EL DE ARRIBA. Esto era un 1.62 escrito a mano —la coronilla
+  // del único modelo que había— y una escala de 0.86 para achicarlo. Con seis
+  // archivos de seis estaturas distintas eso deja a Roy o flotando por encima
+  // del casco o metido dentro del pecho, según a quién le toque cargar.
+  //
+  // Ahora se MIDE: el de abajo dice por dónde le llegan los hombros y el de
+  // arriba dice dónde tiene la ingle, y el segundo se apoya sobre el primero.
+  // Ninguno de los dos se reescala: los tamaños son los que trae el archivo.
+  const mAbajo = abajo.userData.medidas;
+  const mArriba = arriba.userData.medidas;
+
+  // El asiento es la base del cráneo del de abajo, o sea los hombros. Sentarlo
+  // en la coronilla lo dejaría haciendo equilibrios sobre la cabeza; sentarlo
+  // en el pecho lo hundiría. Los hombros es donde se sube la gente.
+  const hombros = mAbajo
+    ? mAbajo.craneo.y - mAbajo.craneo.alto / 2
+    : 1.45;
+  // Y la ingle del de arriba es la mitad de su estatura, con muy poco error en
+  // un humanoide: es de donde le cuelgan las piernas.
+  const ingle = mArriba ? mArriba.alto * 0.47 : 0.8;
+
+  arriba.position.set(0, hombros - ingle + 0.10, -0.06);
   grupo.add(arriba);
 
   grupo.userData.partes = {

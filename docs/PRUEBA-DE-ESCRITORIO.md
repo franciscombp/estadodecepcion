@@ -1349,6 +1349,73 @@ misma camisa oscura y el mismo pantalón gris, y a ocho metros y de espaldas lo
 
 ---
 
+### 6.23 · Los personajes salían deformes: la corpulencia sobraba — **resuelto**
+
+Con los modelos nuevos puestos, los personajes salían **cabezones y con
+manoplas**. No era el atlas: era una capa que llevaba meses ahí y que hasta
+ahora tenía sentido.
+
+`CORPULENCIA` reescribía los veinticuatro huesos de cada modelo al cargarlo
+—cabeza al 126 %, manos al 155 %, hombros al 130 %, piernas al 80 % de largo—
+para darle al personaje el achaparrado de los runners del género: tres cabezas
+y media, sin cuello, miembros cortos y gruesos. Se horneaba en el clip de
+carrera y en el esqueleto en reposo, así que no costaba nada por fotograma y lo
+heredaban todas las poses escritas a mano.
+
+Tenía su razón. Con los dos primeros archivos —que venían de un solo color y
+con proporciones de persona— a veinte píxeles de alto y de espaldas lo único
+que se leía era la silueta, y una figura realista a ese tamaño es un palo con
+una bola encima.
+
+**Ya no hay nada que arreglar.** Los seis modelos nuevos vienen hechos con sus
+proporciones, y son las que se quieren. Encima peleaban con el atlas: la
+textura está pintada sobre la malla en reposo, así que cualquier hueso que
+cambie de grueso arrastra el dibujo con él. Y lo que se lee a veinte píxeles
+ahora lo da la textura —el casco del antidisturbias, el sombrero, la banda
+tricolor— que es más información de silueta y de color de la que daba engordar
+un hueso.
+
+Se quitó entera. Las estaturas que llegan al juego son ahora exactamente las
+del archivo:
+
+| | alto |
+|---|---|
+| Roy | 1,45 |
+| Avecilla | 1,57 |
+| genérico | 1,60 |
+| tostadólogo | 1,70 |
+| policía | 1,70 |
+| ministro (el mando) | 1,85 |
+
+**Y no se pierde nada de encuadre.** Medido con el juego corriendo: el
+personaje ocupa **0,302 del alto de la pantalla**, que es exactamente el
+objetivo al que se llegó afinando la cámara (§6.15). La corpulencia no estaba
+comprando presencia en pantalla; eso lo compraba la cámara.
+
+**Lo que colgaba de aquellas medidas.** Había dos constantes copiadas del
+primer archivo que llegó —cráneo a 1,44, coronilla a 1,62, pecho a 1,12— y un
+`CORONILLA = 1.62` a mano para sentar al de arriba del dúo. Con seis estaturas
+distintas eso deja la boina de Buencán flotando sobre uno y clavada en la nariz
+de otro, y a Roy o por encima del casco o metido dentro del pecho. Ahora se
+**miden del propio esqueleto** al cargar (`medidasDe()`), y un séptimo archivo
+con otra estatura entra sin tocar una línea.
+
+Dos trampas de esa medición, las dos costaron una tarde:
+
+- **Se mide la MALLA, no el hueso.** El hueso de la cabeza está en la base del
+  cráneo, y entre uno y otro hay quince centímetros que cambian de modelo a
+  modelo, más aún con casco. Se buscan los vértices que PESAN de la cabeza y se
+  les toma la caja. Y la cabeza no es un hueso: son tres —`Head`, `head_end` y
+  `headfront`— y el pelo y el casco se reparten entre los tres.
+- **La matriz de la malla no se aplica.** Estos archivos traen la malla con
+  escala 0,01 —el armazón viene en centímetros— pero los vértices ya están en
+  metros. Y da igual, porque una malla con piel no usa su propia matriz para
+  deformarse: usa `bindMatrix`, las matrices de los huesos y
+  `bindMatrixInverse`. La primera versión aplicó `matrixWorld` y dijo que el
+  tostadólogo tenía la coronilla a **2 cm del suelo**.
+
+---
+
 ## 7 · Cómo se prueba cada pantalla sin jugar
 
 `/creador/pantallas/` abre cualquiera de las diez con datos de ejemplo, sobre
