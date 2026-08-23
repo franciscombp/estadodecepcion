@@ -1,71 +1,108 @@
-# 📦 Guía de Exportación y Edición de Assets 3D
+# Guía de assets 3D — bajar, editar y devolver
 
-**Estado de Excepción** — Guía para editar y texturizar los modelos procedurales exportados a GLB.
+Cómo sacar cualquier pieza del juego a `.glb`, retocarla en Blender y devolverla
+sin tocar código.
 
----
-
-## 🎯 Qué se exportó
-
-Se generaron **13 modelos GLB** desde procedurales Three.js, listos para editar en cualquier software 3D profesional:
-
-### Personajes (6)
-- `character-chochologo.glb` — El periodista veterano (sombrero, mochila, libreta)
-- `character-alondra.glb` — La reportera joven (cabello rizado, ukulele, credencial)
-- `character-buscan.glb` — El investigador (boina, grabadora)
-- `character-blanki.glb` — La espartana (casco, escudo, corporalencia)
-- `character-ministro.glb` — El cargo anónimo (traje, maletín, insignia)
-- `characters-perseguidores.glb` — El dúo: Reimberg + Noboa (montado)
-
-### Obstáculos (4)
-- `obstacle-saltar.glb` — Barrera baja (saltar por encima)
-- `obstacle-agachar.glb` — Pórtico elevado (pasar agachado)
-- `obstacle-esquivar.glb` — Caja con X roja (esquivar lateralmente)
-- `obstacle-doble-bus.glb` — Bus de dos carriles (mayor dificultad)
-
-### Recolectables (2)
-- `collectible-papel.glb` — Hoja de papel (moneda del juego)
-- `collectible-evidencia.glb` — USB naranja (joya de alto valor)
-
-### Decoración (1)
-- `decor-palmera.glb` — Palmera tropical low-poly
-
-**Total:** 216 KB de assets listos para texturizar.
+> **Esta guía se reescribió entera.** La versión anterior describía un mundo que
+> ya no existe: tres exportadores de Node en `scripts/`, una carpeta
+> `public/assets/models/export/` con doce `.glb` de 1,3 KB, y un reparto con
+> nombres —«chochologo», «alondra», «buscan», «blanki»— que no son los de nadie.
+> Un documento que apunta a archivos borrados es peor que no tener documento:
+> alguien corre el script, se lleva unos cubos, y cree que ése es el juego. Los
+> scripts y la carpeta se borraron; lo que aquí queda es lo que hay.
 
 ---
 
-## 🔧 Cómo editar: Software recomendado
+## El viaje entero
 
-### Blender (Gratuito, recomendado)
-1. **Descargar:** https://www.blender.org/download/
-2. **Abrir modelo:** `File > Open > (seleccionar .glb)`
-3. **Editar:**
-   - Geometría en `Modeling` workspace
-   - Materiales en `Shading` workspace
-   - Texturas: UV Mapping → Texture Paint o exportar para Substance Painter
+```
+/creador/exportador/  ──►  personaje.glb  ──►  Blender  ──►  personaje.glb
+                                                                    │
+   public/modelos/piezas/  ◄──  npm run modelos -- personaje.glb  ◄──┘
+```
 
-### Substance Painter
-- **Ideal para:** Texturizado profesional, mapas PBR
-- **Flujo:** Importar GLB → Pintar texturas → Exportar GLB+textures
+### 1 · Bajarla
 
-### Maya / 3DS Max
-- Abrir con `File > Import` o drag-and-drop
-- Editar geometría y materiales normalmente
+Abre **`/creador/exportador/`**. Están las 58 piezas del juego agrupadas:
+personajes jugables, **el reparto entero del modelo**, cuadras de decorado,
+obstáculos (genéricos y vestidos por escenario), recolectables, los edificios
+del `.glb` de Quito, potenciadores y elementos de escena. Cada una se
+previsualiza con sus medidas reales en metros; el visor se orbita arrastrando y
+se acerca con la rueda.
 
-### Cinema 4D
-- Importar `.glb` directamente
-- Los nombres de partes se preservan como objetos
+**Los botones tardan un momento en habilitarse, y es a propósito.** Los
+edificios vienen del `.glb` de Quito y los personajes de los suyos. Exportar
+antes de que estén descargados baja un archivo vacío, o el muñeco de cajas de
+reserva en vez del modelo — y eso se nota tarde y mal: el archivo se abre en
+Blender, tiene el nombre correcto, y dentro hay otra cosa.
+
+El exportador **exporta lo que corre**: vive dentro del build de Vite, así que
+importa los mismos generadores y la misma versión de Three que la partida.
+
+### 2 · Editarla
+
+Blender: *File ▸ Import ▸ glTF 2.0*, retocas, y *File ▸ Export ▸ glTF 2.0
+(.glb)*. Cualquier programa que lea glTF 2.0 vale; Blender es gratis y su
+importador es el que mejor se lleva con lo que sale de aquí.
+
+### 3 · Si es un personaje, adelgazarlo
+
+```bash
+npm run modelos -- ruta/al/personaje.glb
+```
+
+`GLTFExporter` no sabe escribir webp, así que al bajar el personaje vuelca su
+atlas en PNG: de 42 KB pasa a 400 y pico. Bien para editar, mal para servir.
+Medido con el policía de punta a punta:
+
+| | |
+|---|---|
+| el creador lo baja | 508 KB (atlas PNG 512²) |
+| el adelgazador lo devuelve | **301 KB** (atlas webp 512², 21,2 KB) |
+
+Sin argumentos, `npm run modelos` repasa los seis del juego. Por qué 512² y por
+qué webp está medido triángulo a triángulo en `scripts/adelgazar-personajes.py`
+y en el §6.22 de `PRUEBA-DE-ESCRITORIO.md`.
+
+### 4 · Devolverla
+
+Déjala en **`public/modelos/piezas/`** con el mismo nombre con el que bajó. A
+partir de ahí el juego usa el archivo; si no está, usa el procedural. No hay que
+registrar nada: la comprobación se hace al arrancar.
+
+Qué piezas admiten sustitución está en `PIEZAS_SUSTITUIBLES`
+(`src/models/hitos.js`).
 
 ---
 
-## 📋 Estructura de partes (para mantener compatibilidad)
+## Los dos tipos de personaje, que no se editan igual
 
-Cada modelo tiene **nombres específicos** que el código del juego espera. **Mantenlos al editar:**
+### Los del modelo (siete de nueve)
 
-### Personajes humanoides
+Salen de seis `.glb` con esqueleto de 24 huesos y un ciclo horneado. Bajan con
+**su esqueleto, su clip y su textura**, y en la **pose de reposo** — la cruz en
+la que vinieron, no a media zancada: exportar el primer fotograma del ciclo deja
+al muñeco con una pierna adelantada y no hay forma de saber si es la pose de
+reposo o un error del rig.
 
-Los miembros son **articulados**: cada brazo lleva codo y cada pierna lleva
-rodilla y tobillo, encadenados. Y todo el cuerpo cuelga de un grupo intermedio
-llamado `cuerpo`, que es el que gira en la voltereta de agacharse.
+El **dúo montado** también se baja entero, pero **sin animaciones**: son dos
+esqueletos con los mismos nombres de hueso, y un clip no sabría a cuál de los
+dos apunta.
+
+Al editarlos, **conserva los nombres de los huesos**. Las poses escritas a mano
+—salto, rol, entrevista, montado— buscan `Hips`, `Spine02`, `Spine01`, `Spine`,
+`neck`, `Head`, `LeftShoulder`, `LeftArm`, `LeftForeArm`, `LeftHand`,
+`LeftUpLeg`, `LeftLeg`, `LeftFoot`, `LeftToeBase` y sus gemelos de la derecha.
+
+> **Los tres `Spine` están numerados al revés de lo que parece:** `Spine02`
+> cuelga de la cadera, `Spine01` va encima y `Spine` es el de arriba, del que
+> salen el cuello y los hombros.
+
+### Los de cajas (Buencán y Monki, y todos los de reserva)
+
+Se construyen con código y sus miembros son **articulados**: cada brazo lleva
+codo y cada pierna rodilla y tobillo, encadenados, y todo cuelga de un grupo
+intermedio llamado `cuerpo`.
 
 ```
 [Personaje]                        ← posición y giro en la pista
@@ -84,326 +121,80 @@ llamado `cuerpo`, que es el que gira en la voltereta de agacharse.
     └── piernaIzq → pantorrillaIzq → pieIzq
 ```
 
-Las medidas de cada tramo están en `PROPORCION`, en
-`src/models/characters.js`: 1.70 de alto, cabeza de 0.34 que empieza en 1.26,
-tronco de 0.80 a 1.24, hombro a 1.17 e ingle a 0.80.
+Estos nombres los usan `animarCarrera()`, `animarSalto()` y
+`aplicarPoseAgachado()` en `src/models/characters.js`. **Si un `.glb` importado
+no los trae, el personaje corre quieto** — y sin `cuerpo` tampoco da la
+voltereta. O mantienes los nombres, o adaptas ese código.
 
-**Importante:** Estos nombres los usan `animarCarrera()`, `animarSalto()` y
-`aplicarPoseAgachado()` en `src/models/characters.js`. Si los cambias,
-actualiza también ese código.
+Y las **posiciones de reposo**: al construirse, cada pieza que la voltereta
+recoge guarda su sitio en `userData.reposo`. Un `.glb` importado no lo trae.
 
-**Y las posiciones de reposo:** al construirse, cada pieza que la voltereta
-recoge guarda su sitio en `userData.reposo`. Un `.glb` importado no lo trae, así
-que ni se anima ni se recoge (ver más abajo).
-
-### Obstáculos
-Los obstáculos son más flexibles. Mantén al menos:
-- Un grupo raíz con el tipo (`Obstacle_Saltar`, etc.)
-- Las geometrías con nombres claros
-
-### Recolectables
-Pueden ser un solo mesh o un grupo. Mantén el nombre principal:
-- `collectible-papel` → `Papel`
-- `collectible-evidencia` → `Evidencia_USB`
+Las medidas de cada tramo están en `PROPORCION` (`src/models/characters.js`).
 
 ---
 
-## 🎨 Guía de texturizado
+## Escala
 
-### Colores base (referencia, NO están texturizados en GLB)
-Cada material tiene un color aproximado. Estos son para reference:
+El proyecto usa metros de verdad, y desde que los personajes vienen de archivo
+**cada uno tiene su estatura**. No las iguales:
 
-**Chochologo:**
-- Torso: Verde `#22c55e` (camisa natural)
-- Pantalón: Azul grisáceo `#2a3550`
-- Piel: Marrón `#d9a06b`
-- Sombrero: Paja `#e8cd8f`, banda tricolor
+| | alto |
+|---|---|
+| Roy (el de arriba del dúo) | 1,45 |
+| Avecilla | 1,57 |
+| el entrevistado (genérico) | 1,60 |
+| el tostadólogo | 1,70 |
+| el antidisturbias | 1,70 |
+| el mando policial | 1,85 |
 
-**Alondra:**
-- Torso: Verde azulado `#14b8a6` (para distinguir)
-- Cabello: Negro marrón `#2b1a12` (rizos)
-- Ukulele: Madera clara `#d9a441`
-
-**Obstáculos:**
-- Chevrones: Amarillo/negro (patrón de advertencia)
-- Franja roja: `#ff1030` (peligro)
-- Metal: Gris `#8a94a6`
-
-### Workflow recomendado para Substance Painter
-
-1. **Importar GLB**
-   - Asegura que los nombres de partes se importan correctamente
-   - Verifica UVs (si no hay, genera automáticas)
-
-2. **Crear materiales por parte**
-   - Camiseta del Chochologo: tela con arrugas leves
-   - Pantalón: tela más tosca
-   - Piel: suave, ligeramente porotexturizada
-   - Sombreros: paja con variación
-
-3. **Mapas principales (PBR)**
-   - **Basecolor** (color)
-   - **Normal** (relieve)
-   - **Roughness** (mate/brillante)
-   - **Metallic** (0 para tela, 0.3+ para metal)
-
-4. **Exportar**
-   - Formato: **glTF 2.0 (.glb)**
-   - Incluir texturas embebidas
-   - Preservar estructura de nodos
+Los obstáculos: `ALTURA_SALTAR` 1,15 · `ALTURA_ESQUIVAR` 2,6 ·
+`ALTURA_AGACHAR_DESDE` 1,25 (borde inferior del pórtico), en
+`src/config/balance.js`.
 
 ---
 
-## 📤 Cómo reemplazar los modelos en el proyecto
+## Texturas y materiales
 
-### Opción 1: Reemplazar procedurales (Recomendado)
-
-1. **Guarda editados en:** `public/assets/models/`
-   ```
-   public/assets/models/
-   ├── character-chochologo.glb  ← Reemplaza con el tuyo
-   ├── character-alondra.glb
-   ├── obstacle-saltar.glb
-   └── ...
-   ```
-
-2. **Actualiza el loader en `src/game/Player.js`:**
-   ```javascript
-   // Antes (procedural):
-   const modelo = crearChochologo()
-
-   // Después (GLB):
-   const gltf = await new GLTFLoader().loadAsync('assets/models/character-chochologo.glb')
-   const modelo = gltf.scene
-   ```
-
-3. **Para animaciones:** cada miembro espera su cadena de pivotes completa
-   (hombro → codo → muñeca, ingle → rodilla → tobillo) colgando de `cuerpo`.
-   - Si cambias la estructura, adapta `animarCarrera()`, `animarSalto()` y
-     `aplicarPoseAgachado()` al nuevo rig.
-
-### Opción 2: Versiones paralelas
-
-Mantén ambas:
-```javascript
-// En config/balance.js
-export const USAR_MODELOS_GLB = true  // Toggle
-
-// En Player.js
-const modelo = USAR_MODELOS_GLB 
-  ? await cargarDesdeGLB('chochologo')
-  : crearChochologo()
-```
+- **Las piezas procedurales no traen UVs de verdad.** Antes de pintar nada, en
+  Blender: *Tab (Edit) ▸ U ▸ Smart UV Project*.
+- **Los personajes del modelo sí las traen**, y su atlas está pintado sobre la
+  malla EN REPOSO. Cualquier hueso que cambie de grueso arrastra el dibujo con
+  él: si vas a reproporcionar, retoca también el atlas.
+- El juego usa `MeshStandardMaterial`, compatible con glTF 2.0 PBR. Rugosidad
+  0 (espejo) → 1 (mate); metalness 0 → 1; emissive para el neón. Hay un **techo
+  de rugosidad** común en `src/utils/materiales.js` y ahí está explicado por
+  qué.
+- **El material que traen los archivos de Meshy es emisivo al 100 %**
+  (`emissiveFactor [1,1,1]` con el mismo atlas de mapa). El cargador lo
+  sustituye por uno del juego; si lo dejas, el personaje se ilumina solo y va
+  igual de brillante de noche en el Apagón que a mediodía en la Bahía.
 
 ---
 
-## 🔄 Workflow completo (ejemplo)
+## Cuidado con el número de piezas
 
-### Para mejorar Alondra:
-
-1. **Exportar procedural:**
-   ```bash
-   npm run export-assets  # ← futuro script
-   # Genera character-alondra.glb
-   ```
-
-2. **Editar en Blender:**
-   - Abrir `character-alondra.glb`
-   - Mejorar geometría del cabello (más definido)
-   - Añadir detalles al ukulele
-   - Pintar credencial (añadir texto)
-   - Exportar > glTF Binary (.glb)
-
-3. **Texturizar en Substance Painter:**
-   - Importar GLB modificado
-   - Pintar camiseta con detalles de tela
-   - Añadir pátina a ukulele
-   - Crear variación en credencial
-   - Exportar GLB embebido
-
-4. **Integrar:**
-   - Copiar a `public/assets/models/character-alondra-textured.glb`
-   - Actualizar Player.js para cargar versión texturizada
-   - Commit + push
+El coste en móvil no son los triángulos, son las **llamadas de dibujo**. Una
+cuadra colonial son cuarenta y cinco piezas y en pantalla hay más de treinta
+casas: sin fundir eran 597 llamadas y 125 ms por fotograma; fundidas por
+material, 451 llamadas y 110 ms — con MÁS triángulos. Si traes una pieza muy
+despiezada de Blender, júntala por material antes de exportar (*Join* por
+color).
 
 ---
 
-## ⚠️ Notas técnicas
+## Cuando algo sale mal
 
-### UVs (coordenadas de textura)
-- Los modelos procedurales **NO tienen UVs de verdad**
-- Al abrir en Blender, genera UVs automáticas:
-  ```
-  [Objeto] > Tab (Edit) > U > Unwrap (Smart UV)
-  ```
-- Esto es necesario antes de pintar texturas
+**El `.glb` baja vacío o con el muñeco de cajas.** Exportaste antes de que
+terminaran de descargarse los archivos. Espera a que los botones se habiliten.
 
-### Nombre de archivos
-Usa convención clara:
-```
-character-[nombre].glb
-obstacle-[tipo].glb
-collectible-[tipo].glb
-decor-[tipo].glb
-```
+**El personaje corre quieto.** Es de cajas y perdió los nombres de los miembros
+al pasar por Blender, o perdió el grupo `cuerpo`.
 
-### Tamaño en metros
-El proyecto usa escala real:
-- Personaje: ~1.8 metros de alto
-- Obstáculos: Altura visual `ALTURA_SALTAR` ~0.68m
-- Mantén esta escala al editar
+**El personaje se ve negro o plano.** El material perdió su mapa, o quedó el
+emisivo de fábrica. Revisa que `baseColorTexture` sigue ahí.
 
-### Materiales PBR
-El juego usa `MeshStandardMaterial` (Three.js) que es compatible con glTF 2.0 PBR:
-- Roughness: 0 (espejo) → 1 (mate)
-- Metalness: 0 (no metal) → 1 (metal puro)
-- Emissive: Luz que emite (para neón)
+**El archivo pesa medio mega.** Es el atlas en PNG. Pásalo por
+`npm run modelos -- archivo.glb`.
 
----
-
-## 📚 Recursos
-
-### Tutoriales
-- [Blender + glTF Export](https://docs.blender.org/manual/en/latest/addons/import_export/scene_gltf2.html)
-- [Substance Painter glTF](https://help.allegorithmic.com/documentation/substance-painter/2023/user-guide/pages/export/gltf2.html)
-- [Three.js glTF Loader](https://threejs.org/docs/#examples/en/loaders/GLTFLoader)
-
-### Librerías útiles
-- **glTF Transform CLI** — Valida y optimiza GLB
-  ```bash
-  npx gltf-transform info character-alondra.glb
-  ```
-- **Babylon Sandbox** — Visor online de GLB
-  - https://www.babylonjs-playground.com
-
----
-
-## ✅ Checklist de edición
-
-- [ ] Descargué Blender / Substance Painter
-- [ ] Abrí un modelo GLB sin errores
-- [ ] Edité geometría (agregué detalles)
-- [ ] Generé UVs correctamente
-- [ ] Pintéé texturas (o creé nuevos materiales)
-- [ ] Exporté como GLB con estructura de nombres intacta
-- [ ] Copié a `public/assets/models/`
-- [ ] Actualicé Player.js para cargar GLB en vez de procedural
-- [ ] Testeé en navegador: `npm run dev`
-- [ ] Commitié cambios: `git add ., git commit -m "Improve character textures"`
-
----
-
-## 🆘 Solución de problemas
-
-**GLB se ve negro / sin materiales:**
-- Verifica que GLTFExporter embebió texturas
-- En Three.js, carga con: `new GLTFLoader().load(...)`
-
-**Animación quebrada (brazos/piernas no se mueven):**
-- Revisa que los nombres de pivotes siguen siendo `brazoDer`, `antebrazoDer`,
-  `piernaDer`, `pantorrillaDer`, `pieDer`, etc.
-- Revisa que todo cuelga del grupo `cuerpo`: sin él no hay voltereta
-- O adapta `animarCarrera()` / `animarSalto()` / `aplicarPoseAgachado()` a los
-  nuevos nombres
-
-**Texturas pixeladas / baja resolución:**
-- Genera UVs con "Angle-Based" o "Smart UV Project"
-- Pinta en resolución 4K (en Painter) y exporta a 2K
-
-**Archivo GLB muy grande:**
-```bash
-npx gltf-transform draco character-alondra.glb char-compressed.glb
-# Reduce ~70% con compresión Draco (requiere loader especial)
-```
-
----
-
-## 🎮 Sistema de Edición Integrado (Próximas Fases)
-
-Este documento te muestra cómo **exportar los modelos**. Pero hay más: Estado de Excepción necesita herramientas de edición para que cambiar niveles, personajes y gameplay sea **rápido, sin recompilar**.
-
-### Por qué editores visuales
-
-Hoy, cambiar un nivel:
-1. Editas `src/scenes/level3.js` (JavaScript)
-2. `npm run dev` (recompila)
-3. Juegas hasta el nivel
-4. Ves error → vuelves al paso 1
-
-Con editores:
-1. Abres `/creador/mapas/level-3.json` (navegador)
-2. Drag-drop objetos visualmente
-3. Refrescas (`npm run dev` ya está abierto)
-4. Ves cambio al instante ✅
-
-### Las 3 capas
-
-**1. JSON Configuration** (`public/data/`)
-- Niveles, escenas, personajes, balance
-- Editable directamente en GitHub o en editor JSON
-- Motor solo lee JSON, no toca código
-
-**2. Visual Builders** (`public/creador/`)
-- Exportador de modelos GLB (como fanesca)
-- Visor 3D de personajes (como modo-incognito)
-- Colocador de objetos en escenas (como modo-incognito)
-- Editor de configuración de niveles
-
-**3. Sandboxes de Testing** (`tools/`)
-- Scripts de validación (check-*.mjs)
-- Screenshots automáticos (Playwright)
-- Sandbox de prueba rápida
-
-### Fase 1: Exportador de Modelos
-
-Ya existe `scripts/export-models-simple.js`. Siguiente paso: crear `/public/creador/exportar.html` que:
-
-```html
-<!-- Interfaz visual para descargar modelos -->
-<!-- Previsualizaciones en WebGL -->
-<!-- Batch download de todos los .glb -->
-<!-- Genera models-index.json automático -->
-```
-
-Copia el patrón de `/workspace/fanesca/herramientas/exportar-glb.html`.
-
-### Fase 2: Editors de Contenido
-
-Crear bajo `public/creador/`:
-- `mapas/` — editor 2D de escenas (drag-drop zonas, enemigos, items)
-- `niveles/` — editor de configuración (duración, objetivos, flujo)
-- `personajes/` — visor 3D (rotar, poses, screenshot)
-
-Copia el patrón de `/workspace/modo-incognito/creador/`.
-
-### Fase 3: Validación Automática
-
-En `tools/`:
-- `check-levels.mjs` — valida JSON de niveles
-- `check-animations.mjs` — chequea que animaciones funcionen
-- `check-balance.mjs` — verifica multiplicadores
-
-Patrón: `/workspace/modo-incognito/tools/check-*.mjs`
-
-### Empezar hoy
-
-```bash
-# Ver patrón de exportador en fanesca
-cat /workspace/fanesca/herramientas/exportar-glb.html
-
-# Ver patrón de builder en modo-incognito
-cat /workspace/modo-incognito/README.md | grep "creador/"
-
-# Cuando esté listo, crear:
-# /home/user/estadodecepcion/public/creador/exportar.html
-# /home/user/estadodecepcion/public/creador/personajes/index.html
-# /home/user/estadodecepcion/public/creador/mapas/editor.html
-```
-
-### Referencia completa
-
-Ver documento detallado en: `docs/EDITOR-SANDBOX-GUIDE.md` (generado en próxima sesión)
-
----
-
-**Listo para editar. Diviértete mejorando los assets del Mercio.** 🎨✨
+**La pose se ve rara sólo en el juego.** Las poses escritas a mano se aplican
+sobre la de reposo. Si moviste el reposo en Blender, se mueven todas con él.

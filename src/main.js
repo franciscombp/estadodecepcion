@@ -156,8 +156,10 @@ async function arrancar() {
   // El contexto de audio se crea suspendido; arranca con el primer toque.
   const audio = new Audio();
 
-  // Caché lista para cuando haya binarios que precargar. Hoy todo es
-  // procedural, así que no hay nada que bajar.
+  // Caché lista para cuando haya binarios que precargar. De momento no la usa
+  // nadie: los binarios que hay —el .glb de Quito y los seis personajes— los
+  // bajan sus propios cargadores, que ya cachean en memoria. Aquí serviría
+  // para que no volvieran a bajarse ENTRE VISITAS, que es distinto.
   const cache = new AssetCache();
   await cache.abrir();
 

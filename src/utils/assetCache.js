@@ -14,7 +14,7 @@
 // USO PREVISTO:
 //   const cache = new AssetCache();
 //   await cache.abrir();
-//   const buffer = await cache.obtenerOBajar('noboa.glb', '/assets/models/noboa.glb');
+//   const buffer = await cache.obtenerOBajar('quito.glb', '/modelos/quito.glb');
 //   // A partir de la segunda vez, `buffer` sale de IndexedDB sin tocar la red.
 // ============================================================================
 
