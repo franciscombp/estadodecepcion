@@ -1,0 +1,33 @@
+<!doctype html><meta charset=utf-8><style>body{margin:0;background:#20242c}</style>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { cargarPersonajesGLB, crearPersonajeGLB, reposarGLB } from '/src/models/personajeGLB.js';
+const q = new URLSearchParams(location.search);
+const ren = new THREE.WebGLRenderer({ antialias:true });
+ren.setSize(1400, 700); ren.outputColorSpace = THREE.SRGBColorSpace; document.body.appendChild(ren.domElement);
+const esc = new THREE.Scene(); esc.background = new THREE.Color(0x20242c);
+esc.add(new THREE.HemisphereLight(0xffffff, 0x4a5568, 1.8));
+const sol = new THREE.DirectionalLight(0xfff0d8, 2.0); sol.position.set(4,6,5); esc.add(sol);
+const suelo = new THREE.Mesh(new THREE.PlaneGeometry(80,40), new THREE.MeshStandardMaterial({color:0x3a3f4a}));
+suelo.rotation.x = -Math.PI/2; esc.add(suelo);
+await cargarPersonajesGLB('/');
+const g = await new GLTFLoader().parseAsync(await (await fetch('/modelos/animaciones.glb')).arrayBuffer(), '');
+// El ministro solo: en reposo y en cuatro instantes del ciclo de cargar.
+const quien = q.get('p') || 'ministro';
+const cual = q.get('a') || 'cargando';
+const clip = g.animations.find(c => c.name === cual);
+const N = 3, sep = 1.3;
+for (let k = 0; k < N; k++) {
+  const m = crearPersonajeGLB(quien);
+  reposarGLB(m);
+  if (k > 0) { const mez = new THREE.AnimationMixer(m); mez.clipAction(clip).play(); mez.setTime(clip.duration * (k-1) / (N-1)); }
+  m.position.set(-sep * (N-1) / 2 + k * sep, 0, 0);
+  m.rotation.y = q.get('v') === 'perfil' ? Math.PI/2 : Math.PI;
+  esc.add(m);
+}
+const cam = new THREE.PerspectiveCamera(26, 1400/700, 0.1, 100);
+cam.position.set(0, 1.0, 6.0); cam.lookAt(0, 0.85, 0);
+ren.render(esc, cam);
+requestAnimationFrame(()=>{ ren.render(esc,cam); window.__listo = ren.domElement.toDataURL('image/png'); });
+</script>

@@ -29,25 +29,41 @@
 import * as THREE from 'three';
 import { material } from '../utils/materiales.js';
 import { CAMARA, PERSEGUIDOR } from '../config/balance.js';
-import { crearMinistro } from '../models/characters.js';
-import { esGLB, poseEntrevistaGLB, poseMinistroGLB } from '../models/personajeGLB.js';
+import { crearMinistro, animarPerseguidores } from '../models/characters.js';
+import { esGLB, poseEntrevistaGLB, poseMinistroGLB, animarCaminarGLB } from '../models/personajeGLB.js';
 
 // Guiones de la secuencia, en segundos.
+//
+// SE ALARGARON PARA QUE LA GENTE PUDIERA ANDAR, y no es una preferencia de
+// ritmo: es aritmética. Los que llegan a llevarse al entrevistado recorren 8
+// metros, y con `rescate` en 1,2 s la llegada duraba 0,54 s — o sea que se
+// movían a CATORCE METROS POR SEGUNDO, tres veces más rápido que un velocista.
+// A esa velocidad no hay ciclo de piernas que valga: cualquier animación se ve
+// deslizarse, porque el cuerpo viaja mucho más de lo que da la zancada.
+// Medido antes de tocar nada: el entrevistado se iba a 10,7 m/s y su pie, en
+// el punto más lento de cada paso, seguía moviéndose al 55 % de esa velocidad.
+//
+// Ahora la llegada son 8 m en 3,2 s (2,5 m/s: se dan prisa, pero andando) y la
+// retirada 6 m en 3,9 s (1,6 m/s: un paseo). La cinemática pasa de 5,9 a 14
+// segundos, y la primera vez eso es lo que se quiere: es la escena que explica
+// de qué va el juego.
 const COMPLETA = {
-  entrevista: 1.6,
-  rescate: 1.2,
-  pared: 1.0,
-  retroceso: 1.4,
+  entrevista: 2.5,
+  rescate: 7.0,
+  pared: 2.0,
+  retroceso: 1.8,
   caballito: 0.7,
 };
 
-// Versión corta para quien ya la vio: el mismo relato, en un tercio.
-// La pared se acorta pero NO se quita: es la fase que explica el juego.
+// Versión corta para quien ya la vio: el mismo relato, en poco más de un
+// tercio. La pared se acorta pero NO se quita: es la fase que explica el juego.
+// Aquí sí se anda más rápido de lo humano, y se acepta: quien la ve es alguien
+// que ya vio la larga y lo que quiere es jugar.
 const ABREVIADA = {
-  entrevista: 0.35,
-  rescate: 0.45,
-  pared: 0.4,
-  retroceso: 0.55,
+  entrevista: 0.9,
+  rescate: 2.4,
+  pared: 0.7,
+  retroceso: 0.7,
   caballito: 0.3,
 };
 
@@ -132,6 +148,40 @@ const MIRA_ENTREVISTA_X = -0.75;
 
 // Reutilizable, para no crear un vector por fotograma.
 const _puntoMano = new THREE.Vector3();
+const _donde = new THREE.Vector3();
+
+/** La diferencia entre dos ángulos, por el lado corto. */
+function anguloCorto(a) {
+  return Math.atan2(Math.sin(a), Math.cos(a));
+}
+
+/**
+ * A qué velocidad se está moviendo esto DE VERDAD, en metros por segundo.
+ *
+ * La cinemática mueve a la gente escribiéndole la posición —interpolaciones
+ * entre dos puntos, con suavizados— así que nadie sabe a qué velocidad va
+ * nadie. Se saca de la diferencia entre dónde está ahora y dónde estaba en el
+ * fotograma anterior, que es la única fuente honesta: si el guion cambia una
+ * duración, la cadencia de los pasos se entera sola.
+ *
+ * Sin esto, los que llegan a llevarse al entrevistado se DESLIZAN: los pies
+ * quietos y el cuerpo viajando, que es lo que se veía.
+ */
+function velocidadDe(objeto, dt) {
+  objeto.getWorldPosition(_donde);
+  const antes = objeto.userData._dondeEstaba;
+  let v = 0;
+  if (antes && dt > 0) {
+    v = _donde.distanceTo(antes) / dt;
+    // Y HACIA DÓNDE. Lo guarda el propio objeto para que quien quiera pueda
+    // ponerle la cara donde van los pies.
+    if (v > 0.05) objeto.userData._rumbo = Math.atan2(_donde.x - antes.x, _donde.z - antes.z);
+  }
+  objeto.userData._dondeEstaba = (antes ?? new THREE.Vector3()).copy(_donde);
+  // Recorte: el primer fotograma y los saltos de reloj dan velocidades
+  // absurdas, y una cadencia absurda es un personaje pedaleando en el sitio.
+  return Math.min(6, v);
+}
 
 export class Intro {
   /** @param {THREE.Scene} escena Para poder plantar al ministro. */
@@ -164,7 +214,7 @@ export class Intro {
    * Coloca al ministro.
    * @param {number} presencia 1 = ahí plantado, 0 = ya se lo llevaron
    */
-  _colocarMinistro(presencia, tiempo = 0) {
+  _colocarMinistro(presencia, tiempo = 0, dt = 1 / 60) {
     const m = this._obtenerMinistro();
     if (!m) return;
 
@@ -181,9 +231,24 @@ export class Intro {
     );
     m.scale.setScalar(0.85 + f * 0.15);
 
-    // Mientras responde asiente despacio. Es lo único que lo distingue de un
-    // maniquí, y basta con eso.
+    // MIENTRAS SE LO LLEVAN, ANDA. Antes se deslizaba hacia atrás con la pose
+    // de estar de pie puesta, que es la imagen de un maniquí sobre ruedas. Si
+    // se está moviendo, camina; y si está quieto, gesticula.
     if (esGLB(m)) {
+      const v = velocidadDe(m, dt);
+      if (v > 0.12 && animarCaminarGLB(m, dt, v)) {
+        // Y SE GIRA HACIA DONDE VA. Sin esto anda perfectamente —el pie planta
+        // y todo— pero de lado: la cinemática lo arrastra en diagonal mientras
+        // él sigue mirando al periodista, así que sus pasos van en una
+        // dirección y su cuerpo en otra. Medido, el pie seguía moviéndose al
+        // 99 % de la velocidad del cuerpo, que es deslizarse con estilo.
+        //
+        // El giro se persigue, no se copia: un cambio de rumbo instantáneo en
+        // el primer fotograma en que se mueve es un latigazo.
+        const rumbo = m.userData._rumbo ?? m.rotation.y;
+        m.rotation.y += anguloCorto(rumbo - m.rotation.y) * (1 - Math.exp(-9 * dt));
+        return;
+      }
       poseMinistroGLB(m, tiempo, f);
       return;
     }
@@ -237,14 +302,16 @@ export class Intro {
     // En la portada el ministro TAMBIÉN está. La escena del menú es la
     // entrevista, y una entrevista sin nadie enfrente no es una entrevista: es
     // alguien de pie con un micrófono.
-    this._colocarMinistro(1, this.tiempo);
+    this._colocarMinistro(1, this.tiempo, dt);
     this._perseguidoresLejos(perseguidor);
   }
 
   saltar() {
     if (!this.activa) return false;
     this.activa = false;
-    this._colocarMinistro(0);
+    // Sin `dt`: esto no es un fotograma de la cinemática, es alguien pulsando
+    // para saltársela. Lo único que hace falta es esconder al entrevistado.
+    this._colocarMinistro(0, this.tiempo);
     if (this._microfono) this._microfono.visible = false;
     return true;
   }
@@ -271,7 +338,7 @@ export class Intro {
       const f = this._suave(Math.min(1, t / (g.entrevista * 0.5)));
       if (f < 1) camara.position.lerpVectors(this.desdeCamara, camara.position, f);
       this._poseEntrevista(jugador, this.tiempo);
-      this._colocarMinistro(1, this.tiempo);
+      this._colocarMinistro(1, this.tiempo, dt);
       this._perseguidoresLejos(perseguidor);
       return false;
     }
@@ -293,7 +360,7 @@ export class Intro {
 
       this._colocarCamara(camara, CAMARA_ENTREVISTA, jugador, 1);
       this._poseEntrevista(jugador, this.tiempo);
-      this._colocarMinistro(1 - retirada, this.tiempo);
+      this._colocarMinistro(1 - retirada, this.tiempo, dt);
 
       this._plantarPerseguidores(
         perseguidor,
@@ -302,6 +369,7 @@ export class Intro {
         THREE.MathUtils.lerp(SITIO_APARICION.z, SITIO_RESCATE.z, llegada)
           - retirada * SALIDA_RESCATE.z,
         0, // de cara al periodista: vienen hacia él, no de espaldas
+        dt,
       );
       this._separados(perseguidor, 1);
       return false;
@@ -315,7 +383,7 @@ export class Intro {
     if (t < g.pared) {
       this._colocarCamara(camara, CAMARA_ENTREVISTA, jugador, 1);
       this._poseEntrevista(jugador, this.tiempo);
-      this._colocarMinistro(0);
+      this._colocarMinistro(0, this.tiempo, dt);
       this._perseguidoresLejos(perseguidor);
       return false;
     }
@@ -332,7 +400,7 @@ export class Intro {
       };
       this._colocarCamara(camara, pos, jugador, 1 - f);
       this._poseEntrevista(jugador, this.tiempo, 1 - f);
-      this._colocarMinistro(0);
+      this._colocarMinistro(0, this.tiempo, dt);
       // Aquí es donde REAPARECEN, y el orden importa: no se les ve dar la
       // vuelta, se les descubre. Estabas solo hablando con la pared, la cámara
       // retrocede, y resulta que los tienes detrás. Plantarlos ya en su sitio
@@ -344,6 +412,7 @@ export class Intro {
         PERSEGUIDOR.DESVIO_EN_PANTALLA * 3.6,
         PERSEGUIDOR.Z_LEJOS,
         Math.PI,
+        dt,
       );
       this._separados(perseguidor, 1);
       return false;
@@ -354,9 +423,9 @@ export class Intro {
     if (t < g.caballito) {
       const f = this._suave(t / g.caballito);
       this._colocarCamara(camara, CAMARA.POSICION, jugador, 0);
-      this._colocarMinistro(0);
+      this._colocarMinistro(0, this.tiempo, dt);
       this._plantarPerseguidores(
-        perseguidor, PERSEGUIDOR.DESVIO_EN_PANTALLA * 3.6, PERSEGUIDOR.Z_LEJOS, Math.PI,
+        perseguidor, PERSEGUIDOR.DESVIO_EN_PANTALLA * 3.6, PERSEGUIDOR.Z_LEJOS, Math.PI, dt,
       );
       this._separados(perseguidor, 1 - f);
       return false;
@@ -365,7 +434,7 @@ export class Intro {
     // --- Fin ---------------------------------------------------------------
     this.activa = false;
     this._separados(perseguidor, 0);
-    this._colocarMinistro(0);
+    this._colocarMinistro(0, this.tiempo, dt);
     if (this._microfono) this._microfono.visible = false;
     return true;
   }
@@ -393,7 +462,7 @@ export class Intro {
   /** Deja el modelo listo para correr, deshaciendo la pose de entrevista. */
   soltarPose(jugador) {
     this._poseEntrevista(jugador, this.tiempo, 0);
-    this._colocarMinistro(0);
+    this._colocarMinistro(0, this.tiempo);
     if (this._microfono) this._microfono.visible = false;
   }
 
@@ -499,7 +568,7 @@ export class Intro {
    * De paso se dejan los campos cuadrados, para que el primer fotograma de la
    * corrida no dé un salto.
    */
-  _plantarPerseguidores(perseguidor, x, z, giro = Math.PI) {
+  _plantarPerseguidores(perseguidor, x, z, giro = Math.PI, dt = 1 / 60) {
     perseguidor.modelo.visible = true;
     perseguidor.modelo.position.set(x, 0, z);
     perseguidor.modelo.scale.setScalar(PERSEGUIDOR.ESCALA_LEJOS);
@@ -507,6 +576,11 @@ export class Intro {
     perseguidor.zVisualActual = z;
     perseguidor.xVisualActual = x;
     perseguidor.escalaActual = PERSEGUIDOR.ESCALA_LEJOS;
+
+    // Y ANDAN LO QUE SE LES ESTÉ MOVIENDO. La velocidad no se declara, se mide
+    // del propio desplazamiento: si mañana el guion alarga la llegada, los
+    // pasos se enteran solos.
+    animarPerseguidores(perseguidor.modelo, this.tiempo, dt, velocidadDe(perseguidor.modelo, dt));
   }
 
   /**

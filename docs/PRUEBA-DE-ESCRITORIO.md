@@ -1772,6 +1772,100 @@ bloque de la pose— y encima gesticula.
 
 ---
 
+### 6.30 · La cinemática no se podía andar: iban a catorce metros por segundo — **resuelto**
+
+Se pidió que en la cinemática caminaran en vez de deslizarse. Antes de tocar
+ninguna animación se midió a qué velocidad los movía el guion, y ahí estaba
+todo:
+
+| | recorrido | duración | velocidad |
+|---|---|---|---|
+| los que llegan a llevárselo | 8,0 m | 0,54 s | **14,8 m/s** |
+| la retirada con el entrevistado | 6,2 m | 0,66 s | **9,4 m/s** |
+
+Catorce metros por segundo es tres veces un velocista. **A esa velocidad no hay
+ciclo de piernas que valga**: cualquier animación se ve deslizarse, porque el
+cuerpo viaja mucho más de lo que da la zancada. Medido en el entrevistado: se
+iba a 10,7 m/s y su pie, en el punto más lento de cada paso, seguía moviéndose
+al **55 %** de esa velocidad.
+
+Así que primero se alargó el guion. La llegada pasa a 8 m en 3,2 s (2,5 m/s:
+se dan prisa, pero andando) y la retirada a 6 m en 3,9 s (1,6 m/s: un paseo).
+La cinemática entera pasa de 5,9 a **14 segundos**, y la primera vez eso es lo
+que se quiere: es la escena que explica de qué va el juego. La versión
+abreviada —para quien ya la vio— se queda en 5 s y ahí sí se anda más rápido de
+lo humano, a sabiendas.
+
+**El paseo ya estaba en los archivos.** El clip que traen los `.glb` se llama
+`walking_man` y es literalmente eso; llevaba meses apagado porque a veinte
+metros por segundo un paseo patina catorce veces. Para la cinemática es
+exactamente lo que hace falta. Se comprobó que PLANTA el pie, que es lo que
+distingue un paseo de un pedaleo: con el personaje quieto, el pie de apoyo llega
+a **0,00 m/s**; el de correr no baja de 0,89, que es lo normal en una carrera.
+
+**Y la cadencia sale de una división, no de un número elegido:**
+
+```
+escalaDeTiempo = metrosPorSegundo · duración / 1,54
+```
+
+1,54 m es lo que cubre un ciclo, medido del clip YA retargeteado —0,77 m por
+paso—. Se había puesto 1,37, que era la medida del clip antes de pasar por
+nuestro esqueleto, y la cadencia salía un 12 % rápida.
+
+**La velocidad no se declara: se mide.** La cinemática mueve a la gente
+escribiéndole la posición, así que nadie sabe a qué va nadie. Se saca de la
+diferencia con el fotograma anterior, que es la única fuente honesta: si mañana
+el guion alarga una fase, los pasos se enteran solos.
+
+**Y faltaba girarlos hacia donde van.** Con todo lo anterior puesto, el
+entrevistado andaba perfectamente —el pie plantaba y todo— pero **de lado**: la
+cinemática lo arrastra en diagonal mientras él sigue mirando al periodista, así
+que sus pasos iban en una dirección y su cuerpo en otra. Medido: el pie seguía
+moviéndose al 99 % de la velocidad del cuerpo, o sea deslizarse con estilo. Con
+el giro perseguido —no copiado; un cambio de rumbo instantáneo es un latigazo—
+baja al **28 %**.
+
+| | el pie, respecto al cuerpo |
+|---|---|
+| antes | 55 % (y a 10,7 m/s) |
+| a velocidad humana, sin girar | 99 % |
+| **girado hacia donde va** | **28 %** |
+
+El 28 % que queda es el arranque y la frenada de cada tramo, donde la velocidad
+cambia más rápido de lo que el ciclo puede seguir. Se deja: repartir eso pide
+una máquina de estados de locomoción, y lo que hay es una cinemática de catorce
+segundos.
+
+### 6.31 · Las piernas del mando: no es el rig — **medido, y es del modelo**
+
+Se revisó lo que se podía revisar desde aquí, y el esqueleto está bien:
+
+| | alto | cadera | muslo | tibia | muslo+tibia |
+|---|---|---|---|---|---|
+| tostadólogo | 1,70 | 0,88 | 0,45 | 0,32 | 0,77 (45 %) |
+| **el mando** | **1,85** | **0,96** | **0,46** | **0,36** | **0,82 (45 %)** |
+| genérico | 1,60 | 0,79 | 0,40 | 0,29 | 0,69 (43 %) |
+
+Las proporciones son las de todos. Y los pesos de piel tampoco: sus piernas se
+llevan el 8,7 % y el 8,6 % de la malla contra el 6,4 % y el 5,4 % del
+tostadólogo, o sea MÁS.
+
+Lo que sí se arregló, y era de verdad: **la pista de posición de la cadera es
+absoluta**, y los clips se hornearon con el tostadólogo (cadera a 87,8). Los
+demás la tienen entre 71,8 (Roy) y 95,9 (el mando), así que un clip agachado
+dejaba al mando con la cadera treinta centímetros por debajo de donde le toca y
+las piernas metidas en el torso. Ahora cada personaje **traduce la pista a su
+propia cadera** al cargarla: el desplazamiento se escala por la razón de las dos
+y se rebasa sobre la suya. Sólo se rehace esa pista; las de rotación se
+comparten, que es lo que permite que un archivo de 496 KB sirva para nueve.
+
+Lo que queda es del modelo: sus pantalones y sus botas son un volumen oscuro
+muy voluminoso, y al doblar el muslo la silueta se cierra y no se ve pierna. Eso
+se arregla en Meshy, no aquí.
+
+---
+
 ## 7 · Cómo se prueba cada pantalla sin jugar
 
 `/creador/pantallas/` abre cualquiera de las diez con datos de ejemplo, sobre

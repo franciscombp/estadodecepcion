@@ -35,7 +35,7 @@ import * as THREE from 'three';
 import { material as materialMundo } from '../utils/materiales.js';
 import { caja as cajaBiselada } from '../utils/geometria.js';
 import { piezaEditada } from './hitos.js';
-import { crearPersonajeGLB, animarCarreraGLB, poseMontadoGLB } from './personajeGLB.js';
+import { crearPersonajeGLB, animarCarreraGLB, animarCaminarGLB, poseMontadoGLB } from './personajeGLB.js';
 
 // ---------------------------------------------------------------------------
 // PROPORCIONES — medidas sacadas del modelo original
@@ -1149,7 +1149,7 @@ export function animarSalto(personaje, subida = 0) {
 const _asiento = new THREE.Vector3();
 const _cadera = new THREE.Vector3();
 
-export function animarPerseguidores(grupo, tiempo, dt = 1 / 60) {
+export function animarPerseguidores(grupo, tiempo, dt = 1 / 60, metrosPorSegundo = -1) {
   const partes = grupo.userData?.partes;
   if (!partes) return;
 
@@ -1160,7 +1160,16 @@ export function animarPerseguidores(grupo, tiempo, dt = 1 / 60) {
     // EL DE ABAJO NO CORRE COMO LOS DEMÁS: va agachado, porque lleva a alguien
     // sentado en los hombros. Es su propio ciclo, y sin él el mando trotaba
     // erguido con Roy flotándole por encima de la coronilla.
-    animarCarreraGLB(partes.abajo, dt, 24, 'cargando');
+    // EN LA CINEMÁTICA ANDAN. Llegan calle arriba a llevarse al entrevistado y
+    // se van con él: eso es andar, no correr, y a la velocidad a la que el
+    // guion los esté moviendo. Se le pasa la velocidad de verdad y la cadencia
+    // sale de ahí, así que los pies se quedan quietos sobre el asfalto. En la
+    // partida no se le pasa nada y corre como siempre.
+    if (metrosPorSegundo >= 0 && animarCaminarGLB(partes.abajo, dt, metrosPorSegundo)) {
+      // nada más: el de abajo anda
+    } else {
+      animarCarreraGLB(partes.abajo, dt, 24, 'cargando');
+    }
     poseMontadoGLB(partes.arriba, tiempo);
 
     // ROY SE SIENTA DONDE ESTÉN LOS HOMBROS, no a una altura fija. El de abajo

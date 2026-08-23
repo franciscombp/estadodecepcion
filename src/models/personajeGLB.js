@@ -811,11 +811,59 @@ async function cargarUno(id, base) {
  */
 const clipsDeFuera = new Map();
 
+/** Dónde tenía la cadera el personaje con el que se hornearon los clips. */
+let caderaDeReferencia = null;
+
 async function cargarAnimaciones(base) {
   const r = await fetch(`${base}modelos/animaciones.glb`);
   if (!r.ok) throw new Error(`No está animaciones.glb (${r.status})`);
   const gltf = await new GLTFLoader().parseAsync(await r.arrayBuffer(), '');
   for (const c of gltf.animations) clipsDeFuera.set(c.name, c);
+  gltf.scene.traverse((o) => {
+    if (o.userData?.reposoCadera) caderaDeReferencia = o.userData.reposoCadera;
+  });
+}
+
+/**
+ * Los clips, con la cadera traducida a ESTE personaje.
+ *
+ * La pista de posición de la cadera es ABSOLUTA —dice «la cadera está a 87,8»,
+ * no «la cadera baja 12»— y ese 87,8 es el del tostadólogo, que es con quien se
+ * hornearon. Los demás la tienen entre 71,8 (Roy) y 95,9 (el mando): con la
+ * pista tal cual, un clip agachado deja al mando con la cadera treinta
+ * centímetros por debajo de donde le corresponde, y como las rotaciones de las
+ * piernas sí son las del clip, las piernas se le meten dentro del torso. Se vio
+ * en el mando cargando a Roy: un tronco con dos muñones.
+ *
+ * Se traduce: el DESPLAZAMIENTO respecto al reposo se escala por la razón de
+ * las dos caderas y se le suma al reposo de éste. Sólo se rehace la pista de la
+ * cadera; las de rotación se comparten entre todos los personajes, que es lo
+ * que permite que un archivo de 496 KB sirva para nueve.
+ */
+function clipsParaEste(cadera) {
+  const ref = caderaDeReferencia;
+  if (!ref || !cadera) return clipsDeFuera;
+
+  const razon = ref.y !== 0 ? cadera.position.y / ref.y : 1;
+  // Si es el mismo personaje con el que se horneó, no hay nada que traducir.
+  if (Math.abs(razon - 1) < 0.002) return clipsDeFuera;
+
+  const traducidos = new Map();
+  for (const [nombre, clip] of clipsDeFuera) {
+    const pistas = clip.tracks.map((pista) => {
+      if (!pista.name.endsWith('.position')) return pista;
+      const v = pista.values;
+      const nuevos = new Float32Array(v.length);
+      for (let i = 0; i < v.length; i += 3) {
+        nuevos[i + 0] = cadera.position.x + (v[i + 0] - ref.x) * razon;
+        nuevos[i + 1] = cadera.position.y + (v[i + 1] - ref.y) * razon;
+        nuevos[i + 2] = cadera.position.z + (v[i + 2] - ref.z) * razon;
+      }
+      return new THREE.VectorKeyframeTrack(pista.name, pista.times, nuevos);
+    });
+    traducidos.set(nombre, new THREE.AnimationClip(nombre, clip.duration, pistas));
+  }
+  return traducidos;
 }
 
 export function cargarPersonajesGLB(base = '/') {
@@ -915,24 +963,35 @@ export function crearPersonajeGLB(id) {
   }
 
   const mezclador = new THREE.AnimationMixer(cuerpo);
-  const correr = fuente.clips[0] ? mezclador.clipAction(fuente.clips[0]) : null;
-  if (correr) correr.play();
 
   // LAS ACCIONES DE LOS CICLOS DE FUERA, una por clip y todas a peso CERO.
   // Se dejan sonando desde el principio y lo que se toca es el peso: crear la
   // acción la primera vez que hace falta cuesta un enganche de bindings a
   // mitad de partida, y eso es un tirón justo en el fotograma del salto.
   const acciones = {};
-  for (const [nombre, clip] of clipsDeFuera) {
+  for (const [nombre, clip] of clipsParaEste(esqueleto.huesos?.get('Hips')?.nodo)) {
     const a = mezclador.clipAction(clip);
     a.play();
     a.setEffectiveWeight(0);
     acciones[nombre] = a;
   }
+
+  // EL PASEO DEL PROPIO ARCHIVO, que se llama `walking_man` y es literalmente
+  // eso. Estuvo apagado un tiempo —a veinte metros por segundo un paseo patina
+  // catorce veces— pero para la cinemática es justo lo que hace falta: ahí
+  // nadie corre, la gente llega andando, se lleva al entrevistado andando y se
+  // va andando. No hay que retargetear nada porque ya viene sobre este mismo
+  // esqueleto.
+  if (fuente.clips[0] && !acciones.caminar) {
+    const a = mezclador.clipAction(fuente.clips[0]);
+    a.play();
+    a.setEffectiveWeight(0);
+    acciones.caminar = a;
+  }
   mezclador.update(0);
 
   grupo.userData.medidas = fuente.medidas;
-  grupo.userData.glb = { mezclador, correr, acciones, cuerpo, ...esqueleto };
+  grupo.userData.glb = { mezclador, acciones, cuerpo, ...esqueleto };
   grupo.userData.nombre = id;
 
   // --- LO QUE SE MUEVE DESPUÉS DEL CUERPO ----------------------------------
@@ -1285,8 +1344,6 @@ function pedirClips(g, objetivo, dt) {
       Math.abs(quiero - tengo) < 0.004 ? quiero : tengo + (quiero - tengo) * paso,
     );
   }
-  // El ciclo del propio archivo —el paseo con el que vino— no se usa nunca.
-  if (g.correr) g.correr.setEffectiveWeight(0);
   return alguno;
 }
 
@@ -1326,6 +1383,54 @@ function pasoDeReloj(g, tiempo) {
   if (antes === undefined) return 0.016;
   return Math.max(0, Math.min(0.1, tiempo - antes));
 }
+
+/**
+ * ANDAR, con los pies pegados al suelo.
+ *
+ * El clip del archivo cubre 1,37 m de suelo por ciclo —medido: 0,68 m de
+ * zancada, dos pasos por ciclo, 1,07 s—, así que la cadencia sale de una
+ * división y no de un número elegido:
+ *
+ *     escalaDeTiempo = metrosPorSegundo · duración / 1,37
+ *
+ * Con eso el pie que apoya se queda quieto respecto al asfalto mientras el
+ * personaje avanza, que es la diferencia entre andar y deslizarse. En la
+ * partida esto no sirve —a treinta por hora la cuenta pide cuarenta pasos por
+ * segundo— pero en la cinemática la gente va a paso humano y sí sale.
+ *
+ * @param {number} metrosPorSegundo lo que se está moviendo DE VERDAD
+ */
+export function animarCaminarGLB(modelo, dt, metrosPorSegundo = 1.3) {
+  const g = modelo.userData.glb;
+  if (!g?.acciones?.caminar) return false;
+  const accion = g.acciones.caminar;
+  const clip = accion.getClip();
+  const v = Math.max(0, metrosPorSegundo);
+
+  pedirClips(g, { caminar: 1 }, dt);
+  accion.timeScale = (v * clip.duration) / SUELO_POR_CICLO;
+  g.cuerpo.rotation.set(0, 0, 0);
+  g.cuerpo.position.set(0, 0, 0);
+  g.cuerpo.scale.setScalar(1);
+  g.mezclador.update(dt);
+  menear(dt);
+  return true;
+}
+
+/**
+ * Lo que cubre de suelo un ciclo del paseo del archivo.
+ *
+ * MEDIDO, y del clip ya retargeteado: se reproduce con el personaje quieto y se
+ * mira cuánto viaja la punta del pie de delante atrás. Son 0,77 m por paso, o
+ * sea 1,54 por ciclo. Se había puesto 1,37 —que era la medida del clip ANTES
+ * de pasar por nuestro esqueleto— y la cadencia salía un 12 % rápida.
+ *
+ * De paso, la misma prueba confirma que este clip sí PLANTA el pie: con el
+ * personaje sin moverse, el pie de apoyo llega a 0,00 m/s. El de correr no
+ * baja de 0,89, que es lo que se espera de una carrera —ahí no hay apoyo
+ * quieto, hay contacto y rebote—.
+ */
+const SUELO_POR_CICLO = 1.54;
 
 export function animarCarreraGLB(modelo, dt, velocidad = 20, ciclo = 'correr') {
   const g = modelo.userData.glb;
