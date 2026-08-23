@@ -1051,16 +1051,139 @@ export function esGLB(modelo) {
  * El clip está grabado para una velocidad concreta; se estira o se encoge con
  * la velocidad de la corrida para que los pies no patinen sobre el asfalto.
  */
+// ---------------------------------------------------------------------------
+// LA CARRERA — escrita a mano, y por qué no se usa el clip del archivo
+// ---------------------------------------------------------------------------
+// EL CLIP SE LLAMA `walking_man` Y ES LO QUE DICE: un paseo. Se midió, hueso a
+// hueso, muestreando el ciclo en sesenta posiciones:
+//
+//   zancada (recorrido del pie en Z) ....... 0.68 m
+//   alza del pie ........................... 0.145 m
+//   rebote de la cabeza .................... 0.070 m
+//   ciclo .................................. 1.07 s
+//
+// Eso son 1.37 m de suelo por ciclo. A la escala que se usaba —1.055 a 20 m/s—
+// el personaje «andaba» a 1.35 m/s mientras el mundo pasaba a 20: PATINABA
+// 14,8 VECES. Que pareciera que resbala en vez de correr no era una impresión,
+// era la medida.
+//
+// NO SE ARREGLA IGUALANDO. Para no patinar nada haría falta poner el clip a
+// 15,6x, o sea cuarenta y cinco pasos por segundo: eso no es correr, es un
+// abanico. Y bajar la velocidad del mundo tampoco, porque la velocidad ES el
+// juego.
+//
+// SE INTENTÓ EXAGERAR EL CLIP y no vale. Se extrapolaba cada hueso alejándolo
+// de su reposo con un `slerp` de t mayor que uno. La zancada subía de 0,68 a
+// 1,16 m —bien— pero el pie se alzaba 0,88 m, seis veces lo del clip y no las
+// dos que se pedían: la extrapolación se MULTIPLICA por la cadena de huesos,
+// así que muslo, rodilla y tobillo se componen. Y peor: la pierna salía
+// ESTIRADA en la recogida, con las dos piernas abiertas en un spagat de
+// vallista, porque un paseo casi no dobla la rodilla y extrapolar «casi nada»
+// sigue siendo casi nada. Queda la foto en la prueba de escritorio.
+//
+// ASÍ QUE SE ESCRIBE. Es el mismo ciclo que ya tenían los personajes de cajas
+// —el de `characters.js`, con sus razones— pasado a huesos y subido de tono,
+// porque lo que se pide es un sprint de dibujos animados:
+//
+//   · LA RODILLA SE DOBLA EN LA RECOGIDA, no en el apoyo. El talón sube por
+//     detrás justo después de despegar y la pierna llega estirada al suelo.
+//     Sin eso las piernas son dos palos que abren y cierran, que es justo lo
+//     que hacía la extrapolación.
+//   · LOS CODOS VAN DOBLADOS Y FIJOS cerca de 90°: nadie corre con los brazos
+//     colgando, y de espaldas el braceo es la mitad de lo que se lee.
+//   · EL TRONCO Y LA CADERA GIRAN EN SENTIDOS OPUESTOS. Es el detalle que más
+//     se nota de espaldas, que es como se ve el personaje toda la partida.
+//   · EL REBOTE VA AL DOBLE DE LA ZANCADA —se sube una vez por pie— y la
+//     cabeza llega un pelo tarde. Eso lo pone `menear()`.
+//   · Y EL TRONCO SE INCLINA. Un paseo va erguido; nadie esprinta erguido.
+//
+// Los números van bastante más lejos que los de las cajas —la cadera abre 1,15
+// rad contra 0,95, la rodilla recoge 1,55 contra 1,25— porque ahí el objetivo
+// era un muñeco creíble y aquí es que se lea a ocho metros, de espaldas y con
+// el mundo pasando a treinta por hora.
+
+/** Radianes de fase por segundo. Un ciclo son 2π y dos pasos. */
+const CADENCIA = { LENTA: 9.2, RAPIDA: 13.4, V_LENTA: 15, V_RAPIDA: 32 };
+
+const EJE_Y = new THREE.Vector3(0, 1, 0);   // la torsión del tronco
+
 export function animarCarreraGLB(modelo, dt, velocidad = 20) {
   const g = modelo.userData.glb;
   if (!g) return;
-  g.mezclador.update(dt * (0.62 + velocidad / 46));
-  // EL MENEO VA DESPUÉS DEL MEZCLADOR, siempre.
-  //
-  // El mezclador reescribe la rotación de todos los huesos que el clip toca,
-  // cada fotograma y sin preguntar. Cualquier cosa que se le sume antes se
-  // pierde entera. Llamando aquí —justo detrás— la cabeza y el tronco parten
-  // de la zancada que acaba de escribir el clip y le añaden el retraso.
+  const { huesos } = g;
+
+  // LA CADENCIA SUBE CON LA VELOCIDAD, pero mucho menos que ella: de 2,9 a 4,3
+  // pasos por segundo entre la velocidad de salida y la punta. Igualarla sería
+  // el abanico de arriba; no moverla dejaría al personaje corriendo igual a 15
+  // que a 32, y el jugador nota la aceleración por las piernas antes que por
+  // el marcador.
+  const t = Math.max(0, Math.min(1,
+    (velocidad - CADENCIA.V_LENTA) / (CADENCIA.V_RAPIDA - CADENCIA.V_LENTA)));
+  g.faseCarrera = (g.faseCarrera ?? 0)
+    + dt * (CADENCIA.LENTA + (CADENCIA.RAPIDA - CADENCIA.LENTA) * t);
+  const fase = g.faseCarrera;
+
+  // EL MEZCLADOR NO SE TOCA. Si se le llamara, reescribiría cada fotograma
+  // todos los huesos que el clip toca y se llevaría por delante lo de abajo.
+  // El clip sigue cargado —lo usan el menú y las poses que sí lo quieren— pero
+  // durante la carrera no avanza.
+  orientar(modelo);
+  reposar(huesos);
+
+  for (const lado of ['Left', 'Right']) {
+    const f = fase + (lado === 'Left' ? 0 : Math.PI);
+    const sen = Math.sin(f);
+
+    // CADERA: adelante con el seno. Negativo es hacia adelante.
+    doblar(huesos, `${lado}UpLeg`, -sen * 1.15);
+
+    // RODILLA: dobla al RECOGER, un cuarto de ciclo después del punto más
+    // atrasado. Nunca al revés —una rodilla no se dobla hacia adelante—, de
+    // ahí el max(0, …).
+    const recogida = Math.max(0, Math.sin(f - 0.9));
+    doblar(huesos, `${lado}Leg`, 0.22 + 1.55 * recogida);
+
+    // TOBILLO: empuja al despegar y levanta la punta al llegar al suelo.
+    doblar(huesos, `${lado}Foot`,
+      0.38 * Math.max(0, Math.sin(f - 0.3)) - 0.32 * Math.max(0, -sen));
+
+    // BRAZO CONTRARIO a la pierna de este lado. `bajada` lo saca de la cruz en
+    // la que viene el modelo; el codo se queda doblado todo el ciclo y se
+    // cierra un poco más cuando el brazo va atrás.
+    const otro = lado === 'Left' ? 'Right' : 'Left';
+    brazo(huesos, otro, 1.42, -sen * 1.05,
+      -(0.75 + 0.30 * Math.max(0, sen)));
+  }
+
+  // TORSIÓN: el tronco gira contra la cadera. Se reparte entre los tres Spine
+  // para que no haya un escalón entre la cintura y el pecho.
+  const giro = Math.sin(fase);
+  girar(huesos, 'Spine', EJE_Y, -giro * 0.10);
+  girar(huesos, 'Spine01', EJE_Y, giro * 0.12);
+  girar(huesos, 'Spine02', EJE_Y, giro * 0.10);
+  girar(huesos, 'Head', EJE_Y, -giro * 0.06);
+
+  // INCLINACIÓN hacia adelante, más cuanto más rápido.
+  // LA INCLINACIÓN VA EN `Spine02`, QUE ES LA BASE. En este esqueleto los tres
+  // Spine están numerados al revés de lo que parece: `Spine02` cuelga de la
+  // cadera, `Spine01` va encima y `Spine` es el de arriba, del que salen el
+  // cuello y los hombros. Inclinando `Spine` sólo se echa hacia adelante el
+  // pecho y la cabeza —medido: la cabeza se movía 4,8 cm— y el personaje sale
+  // jorobado en vez de lanzado. Desde la base se inclina el tronco entero.
+  doblar(huesos, 'Spine02', -(0.20 + 0.10 * t));
+  doblar(huesos, 'Spine01', -(0.08 + 0.04 * t));
+  // Y la cabeza deshace la inclinación: mira al frente, no al suelo.
+  doblar(huesos, 'Head', 0.26 + 0.13 * t);
+
+  // REBOTE al doble de la zancada: se sube una vez por pie. Va en `cuerpo` y
+  // no en el grupo del personaje porque el grupo lo mueve el juego —el salto,
+  // el carril— y la sombra de contacto cuelga de él: si rebotara el grupo,
+  // rebotaría la sombra y se despegaría del suelo.
+  g.cuerpo.rotation.x = 0;
+  g.cuerpo.position.set(0, Math.abs(Math.sin(fase)) * (0.05 + 0.03 * t), 0);
+
+  // EL MENEO VA EL ÚLTIMO, siempre. La cabeza y el tronco parten de la zancada
+  // que se acaba de escribir y le añaden el retraso.
   menear(dt);
 }
 
