@@ -605,8 +605,28 @@ export const TRAMITE = {
 // CERCO Y ESCAPE — lo que pasa cuando te atrapan
 // ---------------------------------------------------------------------------
 export const CERCO = {
-  // Duración de la animación de cerco antes de que aparezca la interfaz.
-  DURACION: 1.9,
+  // EL CERCO TIENE DOS TIEMPOS, y separarlos es lo que hace que se entienda.
+  //
+  // Antes era uno solo de 1,9 s: los policías entraban con una curva que los
+  // deja casi puestos a mitad de camino —`1 - (1-t)³` vale 0,9 cuando t vale
+  // 0,54— así que el corro tardaba UN SEGUNDO en cerrarse y el resto de la
+  // escena era gente parada esperando a que saliera la interfaz. Y aun así
+  // daba sensación de prisa, porque el segundo en que sí pasaba algo se lo
+  // comía la cámara: el encuadre del cerco se persigue a 2,4/s, o sea que
+  // tarda ~1,2 s en llegar. Al cerrarse el corro la cámara todavía viajaba, y
+  // lo que se veía era una maniobra a medias desde un punto de vista a medias.
+  //
+  // Ahora la llegada es más larga QUE EL VIAJE DE LA CÁMARA, y detrás va un
+  // tiempo muerto en el que no se mueve nadie:
+  //
+  //   DURACION   los cinco corren y cierran el círculo.
+  //   SOSTENIDO  ya están. La cámara ha llegado, el corro está cerrado, y el
+  //              plano se queda quieto encima. Este es el trozo que dice «te
+  //              rodearon»: sin él, la escena informa de una captura en vez de
+  //              enseñarla. Es también donde se saca la foto del arresto, que
+  //              antes se pedía con el encuadre todavía en movimiento.
+  DURACION: 2.6,
+  SOSTENIDO: 1.4,
   // Cuántos policías cierran el círculo.
   POLICIAS: 5,
 

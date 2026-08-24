@@ -285,6 +285,7 @@ export const GUION = {
     reintentar: { t: 'Volver a investigar', ayuda: 'Botón principal de fin de partida y de la tabla.' },
     menu: { t: 'Ir al menú principal', ayuda: 'Vuelve a la portada.' },
     continuar: { t: 'Toca para continuar', ayuda: 'Avanza entre las pantallas de cierre.' },
+    tocaDonde: { t: 'o toca en cualquier parte de la página', ayuda: 'La coletilla bajo los botones de las páginas que solo se leen.' },
     borrar: { t: 'Borrar progreso', ayuda: 'En Ajustes y en el Archivo.' },
     borrarConfirma: { t: '¿Seguro? Pulsa otra vez', ayuda: 'El mismo botón, tras el primer toque.' },
   },

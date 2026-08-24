@@ -319,6 +319,77 @@ function marcarDesplazables(pantalla) {
   }
 }
 
+/**
+ * TOCAR EN CUALQUIER PARTE PARA PASAR DE PÁGINA.
+ *
+ * Las pantallas que solo cuentan algo —el relato del tramo, la primera plana
+ * del día siguiente, el recuento del botín— tenían un único botón al fondo, y
+ * pedir puntería para un botón que solo puede hacer una cosa es pedir trabajo
+ * por nada. Peor en el móvil: el botón vive abajo del todo, y si la página se
+ * desplaza hay que leer, bajar, y recién ahí apuntar.
+ *
+ * El botón NO se quita, y esto es deliberado: es lo que dice QUÉ pasa al tocar
+ * («Entrar», «Continuar», «Siguiente»). Lo que cambia es que la superficie de
+ * pulsación pasa a ser la hoja entera.
+ *
+ * Tres cosas que hubo que resolver para que no dispare cuando no toca:
+ *
+ * 1. NO ROBA LOS CONTROLES QUE YA HAY. Si el toque cayó sobre un botón, un
+ *    enlace o un campo —o dentro de algo marcado `data-sin-avance`, que es
+ *    como una pestaña o un navegador de páginas se declara intocable— manda
+ *    ese control y aquí no pasa nada. Sin esto, pulsar «Reintentar» en el
+ *    botín disparaba además el «Siguiente».
+ * 2. ARRASTRAR NO ES TOCAR. Estas páginas se desplazan, y un dedo que baja
+ *    para seguir leyendo termina en un `click`. Se compara dónde empezó y
+ *    dónde acabó el gesto: más de diez píxeles y no cuenta.
+ * 3. NI PULSAR DOS VECES. Al pasar de pantalla el avance puede tardar un
+ *    fotograma en desmontar esta, y dos toques seguidos encadenaban dos
+ *    avances. Se cierra con una bandera.
+ *
+ * Y con el teclado, Enter o espacio: el juego se puede jugar entero sin tocar
+ * la pantalla y estas páginas cortan el paso.
+ */
+function tocarParaAvanzar(pantalla, avanzar) {
+  let gastado = false;
+  let desde = null;
+
+  pantalla.addEventListener('pointerdown', (e) => { desde = { x: e.clientX, y: e.clientY }; });
+
+  pantalla.addEventListener('click', (e) => {
+    if (gastado) return;
+    if (e.target.closest('button, a, input, select, textarea, label, [data-sin-avance]')) return;
+    if (desde) {
+      const corrido = Math.hypot(e.clientX - desde.x, e.clientY - desde.y);
+      desde = null;
+      if (corrido > 10) return;
+    }
+    gastado = true;
+    avanzar();
+  });
+
+  const teclado = (e) => {
+    if (gastado) return;
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    // Si el foco está en un control, que lo resuelva el control.
+    if (document.activeElement?.closest('button, a, input, select, textarea')) return;
+    e.preventDefault();
+    gastado = true;
+    avanzar();
+  };
+  window.addEventListener('keydown', teclado);
+  pantalla.addEventListener('pantalla:desmontada',
+    () => window.removeEventListener('keydown', teclado), { once: true });
+}
+
+/**
+ * La coletilla que avisa de lo anterior. Va bajo los botones, en gris y
+ * pequeña: una superficie de pulsación que no se ve no existe, y esto es lo
+ * más barato que la anuncia sin ocupar sitio.
+ */
+function pistaDeToque() {
+  return el('div', 'pista-toque', T('comunes.tocaDonde'));
+}
+
 export class Pantallas {
   constructor(contenedor, juego, cuaderno, audio, actualizador = null) {
     this.contenedor = contenedor;
@@ -885,13 +956,17 @@ export class Pantallas {
       }
     }
 
+    const seguir = () => this.juego.continuarRelato(datos.fase);
+
     const botones = el('div', 'botones');
     botones.appendChild(boton(
       esEntrada ? T('relato.entrar') : T('relato.seguir'),
       'boton--principal',
-      () => this.juego.continuarRelato(datos.fase),
+      seguir,
     ));
+    botones.appendChild(pistaDeToque());
     contenido.appendChild(botones);
+    tocarParaAvanzar(pantalla, seguir);
 
     escalonar(plana);
     return pantalla;
@@ -1426,11 +1501,12 @@ export class Pantallas {
     // remate de la corrida y no puede llevar nada delante; el expediente y la
     // tabla son recuento, y un recuento después de una buena noticia se lee
     // mejor que al revés.
-    botones.appendChild(boton(T('comunes.continuar'), 'boton--principal',
-      () => this.mostrar(this.conHallazgos(datos, () => ((datos.pruebas?.length)
-        ? this.botin(datos)
-        : this.deportes(datos))))));
+    const pasarDeHoja = () => this.mostrar(this.conHallazgos(datos,
+      () => ((datos.pruebas?.length) ? this.botin(datos) : this.deportes(datos))));
+    botones.appendChild(boton(T('comunes.continuar'), 'boton--principal', pasarDeHoja));
+    botones.appendChild(pistaDeToque());
     contenido.appendChild(botones);
+    tocarParaAvanzar(pantalla, pasarDeHoja);
 
     escalonar(contenido);
 
@@ -2016,16 +2092,24 @@ export class Pantallas {
     // nada: era una pantalla más entre perder y volver a jugar.
     const ascenso = hayAscenso(datos.marcasPrevias, this.cuaderno);
 
+    const siguiente = () => (ascenso
+      ? this.mostrar(this.deportes({ ...datos, ascenso }))
+      : this.juego.volverAlMenu());
+
     const botones = el('div', 'pruebas__botones');
     botones.appendChild(boton(T('botin.siguiente'), 'boton--diario boton--diario-principal',
-      () => (ascenso
-        ? this.mostrar(this.deportes({ ...datos, ascenso }))
-        : this.juego.volverAlMenu())));
+      siguiente));
     botones.appendChild(boton(T('comunes.reintentar'), 'boton--diario',
       () => this.juego.iniciarPartida()));
     hoja.appendChild(botones);
+    hoja.appendChild(pistaDeToque());
 
     contenido.appendChild(hoja);
+    // El toque en cualquier parte hace lo del botón PRINCIPAL, o sea pasar de
+    // hoja. «Volver a investigar» sigue pidiendo su pulsación: empezar una
+    // partida por rozar la pantalla mientras se lee el recuento es justo lo
+    // contrario de lo que se quiere.
+    tocarParaAvanzar(pantalla, siguiente);
     return pantalla;
   }
 

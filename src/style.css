@@ -1149,6 +1149,27 @@ html, body {
   margin: 14px 0 0;
 }
 
+/* LA COLETILLA DEL TOQUE.
+
+   Las páginas que solo se leen —el relato del tramo, la primera plana, el
+   recuento del botín— avanzan tocando en cualquier sitio, no solo en el botón.
+   Una superficie de pulsación que no se ve no existe, así que se anuncia; y se
+   anuncia en pequeño y en gris, porque el que manda sigue siendo el botón: es
+   el que dice QUÉ pasa al tocar.
+
+   Tamaño y color del tema, no números sueltos. */
+.pista-toque {
+  margin-top: 6px;
+  text-align: center;
+  font-family: var(--sans);
+  font-size: var(--mal-t-mini);
+  letter-spacing: .02em;
+  color: var(--mal-on-surface-3);
+  opacity: .6;
+  /* Es un rótulo, no un control: que no se coma el toque que anuncia. */
+  pointer-events: none;
+}
+
 /* EL BOTÓN, componente `Button` de la maqueta.
 
    Aquí ponía «los botones son RECTOS ... nada de esquinas: es un periódico, no

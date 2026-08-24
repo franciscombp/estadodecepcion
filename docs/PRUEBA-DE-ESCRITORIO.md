@@ -69,24 +69,25 @@ de edición diga qué versión corre y si está guardada para jugar sin conexió
 
 ### §3 · La entrevista (cinemática de arranque)
 
-`src/game/Intro.js`. Cinco fases, **5,9 s** la primera vez:
+`src/game/Intro.js`. Cinco fases, **9,6 s** la primera vez:
 
 | Fase | s | Qué pasa |
 |---|---|---|
-| entrevista | 1,6 | Estás preguntándole a un ministro. Cámara cerca y de lado |
-| rescate | 1,2 | Llegan los dos y se lo llevan. Sin forcejeo |
-| **pared** | **1,0** | Sigues con el micrófono en alto y delante **no hay nadie** |
-| retroceso | 1,4 | La cámara se va a su sitio y descubre que los tienes detrás |
+| entrevista | 2,5 | Estás preguntándole a un ministro. Cámara cerca y de lado |
+| llegada | 2,8 | Roy y el suyo aparecen por el primer término y **se acercan andando**. La cámara abre el plano para que quepan |
+| **huida** | **1,6** | El entrevistado los ve y **sale corriendo**. Los otros dos siguen andando. La cámara no se mueve |
+| arranque | 2,0 | Sales detrás de él. La cámara vuelve a su sitio y los dos echan a correr |
 | caballito | 0,7 | El bajito se sube al grande |
 
-Quien ya la vio la ve **abreviada** (1,85 s en total), y la pared se acorta pero
+Quien ya la vio la ve **abreviada** (3,7 s en total), y la huida se acorta pero
 no se quita: es la fase que explica por qué corres.
 
 Se salta tocando la pantalla.
 
-**A comprobar:** que la fase «pared» se lea como un silencio y no como un tirón,
-y que el ministro no sea reconocible como nadie —traje genérico, corbata roja,
-pin sin identificar.
+**A comprobar:** que se lea que el entrevistado huye **de los que llegan** y no
+de ti; que los tres acaben corriendo en la misma dirección; que la fase «huida»
+se lea como un silencio y no como un tirón; y que el ministro no sea
+reconocible como nadie —traje genérico, corbata roja, pin sin identificar.
 
 ### §4 · El primer tramo — 850 metros
 
@@ -1995,6 +1996,137 @@ el ancho entero.
 
 Y seis casillas en una fila daban sesenta píxeles cada una: «Botas de campo»
 salía en tres líneas de cuatro letras. En rejilla de tres caben ciento diez.
+
+### 6.39 · La cinemática contaba un secuestro y el juego es una persecución
+
+Se pidió reescribirla: *«están en la entrevista, Roy y el ministro se acercan
+caminando, ese rato huye el entrevistado y le sigue el personaje jugable, y ahí
+los persiguen Roy y el ministro»*.
+
+Lo que había contaba otra cosa. Los dos llegaban y **se llevaban** al
+entrevistado, y luego venía un plano largo del periodista con el micrófono
+extendido hacia un sitio vacío. Esa frase —«me dejaron hablando con la pared»—
+explicaba el enfado y no explicaba la mecánica: si al tipo se lo llevaron en
+volandas, ¿a quién persigues tú, y por qué te persiguen a ti? La cinemática
+terminaba y el juego empezaba a contar algo distinto.
+
+Ahora la carrera sale del propio plano: el entrevistado huye por su cuenta —de
+los que se acercan, no de ti—, tú sales detrás porque tu entrevista se está
+yendo, y los otros dos salen detrás de ti. Los tres corren en la misma
+dirección y por motivos distintos.
+
+**En este cuadro no caben cuatro personas**, y esa fue la medida que obligó a
+mover la cámara. Se barrió el suelo entero —4,2 × 9 m, paso de 10 cm— buscando
+un sitio donde los dos que llegan salieran enteros en cuadro, a más de 3,2 m de
+la cámara, entre el 26 % y el 52 % del alto, sin tapar al entrevistado y
+comiéndose menos de la mitad del periodista.
+
+**Cero candidatos.** El cuadro es vertical y estrecho (393×852, FOV 56) y a la
+profundidad de la entrevista el borde derecho del encuadre cae en x ≈ 0,86 m:
+cualquiera que se acerque por la derecha o se sale del cuadro o se pone delante
+del periodista. No es que el sitio estuviera mal elegido; es que no existía.
+
+Así que **la cámara abre mientras ellos llegan**: retrocede dos metros sobre su
+propio eje, sube ochenta centímetros y panea la mira de −0,75 a +0,4. Barriendo
+cámara y destino a la vez, el mejor resultado deja a los cuatro en fila en el
+último fotograma de la llegada:
+
+| Quién | NDC horizontal | Alto de cuadro |
+|---|---|---|
+| entrevistado | −0,92 … −0,46 | 20 % |
+| periodista | −0,39 … 0,02 | 20 % |
+| Roy | −0,09 … 0,61 | 36 % |
+| el grande | 0,28 … 0,89 | 31 % |
+
+El entrevistado sin tapar, y el periodista comido en un 27 % por su lado
+derecho, que es el lado donde no está el micrófono.
+
+**Y las duraciones salen de los metros, no del ritmo**, que es la lección que ya
+había dejado §6.30. Los que llegan recorren 3,18 m; metidos en los 2,8 s de su
+fase salen a 1,14 m/s, que está bien, pero entonces **se paran en seco** justo
+cuando el otro sale corriendo, y un frenazo ahí dice «ya llegamos, ya está».
+Repartido entre la llegada y la huida son 4,4 s a 0,72 m/s y el paso no se
+interrumpe: siguen viniendo mientras el otro huye. El que huye hace 16,5 m en
+3,6 s con un solo reloj y una curva que solo acelera —de cero a 6,2 m/s—, y el
+recorrido entero cae dentro del cuadro: pasa del 20 % al 8 % del alto, así que
+se le ve marcharse en vez de desaparecer por un borde.
+
+La secuencia entera pasa de 14 a **9,6 s**. No se acortó por ritmo: el relato
+nuevo no tiene la ida y vuelta del viejo —llegar, llevárselo, retirarse— sino
+una sola dirección.
+
+### 6.40 · La captura se resolvía antes de que llegara la cámara
+
+Se pidió *«dejarlo un poco más de tiempo para que se vea que lo rodean»*.
+
+El cerco duraba 1,9 s de una pieza, y dentro de esos 1,9 s pasaban dos cosas
+descompasadas:
+
+- Los policías entran con `1 - (1-t)³`, una curva que los deja **casi puestos a
+  mitad de camino**: vale 0,9 cuando *t* vale 0,54. O sea que el corro se
+  cerraba en un segundo y el resto de la escena era gente parada esperando a
+  que saliera la interfaz.
+- Y aun así daba sensación de prisa, porque el segundo en que sí pasaba algo se
+  lo comía la cámara: el encuadre del cerco se persigue a 2,4/s, o sea que
+  tarda del orden de 1,2 s en llegar. **Al cerrarse el corro la cámara todavía
+  viajaba**, y lo que se veía era una maniobra a medias desde un punto de vista
+  a medias.
+
+Ahora son dos tiempos con nombre: `DURACION` (2,6 s) es lo que tardan en
+llegar —más que el viaje de la cámara, a propósito— y `SOSTENIDO` (1,4 s) es lo
+que se quedan puestos, con el plano quieto encima. Ese segundo trozo es el que
+dice «te rodearon»; sin él la escena informa de una captura en vez de
+enseñarla.
+
+Tres cosas se movieron con el cambio, y las tres por el mismo motivo —había
+código mirando el progreso TOTAL cuando lo que le importaba era el CIERRE—:
+
+- El trote y el ciclo de carrera de los policías (`t < 0.85`) caían dentro del
+  sostenido y los dejaban botando después de haber llegado.
+- Los perseguidores se abalanzan con `cercar()`, que ahora recibe el cierre: con
+  el total llegaban a cámara lenta y aterrizaban cuando los policías llevaban ya
+  un segundo puestos.
+- **La foto del arresto** se pedía a 0,96 del cerco viejo, o sea con el encuadre
+  todavía en tránsito. Ahora sale del sostenido, cuando la cámara lleva rato
+  parada.
+
+Y ya puestos, el corro **aprieta un 7 %** a lo largo del sostenido. Un corro
+perfectamente inmóvil se lee como decorado; ese apretón mínimo lo convierte en
+gente que sigue encima de ti, y no cuesta ni una figura ni una animación más:
+es la misma elipse un poco más chica.
+
+### 6.41 · Había que apuntarle a un botón que solo podía hacer una cosa
+
+Se pidió que en las páginas informativas bastara tocar en cualquier parte.
+
+Son tres —el relato del tramo, la primera plana del día siguiente y el recuento
+del botín— y las tres tenían un único botón al fondo. Pedir puntería para eso es
+pedir trabajo por nada, y en el móvil es peor: el botón vive abajo del todo, así
+que hay que leer, bajar y recién ahí apuntar.
+
+**El botón no se quita**, y eso es deliberado: es lo que dice QUÉ pasa al tocar
+(«Entrar», «Continuar», «Siguiente»). Lo que cambia es que la superficie de
+pulsación pasa a ser la hoja entera, con una coletilla en gris que lo anuncia —
+una superficie de pulsación que no se ve no existe—.
+
+Tres cosas hubo que resolver para que no dispare cuando no toca:
+
+1. **No robar los controles que ya hay.** Si el toque cayó sobre un botón, un
+   enlace o un campo —o dentro de algo marcado `data-sin-avance`—, manda ese
+   control. Sin esto, pulsar «Volver a investigar» en el botín disparaba además
+   el «Siguiente».
+2. **Arrastrar no es tocar.** Estas páginas se desplazan, y un dedo que baja
+   para seguir leyendo termina en un `click`. Se compara dónde empezó y dónde
+   acabó el gesto: más de diez píxeles y no cuenta.
+3. **Ni pulsar dos veces.** El avance puede tardar un fotograma en desmontar la
+   pantalla, y dos toques seguidos encadenaban dos avances.
+
+En el botín el toque hace lo del botón **principal** —pasar de hoja— y nunca lo
+del secundario: empezar una partida por rozar la pantalla mientras se lee el
+recuento es justo lo contrario de lo que se quiere. Por el mismo motivo la tabla
+de posiciones se queda fuera: ahí el botón principal es «volver a investigar»,
+que no es avanzar. Y el sorteo del juez también, porque ahí el toque **es** la
+mecánica.
 
 ---
 

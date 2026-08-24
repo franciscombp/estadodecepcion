@@ -2048,16 +2048,22 @@ export class Game {
     }
 
     const t = this.cerco.actualizar(dt);
-    // Los perseguidores se abalanzan al mismo ritmo que el cerco se cierra.
-    this.perseguidor.cercar(t, dt);
+    // Los perseguidores se abalanzan al ritmo del CIERRE, no del total: desde
+    // que el cerco tiene un tiempo muerto detrás (ver CERCO.SOSTENIDO), pasar
+    // el progreso entero los dejaba llegando a cámara lenta y aterrizando
+    // encima del jugador cuando los policías llevaban ya un segundo puestos.
+    this.perseguidor.cercar(this.cerco.cierre, dt);
     this.escenario?.actualizar(dt, 0, this.jugador, this.velocidad);
 
-    // La foto se pide AL FINAL DEL TODO, con el círculo cerrado y la cámara
-    // ya parada en su sitio. Se pedía a 0.82 y salía movida: a esa altura el
-    // encuadre todavía viaja hacia su posición —el lerp de la cámara tarda lo
-    // suyo— y lo que se imprimía al día siguiente era un fotograma de tránsito
-    // con los policías a medio llegar.
-    if (t > 0.96 && !this.fotoArresto && !this._pedidoDeFoto) {
+    // La foto se pide DENTRO DEL SOSTENIDO, con el círculo ya cerrado y la
+    // cámara parada. Se pedía a 0.82 del cerco viejo y salía movida: a esa
+    // altura el encuadre todavía viajaba —se persigue a 2,4/s, o sea más de un
+    // segundo— y lo que se imprimía al día siguiente era un fotograma de
+    // tránsito con los policías a medio llegar. Ahora hay un trozo entero de
+    // escena en el que no se mueve nada, y la foto sale de ahí: en cuanto el
+    // sostenido lleva un cuarto de su recorrido, que son ~0,35 s de sobra
+    // después de que la cámara haya llegado.
+    if (this.cerco.quieto > 0.25 && !this.fotoArresto && !this._pedidoDeFoto) {
       this._pedidoDeFoto = true;
     }
 

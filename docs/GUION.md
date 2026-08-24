@@ -117,30 +117,40 @@ Antes de la primera zancada:
 1. **La entrevista.** Estás de pie, con el micrófono extendido, preguntándole a
    un ministro de los acusados. La cámara está cerca y de lado, para que se lea
    el gesto: no estás corriendo, estás trabajando.
-2. **El rescate.** Llegan los dos calle arriba y se lo llevan. No hay forcejeo:
-   el ministro se va con ellos como quien se acuerda de otra reunión, que es
-   exactamente lo que pasa.
-3. **La pared.** Sigues con el micrófono en alto y delante ya no hay nadie. Ni
-   el ministro ni los que se lo llevaron. La cámara no se mueve.
-4. **El retroceso.** La cámara se aleja hasta su posición de juego y, al
-   hacerlo, descubre que ahora los tienes detrás.
+2. **La llegada.** Roy y el suyo aparecen por el primer término, por la derecha,
+   y **se acercan andando**. No corren ni gritan: se acercan. Mientras lo hacen,
+   la cámara abre el plano para hacerles sitio.
+3. **La huida.** El entrevistado los ve venir y sale por piernas calle arriba.
+   Los otros dos siguen acercándose al mismo paso, sin inmutarse. Tú te quedas
+   con el micrófono en alto y la cámara **no se mueve**.
+4. **El arranque.** Sales detrás de él —es tu entrevista la que se está yendo—,
+   la cámara retrocede a su sitio de juego, y los dos que venían andando echan a
+   correr detrás de ti.
 5. **El caballito.** El bajito se sube al grande.
 6. Arranca la carrera.
 
-**La fase 3 es el chiste entero.** La cinemática podría acabar en el rescate y
-se entendería igual de bien; lo que no se entendería es *por qué corres*. El
-segundo largo en que sigues preguntándole a un sitio donde ya no hay nadie es
-lo que convierte «me interrumpieron» en «me dejaron hablando con la pared», y
-de ahí sale todo lo demás: el juego es lo que haces después de que te dejen
-hablando solo.
+**La fase 3 es el chiste entero**, y sigue siéndolo después de reescribir la
+secuencia. Antes los dos llegaban y *se llevaban* al entrevistado, y venía un
+plano largo del periodista preguntándole a un sitio donde ya no había nadie:
+«me dejaron hablando con la pared». Estaba bien contado y explicaba el enfado,
+pero no explicaba la mecánica —si al tipo se lo llevaron en volandas, ¿a quién
+persigues tú, y por qué te persiguen a ti?—.
+
+Ahora la carrera sale del propio plano. El entrevistado huye por su cuenta, de
+los que se acercan y no de ti; tú sales detrás porque tu entrevista se está
+yendo; y los otros dos salen detrás de ti. **Los tres corren en la misma
+dirección y por motivos distintos**, que es exactamente la partida: tú
+persigues una respuesta y a ti te persigue el Estado. El plano de quedarse solo
+no se pierde, se mueve: ahora al final del micrófono hay alguien alejándose, y
+esa es una frase que se puede correr.
 
 El ministro **no es un retrato**. Traje genérico, corbata roja y un pin de
 solapa que no dice de qué es —y ese es el chiste—. Se satiriza el cargo y la
 maniobra, nunca una cara.
 
-Dura poco menos de seis segundos y se puede saltar tocando la pantalla. Solo se
-ve entera en las primeras partidas: quien ya la vio la ve abreviada, y la
-pared se acorta pero **no se quita**, porque es la fase que explica el juego.
+Dura nueve segundos y medio y se puede saltar tocando la pantalla. Solo se ve
+entera en las primeras partidas: quien ya la vio la ve abreviada, y la huida se
+acorta pero **no se quita**, porque es la fase que explica el juego.
 
 **La portada del menú es esta misma entrevista**, congelada en la fase 1 y con
 una deriva lenta de cámara. El ministro también está ahí: una entrevista sin

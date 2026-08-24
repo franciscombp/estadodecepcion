@@ -34,6 +34,9 @@ export class Cerco {
 
     this.activo = false;
     this.tiempo = 0;
+    // Progreso del cierre y del sostenido, por separado. Ver actualizar().
+    this.cierre = 0;
+    this.quieto = 0;
   }
 
   /** Arranca el cerco alrededor de la posición lateral del jugador. */
@@ -47,23 +50,41 @@ export class Cerco {
 
   /**
    * @param {number} dt
-   * @returns {number} Progreso 0..1 del cerco
+   * @returns {number} Progreso 0..1 de la ESCENA entera (cierre + sostenido).
+   *   El cierre por separado queda en `this.cierre`, y eso es lo que hay que
+   *   mirar para todo lo que tenga que pasar cuando el corro LLEGA: los
+   *   perseguidores se abalanzan con el cierre, no con el total.
    */
   actualizar(dt) {
     if (!this.activo) return 0;
 
     this.tiempo += dt;
-    const t = Math.min(1, this.tiempo / CERCO.DURACION);
+    const total = CERCO.DURACION + CERCO.SOSTENIDO;
+
+    // CIERRE: lo que tardan en llegar. QUIETO: lo que llevan ya puestos.
+    const t = Math.min(1, this.tiempo / total);
+    const cierre = Math.min(1, this.tiempo / CERCO.DURACION);
+    const quieto = Math.min(1, Math.max(0,
+      (this.tiempo - CERCO.DURACION) / Math.max(0.001, CERCO.SOSTENIDO)));
+    this.cierre = cierre;
+    this.quieto = quieto;
 
     // Curva de entrada: llegan rápido y frenan al final. Un acercamiento
     // lineal se lee como una animación; este se lee como gente corriendo.
-    const avance = 1 - Math.pow(1 - t, 3);
+    const avance = 1 - Math.pow(1 - cierre, 3);
+
+    // …Y UNA VEZ PUESTOS, APRIETAN. Un 7 % de la elipse, repartido a lo largo
+    // del sostenido. Un corro perfectamente inmóvil se lee como decorado; ese
+    // apretón mínimo es lo que lo convierte en gente que sigue encima de ti,
+    // y no cuesta una figura más ni una animación nueva: es la misma elipse
+    // un poco más chica.
+    const aprieta = 0.07 * (quieto * quieto * (3 - 2 * quieto));
 
     this.policias.forEach((policia, i) => {
       // Se reparten en un arco por DELANTE y a los lados. La espalda se deja
       // libre a propósito: ahí están Noboa y Reimberg, que llegan por su lado.
       const angulo = -Math.PI * 0.72 + (i / (CERCO.POLICIAS - 1)) * Math.PI * 1.44;
-      const abre = 1.9 - avance;
+      const abre = 1.9 - avance - aprieta;
 
       // Elipse: estrecha a lo ancho de la calle y honda a lo largo. Ver
       // CERCO.RADIO_X / RADIO_Z, que explica por qué no es un círculo.
@@ -84,8 +105,10 @@ export class Cerco {
       //   corro de cinco no se notaba porque cuatro estaban fuera de cuadro.
       policia.rotation.y = Math.atan2(-policia.position.x, -policia.position.z);
 
-      // Trote hasta que se plantan.
-      const trote = t < 0.85 ? Math.abs(Math.sin(this.tiempo * 9 + i)) * 0.09 : 0;
+      // Trote hasta que se plantan. Contra el CIERRE, no contra el total: con
+      // el total, el umbral de 0.85 caía dentro del sostenido y los dejaba
+      // botando un rato después de haber llegado.
+      const trote = cierre < 0.85 ? Math.abs(Math.sin(this.tiempo * 9 + i)) * 0.09 : 0;
       policia.position.y = trote;
 
       // EL DEL ARCHIVO CORRE DE VERDAD. El de cajas se apañaba con el rebote
@@ -96,7 +119,7 @@ export class Cerco {
       // respira despacio y ya está. Un policía plantado y perfectamente
       // inmóvil se lee como un maniquí, y lo que tiene que dar es cerco.
       if (esGLB(policia)) {
-        if (t < 0.85) animarCarreraGLB(policia, dt, 14);
+        if (cierre < 0.85) animarCarreraGLB(policia, dt, 14);
         else poseMinistroGLB(policia, this.tiempo, 1);
       }
     });
@@ -107,6 +130,8 @@ export class Cerco {
   limpiar() {
     this.activo = false;
     this.tiempo = 0;
+    this.cierre = 0;
+    this.quieto = 0;
     this.grupo.visible = false;
   }
 }

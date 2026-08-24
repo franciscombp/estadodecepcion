@@ -5,17 +5,28 @@
 // empieza contigo haciendo tu trabajo, y la carrera es la consecuencia.
 //
 //   1. ENTREVISTA   Estás preguntándole a un ministro. Cámara cerca, de lado.
-//   2. RESCATE      Aparecen los dos por detrás y se lo llevan.
-//   3. LA PARED     Te quedas con el micrófono en alto y nadie delante.
-//   4. RETROCESO    La cámara se aleja hasta su posición de juego.
+//   2. LLEGADA      Roy y el suyo aparecen por el primer término y se acercan
+//                   ANDANDO. Nadie corre todavía: solo se están acercando.
+//   3. HUIDA        El entrevistado los ve venir y sale por piernas.
+//   4. ARRANQUE     Sales detrás de él. La cámara retrocede a su sitio de
+//                   juego y los dos que venían andando se ponen a correr.
 //   5. CABALLITO    El bajito se sube al grande.
-//   6. ARRANQUE     Se sueltan los controles y empieza la corrida.
 //
-// LA FASE 3 ES EL CHISTE ENTERO. La cinemática podría acabar en el rescate y
-// se entendería igual de bien; lo que no se entendería es POR QUÉ corres. El
-// segundo largo en que sigues con el micrófono extendido hacia un sitio donde
-// ya no hay nadie es lo que convierte "me interrumpieron" en "me dejaron
-// hablando con la pared", y de ahí sale todo lo demás.
+// EL RELATO CAMBIÓ, Y CAMBIÓ POR LO QUE SE ENTENDÍA. Antes los dos llegaban y
+// se LLEVABAN al entrevistado, y luego venía un plano largo del periodista con
+// el micrófono extendido hacia un sitio donde ya no había nadie. La frase
+// «hablando con la pared» estaba bien contada y explicaba el enfado, pero no
+// explicaba la mecánica: si al entrevistado se lo llevaron en volandas, ¿a
+// quién persigues tú, y por qué te persiguen a ti?
+//
+// Ahora la carrera SALE DEL PROPIO PLANO. El entrevistado huye por su cuenta
+// —de los que se acercan, no de ti—, tú sales detrás porque es tu entrevista
+// la que se está yendo, y los otros dos salen detrás de ti. Los tres corren en
+// la misma dirección y por motivos distintos, que es exactamente la partida:
+// tú persigues una respuesta y a ti te persigue el Estado.
+//
+// El plano de quedarse solo no se pierde, se mueve: es la fase 3, con la
+// diferencia de que ahora al final del micrófono hay alguien alejándose.
 //
 // SE PUEDE SALTAR, y esto no es negociable: son cuatro segundos, y cuatro
 // segundos repetidos treinta veces son dos minutos mirando lo mismo. Un toque
@@ -30,40 +41,47 @@ import * as THREE from 'three';
 import { material } from '../utils/materiales.js';
 import { CAMARA, PERSEGUIDOR } from '../config/balance.js';
 import { crearMinistro, animarPerseguidores } from '../models/characters.js';
-import { esGLB, poseEntrevistaGLB, poseMinistroGLB, animarCaminarGLB } from '../models/personajeGLB.js';
+import {
+  esGLB, poseEntrevistaGLB, poseMinistroGLB, animarCaminarGLB, animarCarreraGLB,
+} from '../models/personajeGLB.js';
 
 // Guiones de la secuencia, en segundos.
 //
-// SE ALARGARON PARA QUE LA GENTE PUDIERA ANDAR, y no es una preferencia de
-// ritmo: es aritmética. Los que llegan a llevarse al entrevistado recorren 8
-// metros, y con `rescate` en 1,2 s la llegada duraba 0,54 s — o sea que se
-// movían a CATORCE METROS POR SEGUNDO, tres veces más rápido que un velocista.
-// A esa velocidad no hay ciclo de piernas que valga: cualquier animación se ve
-// deslizarse, porque el cuerpo viaja mucho más de lo que da la zancada.
-// Medido antes de tocar nada: el entrevistado se iba a 10,7 m/s y su pie, en
-// el punto más lento de cada paso, seguía moviéndose al 55 % de esa velocidad.
+// LAS DURACIONES SALEN DE LOS METROS, no del ritmo. Es la lección que dejó la
+// versión anterior: con la fase de llegada en 1,2 s, los que entraban recorrían
+// 8 metros en 0,54 s, o sea CATORCE METROS POR SEGUNDO —tres veces un
+// velocista—. A esa velocidad no hay ciclo de piernas que valga: cualquier
+// animación se ve deslizarse, porque el cuerpo viaja mucho más de lo que da la
+// zancada. Medido entonces: el entrevistado se iba a 10,7 m/s y su pie, en el
+// punto más lento de cada paso, seguía moviéndose al 55 % de esa velocidad.
+// Así que primero se decide a qué velocidad va cada uno, y de ahí sale el
+// número de segundos.
 //
-// Ahora la llegada son 8 m en 3,2 s (2,5 m/s: se dan prisa, pero andando) y la
-// retirada 6 m en 3,9 s (1,6 m/s: un paseo). La cinemática pasa de 5,9 a 14
-// segundos, y la primera vez eso es lo que se quiere: es la escena que explica
-// de qué va el juego.
+// Ahora los dos que llegan recorren 3,18 m repartidos entre `llegada` y
+// `huida` —4,4 s, o sea 0,72 m/s— que es el paso de quien se acerca sin
+// prisa porque sabe que no hace falta correr. Y el que huye hace 16,5 m en
+// 3,6 s, acelerando de cero a 6,2 m/s: eso sí es correr.
+//
+// La cinemática pasa de 14 a 9,6 segundos. No se acortó por ritmo: se acortó
+// porque el relato nuevo no tiene la ida y vuelta que tenía el viejo —llegar,
+// llevárselo, retirarse— sino una sola dirección.
 const COMPLETA = {
   entrevista: 2.5,
-  rescate: 7.0,
-  pared: 2.0,
-  retroceso: 1.8,
+  llegada: 2.8,
+  huida: 1.6,
+  arranque: 2.0,
   caballito: 0.7,
 };
 
 // Versión corta para quien ya la vio: el mismo relato, en poco más de un
-// tercio. La pared se acorta pero NO se quita: es la fase que explica el juego.
-// Aquí sí se anda más rápido de lo humano, y se acepta: quien la ve es alguien
-// que ya vio la larga y lo que quiere es jugar.
+// tercio. La huida NO se quita: es la fase que explica por qué corres. Aquí sí
+// se anda y se corre más rápido de lo humano, y se acepta: quien la ve es
+// alguien que ya vio la larga y lo que quiere es jugar.
 const ABREVIADA = {
   entrevista: 0.9,
-  rescate: 2.4,
-  pared: 0.7,
-  retroceso: 0.7,
+  llegada: 1.1,
+  huida: 0.6,
+  arranque: 0.8,
   caballito: 0.3,
 };
 
@@ -90,66 +108,82 @@ const SITIO_MINISTRO = { x: -1.05, y: 0, z: 0.48 };
 // y algo por delante, y desde ahí el sitio de carrera cae fuera de cuadro —a
 // la espalda del objetivo— o encima del periodista, según la distancia.
 //
-// Estos dos puntos están calculados contra CAMARA_ENTREVISTA midiendo la caja
-// del modelo proyectada a NDC. Si se toca la cámara de la entrevista, hay que
-// recalcularlos: no son posiciones cualesquiera, son las que caen en cuadro.
+// ENTRAN POR LA ESQUINA DE ABAJO A LA DERECHA, o sea por el primer término.
+// Se barrió el suelo entero en su día buscando un punto que cumpliera tres
+// cosas a la vez: la caja entera fuera de cuadro, a más de metro y medio del
+// plano de la cámara, y pegada al borde para entrar enseguida. Llegar calle
+// arriba —que fue lo primero que se probó— los dejaba entre el 6,7 % y el
+// 10,6 % del alto del cuadro: no es que se entendiera mal de dónde salían, es
+// que no se veía que saliera nadie.
 //
-// VIENEN DEL PRIMER TÉRMINO, y esto es un cambio de plano entero.
-//
-// Antes llegaban calle arriba, desde (-3.2, -14). Medido en pantalla, durante
-// los siete segundos de la fase ocupaban entre el 6,7 % y el 10,6 % del alto
-// del cuadro, y la mitad del cuerpo se les iba por el borde derecho (el lado
-// derecho de su caja llegaba a NDC 1,18, o sea fuera). Eran una mancha en la
-// esquina de arriba a la derecha: no es que se entendiera mal de dónde salían,
-// es que no se veía que saliera nadie.
-//
-// Sobre el eje de la cámara no se puede: se midió el eje entero sobre el suelo
-// —va por (0.49k, 0.86k)— y la pareja pasa del 39 % de alto de cuadro en k=2 al
-// 233 % en k=6, pero en ningún punto se sale por abajo. Con la cámara a 2,3 m
-// y mirando casi horizontal, la cabeza de alguien de 1,8 m se queda pegada al
-// centro del cuadro por cerca que esté; a k=6.5 ya corta el plano cercano y lo
-// que se dibuja es el interior del personaje.
-//
-// Así que entran POR LA ESQUINA DE ABAJO A LA DERECHA, que es lo mismo contado
-// de otra manera. Se barrió el suelo entero buscando el punto que cumpliera
-// tres cosas a la vez: la caja entera fuera de cuadro, a más de metro y medio
-// del plano de la cámara, y pegada al borde para entrar enseguida. (3.5, 2.6)
-// da NDC horizontal 1.36..4.97 —fuera por la derecha—, los pies en -1.83
-// —fuera por abajo—, 95 % de alto de cuadro y 3,9 m de cámara. O sea: aparecen
-// del tamaño del plano, en el borde, y encogen mientras cruzan.
-const SITIO_APARICION = { x: 3.5, z: 2.6 };
+// (5.6, 3.2) queda a 4,2 m de la cámara de entrevista y muy fuera por la
+// derecha. Desde ahí caminan 3,18 m hasta el sitio de llegada, que es un
+// paseo de 4,4 segundos: los dos primeros de la fase de llegada y todo el
+// tiempo que dura la huida. Siguen andando mientras el otro sale corriendo, y
+// eso es a propósito —ver la cabecera—.
+const SITIO_APARICION = { x: 5.6, z: 3.2 };
 
-// Dónde acaba la llegada: encima del entrevistado, un poco por detrás.
+// Y dónde se paran: al lado de la entrevista, en el término medio.
 //
-// A su izquierda de pantalla no cabe: el cuadro es vertical y estrecho (FOV 38
-// en un 393×852), y un metro a -X ya se sale por el borde. Plantados detrás de
-// él, en cambio, la pareja cae en NDC -0.9..0.2 —dentro— y él se queda en su
-// mismo sitio de pantalla, que es lo que hace que se lea que se lo llevan A ÉL
-// y no que la escena se ha reorganizado.
+// AQUÍ NO CABÍAN CUATRO PERSONAS, y esa fue la medida que obligó a mover la
+// cámara. Se barrió el suelo entero (4,2 × 9 m, paso de 10 cm) buscando un
+// sitio donde los dos que llegan salieran enteros en cuadro, a más de 3,2 m de
+// la cámara, entre el 26 % y el 52 % del alto, sin tapar al entrevistado y
+// comiéndose menos de la mitad del periodista. CERO candidatos. El cuadro es
+// vertical y estrecho —393×852 con FOV 56— y a la profundidad de la entrevista
+// el borde derecho del encuadre cae en x ≈ 0,86 m: cualquiera que se acerque
+// por la derecha o se sale del cuadro o se pone delante del periodista.
 //
-// De paso, el camino de un punto al otro pasa por delante de la periodista a
-// mitad de recorrido: un cuerpo que barre el cuadro. No es un accidente que
-// haya que corregir, es el momento en que se lleva el plano.
-const SITIO_RESCATE = { x: -1.5, z: -0.3 };
+// Así que la cámara ABRE mientras ellos llegan (ver CAMARA_LLEGADA), y con el
+// plano abierto sí hay sitio. Barriendo cámara y destino a la vez, el mejor
+// resultado es este: en el último fotograma de la llegada los cuatro salen en
+// fila de izquierda a derecha —entrevistado en −0,92..−0,46, periodista en
+// −0,39..0,02, Roy en −0,09..0,61 y el grande en 0,28..0,89— con el
+// entrevistado sin tapar y el periodista comido en un 27 % por su lado
+// derecho, que es el lado donde no está el micrófono.
+const SITIO_LLEGADA = { x: 2.5, z: 2.5 };
 
-// Por dónde se van: calle arriba, al fondo.
+// A dónde huye el entrevistado: calle arriba, 16,5 metros.
 //
-// No es desandar el camino: han entrado por delante y salen por detrás, sin
-// darse la vuelta. Se van hacia -Z, que desde el sitio nuevo de rescate lleva
-// la figura al centro del cuadro y al fondo (medido en (-3,-6): NDC 0.08..0.70,
-// y 14 % de alto). Con el sitio de rescate viejo esto empujaba al borde
-// derecho —de ahí la salida en X que había antes—, pero ese problema se fue
-// con el sitio viejo.
-const SALIDA_RESCATE = { x: 1.6, z: 6.5 };
+// Se va casi recto por −Z porque es la dirección en la que se corre en la
+// partida: quien huye tiene que irse por donde luego vas a ir tú, o la carrera
+// no se lee como una persecución. Con la cámara abierta el recorrido entero
+// cae dentro del cuadro y la figura pasa del 20 % al 8 % del alto, así que se
+// ve marcharse en vez de desaparecer por un borde.
+const SITIO_FUGA = { x: -0.45, z: -16 };
+
+// LA HUIDA SE MIDE CON UN RELOJ SOLO, el de las fases de huida y arranque
+// juntas, y la curva es un exponente en vez de un suavizado.
+//
+// Repartirla entre las dos fases con la curva suave de siempre —la que arranca
+// despacio y FRENA AL LLEGAR— daba un frenazo en la costura: la huida acababa
+// con velocidad cero y el arranque volvía a empezar en cero, así que el hombre
+// que va escapando se paraba medio segundo justo en mitad de la carrera. Con
+// un exponente por encima de 1 la velocidad solo sube: arranca parado —que es
+// lo que hace quien echa a correr desde quieto— y termina a 6,2 m/s.
+//
+// 1.35 sale de querer las dos cosas a la vez: que en los 1,6 s de la huida
+// haya recorrido ya un tercio del camino (5,7 m, o sea que se le ve IRSE, no
+// arrancar) y que la punta no pase de una carrera humana.
+const CURVA_DE_LA_FUGA = 1.35;
 
 // Hacia dónde miran al aparecer. Se saca del propio camino en vez de escribirlo
 // a mano: el primer fotograma de la fase no tiene fotograma anterior del que
 // medir el rumbo, así que sin esto la pareja aparecía mirando a donde mirase
 // la partida anterior y giraba en el aire durante el primer tercio de segundo.
-const RUMBO_RESCATE = Math.atan2(
-  SITIO_RESCATE.x - SITIO_APARICION.x,
-  SITIO_RESCATE.z - SITIO_APARICION.z,
+const RUMBO_LLEGADA = Math.atan2(
+  SITIO_LLEGADA.x - SITIO_APARICION.x,
+  SITIO_LLEGADA.z - SITIO_APARICION.z,
 );
+
+// A partir de qué velocidad se corre en vez de andarse.
+//
+// El ciclo de andar SE AJUSTA al suelo —su cadencia sale de los metros por
+// segundo de verdad, así que el pie se queda quieto sobre el asfalto— y el de
+// correr no: su cadencia sale de la curva de la partida. Por eso el umbral
+// está alto: mientras se pueda, anda, porque andando no hay deslizamiento.
+// Por encima de esto un ciclo de paseo estirado deja de parecer una persona.
+const CORRER_DESDE = 2.6;
 
 // Cámara del primer plano de la entrevista. Va de lado y algo por delante:
 // desde detrás solo se le vería la espalda y el sombrero, y lo que tiene que
@@ -166,6 +200,20 @@ const RUMBO_RESCATE = Math.atan2(
 // estaba ahí detrás, tapado por una tienda. Se conserva la distancia al
 // objetivo (unos siete metros) abriendo en Z lo que se cierra en X.
 const CAMARA_ENTREVISTA = { x: 3.0, y: 2.3, z: 6.4 };
+
+// Y LA MISMA CÁMARA, ABIERTA, para cuando en el plano hay cuatro personas.
+//
+// No es un plano nuevo: es este mismo retrocedido dos metros SOBRE SU PROPIO
+// EJE, subido ochenta centímetros y con la mira corrida a la derecha. Que el
+// retroceso vaya por el eje y no por los ejes del mundo es lo que hace que el
+// movimiento se lea como abrir el plano y no como cambiar de sitio.
+//
+// Los tres números salen de un barrido conjunto de cámara y destino (ver
+// SITIO_LLEGADA): 2 m es el mínimo retroceso con el que los cuatro caben, y
+// mira.x = 0.4 el mínimo paneo. Menos de eso y los que llegan se salen por la
+// derecha; más y el entrevistado se acerca al borde izquierdo justo antes de
+// tener que salir corriendo.
+const CAMARA_LLEGADA = { x: 3.99, y: 3.40, z: 8.11 };
 
 // La del MENÚ es otra. En la cinemática el plano es cerrado porque dura
 // segundo y medio y hay que leer el gesto; en la portada el personaje convive
@@ -184,6 +232,12 @@ const MIRA_MENU = 1.35;
 // otro pegado al borde o directamente fuera, y lo que hay que contar aquí es
 // que hay una pregunta y alguien contestándola —o sea, los dos.
 const MIRA_ENTREVISTA_X = -0.75;
+
+// Y a dónde apunta con el plano abierto. Se corre a la derecha porque el
+// cuadro tiene que hacer sitio a dos personas más por ese lado; el resultado
+// medido es que el entrevistado se queda en el tercio izquierdo en vez de en
+// el centro, que es donde tiene que estar alguien que va a salir corriendo.
+const MIRA_LLEGADA_X = 0.4;
 
 // Reutilizable, para no crear un vector por fotograma.
 const _puntoMano = new THREE.Vector3();
@@ -250,52 +304,83 @@ export class Intro {
   }
 
   /**
-   * Coloca al ministro.
-   * @param {number} presencia 1 = ahí plantado, 0 = ya se lo llevaron
+   * Coloca al entrevistado.
+   *
+   * @param {number} fuga 0 = ahí plantado contestando, 1 = ya se perdió calle
+   *   arriba. En medio, lo que lleva recorrido de su huida.
+   *
+   * ANTES ESTO ERA `presencia` Y ERA AL REVÉS: 1 = está, 0 = ya no. El cambio
+   * de nombre no es cosmético. Con `presencia` el que se iba no iba a ningún
+   * sitio —se deslizaba hacia atrás y a la izquierda y se encogía un 15 % para
+   * fingir distancia— porque no se iba por su pie: se lo llevaban. Ahora huye
+   * él, o sea que tiene un DESTINO, y la escala no hace falta tocarla: la
+   * perspectiva lo encoge sola, del 20 % al 8 % del alto del cuadro.
    */
-  _colocarMinistro(presencia, tiempo = 0, dt = 1 / 60) {
+  _colocarEntrevistado(fuga, tiempo = 0, dt = 1 / 60) {
     const m = this._obtenerMinistro();
     if (!m) return;
 
-    const f = THREE.MathUtils.clamp(presencia, 0, 1);
-    m.visible = f > 0.02;
+    const f = THREE.MathUtils.clamp(fuga, 0, 1);
+
+    // SI EL RELOJ SALTÓ, SE OLVIDA DÓNDE ESTABA. `velocidadDe` mide contra el
+    // fotograma anterior, y hay tres sitios donde el anterior no tiene nada
+    // que ver con este: volver al menú después de una partida, empezar otra
+    // cinemática, y saltársela. En los tres el entrevistado pasa de estar a
+    // dieciséis metros calle arriba a estar otra vez delante del micrófono, y
+    // sin borrar la memoria ese teletransporte se mide como una carrera: el
+    // hombre salía en la portada pedaleando en el sitio y mirando al revés.
+    if (Math.abs(f - (this._fugaAnterior ?? f)) > 0.2) delete m.userData._dondeEstaba;
+    this._fugaAnterior = f;
+
+    // A 16 metros ya está fuera de la partida; esconderlo antes sería que
+    // desapareciera a la vista.
+    m.visible = f < 1;
     if (!m.visible) return;
 
-    // Al llevárselo se aleja hacia atrás y de lado, y se encoge un poco: no
-    // desaparece de golpe, se lo llevan.
     m.position.set(
-      SITIO_MINISTRO.x - (1 - f) * 3.4,
+      THREE.MathUtils.lerp(SITIO_MINISTRO.x, SITIO_FUGA.x, f),
       SITIO_MINISTRO.y,
-      SITIO_MINISTRO.z - (1 - f) * 5.2,
+      THREE.MathUtils.lerp(SITIO_MINISTRO.z, SITIO_FUGA.z, f),
     );
-    m.scale.setScalar(0.85 + f * 0.15);
+    m.scale.setScalar(1);
 
-    // MIENTRAS SE LO LLEVAN, ANDA. Antes se deslizaba hacia atrás con la pose
-    // de estar de pie puesta, que es la imagen de un maniquí sobre ruedas. Si
-    // se está moviendo, camina; y si está quieto, gesticula.
+    // MIENTRAS HUYE, CORRE. Antes se deslizaba hacia atrás con la pose de
+    // estar de pie puesta, que es la imagen de un maniquí sobre ruedas. Si se
+    // está moviendo, se mueve con las piernas; y si está quieto, gesticula.
     if (esGLB(m)) {
       const v = velocidadDe(m, dt);
-      if (v > 0.12 && animarCaminarGLB(m, dt, v)) {
-        // Y SE GIRA HACIA DONDE VA. Sin esto anda perfectamente —el pie planta
-        // y todo— pero de lado: la cinemática lo arrastra en diagonal mientras
-        // él sigue mirando al periodista, así que sus pasos van en una
-        // dirección y su cuerpo en otra. Medido, el pie seguía moviéndose al
+      let animado = false;
+      // Por encima del umbral, el ciclo de correr. Por debajo, el de andar,
+      // que sí ajusta la cadencia a los metros por segundo de verdad.
+      if (v > CORRER_DESDE) {
+        animarCarreraGLB(m, dt, 20);
+        animado = true;
+      } else if (v > 0.12) {
+        animado = animarCaminarGLB(m, dt, v);
+      }
+      if (animado) {
+        // Y SE GIRA HACIA DONDE VA. Sin esto se mueve perfectamente —el pie
+        // planta y todo— pero de lado: la cinemática lo arrastra mientras él
+        // sigue mirando al periodista, así que sus pasos van en una dirección
+        // y su cuerpo en otra. Medido en su día, el pie seguía moviéndose al
         // 99 % de la velocidad del cuerpo, que es deslizarse con estilo.
         //
         // El giro se persigue, no se copia: un cambio de rumbo instantáneo en
-        // el primer fotograma en que se mueve es un latigazo.
+        // el primer fotograma en que se mueve es un latigazo. Y aquí ese giro
+        // ES la escena: el hombre que estaba contestando de frente da media
+        // vuelta en un cuarto de segundo y sale por piernas.
         const rumbo = m.userData._rumbo ?? m.rotation.y;
         m.rotation.y += anguloCorto(rumbo - m.rotation.y) * (1 - Math.exp(-9 * dt));
         return;
       }
-      poseMinistroGLB(m, tiempo, f);
+      poseMinistroGLB(m, tiempo, 1);
       return;
     }
 
     const p = m.userData.partes;
     if (p) {
-      p.cabeza.rotation.x = Math.sin(tiempo * 1.7) * 0.09 * f;
-      p.torso.rotation.y = Math.sin(tiempo * 0.9) * 0.06 * f;
+      p.cabeza.rotation.x = Math.sin(tiempo * 1.7) * 0.09 * (1 - f);
+      p.torso.rotation.y = Math.sin(tiempo * 0.9) * 0.06 * (1 - f);
     }
   }
 
@@ -341,7 +426,7 @@ export class Intro {
     // En la portada el ministro TAMBIÉN está. La escena del menú es la
     // entrevista, y una entrevista sin nadie enfrente no es una entrevista: es
     // alguien de pie con un micrófono.
-    this._colocarMinistro(1, this.tiempo, dt);
+    this._colocarEntrevistado(0, this.tiempo, dt);
     this._perseguidoresLejos(perseguidor);
   }
 
@@ -349,8 +434,9 @@ export class Intro {
     if (!this.activa) return false;
     this.activa = false;
     // Sin `dt`: esto no es un fotograma de la cinemática, es alguien pulsando
-    // para saltársela. Lo único que hace falta es esconder al entrevistado.
-    this._colocarMinistro(0, this.tiempo);
+    // para saltársela. Lo único que hace falta es esconder al entrevistado, y
+    // esconderlo es mandarlo al final de su huida.
+    this._colocarEntrevistado(1, this.tiempo);
     if (this._microfono) this._microfono.visible = false;
     return true;
   }
@@ -373,106 +459,124 @@ export class Intro {
       // funden hacia el plano de la entrevista durante la primera mitad de la
       // fase. Sin este fundido, pulsar JUGAR daba un corte seco de cámara.
       if (!this.desdeCamara) this.desdeCamara = camara.position.clone();
-      this._colocarCamara(camara, CAMARA_ENTREVISTA, jugador, 1);
+      this._colocarCamara(camara, CAMARA_ENTREVISTA, jugador, 1, MIRA_ENTREVISTA_X);
       const f = this._suave(Math.min(1, t / (g.entrevista * 0.5)));
       if (f < 1) camara.position.lerpVectors(this.desdeCamara, camara.position, f);
       this._poseEntrevista(jugador, this.tiempo);
-      this._colocarMinistro(1, this.tiempo, dt);
+      this._colocarEntrevistado(0, this.tiempo, dt);
       this._perseguidoresLejos(perseguidor);
       return false;
     }
     t -= g.entrevista;
 
-    // --- Fase 2: el rescate -------------------------------------------------
-    // Llegan calle arriba y se lo llevan. No hay forcejeo ni nada parecido: el
-    // ministro se va con ellos como quien se acuerda de otra reunión, que es
-    // exactamente lo que pasa.
+    // --- Fase 2: se acercan andando ----------------------------------------
+    // Aparecen por el primer término, por la derecha, y CAMINAN. No hay prisa
+    // ni forcejeo: dos hombres que se acercan a una entrevista de calle. La
+    // amenaza está en que se acercan, no en cómo.
     //
-    // La fase tiene dos mitades dentro: primero LLEGAN (0 → 0.45) y luego se
-    // RETIRAN con él (0.45 → 1). Que se vayan los tres a la vez y en la misma
-    // dirección es lo que hace que se lea como un rescate y no como que el
-    // ministro se esfumó por su cuenta.
-    if (t < g.rescate) {
-      const f = this._suave(t / g.rescate);
-      const llegada = THREE.MathUtils.clamp(f / 0.45, 0, 1);
-      const retirada = THREE.MathUtils.clamp((f - 0.45) / 0.55, 0, 1);
-
-      this._colocarCamara(camara, CAMARA_ENTREVISTA, jugador, 1);
-      this._poseEntrevista(jugador, this.tiempo);
-      this._colocarMinistro(1 - retirada, this.tiempo, dt);
-
-      this._plantarPerseguidores(
-        perseguidor,
-        THREE.MathUtils.lerp(SITIO_APARICION.x, SITIO_RESCATE.x, llegada)
-          - retirada * SALIDA_RESCATE.x,
-        THREE.MathUtils.lerp(SITIO_APARICION.z, SITIO_RESCATE.z, llegada)
-          - retirada * SALIDA_RESCATE.z,
-        null, // mirando hacia donde andan
-        dt,
-        // A tamaño real. El 0.72 de ESCALA_LEJOS es un truco de la cámara de
-        // carrera —que los mira desde delante y a doce metros— y aquí, con la
-        // pareja a tres metros del objetivo, sólo los haría parecer muñecos.
+    // Mientras tanto la cámara ABRE —retrocede dos metros por su eje y panea a
+    // la derecha— porque en el plano cerrado de la entrevista no caben cuatro
+    // personas. Ver CAMARA_LLEGADA: eso está medido, no elegido.
+    //
+    // EL CAMINO NO ACABA AQUÍ: los dos siguen andando durante toda la fase
+    // siguiente, y el avance se reparte entre las dos midiendo contra la SUMA
+    // de sus duraciones. Esa suma es lo importante y costó una pasada: con el
+    // paseo metido en esta fase sola salían a 1,14 m/s —que está bien— pero se
+    // PARABAN EN SECO justo cuando el otro sale corriendo, y un frenazo ahí
+    // dice «ya llegamos, ya está», que es lo contrario de lo que pasa. Y con
+    // un reparto escrito a mano (70/30) el paso se frenaba un 24 % al cruzar
+    // de fase. Contra la suma, la velocidad es la misma a los dos lados de la
+    // costura pase lo que pase con el guion: 3,18 m en 4,4 s, 0,72 m/s.
+    if (t < g.llegada) {
+      const f = this._suave(t / g.llegada);
+      this._colocarCamara(
+        camara,
+        this._entreCamaras(CAMARA_ENTREVISTA, CAMARA_LLEGADA, f),
+        jugador,
         1,
-        1, // sueltos: llegan andando cada uno por su pie
+        THREE.MathUtils.lerp(MIRA_ENTREVISTA_X, MIRA_LLEGADA_X, f),
       );
-      this._separados(perseguidor, 1);
-      return false;
-    }
-    t -= g.rescate;
-
-    // --- Fase 3: hablando con la pared -------------------------------------
-    // El micrófono sigue extendido y delante NO HAY NADIE. Ni el ministro ni
-    // los que se lo llevaron: el cuadro se queda con el periodista y la calle
-    // vacía, y la cámara no se mueve. Ese plano quieto es el juego entero.
-    if (t < g.pared) {
-      this._colocarCamara(camara, CAMARA_ENTREVISTA, jugador, 1);
       this._poseEntrevista(jugador, this.tiempo);
-      this._colocarMinistro(0, this.tiempo, dt);
-      this._perseguidoresLejos(perseguidor);
+      this._colocarEntrevistado(0, this.tiempo, dt);
+      this._caminarLosDos(perseguidor, t / (g.llegada + g.huida), dt);
       return false;
     }
-    t -= g.pared;
+    t -= g.llegada;
 
-    // --- Fase 4: la cámara se aleja ----------------------------------------
-    if (t < g.retroceso) {
-      // Suavizado en los dos extremos: arranca despacio y frena al llegar.
-      const f = this._suave(t / g.retroceso);
-      const pos = {
-        x: THREE.MathUtils.lerp(CAMARA_ENTREVISTA.x, CAMARA.POSICION.x, f),
-        y: THREE.MathUtils.lerp(CAMARA_ENTREVISTA.y, CAMARA.POSICION.y, f),
-        z: THREE.MathUtils.lerp(CAMARA_ENTREVISTA.z, CAMARA.POSICION.z, f),
-      };
-      this._colocarCamara(camara, pos, jugador, 1 - f);
+    // --- Fase 3: la huida ---------------------------------------------------
+    // EL ENTREVISTADO LOS VE Y SE VA. Da media vuelta y sale corriendo calle
+    // arriba; los otros dos siguen acercándose al mismo paso de antes, sin
+    // inmutarse, y el periodista se queda con el micrófono en alto.
+    //
+    // Esta es la fase que explica el juego, y por eso la cámara NO se mueve:
+    // el plano queda quieto mientras dentro pasa todo. Antes esta misma fase
+    // era el plano de hablar con la pared —el micrófono extendido hacia nadie—
+    // y sigue siéndolo, con la diferencia de que ahora al final del micrófono
+    // hay alguien que se aleja. La frase cambia de «me dejaron con la palabra
+    // en la boca» a «se me está yendo», que es una frase que se puede correr.
+    if (t < g.huida) {
+      this._colocarCamara(camara, CAMARA_LLEGADA, jugador, 1, MIRA_LLEGADA_X);
+      this._poseEntrevista(jugador, this.tiempo);
+      this._colocarEntrevistado(this._huida(t, g), this.tiempo, dt);
+      this._caminarLosDos(perseguidor, (g.llegada + t) / (g.llegada + g.huida), dt);
+      return false;
+    }
+    t -= g.huida;
+
+    // --- Fase 4: el arranque ------------------------------------------------
+    // Sales detrás. El micrófono baja, el cuerpo se gira hacia la calle y la
+    // cámara vuelve a su sitio de juego; los dos que venían andando pasan a
+    // correr y se colocan donde van a ir toda la partida.
+    //
+    // Los tres movimientos comparten la misma `f`, y eso es lo que hace que el
+    // arranque se lea como UNA cosa: no es que la cámara retroceda y además el
+    // personaje se gire, es que la escena entera cambia de marcha a la vez.
+    if (t < g.arranque) {
+      const f = this._suave(t / g.arranque);
+      this._colocarCamara(
+        camara,
+        this._entreCamaras(CAMARA_LLEGADA, CAMARA.POSICION, f),
+        jugador,
+        1 - f,
+        MIRA_LLEGADA_X,
+      );
       this._poseEntrevista(jugador, this.tiempo, 1 - f);
-      this._colocarMinistro(0, this.tiempo, dt);
-      // Aquí es donde REAPARECEN, y el orden importa: no se les ve dar la
-      // vuelta, se les descubre. Estabas solo hablando con la pared, la cámara
-      // retrocede, y resulta que los tienes detrás. Plantarlos ya en su sitio
-      // de carrera durante todo el retroceso hace justo eso: al principio del
-      // movimiento quedan a la espalda del objetivo y no se ven; al final la
-      // cámara está detrás de ti y ahí están.
+      this._colocarEntrevistado(this._huida(g.huida + t, g), this.tiempo, dt);
+      // Del sitio de llegada al sitio de carrera, y ya CORRIENDO: se les pasa
+      // la velocidad de la partida en vez de la medida, porque lo que están
+      // haciendo deja de ser un desplazamiento de cinemática y pasa a ser lo
+      // que van a hacer durante todo el juego.
       this._plantarPerseguidores(
         perseguidor,
-        PERSEGUIDOR.DESVIO_EN_PANTALLA * 3.6,
-        PERSEGUIDOR.Z_LEJOS,
-        Math.PI,
+        THREE.MathUtils.lerp(SITIO_LLEGADA.x, PERSEGUIDOR.DESVIO_EN_PANTALLA * 3.6, f),
+        THREE.MathUtils.lerp(SITIO_LLEGADA.z, PERSEGUIDOR.Z_LEJOS, f),
+        // Al principio siguen mirando hacia donde andaban; al final, calle
+        // arriba como en la partida. El giro se interpola con la misma `f`.
+        //
+        // POR EL LADO CORTO, y esto no es un detalle: interpolando los ángulos
+        // a pelo, de −103° a +180° hay 283 grados, así que los dos daban casi
+        // una vuelta entera sobre sí mismos durante el arranque. Por el lado
+        // corto son 77 grados en la otra dirección, que es lo que hace alguien
+        // que gira para echar a correr.
+        RUMBO_LLEGADA + anguloCorto(Math.PI - RUMBO_LLEGADA) * f,
         dt,
-        PERSEGUIDOR.ESCALA_LEJOS,
+        THREE.MathUtils.lerp(1, PERSEGUIDOR.ESCALA_LEJOS, f),
         1,
+        true, // corriendo
       );
       this._separados(perseguidor, 1);
       return false;
     }
-    t -= g.retroceso;
+    t -= g.arranque;
 
     // --- Fase 5: el caballito ----------------------------------------------
     if (t < g.caballito) {
       const f = this._suave(t / g.caballito);
-      this._colocarCamara(camara, CAMARA.POSICION, jugador, 0);
-      this._colocarMinistro(0, this.tiempo, dt);
+      this._colocarCamara(camara, CAMARA.POSICION, jugador, 0, MIRA_LLEGADA_X);
+      this._colocarEntrevistado(1, this.tiempo, dt);
       this._plantarPerseguidores(
         perseguidor, PERSEGUIDOR.DESVIO_EN_PANTALLA * 3.6, PERSEGUIDOR.Z_LEJOS, Math.PI, dt,
-        PERSEGUIDOR.ESCALA_LEJOS, 1 - f,
+        PERSEGUIDOR.ESCALA_LEJOS, 1 - f, true,
       );
       this._separados(perseguidor, 1 - f);
       return false;
@@ -481,7 +585,7 @@ export class Intro {
     // --- Fin ---------------------------------------------------------------
     this.activa = false;
     this._separados(perseguidor, 0);
-    this._colocarMinistro(0, this.tiempo, dt);
+    this._colocarEntrevistado(1, this.tiempo, dt);
     if (this._microfono) this._microfono.visible = false;
     return true;
   }
@@ -490,26 +594,70 @@ export class Intro {
   // PIEZAS
   // -------------------------------------------------------------------------
 
+  /**
+   * Cuánto lleva recorrido de su huida el entrevistado.
+   * @param {number} desdeQueSalio segundos desde el primer fotograma de la huida
+   */
+  _huida(desdeQueSalio, g) {
+    const q = THREE.MathUtils.clamp(desdeQueSalio / (g.huida + g.arranque), 0, 1);
+    return q ** CURVA_DE_LA_FUGA;
+  }
+
   /** Curva suave de entrada y salida. */
   _suave(x) {
     const c = THREE.MathUtils.clamp(x, 0, 1);
     return c * c * (3 - 2 * c);
   }
 
-  _colocarCamara(camara, pos, jugador, cercania) {
+  _colocarCamara(camara, pos, jugador, cercania, miraCercaX = MIRA_ENTREVISTA_X) {
     camara.position.set(pos.x, pos.y, pos.z);
     // Durante la entrevista la cámara mira al periodista; al alejarse va
     // pasando a mirar la pista, que es lo que enseña a dónde se corre.
+    //
+    // `miraCercaX` es a dónde apunta con `cercania` = 1, y es un parámetro
+    // desde que el plano abre para que quepan cuatro: la entrevista apunta a
+    // −0,75 y la llegada a +0,4, y el paneo entre las dos ES el movimiento de
+    // la fase 2. Con el valor clavado en la constante, abrir el plano dejaba a
+    // los que llegaban fuera del cuadro por la derecha.
     const miraZ = THREE.MathUtils.lerp(CAMARA.MIRA.z, -0.1, cercania);
     const miraY = THREE.MathUtils.lerp(CAMARA.MIRA.y, 1.15, cercania);
-    const miraX = jugador.x * (1 - cercania) * 0.35 + MIRA_ENTREVISTA_X * cercania;
+    const miraX = jugador.x * (1 - cercania) * 0.35 + miraCercaX * cercania;
     camara.lookAt(miraX, miraY, miraZ);
+  }
+
+  /** Un punto entre dos cámaras. Evita crear un objeto por fotograma. */
+  _entreCamaras(a, b, f) {
+    const p = this._camaraInterpolada ?? (this._camaraInterpolada = { x: 0, y: 0, z: 0 });
+    p.x = THREE.MathUtils.lerp(a.x, b.x, f);
+    p.y = THREE.MathUtils.lerp(a.y, b.y, f);
+    p.z = THREE.MathUtils.lerp(a.z, b.z, f);
+    return p;
+  }
+
+  /**
+   * Los dos, andando del sitio de aparición al sitio de llegada.
+   * @param {number} avance 0..1 del camino
+   */
+  _caminarLosDos(perseguidor, avance, dt) {
+    this._plantarPerseguidores(
+      perseguidor,
+      THREE.MathUtils.lerp(SITIO_APARICION.x, SITIO_LLEGADA.x, avance),
+      THREE.MathUtils.lerp(SITIO_APARICION.z, SITIO_LLEGADA.z, avance),
+      null, // mirando hacia donde andan
+      dt,
+      // A tamaño real. El 0.72 de ESCALA_LEJOS es un truco de la cámara de
+      // carrera —que los mira desde delante y a doce metros— y aquí, con la
+      // pareja en el término medio, sólo los haría parecer muñecos.
+      1,
+      1, // sueltos: llegan andando cada uno por su pie
+    );
+    this._separados(perseguidor, 1);
   }
 
   /** Deja el modelo listo para correr, deshaciendo la pose de entrevista. */
   soltarPose(jugador) {
     this._poseEntrevista(jugador, this.tiempo, 0);
-    this._colocarMinistro(0, this.tiempo);
+    this._colocarEntrevistado(1, this.tiempo);
     if (this._microfono) this._microfono.visible = false;
   }
 
@@ -605,7 +753,7 @@ export class Intro {
     // les escondió: sin borrarlo, el primer paso de la llegada se calcula
     // sobre un teletransporte de diez metros y salen pedaleando.
     delete perseguidor.modelo.userData._dondeEstaba;
-    perseguidor.modelo.rotation.y = RUMBO_RESCATE;
+    perseguidor.modelo.rotation.y = RUMBO_LLEGADA;
   }
 
   /**
@@ -622,7 +770,8 @@ export class Intro {
    * corrida no dé un salto.
    */
   _plantarPerseguidores(perseguidor, x, z, giro = Math.PI, dt = 1 / 60,
-                        escala = PERSEGUIDOR.ESCALA_LEJOS, separacion = 1) {
+                        escala = PERSEGUIDOR.ESCALA_LEJOS, separacion = 1,
+                        corriendo = false) {
     perseguidor.modelo.visible = true;
     perseguidor.modelo.position.set(x, 0, z);
     perseguidor.modelo.scale.setScalar(escala);
@@ -633,13 +782,21 @@ export class Intro {
     // Y ANDAN LO QUE SE LES ESTÉ MOVIENDO. La velocidad no se declara, se mide
     // del propio desplazamiento: si mañana el guion alarga la llegada, los
     // pasos se enteran solos.
-    const v = velocidadDe(perseguidor.modelo, dt);
+    //
+    // MENOS CUANDO CORREN. En el arranque el desplazamiento en pantalla es
+    // pequeño —van del sitio de llegada al de carrera, dos metros escasos— y
+    // sin embargo lo que están haciendo es echar a correr detrás de alguien.
+    // Medirlo daría un paseo de 0,9 m/s con el mundo entero arrancando
+    // alrededor. Con `corriendo` se les pasa −1, que es como
+    // `animarPerseguidores` entiende «corre como en la partida».
+    const medida = velocidadDe(perseguidor.modelo, dt);
+    const v = corriendo ? -1 : medida;
 
-    // giro === null significa «mira hacia donde andas». Hace falta desde que
-    // el rescate entra por el primer término: el camino de aparición a rescate
-    // es una diagonal, y con un giro fijo cruzaban el cuadro de lado, andando
-    // hacia un sitio y mirando a otro —el mismo deslizamiento con estilo que ya
-    // se había arreglado en el entrevistado—.
+    // giro === null significa «mira hacia donde andas». Hace falta porque la
+    // llegada entra por el primer término: el camino de la aparición al sitio
+    // de llegada es una diagonal, y con un giro fijo cruzaban el cuadro de
+    // lado, andando hacia un sitio y mirando a otro —el mismo deslizamiento
+    // con estilo que ya se había arreglado en el entrevistado—.
     //
     // Se persigue, no se copia: un cambio de rumbo instantáneo en el primer
     // fotograma en que se mueven es un latigazo.
