@@ -73,7 +73,7 @@ function pantallaError(titulo, mensaje, reintentar = true) {
       <p class="subtitulo">${mensaje}</p>
       ${reintentar ? `
         <div class="botones">
-          <button class="boton boton--principal" data-accion="recargar">
+          <button class="btn boton boton--principal" data-accion="recargar">
             Reintentar
           </button>
         </div>` : ''}

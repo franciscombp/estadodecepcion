@@ -142,9 +142,12 @@ export class HUD {
           <span class="expediente__barra">/</span>
           <span data-campo="expediente-total">0</span>
         </div>
-        <div class="medidor medidor--fino">
-          <span class="medidor__relleno medidor__relleno--dorado"
-                data-campo="expediente-progreso"></span>
+        <!-- El medidor es el del sistema: .medidor--continuo es la barra que
+             se llena, frente a .medidor a secas, que va por tramos. El relleno
+             es un <i> porque es lo que espera el componente, y su ancho lo
+             escribe el HUD en línea cada fotograma. -->
+        <div class="medidor medidor--continuo medidor--fino medidor--dorado">
+          <i data-campo="expediente-progreso"></i>
         </div>
         <div class="expediente__aviso" data-campo="expediente-aviso">
           RECUPERA LOS QUE PUEDAS

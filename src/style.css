@@ -152,7 +152,6 @@ html, body {
     10  — #ui                       HUD container (fixed position)
     20  —   HUD elements            Counter, buttons, panels (on #ui)
     15  —   .rotulo                 Exit signs/highway signs
-     5  —   .avisos                 Notifications/messages
      5  —   .efectos                Active potentiators/boosters
 
    This ensures:
@@ -167,36 +166,20 @@ html, body {
    PIEZAS COMPARTIDAS
    ========================================================================== */
 
-/* El resplandor va en tres capas: halo cercano que define el borde, halo
-   lejano que tiñe el entorno, y brillo interior que da volumen. Una sola
-   sombra grande se ve sucia; tres se leen como luz. */
-.superficie {
-  background: rgba(13, 18, 32, 0.92);
-  border: 2px solid rgba(255, 255, 255, 0.09);
-  border-radius: var(--r);
-  backdrop-filter: blur(14px) saturate(1.25);
-  -webkit-backdrop-filter: blur(14px) saturate(1.25);
-}
+/* AQUÍ VIVÍAN `.superficie`, `.etiqueta` y `.cifra`, y ya no viven.
 
-/* Etiqueta de dato: pequeña, apagada, mayúsculas con tracking amplio.
-   El jugador se las salta tras la primera partida y solo escanea los valores. */
-.etiqueta {
-  font-size: clamp(0.5rem, 2vw, 0.62rem);
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--texto-tenue);
-  line-height: 1;
-}
+   Eran las tres piezas base del tema de neón —fondo azul noche, filete blanco
+   al 9 %, rótulo en versalitas— y llevaban meses sin que nadie las pusiera: el
+   juego entero pasó a papel y cada pantalla se hizo sus propias piezas.
 
-/* Cifra: grande, encendida, con cifras de ancho fijo. Sin tabular-nums el
-   marcador tiembla cada vez que un 1 sustituye a un 8, y a 60 fps se nota. */
-.cifra {
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  line-height: 1;
-}
+   Se borran AHORA y no antes porque dos de las tres le estaban quitando el
+   nombre al sistema: `mal-ds` tiene `.tag` y `.badge` para el rótulo pequeño y
+   `.kpi` para la cifra, y mientras el juego declarara los suyos no había forma
+   de adoptarlos sin pelear con la cascada. Lo mismo con `.panel`, `.aviso`,
+   `.cita` y `.lista`, borradas en el mismo empujón y por el mismo motivo.
+
+   La regla que deja esto: si el sistema tiene una pieza, el juego no declara
+   una con ese nombre —ni aunque no la use—, porque el nombre es del sistema. */
 
 /* ==========================================================================
    HUD
@@ -214,24 +197,30 @@ html, body {
    monta el ejemplo con estilos en línea—, así que este es de los que hay que
    devolverle: ver docs/ESTILO.md. */
 .hud-juego {
-  position: absolute;
-  inset: 0;
+  /* LA CAJA LA PONE EL SISTEMA. `mal-ds` trae `.hud-juego` —la contribuimos
+     nosotros— con las ocho propiedades que hacen un HUD: a `inset: 0`, en
+     columna, con las dos filas separadas, sin capturar toques, en z 20 y con
+     las zonas seguras sumadas al relleno. Aquí se declaraban seis de las ocho
+     otra vez y con los mismos valores exactos, que es la duplicación que este
+     empujón viene a quitar: se comprobó propiedad por propiedad contra la hoja
+     del sistema antes de borrarlas.
+
+     Quedan las dos que sí son de este juego: */
+
+  /* 1 · EMPIEZA ESCONDIDO. El HUD no existe hasta que arranca la partida; en
+        la portada y en los menús no hay nada que marcar. */
   display: none;
-  flex-direction: column;
-  justify-content: space-between;
-  /* EL MISMO MARGEN QUE LAS PÁGINAS IMPRESAS: 24 a los lados y el aire de
-     arriba de la maqueta. Es lo que hace que la partida se lea como una página
-     más del ejemplar —la foto a toda plana de la revista— y no como una capa
-     de juego con su propia retícula. Estaba en 10 px por los cuatro costados,
-     que es margen de aplicación, no de publicación. */
+
+  /* 2 · EL MARGEN DE PUBLICACIÓN, que no es el del sistema. El del sistema son
+        24 px por los cuatro costados; aquí los lados son 24 y arriba y abajo
+        el aire de la maqueta impresa, que es más. Es lo que hace que la
+        partida se lea como una página más del ejemplar —la foto a toda plana
+        de la revista— y no como una capa de juego con su propia retícula. */
   padding:
     calc(var(--seg-arriba) + var(--margen-pagina))
     calc(var(--seg-der) + 24px)
     calc(var(--seg-abajo) + var(--margen-pagina))
     calc(var(--seg-izq) + 24px);
-  pointer-events: none;
-  /* HUD elements (counter, buttons, panels) sit above messages */
-  z-index: 20;
 
   /* ══ SOBRE LA FOTO, LA TINTA ES BLANCA ══
      El mismo remapeo que hace `.pantalla` con las páginas, aquí con el otro
@@ -375,40 +364,29 @@ html, body {
   50%      { opacity: 0.62; }
 }
 
-/* Medidor genérico */
-.medidor {
-  display: block;
-  height: 7px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.09);
-  overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
-}
+/* EL MEDIDOR ES EL DEL SISTEMA. Aquí había uno propio —caja, relleno y tres
+   colores— con exactamente el nombre que `mal-ds` usa para el suyo, y eso
+   dejaba la adopción bloqueada: mientras el juego declarase `.medidor`, poner
+   la clase del sistema no cambiaba nada.
 
-.medidor--fino { height: 5px; }
+   El del sistema iba POR TRAMOS —vidas, munición: lo que se cuenta— y el del
+   juego es una barra que se llena. No era el mismo componente con otro nombre,
+   era la otra mitad del mismo componente, así que la barra continua se
+   CONTRIBUYÓ al sistema como `.medidor--continuo` y aquí no queda declaración
+   ninguna: solo el color, que es lo único de esto que es del juego.
 
-.medidor__relleno {
-  display: block;
-  height: 100%;
-  border-radius: 4px;
-  /* Sin transición de anchura: la barra debe reflejar el estado real al
-     instante. Un medidor que persigue al valor miente sobre tu situación.
-     Se probó a suavizarla y fue peor por partida doble: lo que mide es el
-     avance DENTRO del túnel, que cambia en cada fotograma, así que una
-     transición no se llega a ver y solo deja la barra por detrás del jugador.
-     Lo que sí se anima es la CIFRA, que es la que da la noticia. */
-  transition: background-color var(--t-medio);
-}
+   El color va por `--mal-relleno-medidor`, el gancho que trae la variante. La
+   sombra de neón que llevaban se queda fuera a propósito: el tema del
+   periódico no tiene resplandores.
 
-.medidor__relleno--verde {
-  background: linear-gradient(90deg, #1fbf6d, var(--verde));
-  box-shadow: 0 0 10px rgba(var(--verde-rgb), 0.55);
-}
-
-.medidor__relleno--rojo {
-  background: linear-gradient(90deg, #b3122e, var(--rojo));
-  box-shadow: 0 0 10px rgba(var(--rojo-rgb), 0.55);
-}
+   Y lo que NO se transiciona sigue sin transicionarse: el ancho. Un medidor
+   que persigue al valor miente sobre tu situación, y este mide el avance
+   DENTRO del túnel —cambia cada fotograma—, así que una transición no se
+   llegaría a ver y solo dejaría la barra por detrás del jugador. Lo que sí se
+   anima es la CIFRA, que es la que da la noticia. */
+.medidor--verde { --mal-relleno-medidor: var(--verde); }
+.medidor--rojo  { --mal-relleno-medidor: var(--rojo); }
+.medidor--dorado { --mal-relleno-medidor: var(--dorado); }
 
 /* Contador de papeles */
 /* El «+3» que sale del contador y sube. Es la recompensa más pequeña del juego
@@ -672,41 +650,11 @@ html, body {
    NO es negociable: la ficha de racha cuelga del contador hasta los 87 px, y
    por encima de eso el aviso se monta sobre el marcador. */
 
-/* El cartel de salida baja hasta esta misma banda, y los dos coinciden: el
-   aviso de «ELIGE TÚNEL» se dispara en el mismo fotograma que el cartel. Se
-   apartan hacia abajo mientras esté puesto y vuelven solos al subirse.
-   Solo vertical: la columna ya está anclada a la derecha, y el translateX que
-   había aquí —de cuando iba centrada— la sacaba media anchura fuera de sitio. */
-
-.aviso {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 11px;
-  border-radius: 0;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--papel-sombra);
-  color: var(--tinta);
-  font-family: var(--sans);
-  max-width: 100%;
-  font-size: 0.85rem;
-  animation:
-    aviso-entra var(--t-medio) var(--rebote),
-    aviso-sale var(--t-medio) ease-in 2.1s forwards;
-  /* Prevent messages from interfering with HUD elements */
-  pointer-events: none;
-}
-
-@keyframes aviso-entra {
-  from { opacity: 0; transform: translateY(14px) scale(0.92); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes aviso-sale {
-  to { opacity: 0; transform: translateY(-10px); }
-}
+/* AQUÍ VIVÍA `.aviso`, el cartelito que salta al recoger algo. Estaba muerto:
+   el HUD pinta `expediente__aviso` y las pantallas `sumario__aviso`, y nadie
+   ponía la clase pelada desde hace tiempo. Se borra porque `mal-ds` tiene
+   `.aviso` —el recuadro con filete de acento a la izquierda— y el nombre es
+   suyo. Sus dos animaciones se van con él. */
 
 @keyframes pickup-prueba {
   0% {
@@ -746,16 +694,8 @@ html, body {
 
 .hint-swipe--oculto { opacity: 0; pointer-events: none; }
 
-.panel {
-  padding: 9px 12px;
-  border-radius: 0;
-  color: var(--tinta);
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--papel-sombra);
-  transition: opacity var(--t-medio);
-}
+/* Y aquí `.panel`, la caja translúcida del HUD. También muerta, y también un
+   nombre del sistema: `mal-ds` tiene `.panel` con sus tres variantes. */
 
 @keyframes ficha-entra {
   from { opacity: 0; transform: scale(0.6) translateY(6px); }
@@ -883,6 +823,16 @@ html, body {
     calc(var(--seg-abajo) + var(--margen-pagina))
     calc(var(--seg-izq) + 24px);
   overflow: hidden;
+  /* SE DECLARA EL ALTO MÍNIMO, y no sobra. `mal-ds` también tiene `.pantalla`
+     —la suya es una página de app, `min-height: 100dvh` y columna— y de sus
+     cuatro propiedades esta regla pisaba tres; la que se colaba era justo el
+     `100dvh`. Aquí la pantalla va a `inset: 0` sobre el lienzo, así que su
+     alto ya es el del hueco: pedirle además 100dvh la hace más alta que el
+     viewport en cuanto iOS recoge la barra de direcciones.
+     Es el único choque de nombre que se resuelve conviviendo en vez de
+     renombrando: `.pantalla` la ponen ciento sesenta sitios y lo único que
+     colaba era esta línea. */
+  min-height: 0;
   /* El velo va TRANSLÚCIDO. Estaba al 96-98 %, y a esa opacidad el desenfoque
      de abajo no se ve: los menús salían sobre un rectángulo negro, sin ninguna
      pista de que detrás sigue corriendo la partida. Al 80 % la calle se
@@ -1084,10 +1034,9 @@ html, body {
   .plana__record,
   .pantalla--plana .ranking__fila--tu,
   .suma-flotante,
-  .aviso--prueba,
   .expediente--progresa,
   .expediente--progresa .expediente__cuenta,
-  .expediente--progresa .medidor__relleno--dorado,
+  .expediente--progresa .medidor--dorado > i,
   .diario--pasa-avanza > *,
   .diario--pasa-retrocede > *,
   .pantalla {
@@ -1170,70 +1119,59 @@ html, body {
   pointer-events: none;
 }
 
-/* EL BOTÓN, componente `Button` de la maqueta.
+/* EL BOTÓN ES `.btn`, EL DEL SISTEMA. Aquí había un componente entero
+   —veinte declaraciones— copiado del Figma: alto 48, relleno 12/24, hueco 8,
+   radio 8, Montserrat Bold 16 con 0,2 de tracking y tres variantes.
 
-   Aquí ponía «los botones son RECTOS ... nada de esquinas: es un periódico, no
-   una consola». Sonaba bien y no era lo que dice el Figma: el componente
-   Button trae `radius/md`, o sea 8. Preguntado a la biblioteca de variables,
-   sin lugar a dudas. Se corrige, porque la regla de la casa es replicar la
-   maqueta, no la idea que uno se hace de ella.
+   El sistema trae todo eso, y bajo el tema del periódico lo trae DICHO POR EL
+   PERIÓDICO: `:root[data-marca="mercio"] .btn` declara `--em-sans` (Montserrat),
+   `--em-t-button` (14→16 px fluido), peso 700 y 0,2 px de tracking, que es
+   letra por letra lo que decía la copia. Mantener las dos era mantener dos
+   veces lo mismo y arriesgarse a que se separaran.
 
-   Del componente, literal:
-     alto 48 · relleno 12/24 · hueco 8 · radio 8
-     texto Montserrat Bold 16, interlineado 1, tracking 0.2, sin partir
-     TRES variantes, no dos:
-       Primary  fondo #c53b2b, texto blanco
-       Dark     fondo #141414, texto blanco
-       Outline  contorno 1.5 px #282828, texto #141414 */
+   DOS COSAS CAMBIAN A LA VISTA, y las dos son el tema hablando:
+
+   - El botón secundario deja de ser un CONTORNO y pasa a ser un RECTÁNGULO DE
+     TONO (#f3f3f3 sobre página blanca). No es una elección: el tema declara
+     `--ref-borde: 0` —«sin líneas: la separación la hace el aire»— y
+     `--ref-campo: var(--ref-n1)` —«un campo es un rectángulo de tono, no un
+     marco»—. Con el filete a cero, un botón «de contorno» no tiene contorno:
+     o es un campo o es texto suelto.
+   - Los rótulos salen EN MAYÚSCULAS. Lo dice `:root[data-marca="mercio"]
+     :is(.em-logo,.em-btn,.btn){text-transform:uppercase}`. Aquí había un
+     `text-transform: none` explícito que lo impedía.
+
+   Lo que queda declarado son tres deltas de verdad, no restos: */
 .boton {
-  position: relative;
+  /* 1 · BLOQUE, no en línea. `.btn` es `inline-flex` porque en una página vive
+        en una fila de acciones; aquí los botones son barras de ancho completo
+        apiladas al pie de la pantalla. Dentro de un contenedor flex daría
+        igual —un ítem flex se bloquea solo— pero no todos lo están: el aviso
+        de versión nueva de `main.js` cuelga de un div normal. */
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--e-8);
-  font-family: var(--sans);
-  font-size: var(--t-cuerpo-2);
-  font-weight: 700;
-  letter-spacing: 0.2px;
-  text-transform: none;
-  line-height: 1;
-  padding: var(--e-12) var(--e-24);
-  min-height: 48px;
-  border: 1.5px solid var(--tinta-media);
-  border-radius: var(--r-md);
-  background: transparent;
-  color: var(--tinta);
-  cursor: pointer;
+  /* 2 · MARCO Y RECORTE para el destello del botón principal, que es un
+        pseudo-elemento absoluto que cruza de lado a lado. */
+  position: relative;
   overflow: hidden;
-  transition: transform var(--t-rapido) var(--rebote),
-              background-color var(--t-rapido),
-              border-color var(--t-rapido),
-              color var(--t-rapido);
+  /* 3 · AIRE VERTICAL. `.btn` centra con `min-height` y sin relleno vertical,
+        y eso vale mientras la etiqueta quepa en una línea. Aquí no siempre
+        cabe —«Volver a investigar», «Ir al menú principal», y en mayúsculas
+        ocupan más— así que un rótulo de dos líneas tocaría los bordes. El
+        relleno horizontal sigue siendo el del sistema. */
+  padding-block: var(--e-12);
+  line-height: 1.15;
 }
 
-/* ══ EL FOCO DE TECLADO ══════════════════════════════════════════════════
-   No estaba en ninguna parte. Había :hover, :active y :disabled, y nada para
-   quien navega con tabulador: se podía recorrer una pantalla entera —menú,
-   ajustes, archivo, ranking— sin ver JAMÁS dónde estaba el cursor.
-
-   Se declara UNA VEZ y para todo lo que se puede tabular, en vez de repetir
-   el bloque en cada componente: si se repite, el día que cambie el grosor
-   cambiará en tres sitios de cuatro.
-
-   Va con `outline` y no con `box-shadow` para que sobreviva al modo de alto
-   contraste de Windows, que descarta las sombras. Y separado dos píxeles del
-   borde para que se lea igual sobre el rojo pleno del botón principal que
-   sobre el contorno del secundario. */
-.boton:focus-visible,
-.boton-icono:focus-visible,
-.paginador__pag:focus-visible,
-.ranking__pestana:focus-visible,
-.pruebas__pieza:focus-visible,
-.elector__ficha:focus-visible,
-.ranking__campo:focus-visible {
-  outline: 3px solid var(--tinta);
-  outline-offset: 2px;
-}
+/* ══ EL FOCO DE TECLADO LO PONE EL TEMA ══════════════════════════════════
+   Aquí había un bloque propio —3 px de tinta con 2 de separación— con un
+   comentario que celebraba haberlo declarado UNA VEZ para las siete cosas
+   tabulables del juego. La idea era buena y el sitio, equivocado: el tema del
+   periódico ya lo declara para TODO lo que se puede tabular en cualquier
+   página suya —`:is(a,button,input,select,textarea,summary):focus-visible`,
+   2 px del rojo de marca a 3 de separación— y las siete piezas de esta lista
+   son botones o campos, así que las siete entran solas.
+   Borrarlo es lo que convierte «se declara una vez» en «se declara una vez
+   PARA TODO EL PERIÓDICO». */
 
 /* CÓMO RESPONDE UN CONTROL LO DICE EL TEMA.
    Aquí había un `scale(0.97)` al pulsar y un `translateY(-1px)` al pasar por
@@ -1310,9 +1248,12 @@ html, body {
   color: var(--tinta-tenue);
 }
 
+/* EL DE PELIGRO ERA UN CONTORNO ROJO, y con `--ref-borde: 0` un contorno no
+   se dibuja: quedaba texto rojo flotando sobre la página. Pasa a ser lo que
+   sería en el periódico —un campo teñido de rojo con el texto en rojo—, que es
+   el mismo recurso que usa el tema para sus avisos. */
 .boton--peligro {
-  background: transparent;
-  border-color: var(--rojo-diario);
+  background: color-mix(in srgb, var(--rojo-diario) 12%, transparent);
   color: var(--rojo-diario);
 }
 
@@ -1466,15 +1407,12 @@ html, body {
   color: var(--texto-tenue);
 }
 
-/* Cita verificada (solo aparece si el equipo cargó alguna) */
-.cita {
-  text-align: left;
-  padding: 14px 16px;
-  margin: 14px 0;
-  border-left: 3px solid var(--texto-tenue);
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 0 var(--r-chico) var(--r-chico) 0;
-}
+/* La cita verificada la viste el sistema. Aquí había una versión propia —filete
+   de 3 px a la izquierda y fondo al 3 %— que no llegó a usarse nunca: las citas
+   solo salen si el equipo carga alguna en CITAS_VERIFICADAS, y no hay ninguna
+   cargada. `mal-ds` tiene `.cita`, y bajo el tema del periódico abre con la
+   comilla grande en vez de con filete, que es como abre una cita EN un
+   periódico. Cuando entre la primera cita, la clase ya está puesta. */
 
 /* --- Estadísticas --------------------------------------------------------- */
 
@@ -1546,17 +1484,12 @@ html, body {
 
 /* --- Listas / rutas ------------------------------------------------------- */
 
-.lista { text-align: left; margin-bottom: 18px; }
-
-.lista__titulo {
-  font-size: clamp(0.56rem, 2.3vw, 0.68rem);
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  color: var(--texto-tenue);
-  margin-bottom: 9px;
-}
-
-.lista__fila {
+/* `.lista` y `.lista__titulo` se fueron con las demás: muertas, y el nombre es
+   del sistema —`mal-ds` tiene `.lista`, que es una lista de enlaces con icono,
+   nombre y apoyo—. Lo único que quedaba vivo era la fila, y además no era una
+   fila de lista: es la RUTA de la partida, una hilera de nombres con flechas
+   entre medias. Se llama por lo que es. */
+.ruta-fila {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -1634,13 +1567,24 @@ html, body {
 
 /* --- Pie ------------------------------------------------------------------ */
 
-.pie {
+/* SE LLAMA `.pie-nota` Y NO `.pie`, y este choque no era teórico: se estaba
+   viendo. `mal-ds` usa `.pie` para el PIE DE PÁGINA del sitio —filete arriba,
+   2,4/3,2 rem de aire, Montserrat en versalitas con 0,1 em de tracking—, y
+   aquí `.pie` es la línea de crédito de dos palabras que va bajo los botones
+   del menú.
+
+   Medido contra la hoja del sistema: de las siete propiedades que declara el
+   sistema, esta regla solo pisaba tres —tamaño, color e interlínea—. Las otras
+   cuatro se colaban enteras, así que «elmercio.com · El Mercio» salía EN
+   MAYÚSCULAS, con un filete encima y noventa píxeles de aire alrededor. Mismo
+   caso que `.hud` en su día, y misma solución: el nombre es del sistema. */
+.pie-nota {
   font-size: var(--t-micro);
   color: var(--texto-debil);
   line-height: 1.5;
 }
 
-.pie a { color: var(--dorado); text-decoration: none; }
+.pie-nota a { color: var(--dorado); text-decoration: none; }
 
 .nota {
   margin-top: 14px;
@@ -1730,7 +1674,6 @@ html, body {
 @media (max-height: 460px) {
   .hud-juego { padding: 6px 8px; }
   .hud-juego__medio { padding-top: 6px; }
-  .panel { padding: 6px 9px; }
   .riel__nodos { flex-direction: row; width: auto; }
   .riel__nodos::before {
     top: 50%; bottom: auto; left: 4px; right: 4px;
@@ -1741,11 +1684,6 @@ html, body {
   }
   .titulo { font-size: clamp(1.4rem, 6vw, 2rem); }
   .subtitulo { margin-bottom: 12px; }
-}
-
-/* Pantallas muy estrechas: el hint de swipe estorba más de lo que ayuda. */
-@media (max-width: 340px) {
-  .panel--hint { display: none; }
 }
 
 
@@ -2064,9 +2002,10 @@ html, body {
   color: #ffffff;
 }
 
+/* Mismo caso que `.boton--peligro`: sin filete, el contorno gris no existía. */
 .boton--diario-peligro {
   flex: 0 1 auto;
-  border-color: var(--tinta-media);
+  background: color-mix(in srgb, var(--tinta-media) 10%, transparent);
   color: var(--tinta-media);
 }
 
@@ -2878,10 +2817,10 @@ html, body {
   transition: opacity var(--t-medio), border-color var(--t-medio);
 }
 
-.expediente .medidor__relleno {
-  background: var(--rojo-diario);
-  box-shadow: none;
-}
+/* Dentro del expediente la barra es roja y a secas: el panel va sobre papel y
+   el resplandor de la variante dorada no pinta nada ahí. Se dice con el gancho
+   de la variante del sistema, no repintando el relleno. */
+.expediente .medidor { --mal-relleno-medidor: var(--rojo-diario); }
 
 .expediente--oculto {
   opacity: 0;
@@ -2913,11 +2852,6 @@ html, body {
 
 .expediente .medidor {
   margin-top: 6px;
-}
-
-.medidor__relleno--dorado {
-  background: linear-gradient(90deg, #8a6d1f, var(--dorado));
-  box-shadow: 0 0 10px rgba(var(--dorado-rgb), 0.55);
 }
 
 .expediente__aviso {
@@ -2968,7 +2902,7 @@ html, body {
   animation: progresa-cifra 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.expediente--progresa .medidor__relleno--dorado {
+.expediente--progresa .medidor--dorado > i {
   animation: progresa-barra 0.5s ease-out;
 }
 

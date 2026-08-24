@@ -2128,6 +2128,98 @@ de posiciones se queda fuera: ahí el botón principal es «volver a investigar�
 que no es avanzar. Y el sorteo del juez también, porque ahí el toque **es** la
 mecánica.
 
+### 6.42 · El juego le estaba quitando diez nombres al sistema
+
+Quedaba lo último de *«todo lo del juego debe ser de ese DS»*: adoptar los
+componentes, no solo los tokens.
+
+Lo primero fue medir, y la medida es la que ordenó el trabajo. Se compararon
+las reglas del juego con las del sistema **propiedad por propiedad**, mirando
+qué declara cada una del mismo selector. Diez clases se llamaban igual, y como
+el sistema va en `@layer ds` y el juego no, en cada choque el juego ganaba
+sobre lo que declaraba y **heredaba en silencio lo que no**:
+
+| Clase | Qué se colaba |
+|---|---|
+| `.pie` | `border-top`, `padding-block: 2.4rem 3.2rem`, Montserrat, `letter-spacing: .1em`, **`text-transform: uppercase`** |
+| `.cita` | once propiedades: familia, tamaño, peso, estilo, interlínea, color, sangría… |
+| `.pantalla` | `min-height: 100dvh` |
+| `.lista` | `list-style`, `border-top` |
+| `.aviso` `.panel` `.medidor` | una cada una, inerte bajo este tema |
+
+`.pie` no era un riesgo teórico: se estaba viendo. La línea de crédito del menú
+—«elmercio.com · El Mercio»— salía **en mayúsculas, con un filete encima y
+noventa píxeles de aire alrededor**, porque de las siete propiedades que
+declara el pie de página del sistema, la regla del juego solo pisaba tres.
+
+Y no todos los choques se resuelven igual:
+
+- **Borrar** cuando la del juego estaba muerta: `.superficie`, `.etiqueta`,
+  `.cifra`, `.aviso`, `.panel`, `.cita`, `.lista`. Eran las piezas del tema de
+  neón —fondo azul noche, filete blanco al 9 %— y llevaban meses sin que nadie
+  las pusiera. Se borran **aunque no se usen**: mientras el juego declare
+  `.etiqueta`, adoptar el `.tag` del sistema es pelearse con la cascada.
+- **Renombrar** cuando eran componentes distintos: `.pie` → `.pie-nota`, y
+  `.lista__fila` → `.ruta-fila`, que además no era una fila de lista sino la
+  ruta de la partida.
+- **Adoptar** cuando eran el mismo: el botón.
+- **Contribuir** cuando la del juego era lo que al sistema le faltaba: el
+  medidor.
+- **Convivir**, una sola vez: `.pantalla`. La ponen ciento sesenta sitios y lo
+  único que colaba era una línea, así que se declara el `min-height` propio.
+
+**El botón.** `.boton` eran veinte declaraciones copiadas del Figma: alto 48,
+relleno 12/24, hueco 8, radio 8, Montserrat Bold 16 con 0,2 de tracking. El
+sistema trae todo eso, y bajo el tema del periódico lo trae dicho por el
+periódico —`--em-sans`, `--em-t-button`, peso 700, 0,2 px— que es **letra por
+letra lo mismo**. Mantener las dos era mantener dos veces una cosa y esperar a
+que se separaran.
+
+Ahora los botones llevan `btn boton` y de `.boton` quedan tres deltas: bloque
+en vez de en línea (aquí son barras al pie de la pantalla, y el aviso de
+versión de `main.js` no cuelga de un contenedor flex), marco y recorte para el
+destello del principal, y aire vertical, porque el sistema centra con
+`min-height` y aquí las etiquetas se van a dos líneas.
+
+**Dos cosas cambian a la vista**, y las dos son el tema hablando:
+
+- El secundario deja de ser un **contorno** y pasa a ser un **rectángulo de
+  tono** (#f3f3f3). El tema declara `--ref-borde: 0` y
+  `--ref-campo: var(--ref-n1)`: con el filete a cero, un botón de contorno no
+  tiene contorno. Los dos «de peligro» se rehicieron por lo mismo —eran texto
+  rojo flotando— y pasan a campo teñido.
+- Los rótulos salen **en mayúsculas**, que lo dice
+  `:is(.em-logo,.em-btn,.btn){text-transform:uppercase}`.
+
+El bloque de **foco de teclado** se fue entero. Tenía un comentario que
+celebraba haberlo declarado una vez para las siete cosas tabulables del juego;
+la idea era buena y el sitio, equivocado: el tema ya lo declara para todo lo
+tabulable de cualquier página suya, y las siete son botones o campos.
+
+**El medidor** era el caso al revés. El del sistema va **por tramos** —vidas,
+munición: lo que se cuenta— y el del juego es una **barra que se llena**. No
+era el mismo componente con otro nombre: era la otra mitad del mismo. Se
+contribuyó `.medidor--continuo` a `mal-ds` —ancho en línea, color por
+`--mal-relleno-medidor`— y aquí no queda ninguna declaración de caja, solo los
+tres colores, que es lo único que era del juego. La sombra de neón se quedó
+fuera a propósito: el tema del periódico no tiene resplandores.
+
+**El HUD** ya usaba `.hud-juego`, la pieza que se contribuyó en su día, pero
+seguía declarando **seis de sus ocho propiedades otra vez y con los mismos
+valores**. Se borran las seis; quedan dos que sí son de este juego: que empiece
+escondido, y el margen de publicación, que no es el del sistema.
+
+Resultado: 411 reglas propias → 376, y de diez choques quedan dos, los dos
+resueltos conviviendo (`.pantalla` y `.hud-juego`, que es nuestra).
+
+**Lo que queda y por qué no se hizo aquí:** `.premio` está en el sistema —salió
+de este juego— y el juego sigue corriendo su `.hallazgo__*`. Las nueve
+subpartes se corresponden una a una, así que es un renombrado; el contenedor no
+se puede adoptar tal cual, porque `.premio` está pensado para ser la raíz de
+una página y aquí la raíz es `.pantalla`, que gana. Se deja para otro empujón a
+propósito: son dos cambios visibles sin forma de comprobarlos, y juntos en un
+commit dejan sin saber cuál rompió qué.
+
 ---
 
 ## 7 · Cómo se prueba cada pantalla sin jugar

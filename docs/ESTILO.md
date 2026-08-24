@@ -56,14 +56,49 @@ al actualizar el sistema.
 
 ## Choques de nombre resueltos
 
-El sistema usa diez clases que el juego ya usaba. Ocho no molestan; dos sí, y
-se renombraron **en el juego**, porque el nombre es del sistema:
+Diez clases del sistema se llamaban igual que diez del juego. Se resolvieron
+todas, y no todas igual: **borrar** cuando la del juego estaba muerta,
+**adoptar** cuando eran el mismo componente, **renombrar en el juego** cuando
+eran componentes distintos, y **contribuir** cuando la del juego era una pieza
+que al sistema le faltaba. El nombre siempre es del sistema.
 
 | Clase | En el sistema | En el juego | Qué se hizo |
 |---|---|---|---|
-| `.hud` | la cabecera pegajosa del sitio | el marcador de la partida, a `inset: 0` | → `.hud-juego`. Sin esto, el `background` de la cabecera tapaba el juego entero con una sábana blanca |
-| `.marcador` | UNA cifra grande con su rótulo | la COLUMNA de cifras de la esquina | → `.marcador-corrida` |
-| `.progreso` | carril + `<span>` de relleno | lo mismo, con dos clases más | **adoptado**: se borró el del juego |
+| `.hud` | la cabecera pegajosa del sitio | el marcador de la partida, a `inset: 0` | **renombrar** → `.hud-juego`. Sin esto, el `background` de la cabecera tapaba el juego entero con una sábana blanca |
+| `.pie` | el pie de página del sitio | la línea de crédito bajo los botones | **renombrar** → `.pie-nota`. De las siete propiedades del sistema, la del juego solo pisaba tres: «elmercio.com · El Mercio» salía EN MAYÚSCULAS, con filete y noventa píxeles de aire |
+| `.marcador` | UNA cifra grande con su rótulo | la COLUMNA de cifras de la esquina | **renombrar** → `.marcador-corrida` |
+| `.lista` | lista de enlaces con icono | una fila de nombres con flechas | **renombrar**: la fila era la RUTA, no una lista → `.ruta-fila`. El contenedor y el título estaban muertos |
+| `.progreso` | carril + `<span>` de relleno | lo mismo, con dos clases más | **adoptar**: se borró el del juego |
+| `.btn` / `.boton` | el botón, con su tipografía de tema | veinte declaraciones copiadas del Figma | **adoptar**: quedan tres deltas. Ver abajo |
+| `.medidor` | una barra POR TRAMOS | una barra CONTINUA | **contribuir**: `.medidor--continuo` entró al sistema y el juego solo pone el color |
+| `.superficie` `.etiqueta` `.cifra` | `.panel` · `.tag`/`.badge` · `.kpi` | piezas del tema de neón, muertas | **borrar**. El sistema no puede adoptarse mientras el juego declare sus nombres, ni aunque no las use |
+| `.aviso` `.panel` `.cita` | avisos, paneles y citas | muertas también | **borrar** |
+| `.pantalla` | una página de app | la capa sobre el lienzo | **convivir**: es el único. La ponen ciento sesenta sitios y lo único que se colaba era `min-height: 100dvh`, así que se declara el propio y punto |
+
+### El botón, en concreto
+
+`.boton` era un componente entero copiado del Figma: alto 48, relleno 12/24,
+hueco 8, radio 8, Montserrat Bold 16 con 0,2 de tracking y tres variantes. El
+sistema trae todo eso y bajo el tema del periódico lo trae dicho por el
+periódico —`--em-sans`, `--em-t-button`, peso 700, 0,2 px— que es letra por
+letra lo mismo. Ahora los botones llevan `btn boton` y de `.boton` solo quedan
+tres deltas: **bloque** en vez de en línea (son barras al pie de la pantalla),
+**marco y recorte** para el destello del principal, y **aire vertical** (el
+sistema centra con `min-height` y aquí las etiquetas se van a dos líneas).
+
+Dos cosas cambian a la vista, y las dos son el tema hablando:
+
+- El botón secundario deja de ser un **contorno** y pasa a ser un **rectángulo
+  de tono**. No es una elección: `--ref-borde: 0` y `--ref-campo: var(--ref-n1)`,
+  o sea *«sin líneas: la separación la hace el aire»* y *«un campo es un
+  rectángulo de tono, no un marco»*. Con el filete a cero, un botón de contorno
+  no tiene contorno. Los dos «de peligro» se rehicieron por lo mismo.
+- Los rótulos salen **en mayúsculas**, porque el tema declara
+  `:is(.em-logo,.em-btn,.btn){text-transform:uppercase}`.
+
+El **foco de teclado** también se fue: había un bloque propio para las siete
+cosas tabulables del juego, y el tema ya lo declara para todo lo tabulable de
+cualquier página suya. Las siete son botones o campos, así que entran solas.
 
 ## La expresión también es del tema
 
@@ -114,10 +149,11 @@ las partidas.
 | | Quién manda |
 |---|---|
 | Color, tipografía, espaciado, radios, sombras | el sistema |
-| Botones, tarjetas, listas, barras, insignias | el sistema (adopción en curso) |
-| El HUD sobre el lienzo | el juego · `.hud-juego` |
+| Botones, barras y medidores | el sistema · `.btn`, `.progreso`, `.medidor--continuo` |
+| El HUD sobre el lienzo | **el sistema**, con `.hud-juego`, que salió de aquí. El juego solo pone el margen de publicación y que empiece escondido |
 | Iluminación, props, materiales del mundo | el juego · `src/config/estilo.js` |
-| La pantalla del sobre, los emblemas, los iconos de partida | el juego, **de momento** — ver abajo |
+| La pantalla del sobre | el juego · `.hallazgo__*`, **de momento**. El sistema tiene `.premio` —salió de aquí— pero todavía no está adoptado: ver abajo |
+| Los emblemas y los iconos de partida | el juego, **de momento** — ver abajo |
 
 ### Del mundo 3D no opina el sistema
 
@@ -135,30 +171,54 @@ La regla de la casa, tal como la puso quien encargó esto: *si el juego tiene
 algo que el sistema no tiene, se le añade al sistema sin romper lo que ya hay.*
 Esto es el inventario, y está ordenado por lo que más falta hace.
 
-### 1 · Un contenedor de HUD · `.hud-juego`
+### ✔ Entregado · el contenedor de HUD, la pantalla de premio y el medidor continuo
 
-El sistema tiene la sección `juego` con sus piezas —`.marcador`, `.medidor`,
-`.vidas`, `.chip`, `.boton-juego`— pero **el ejemplo «Sobre el lienzo» monta el
-contenedor con estilos en línea**: `position:absolute;top:16px;left:16px` seis
-veces. No hay componente para lo único que todo HUD necesita, que es la rejilla
-que reparte las esquinas sobre un lienzo. El juego tiene uno hecho y probado.
+Los tres primeros de esta lista ya están en el sistema, en la rama
+`ds/piezas-de-juego`:
 
-### 2 · La pantalla de premio · el sobre
+- **`.hud-juego`.** La sección `juego` tenía las piezas —`.marcador`,
+  `.medidor`, `.vidas`, `.chip`, `.boton-juego`— pero el ejemplo «Sobre el
+  lienzo» montaba el contenedor con estilos en línea, `position:absolute;
+  top:16px;left:16px` seis veces. No había componente para lo único que todo
+  HUD necesita: la rejilla que reparte las esquinas sobre un lienzo.
+- **`.premio`.** Un desbloqueo a pantalla completa —fondo de rayos, la pieza en
+  el centro con su rebote, un toque para abrir— le sirve a los siete juegos del
+  hub. Lo que se comparte es la maqueta y el tiempo, no el dibujo: aquí es un
+  sobre de redacción porque el juego es un periódico.
+- **`.medidor--continuo`.** El sistema repartía el medidor por tramos —vidas,
+  munición: lo que se cuenta— y no tenía la otra mitad: la barra que se llena,
+  para lo que no se cuenta. Entró como variante y no como pieza nueva, con el
+  ancho en línea y el color por `--mal-relleno-medidor`.
 
-Un desbloqueo a pantalla completa —fondo de rayos, la pieza en el centro con su
-rebote, un toque para abrir— le sirve a los siete juegos del hub, no solo a
-éste. Va con su variante de tema: aquí es un sobre de redacción porque el juego
-es un periódico; en otro será otra cosa. Lo que se comparte es la maqueta y el
-tiempo, no el dibujo.
+Lo que sigue pendiente:
 
-### 3 · El rojo de marca en RGB · `--ref-marca-rgb`
+### 0 · Adoptar de vuelta `.premio`, que ya está allí
+
+Es el único caso al revés: la pieza está en el sistema —se contribuyó desde
+aquí— y el juego sigue corriendo la suya, `.hallazgo__*`. Las nueve
+subpartes se corresponden una a una (`__rayos`, `__escena`, `__pieza`,
+`__disco`, `__texto`, `__nombre`, `__desc`, `__pie`), así que la adopción es
+un renombrado y un borrado.
+
+Lo que no se puede adoptar tal cual es **el contenedor**. `.premio` está
+pensado para ser la raíz de una página —`min-height: 100dvh`, fondo propio,
+columna con las filas separadas— y aquí la raíz es `.pantalla`, que va a
+`inset: 0` sobre el lienzo y declara sin capa seis de esas propiedades, o sea
+que gana siempre. Mismo caso que el choque de `.pantalla`: el contenedor se
+queda del juego y las ocho piezas de dentro pasan al sistema.
+
+No se hizo en el mismo empujón que el botón a propósito: son dos cambios
+visibles y sin forma de comprobarlos aquí, y meterlos juntos en un commit deja
+sin saber cuál rompió qué.
+
+### 1 · El rojo de marca en RGB · `--ref-marca-rgb`
 
 El sistema publica `--ref-borde-rgb` para poder graduar el filete, pero no el
 color de marca. Sin él no se puede escribir `rgba(rojo, .12)` sin volver a
 escribir el hexadecimal, que es justo lo que los tokens vienen a evitar. El
 juego lo tiene escrito a mano en `src/style.css` y es el único que queda.
 
-### 4 · Tres colores de fondo de caja que el tema no declara
+### 2 · Tres colores de fondo de caja que el tema no declara
 
 El tema del periódico no tiene pasteles de fondo. El juego usa tres:
 
@@ -173,7 +233,7 @@ bloque negro. `#c53b2b` sobre `#141414` no llega ni a 3 : 1, así que hace falta
 una pareja del acento para fondo oscuro — que es un hueco del tema, no un
 capricho del juego.
 
-### 5 · Los iconos del juego
+### 3 · Los iconos del juego
 
 `iconos.svg` trae 81 símbolos de trazo. El juego tiene **veintiséis dibujos a
 color** que no son iconos de interfaz —son objetos: un cuenco de encebollado,

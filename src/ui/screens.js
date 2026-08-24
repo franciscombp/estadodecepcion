@@ -61,8 +61,17 @@ function cajaDeTitular(texto) {
         : palabra[0].toLocaleUpperCase('es') + palabra.slice(1)));
 }
 
+/**
+ * UN BOTÓN, y el componente es el del sistema.
+ *
+ * Lleva `btn` —la clase de `mal-ds`— delante de `boton`. El orden en el
+ * atributo no decide nada en CSS, pero se lee en el inspector y dice quién
+ * manda: la forma, la tipografía, el relleno y la respuesta al pulsar son del
+ * sistema; `boton` solo añade los tres deltas del juego (ver style.css) y
+ * cuelga las variantes propias, que son más que las tres del sistema.
+ */
 function boton(texto, clase, alPulsar) {
-  const b = el('button', `boton ${clase ?? ''}`.trim(), texto);
+  const b = el('button', `btn boton ${clase ?? ''}`.trim(), texto);
   b.type = 'button';
   b.addEventListener('click', alPulsar);
   return b;
@@ -643,7 +652,7 @@ export class Pantallas {
     //
     // La regla, para todo el juego: lo que se lee va arriba, lo que se pulsa va
     // abajo, y debajo del botón no hay nada.
-    const pie = el('div', 'pie');
+    const pie = el('div', 'pie-nota');
     pie.appendChild(document.createTextNode('elmercio.com · '));
     const enlace = el('a', '', T('marca.lema'));
     enlace.href = 'https://elmercio.com';
@@ -2153,7 +2162,7 @@ export class Pantallas {
   }
 
   _pintarRuta(ruta) {
-    const fila = el('div', 'lista__fila');
+    const fila = el('div', 'ruta-fila');
     ruta.forEach((id, i) => {
       if (i > 0) fila.appendChild(el('span', 'nodo-flecha', '→'));
       fila.appendChild(el('span', 'nodo', obtenerEscenario(id).nombre));

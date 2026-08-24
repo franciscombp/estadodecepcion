@@ -104,6 +104,7 @@
   --ref-t1:#54524B;           /* secundaria */
   --ref-t2:#5C5A53;           /* terciaria */
   --ref-borde-rgb:20,20,18;   /* el color del filete, en RGB para poder graduarlo (el grosor es --ref-borde) */
+  --ref-marca-rgb:214,56,43;  /* …y el de marca, por lo mismo: un halo, una selección o un tinte al 12 % piden rgba() y sin esto hay que volver a escribir el hexadecimal */
 
   --ref-display:"Syne",system-ui,-apple-system,sans-serif;
   --ref-marca-tipo:var(--ref-display);   /* la familia del logotipo, si es otra */
@@ -133,6 +134,14 @@
   --ref-interlinea:1.6;      /* la interlínea del cuerpo */
   --ref-salto:translateY(-2px);                  /* qué hace al pasar por encima */
   --ref-presion:scale(.98);                      /* …y al pulsar */
+
+  /* PASTELES DE FONDO DE CAJA · para distinguir dos cosas sin gastar el rojo.
+     Por defecto se derivan de la superficie del tema, así que funcionan en
+     claro y en oscuro sin que nadie los declare; un tema que quiera otros los
+     redeclara y ya (el del periódico lo hace: los suyos vienen del Figma). */
+  --ref-pastel-lila:color-mix(in srgb, #8b5cf6 22%, var(--ref-n2));
+  --ref-pastel-verde:color-mix(in srgb, #4ea24e 22%, var(--ref-n2));
+  --ref-pastel-azul:color-mix(in srgb, var(--ref-acento) 22%, var(--ref-n2));
 
   color-scheme:light dark;
 }
@@ -165,8 +174,21 @@
   --mal-on-surface-3:var(--ref-t2);
   --mal-outline:rgba(var(--ref-borde-rgb), .14);
   --mal-outline-2:rgba(var(--ref-borde-rgb), .3);
+  /* el de marca en RGB, para graduarlo: `rgba(var(--mal-primary-rgb), .12)` */
+  --mal-primary-rgb:var(--ref-marca-rgb);
 
   --mal-ok:#1F7A3D; --mal-warn:#B45309; --mal-danger:#a8352c; --mal-info:#33618f;
+
+  /* EL ACENTO CUANDO EL FONDO ES TINTA. `--mal-primary-txt` está pensado para
+     leerse sobre la página, y sobre un bloque oscuro no llega: el rojo del
+     periódico sobre su tinta da 2,4 : 1. Aquí el acento se aclara mezclándolo
+     con el papel hasta que sí se lee, sin dejar de ser el mismo color.
+     Los temas que quieran otra cosa lo redeclaran, como cualquier otro rol. */
+  --mal-primary-en-tinta:color-mix(in srgb, var(--ref-marca) 55%, var(--ref-n2));
+
+  --mal-pastel-lila:var(--ref-pastel-lila);
+  --mal-pastel-verde:var(--ref-pastel-verde);
+  --mal-pastel-azul:var(--ref-pastel-azul);
 
   /* tipografía · la escala es la misma; cambia la familia */
   --mal-display:var(--ref-display);
@@ -262,7 +284,7 @@
     --ref-sobre-marca:#151514; --ref-acento:#8AA0FF; --ref-acento-2:#A77BFF;
     --ref-n0:#151514; --ref-n1:#1D1D1C; --ref-n2:#222220; --ref-n3:#2A2A28;
     --ref-t0:#ECECEA; --ref-t1:#B3B3AE; --ref-t2:#8D8D87;
-    --ref-borde-rgb:235,235,228;
+    --ref-borde-rgb:235,235,228; --ref-marca-rgb:239,79,65;
     --mal-ok:#57B87A; --mal-warn:#E0A93A; --mal-danger:#f0a9a2; --mal-info:#a9c8ea;
     --ref-elev-1:0 2px 8px rgba(0,0,0,.3);
     --ref-elev-2:0 12px 36px rgba(0,0,0,.5);
@@ -273,7 +295,7 @@
   --ref-sobre-marca:#151514; --ref-acento:#8AA0FF; --ref-acento-2:#A77BFF;
   --ref-n0:#151514; --ref-n1:#1D1D1C; --ref-n2:#222220; --ref-n3:#2A2A28;
   --ref-t0:#ECECEA; --ref-t1:#B3B3AE; --ref-t2:#8D8D87;
-  --ref-borde-rgb:235,235,228;
+  --ref-borde-rgb:235,235,228; --ref-marca-rgb:239,79,65;
   --mal-ok:#57B87A; --mal-warn:#E0A93A; --mal-danger:#f0a9a2; --mal-info:#a9c8ea;
   --ref-elev-1:0 2px 8px rgba(0,0,0,.3);
   --ref-elev-2:0 12px 36px rgba(0,0,0,.5);
@@ -288,7 +310,7 @@
   --ref-sobre-marca:#ffffff; --ref-acento:#a6c7f2; --ref-acento-2:#c53b2b;
   --ref-n0:#ffffff; --ref-n1:#f3f3f3; --ref-n2:#ffffff; --ref-n3:#fafafa;   /* base · surface · base · base-2 */
   --ref-t0:#141414; --ref-t1:#282828; --ref-t2:#646464;                       /* contrast · -2 · -3 */
-  --ref-borde-rgb:20,20,20;
+  --ref-borde-rgb:20,20,20; --ref-marca-rgb:197,59,43;
   --ref-relleno:var(--ref-n1);  /* un contenedor es un rectángulo de tono sobre la página blanca */
   --ref-display:"PT Serif",Georgia,"Times New Roman",serif;
   --ref-texto:"PT Serif",Georgia,"Times New Roman",serif;
@@ -338,6 +360,13 @@
   --mal-t-prosa:var(--mal-t-cuerpo);
   --em-t-badge:9px;
   --em-t-button:clamp(14px, .875rem + ((1vw - 3.2px) * .208), 16px);
+  /* PASTELES DE FONDO DE CAJA. El tema no tenía ninguno y hacen falta en
+     cuanto una página necesita distinguir dos cosas sin usar el rojo: en el
+     periódico son los fondos de los recuadros de opinión y de las fichas.
+     Van con el mismo valor que el `--ref-acento` azul —un tono claro sobre el
+     que la tinta llega a 12 : 1— y no compiten con la marca porque ninguno es
+     rojo. */
+  --ref-pastel-lila:#ddbeff; --ref-pastel-verde:#cdeac4; --ref-pastel-azul:var(--ref-acento);
   --ref-cita-estilo:italic; --ref-peso-cita:400;   /* serif en cursiva: la cita de prensa */
   --ref-cita-sangria:0; --ref-cita-alto:1.35em;    /* sin filete: manda la comilla */
 }
@@ -346,6 +375,7 @@
     --ref-marca:#e8604f; --ref-marca-txt:#e8604f; --ref-sobre-marca:#141414;
     --ref-n0:#1a1a1a; --ref-n1:#222222; --ref-n2:#141414; --ref-n3:#1a1a1a;
     --ref-t0:#f2f2f2; --ref-t1:#d8d8d8; --ref-t2:#a0a0a0; --ref-borde-rgb:242,242,242;
+    --ref-marca-rgb:232,96,79;
     --mal-outline:#333333; --mal-outline-2:#454545;
   }
 }
@@ -353,6 +383,7 @@
   --ref-marca:#e8604f; --ref-marca-txt:#e8604f; --ref-sobre-marca:#141414;
   --ref-n0:#1a1a1a; --ref-n1:#222222; --ref-n2:#141414; --ref-n3:#1a1a1a;
   --ref-t0:#f2f2f2; --ref-t1:#d8d8d8; --ref-t2:#a0a0a0; --ref-borde-rgb:242,242,242;
+  --ref-marca-rgb:232,96,79;
   --mal-outline:#333333; --mal-outline-2:#454545;
 }
 
@@ -364,7 +395,7 @@
   --ref-sobre-marca:#ffffff; --ref-acento:#33618f; --ref-acento-2:#1f7a3d;
   --ref-n0:#f6f5f1; --ref-n1:#edebe4; --ref-n2:#fffefb; --ref-n3:#f6f5f1;
   --ref-t0:#1b1d1a; --ref-t1:#565b53; --ref-t2:#63685d;
-  --ref-borde-rgb:27,29,26;
+  --ref-borde-rgb:27,29,26; --ref-marca-rgb:196,30,30;
   --ref-display:var(--ref-texto);   /* sin tipografía de display */
   --ref-peso-display:700;
   --ref-tracking:-.02em;
@@ -400,7 +431,7 @@
 @media (prefers-color-scheme:dark){
   :root[data-marca="apps"]:not([data-tema="claro"]){
     --ref-marca:#ff6b6b; --ref-marca-2:#ff9999; --ref-marca-txt:#ff6b6b;
-    --ref-sobre-marca:#1a1d1a;
+    --ref-marca-rgb:255,107,107; --ref-sobre-marca:#1a1d1a;
     --ref-n0:#121412; --ref-n1:#252823; --ref-n2:#1a1d1a; --ref-n3:#1e211e;
     --ref-t0:#e7e9e3; --ref-t1:#abb0a5; --ref-t2:#8f948a; --ref-borde-rgb:231,233,227;
     --ref-relleno:var(--ref-n2);
@@ -413,7 +444,7 @@
 }
 :root[data-marca="apps"][data-tema="oscuro"]{
   --ref-marca:#ff6b6b; --ref-marca-2:#ff9999; --ref-marca-txt:#ff6b6b;
-  --ref-sobre-marca:#1a1d1a;
+  --ref-marca-rgb:255,107,107; --ref-sobre-marca:#1a1d1a;
   --ref-n0:#121412; --ref-n1:#252823; --ref-n2:#1a1d1a; --ref-n3:#1e211e;
   --ref-t0:#e7e9e3; --ref-t1:#abb0a5; --ref-t2:#8f948a; --ref-borde-rgb:231,233,227;
   --ref-relleno:var(--ref-n2);
@@ -433,7 +464,7 @@
   --ref-sobre-marca:#ffffff; --ref-acento:#1b5faa; --ref-acento-2:#f5a623;
   --ref-n0:#f3f1ec; --ref-n1:#e3dfd6; --ref-n2:#ffffff; --ref-n3:#f8f6f2;
   --ref-t0:#2b2129; --ref-t1:#5c4d58; --ref-t2:#6f626c;
-  --ref-borde-rgb:43,33,41;
+  --ref-borde-rgb:43,33,41; --ref-marca-rgb:224,27,106;
   --ref-peso-display:800;
   --ref-tracking:-.03em;
   --ref-radio:1.3;            /* más redondo que ningún otro */
@@ -459,6 +490,7 @@
     --ref-sobre-marca:#1d1822; --ref-acento:#5f97d8; --ref-acento-2:#ffc93c;
     --ref-n0:#1d1822; --ref-n1:#2f2733; --ref-n2:#272031; --ref-n3:#332b3a;
     --ref-t0:#f3f1ec; --ref-t1:#cbc5b8; --ref-t2:#a99fb0; --ref-borde-rgb:243,241,236;
+  --ref-marca-rgb:255,119,171;
   }
 }
 :root[data-marca="juegos"][data-tema="oscuro"]{
@@ -466,6 +498,7 @@
   --ref-sobre-marca:#1d1822; --ref-acento:#5f97d8; --ref-acento-2:#ffc93c;
   --ref-n0:#1d1822; --ref-n1:#2f2733; --ref-n2:#272031; --ref-n3:#332b3a;
   --ref-t0:#f3f1ec; --ref-t1:#cbc5b8; --ref-t2:#a99fb0; --ref-borde-rgb:243,241,236;
+  --ref-marca-rgb:255,119,171;
 }
 
 
@@ -1352,31 +1385,31 @@ body::before{
    no se vería nunca. Y mueve `--ref-marca`, no solo el alias, para
    que un componente del sistema —un `.btn--rojo`— también se tiña. */
 :root[data-app="quanto"]{--ref-marca:#c41e1e;--ref-marca-2:#8b1515;--ref-marca-txt:#c41e1e;
-  --ref-sobre-marca:#fff;--app-brand:#c41e1e;--app-brand-deep:#8b1515;--app-on-brand:#fff}
+  --ref-marca-rgb:196,30,30;--ref-sobre-marca:#fff;--app-brand:#c41e1e;--app-brand-deep:#8b1515;--app-on-brand:#fff}
 :root[data-app="agro"]{--ref-marca:#1f7a3d;--ref-marca-2:#175c2e;--ref-marca-txt:#1f7a3d;
-  --ref-sobre-marca:#fff;--app-brand:#1f7a3d;--app-brand-deep:#175c2e;--app-on-brand:#fff}
+  --ref-marca-rgb:31,122,61;--ref-sobre-marca:#fff;--app-brand:#1f7a3d;--app-brand-deep:#175c2e;--app-on-brand:#fff}
 :root[data-app="jacky"]{--ref-marca:#2f7657;--ref-marca-2:#205c43;--ref-marca-txt:#2f7657;
-  --ref-sobre-marca:#fff;--app-brand:#2f7657;--app-brand-deep:#205c43;--app-on-brand:#fff}
+  --ref-marca-rgb:47,118,87;--ref-sobre-marca:#fff;--app-brand:#2f7657;--app-brand-deep:#205c43;--app-on-brand:#fff}
 :root[data-app="cds"]{--ref-marca:#33618f;--ref-marca-2:#26496b;--ref-marca-txt:#33618f;
-  --ref-sobre-marca:#fff;--app-brand:#33618f;--app-brand-deep:#26496b;--app-on-brand:#fff}
+  --ref-marca-rgb:51,97,143;--ref-sobre-marca:#fff;--app-brand:#33618f;--app-brand-deep:#26496b;--app-on-brand:#fff}
 @media (prefers-color-scheme:dark){
   :root:not([data-tema="claro"])[data-app="quanto"]{--ref-marca:#ff6b6b;--ref-marca-2:#ff9999;
-    --ref-marca-txt:#ff6b6b;--ref-sobre-marca:#1a1d1a;--app-brand:#ff6b6b;--app-on-brand:#1a1d1a}
+    --ref-marca-txt:#ff6b6b;--ref-marca-rgb:255,107,107;--ref-sobre-marca:#1a1d1a;--app-brand:#ff6b6b;--app-on-brand:#1a1d1a}
   :root:not([data-tema="claro"])[data-app="agro"]{--ref-marca:#5cbf85;--ref-marca-2:#8fd8a9;
-    --ref-marca-txt:#5cbf85;--ref-sobre-marca:#12210f;--app-brand:#5cbf85;--app-on-brand:#12210f}
+    --ref-marca-txt:#5cbf85;--ref-marca-rgb:92,191,133;--ref-sobre-marca:#12210f;--app-brand:#5cbf85;--app-on-brand:#12210f}
   :root:not([data-tema="claro"])[data-app="jacky"]{--ref-marca:#6dc39b;--ref-marca-2:#9adcbd;
-    --ref-marca-txt:#6dc39b;--ref-sobre-marca:#0f3d2e;--app-brand:#6dc39b;--app-on-brand:#0f3d2e}
+    --ref-marca-txt:#6dc39b;--ref-marca-rgb:109,195,155;--ref-sobre-marca:#0f3d2e;--app-brand:#6dc39b;--app-on-brand:#0f3d2e}
   :root:not([data-tema="claro"])[data-app="cds"]{--ref-marca:#8ab4e0;--ref-marca-2:#b3d1ef;
-    --ref-marca-txt:#8ab4e0;--ref-sobre-marca:#12233a;--app-brand:#8ab4e0;--app-on-brand:#12233a}
+    --ref-marca-txt:#8ab4e0;--ref-marca-rgb:138,180,224;--ref-sobre-marca:#12233a;--app-brand:#8ab4e0;--app-on-brand:#12233a}
 }
 :root[data-tema="oscuro"][data-app="quanto"]{--ref-marca:#ff6b6b;--ref-marca-2:#ff9999;
-  --ref-marca-txt:#ff6b6b;--ref-sobre-marca:#1a1d1a;--app-brand:#ff6b6b;--app-on-brand:#1a1d1a}
+  --ref-marca-txt:#ff6b6b;--ref-marca-rgb:255,107,107;--ref-sobre-marca:#1a1d1a;--app-brand:#ff6b6b;--app-on-brand:#1a1d1a}
 :root[data-tema="oscuro"][data-app="agro"]{--ref-marca:#5cbf85;--ref-marca-2:#8fd8a9;
-  --ref-marca-txt:#5cbf85;--ref-sobre-marca:#12210f;--app-brand:#5cbf85;--app-on-brand:#12210f}
+  --ref-marca-txt:#5cbf85;--ref-marca-rgb:92,191,133;--ref-sobre-marca:#12210f;--app-brand:#5cbf85;--app-on-brand:#12210f}
 :root[data-tema="oscuro"][data-app="jacky"]{--ref-marca:#6dc39b;--ref-marca-2:#9adcbd;
-  --ref-marca-txt:#6dc39b;--ref-sobre-marca:#0f3d2e;--app-brand:#6dc39b;--app-on-brand:#0f3d2e}
+  --ref-marca-txt:#6dc39b;--ref-marca-rgb:109,195,155;--ref-sobre-marca:#0f3d2e;--app-brand:#6dc39b;--app-on-brand:#0f3d2e}
 :root[data-tema="oscuro"][data-app="cds"]{--ref-marca:#8ab4e0;--ref-marca-2:#b3d1ef;
-  --ref-marca-txt:#8ab4e0;--ref-sobre-marca:#12233a;--app-brand:#8ab4e0;--app-on-brand:#12233a}
+  --ref-marca-txt:#8ab4e0;--ref-marca-rgb:138,180,224;--ref-sobre-marca:#12233a;--app-brand:#8ab4e0;--app-on-brand:#12233a}
 
 /* tipografía de producto · se usa igual en cualquier tema */
 .caption{font-size:var(--app-t-caption);color:var(--mal-on-surface-3)}
@@ -2047,10 +2080,121 @@ label.chip:has(input:checked){background:var(--mal-primary);border-color:var(--m
 .medidor{display:flex;gap:3px;height:12px}
 .medidor > i{flex:1;border-radius:3px;background:var(--mal-bg-2)}
 .medidor > i.lleno{background:var(--mal-relleno-marca)}
+/* …Y EL MISMO MEDIDOR, CONTINUO. El de arriba va POR TRAMOS —vidas, munición,
+   turnos: cosas que se cuentan—. Este es una barra que se llena, para lo que
+   NO se cuenta: aguante, carga, lo que falta para llegar. Es el mismo
+   componente y el mismo sitio en el HUD, y lo único que cambia es que dentro
+   hay un relleno en vez de N tramos: por eso es una variante y no una pieza
+   nueva.
+   El ancho del relleno lo escribe quien lo pinta, en línea: es el único que
+   sabe el porcentaje, y en un HUD eso cambia cada fotograma.
+   El color sale de `--mal-relleno-medidor`, que por defecto es el de marca.
+   Un consumidor que necesite semáforo —verde mientras vas bien, rojo cuando
+   se acaba— lo cambia en la propia barra sin tocar el relleno. */
+.medidor--continuo{display:block;height:7px;border-radius:var(--mal-r-s);background:var(--mal-bg-2);overflow:hidden}
+.medidor--continuo > i{
+  display:block;width:0;height:100%;border-radius:inherit;
+  background:var(--mal-relleno-medidor, var(--mal-relleno-marca));
+  transition:background .18s;
+}
+.medidor--fino{height:5px}
 .vidas{display:flex;gap:var(--mal-e1);color:var(--mal-primary)}
 .vidas .icono{width:1.4em;height:1.4em}
 .vidas .icono.perdida{color:var(--mal-outline-2)}
 .boton-juego{min-height:calc(var(--mal-tap) * 1.3);font-size:1.1rem;padding-inline:var(--mal-e6)}
+
+/* ─── EL HUD SOBRE EL LIENZO ────────────────────────────────────
+   Las piezas de arriba ya estaban; lo que faltaba era DÓNDE VAN.
+   El ejemplo «Sobre el lienzo» del escaparate montaba las cuatro
+   esquinas con `position:absolute;top:16px;left:16px` escrito seis
+   veces a mano, que es lo que pasa cuando un componente no existe.
+
+   Cuatro cosas encima del juego y ni una más —la pausa arriba a la
+   izquierda, las cifras arriba a la derecha, lo que esté activo
+   abajo, y NADA EN EL CENTRO—. El vacío del centro no es austeridad:
+   es que por ahí se corre, y todo lo que se ponga ahí compite con lo
+   único que el jugador está mirando.
+
+   Se llama `.hud-juego` y no `.hud` porque `.hud` ya es la cabecera
+   del sitio. No es un capricho de nombre: el `background` de aquella
+   aplicado a un contenedor a `inset:0` tapa el juego entero con una
+   sábana. Pasó.
+
+   `pointer-events` en `none` y `auto` en los hijos: el HUD no puede
+   comerse el toque que va al juego, pero sus botones sí. */
+.hud-juego{
+  position:absolute;inset:0;z-index:20;pointer-events:none;
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:calc(env(safe-area-inset-top, 0px) + var(--mal-e5))
+          calc(env(safe-area-inset-right, 0px) + var(--mal-e5))
+          calc(env(safe-area-inset-bottom, 0px) + var(--mal-e5))
+          calc(env(safe-area-inset-left, 0px) + var(--mal-e5));
+}
+.hud-juego > *{pointer-events:auto}
+.hud-juego__arriba,.hud-juego__abajo{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--mal-e2)}
+.hud-juego__abajo{align-items:flex-end}
+/* La columna de cifras de la esquina: alineada a la derecha y con los
+   números tabulares, que si no el marcador baila cada vez que un 1
+   sustituye a un 8 — y a sesenta fotogramas por segundo eso se nota. */
+.hud-juego__cifras{display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right;line-height:1;font-variant-numeric:tabular-nums}
+
+/* ─── EL PREMIO ─────────────────────────────────────────────────
+   Lo que sale cuando un juego desbloquea algo: pantalla entera,
+   abanico de rayos saliendo del centro, la pieza grande y quieta, y
+   un toque para seguir.
+
+   No es una importación de otro juego: el estallido de rayos es de
+   los anuncios de prensa, que es de donde lo sacaron los juegos. Y
+   por eso funciona igual con el tema del periódico que con el de
+   juegos — cambia el dibujo de dentro, no la maqueta.
+
+   Los rayos son un degradado cónico repetido: veinticuatro cuñas,
+   cero peticiones, ninguna imagen que cargar. La máscara radial les
+   apaga el centro (donde se cruzan y ensucian) y los bordes. */
+.premio{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+  min-height:100dvh;text-align:center;overflow:hidden;cursor:pointer;
+  background:radial-gradient(circle at 50% 44%, var(--mal-surface) 0%,
+    color-mix(in srgb, var(--mal-surface) 86%, transparent) 16%, transparent 46%), var(--mal-fondo)}
+.premio__rayos{position:absolute;top:50%;left:50%;width:240vmax;height:240vmax;transform:translate(-50%, -50%);
+  pointer-events:none;
+  background:repeating-conic-gradient(from 0deg at 50% 50%,
+    rgba(var(--mal-primary-rgb), .13) 0deg 7.5deg, transparent 7.5deg 15deg);
+  -webkit-mask-image:radial-gradient(circle at 50% 50%, transparent 3.5%, #000 16%, #000 34%, transparent 50%);
+  mask-image:radial-gradient(circle at 50% 50%, transparent 3.5%, #000 16%, #000 34%, transparent 50%);
+  animation:mal-premio-girar 44s linear infinite}
+.premio__escena{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:clamp(14px, 4vw, 24px);width:100%}
+/* La pieza flota siempre —quieta en el centro de una pantalla vacía
+   parece una ilustración— y al aparecer entra con un rebote que se
+   pasa de largo antes de asentarse. */
+.premio__pieza{animation:mal-premio-flotar 3.4s ease-in-out infinite}
+.premio__pieza--entra{animation:mal-premio-brotar .62s var(--mal-ease) both,
+  mal-premio-flotar 3.4s ease-in-out .62s infinite}
+/* El disco le da al icono un tamaño fijo pase lo que pase con su caja. */
+.premio__disco{display:grid;place-items:center;
+  width:clamp(190px, 56vw, 244px);height:clamp(190px, 56vw, 244px);
+  border-radius:50%;background:var(--mal-surface);
+  border:2px solid var(--mal-on-surface);
+  box-shadow:0 0 0 8px var(--mal-bg-2), 0 0 0 9px var(--mal-outline), var(--mal-elev-2)}
+.premio__disco svg{display:block}
+.premio__texto{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;width:100%}
+.premio__nombre{font-family:var(--mal-display);font-weight:var(--ref-peso-display);
+  font-size:var(--mal-t-h1);line-height:1.08;color:var(--mal-on-surface)}
+.premio__desc{font-family:var(--mal-texto);font-size:var(--mal-t-cuerpo);line-height:1.45;
+  color:var(--mal-on-surface-2);max-width:30ch}
+/* «Toca para abrir» no es un botón porque no lo es: responde la
+   pantalla entera, y dibujar un botón mentiría sobre dónde tocar. */
+.premio__pie{position:relative;font-family:var(--mal-mono);font-weight:700;
+  font-size:clamp(1rem, 4.4vw, 1.125rem);color:var(--mal-on-surface);
+  animation:mal-premio-latir 1.9s ease-in-out infinite}
+@keyframes mal-premio-girar{to{transform:translate(-50%, -50%) rotate(360deg)}}
+@keyframes mal-premio-flotar{0%,100%{transform:translateY(-5px) rotate(-1.2deg)}50%{transform:translateY(5px) rotate(1.2deg)}}
+@keyframes mal-premio-brotar{0%{transform:scale(.35) rotate(-14deg);opacity:0}60%{opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes mal-premio-latir{0%,100%{opacity:.55;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){
+  .premio__rayos,.premio__pieza,.premio__pieza--entra,.premio__pie{animation:none}
+  .premio__rayos{transform:translate(-50%, -50%)}
+}
 
 /* ─── blog y editorial ─────────────────────────────────────────── */
 .indice{position:sticky;top:var(--mal-e5);list-style:none;display:flex;flex-direction:column;gap:2px;font-size:var(--mal-t-caption)}
