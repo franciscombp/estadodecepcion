@@ -509,22 +509,62 @@ export const RACHA = {
   CADUCIDAD: 1.5,
 
   // Cada escalón: desde qué racha, con qué color y con cuánta chispa.
-  // El color va de dorado a rojo pasando por naranja y magenta — sube de
-  // temperatura, que es como se lee sin explicación.
+  //
   // `estela` es CHISPAS POR SEGUNDO, y los números parecen disparatados hasta
   // que se hace la cuenta: la ventana en la que una chispa de la estela se ve
   // es de unos tres metros y medio detrás del corredor —más atrás cae por
   // debajo del borde inferior del cuadro—, y a dieciocho metros por segundo eso
   // son DOS DÉCIMAS de vida útil. Con veinte por segundo salían cuatro puntos
   // sueltos; para que se lea como una cola hacen falta estos.
+  //
+  // ══ LA ESTELA NO ES ROJA, Y ESTO NO ES UNA PREFERENCIA ══════════════════
+  //
+  // Lo era: subía de tono con la racha igual que el estallido, y en el escalón
+  // alto eso son DOSCIENTAS DIEZ chispas por segundo de un rojo oscuro
+  // arrastrándose por detrás de una persona que corre. Aunque salen a 0,85 m
+  // de altura y casi ninguna llega a tocar el asfalto —medido: menos de una
+  // décima de chispa por debajo de 20 cm en cualquier momento— la cámara mira
+  // DESDE ARRIBA, así que en la imagen caen sobre la calzada igual.
+  //
+  // Puntos pequeños, irregulares, de rojo oscuro, repartidos sobre asfalto
+  // gris, justo detrás de alguien que huye. En un juego sobre un periodista
+  // perseguido por el Estado, eso se lee como sangre. Da igual que no lo sea:
+  // una captura basta, y este juego se juega para hacer capturas.
+  //
+  // Así que la estela es PAPEL. Es además lo que se le cae a alguien que corre
+  // con un expediente en los brazos, o sea que el color correcto era este
+  // desde el principio. La racha sigue leyéndose en la cola —sube de 70 a 210
+  // chispas por segundo, que es un salto de tres veces— pero por CANTIDAD, no
+  // por color.
+  //
+  // ══ Y EL ROJO OSCURO SE VA DEL TODO ═════════════════════════════════════
+  //
+  // El escalón de IMPARABLE era 0xa93123, que no es un color del diario: es el
+  // rojo de marca oscurecido a mano para escalar «subiendo de temperatura». Un
+  // rojo oscurecido es exactamente el color del que hablamos arriba.
+  //
+  // La escala sube igual, pero ACLARANDO en vez de oscureciendo: 0xef4f41 es
+  // el rojo que el propio sistema usa para fondo oscuro, o sea un valor de
+  // marca y no un invento. Un bermellón brillante no se confunde con sangre;
+  // un carmín oscuro sí. Y el remate sigue siendo la tinta, que es el chiste:
+  // en PRIMERA PLANA sales impreso en negro.
   TRAMOS: [
-    // Los tonos son del diario, no cuatro neones distintos: el rojo sube de
-    // intensidad con la racha en vez de cambiar de familia en cada escalón.
+    // Los tonos son del diario, no cuatro neones distintos.
     { desde: 0, nombre: '', color: 0xd9705f, chispas: 10, estela: 0 },
     { desde: 6, nombre: 'EN RACHA', color: 0xc53b2b, chispas: 18, estela: 70 },
-    { desde: 14, nombre: 'IMPARABLE', color: 0xa93123, chispas: 26, estela: 130 },
+    { desde: 14, nombre: 'IMPARABLE', color: 0xef4f41, chispas: 26, estela: 130 },
     { desde: 26, nombre: 'PRIMERA PLANA', color: 0x141414, chispas: 36, estela: 210 },
   ],
+
+  // El color de la cola, uno solo para los cuatro escalones. Es el crema del
+  // papel, el mismo con el que salen volando los papeles al chocar.
+  COLOR_ESTELA: 0xf0e2b0,
+
+  // Y el del fogonazo del atrape, que TAMPOCO puede ser el del escalón.
+  // Se le pasaba `color` sin pensarlo, y en PRIMERA PLANA ese color es la
+  // tinta: un fogonazo negro no es un fogonazo, es un agujero. Un golpe de luz
+  // es luz, y punto.
+  COLOR_FOGONAZO: 0xfff4d6,
 };
 
 /** El escalón de racha que toca para un contador dado. */

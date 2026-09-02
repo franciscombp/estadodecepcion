@@ -1780,7 +1780,12 @@ export class Game {
 
     if (this.jugador.volando) {
       this.particulas.chorro(this.jugador.x, this.jugador.y + 0.15, 0.35, {
-        color: t.desde > 0 ? t.color : 0x4fd8ff,
+        // EL CHORRO DEL VUELO NO LLEVA EL COLOR DE LA RACHA. Sale de los pies
+        // hacia abajo —empuje −5,2 en Y— o sea que apunta al asfalto y se
+        // estampa contra él: es el sitio del juego donde algo rojo cae más
+        // claramente sobre el suelo. Y además no tiene por qué llevarlo: esto
+        // es el chorro de la cobertura aérea, no la racha.
+        color: 0x4fd8ff,
         cantidad: 2,
         dispersion: 0.34,
         empuje: { x: 0, y: -5.2, z: 1.5 },
@@ -1814,7 +1819,10 @@ export class Game {
     // sigue siendo pequeño: la cola la hace el mundo, que ya arrastra cada
     // chispa dieciocho metros por segundo hacia la cámara.
     this.particulas.chorro(this.jugador.x, this.jugador.y + 0.85, 0.5, {
-      color: t.color,
+      // Papel, no el color del escalón. Ver RACHA.COLOR_ESTELA: doscientas
+      // diez chispas por segundo de rojo oscuro por detrás de alguien que huye
+      // no se leen como una racha.
+      color: RACHA.COLOR_ESTELA,
       cantidad: cuantas,
       dispersion: 0.62,
       empuje: { x: 0, y: 1.1, z: 0.6 },
@@ -2313,7 +2321,9 @@ export class Game {
       // diez metros de calle: sin un pico de luz en el primer fotograma, el
       // efecto se lee cuando el papel ya quedó atrás.
       this.particulas.fogonazo(this.jugador.x, atrapeY, ATRAPE.z, {
-        color: t.color,
+        // Luz, no el color del escalón: en PRIMERA PLANA ese color es la tinta
+        // y el fogonazo salía negro. Ver RACHA.COLOR_FOGONAZO.
+        color: RACHA.COLOR_FOGONAZO,
         // Anclado al personaje: ver Particulas.fogonazo. Sin esto, a velocidad
         // máxima el fogonazo le pasa a la cámara por dentro.
         arrastre: velocidadEfectiva,

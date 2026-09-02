@@ -2404,6 +2404,71 @@ Tres cuidados, los tres aprendidos aquí:
    animación de `.pantalla`, y sin animación no hay `animationend` ni
    `forwards`: la saliente se quedaría quieta y entera encima de la nueva.
 
+### 6.45 · Las chispas rojas del suelo parecían sangre
+
+Se avisó: *«ten cuidado con las partículas en el piso, que a veces en rojo
+parece sangre»*.
+
+**La primera hipótesis era falsa.** Pensé que las chispas se posaban en el
+asfalto —el sistema las hace rebotar contra el suelo a y = 0,04— y que ahí se
+acumulaban. Simulado con la misma aritmética de `Particulas.actualizar()`:
+
+| Emisor | Tiempo por chispa bajo 20 cm | Chispas ahí a la vez |
+|---|---|---|
+| Estallido de recoger | 0 ms | 0,0 |
+| Estela de racha | 0 ms | 0,0 |
+| Polvo de aterrizar | 17 ms | 0,1 |
+| Papeles del choque | 52 ms | 0,1 |
+
+Ninguna se posa: el rebote las devuelve arriba y se les acaba la vida antes de
+asentarse. O sea que el problema **no es el contacto con el suelo**.
+
+**Lo que pasa es que la cámara mira desde arriba.** Está a 4,3 m de altura
+apuntando a 0,90; una chispa a 0,85 m de altura y dos metros por detrás del
+corredor se proyecta SOBRE la calzada aunque esté a un metro de ella. Y la
+estela de racha suelta hasta **210 chispas por segundo** en el escalón alto.
+
+Puntos pequeños, irregulares, de rojo oscuro, repartidos sobre asfalto gris,
+justo detrás de alguien que huye de la policía. Eso se lee como sangre. Da
+igual que no lo sea: en un juego sobre un periodista perseguido por el Estado
+basta una captura para que circule como lo que no es, y el juego se juega para
+hacer capturas.
+
+**Tres cambios, y ninguno es cosmético:**
+
+1. **La estela es papel.** Un solo color para los cuatro escalones, el crema
+   con el que ya salen volando los papeles al chocar. La racha se sigue leyendo
+   en la cola —de 70 a 210 chispas por segundo, un salto de tres veces— pero
+   por CANTIDAD, no por color. Y es además lo que se le cae a alguien que corre
+   con un expediente en los brazos: era el color correcto desde el principio.
+2. **El rojo oscuro se va del todo.** `0xa93123`, el escalón de IMPARABLE, no
+   era un color del diario: era el rojo de marca oscurecido a mano para
+   «subir de temperatura». Un rojo oscurecido es exactamente de lo que
+   hablamos. Ahora la escala sube **aclarando**: `0xef4f41` es el rojo que el
+   propio sistema usa para fondo oscuro, o sea un valor de marca. Un bermellón
+   brillante no se confunde con sangre; un carmín oscuro sí. El remate sigue
+   siendo la tinta, que es el chiste: en PRIMERA PLANA sales impreso en negro.
+3. **El chorro del vuelo deja de llevar el color de la racha.** Sale de los
+   pies **hacia abajo** —empuje −5,2 en Y— así que apunta al asfalto y se
+   estampa contra él: es el único sitio del juego donde algo se dirige de
+   verdad al suelo. Y no tenía por qué llevarlo: es el chorro de la cobertura
+   aérea, no la racha.
+
+**De paso salió un fallo mío de la tanda anterior:** al fogonazo del atrape le
+pasaba el color del escalón, y en PRIMERA PLANA ese color es la tinta. Un
+fogonazo negro no es un fogonazo, es un agujero. Un golpe de luz es luz.
+
+La regla queda escrita en la cabecera de `Particulas.js` y en `docs/ESTILO.md`,
+que es donde se va a buscar: **lo que se emite hacia abajo, lo que dura lo
+suficiente para caer y lo que sale en cantidad por detrás del corredor va en
+papel o en tinta.**
+
+Lo que se revisó y se deja como está: los seis potenciadores (cian, dorado,
+verde, naranja, rosa, amarillo — ninguno es rojo), el polvo de aterrizar y los
+papeles del choque (crema), las chispas del roce (blancas), el archivo (naranja,
+breve y a la altura del pecho) y el tinte de peligro del HUD, que es una viñeta
+de bordes y no una mancha: transparente en el centro, roja en el marco.
+
 ---
 
 ## 7 · Cómo se prueba cada pantalla sin jugar

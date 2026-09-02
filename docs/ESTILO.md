@@ -155,6 +155,30 @@ las partidas.
 | La pantalla del sobre | el juego · `.hallazgo__*`, **de momento**. El sistema tiene `.premio` —salió de aquí— pero todavía no está adoptado: ver abajo |
 | Los emblemas y los iconos de partida | el juego, **de momento** — ver abajo |
 
+### Lo que cae al suelo no es rojo
+
+Regla editorial, no de estilo, y por eso va antes que las demás.
+
+La estela de la racha era roja y subía de tono con ella. En el escalón alto son
+**210 chispas por segundo de rojo oscuro** arrastrándose por detrás de alguien
+que corre. Salen a 0,85 m de altura y casi ninguna llega a tocar el asfalto
+—medido: menos de una décima de chispa por debajo de 20 cm en cualquier
+momento— pero **la cámara mira desde arriba**, así que en la imagen caen sobre
+la calzada igual.
+
+Puntos pequeños, irregulares, de rojo oscuro, sobre asfalto gris, justo detrás
+de alguien que huye de la policía. Eso se lee como sangre. Da igual que no lo
+sea: en un juego sobre un periodista perseguido por el Estado basta una captura
+para que circule como lo que no es, y este juego se juega para hacer capturas.
+
+Lo que se emite hacia abajo, lo que dura lo suficiente para caer y lo que sale
+en cantidad por detrás del corredor va en **papel** o en **tinta**. El rojo se
+reserva para lo que es un golpe de luz: breve, a la altura del pecho, sobre el
+fondo y no sobre el suelo. Y si hace falta un rojo, que sea de marca y **claro**
+— un bermellón brillante no se confunde con sangre; un carmín oscuro sí. Por eso
+se fue `0xa93123`, que no era un color del diario sino el rojo de marca
+oscurecido a mano.
+
 ### Del mundo 3D no opina el sistema
 
 `src/config/estilo.js` sigue teniendo su paleta y no es una duplicación: son

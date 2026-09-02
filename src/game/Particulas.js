@@ -25,6 +25,27 @@
 // desvanecido va por alfa, en su propio atributo, para que el COLOR se quede
 // arriba del umbral hasta el final y no deje de florecer a mitad de vida.
 //
+// ══ REGLA DE LA CASA: LO QUE CAE AL SUELO NO ES ROJO ═══════════════════════
+//
+// La estela de la racha era roja y subía de tono con ella: en el escalón alto,
+// doscientas diez chispas por segundo de rojo oscuro arrastrándose por detrás
+// de alguien que corre. Salen a 0,85 m de altura y casi ninguna llega a tocar
+// el asfalto —medido: menos de una décima de chispa por debajo de 20 cm en
+// cualquier momento—, pero la cámara mira DESDE ARRIBA y en la imagen caen
+// sobre la calzada igual.
+//
+// Puntos pequeños, irregulares, de rojo oscuro, sobre asfalto gris, justo
+// detrás de alguien que huye de la policía. Eso se lee como sangre, y este es
+// un juego sobre un periodista perseguido por el Estado: una captura basta
+// para que circule como lo que no es, y el juego se juega para hacer capturas.
+//
+// La regla, entonces: lo que se emite hacia abajo, lo que dura lo suficiente
+// para caer, y lo que sale en cantidad por detrás del corredor va en PAPEL o
+// en TINTA. El rojo se reserva para lo que es un golpe de luz —breve, a la
+// altura del pecho, sobre el fondo y no sobre el suelo—. Si hace falta un
+// rojo, que sea uno de marca y CLARO: un bermellón brillante no se confunde
+// con sangre, un carmín oscuro sí.
+//
 // SE MUEVEN CON EL MUNDO. Aquí el jugador no avanza: el mundo viene hacia él.
 // Cada fotograma se les suma `avance` en Z, igual que a los obstáculos, o el
 // polvo de las pisadas se quedaría flotando en el sitio mientras la calle pasa
