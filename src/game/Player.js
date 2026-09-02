@@ -242,6 +242,10 @@ export class Player {
       this.estaAgachado = false;
     }
 
+    // Se pone a cero cada fotograma: quien lo lee lo lee el mismo fotograma en
+    // que pasa, y así nadie tiene que acordarse de limpiarlo.
+    this.impactoAterrizaje = 0;
+
     // ---- Salto y gravedad -------------------------------------------------
     if (this.estaEnElAire) {
       // La caída rápida multiplica la gravedad de forma CONTINUA mientras
@@ -260,6 +264,16 @@ export class Player {
       if (this.y <= this.alturaSuelo) {
         // Aterrizaje. El suelo puede no ser el asfalto: si hay una tarima
         // debajo, se aterriza sobre ella.
+        //
+        // CON QUÉ FUERZA, que es lo que hacía falta para que el aterrizaje
+        // suene y levante polvo. Se mide de la velocidad vertical del último
+        // fotograma, que es la única honesta: dejarse caer de un bordillo y
+        // caer de la tarima alta son la misma línea de código y muy distinto
+        // golpe. Se normaliza contra la velocidad inicial del salto, así que
+        // un salto normal aterriza en torno a 1 y un tropiezo corto en 0,2.
+        this.impactoAterrizaje = Math.min(
+          1.4, Math.abs(this.velocidadY) / SALTO.VELOCIDAD_INICIAL,
+        );
         this.y = this.alturaSuelo;
         this.velocidadY = 0;
         this.estaEnElAire = false;

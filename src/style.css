@@ -900,6 +900,30 @@ html, body {
   to   { opacity: 1; transform: scale(1); }
 }
 
+/* Y LA SALIDA, que no existía: `ocultar()` arrancaba el nodo en el mismo
+   fotograma mientras la entrante se desvanecía desde cero. Entre página y
+   página quedaba un hueco en el que no había ninguna, o sea un parpadeo del
+   juego al fondo, y en este juego las cadenas son largas: al perder se pasa de
+   la primera plana al sobre, del sobre al expediente y del expediente a la
+   tabla.
+
+   La entrante crece de 0,98 y la saliente sigue creciendo hasta 1,012: las dos
+   van en la misma dirección, así que se lee como pasar de hoja hacia adelante
+   y no como dos animaciones peleándose.
+
+   `pointer-events` y el z-index son de seguridad, no de estética: durante el
+   cuarto de segundo que conviven, la saliente sigue estando encima. */
+.pantalla--sale {
+  animation: pantalla-sale var(--t-medio) ease-in forwards;
+  pointer-events: none;
+  z-index: 49;
+}
+
+@keyframes pantalla-sale {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(1.012); }
+}
+
 .pantalla__contenido {
   flex: 1 1 auto;
   min-height: 0;

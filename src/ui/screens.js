@@ -427,16 +427,55 @@ export class Pantallas {
     marcarDesplazables(elementoPantalla);
   }
 
+  /**
+   * Quita la pantalla de encima, DESVANECIÉNDOLA.
+   *
+   * Entrar estaba animado —`pantalla-entra`, de 0,98 y transparente a su
+   * tamaño y opaca— y salir era un `removeChild` en el mismo fotograma. Esa
+   * asimetría se ve en cada cambio de pantalla y se nota sobre todo en las
+   * cadenas, que aquí son largas: al perder se pasa de la primera plana al
+   * sobre, del sobre al expediente y del expediente a la tabla. Con la salida
+   * seca, entre página y página había un fotograma en el que no había nada:
+   * un parpadeo del juego al fondo entre dos hojas de periódico.
+   *
+   * Las dos conviven un cuarto de segundo. No se ve el hueco porque las dos
+   * son casi opacas: mientras una baja de opacidad la otra sube, y la suma no
+   * deja pasar el lienzo.
+   *
+   * TRES CUIDADOS, y los tres se aprendieron aquí:
+   *
+   * 1. El aviso de desmontaje se dispara YA, no al terminar la animación. El
+   *    medidor de escape engancha un listener en `window` y necesita soltarlo
+   *    en el acto: si espera al desvanecido, durante ese cuarto de segundo hay
+   *    dos pantallas escuchando el teclado.
+   * 2. La saliente deja de recibir toques y se pone por debajo (z 49 contra
+   *    50). Sin eso, un toque en los primeros milisegundos de la pantalla
+   *    nueva se lo come la vieja, que todavía está encima.
+   * 3. Con movimiento reducido se quita en el acto. Esa preferencia apaga la
+   *    animación de `.pantalla` —está en el bloque de `prefers-reduced-motion`
+   *    de siempre— y sin animación no hay `animationend` ni `forwards`: la
+   *    saliente se quedaría quieta y entera encima de la nueva.
+   */
   ocultar() {
-    if (this.actual) {
-      // Aviso a la pantalla saliente. El medidor de escape engancha un
-      // listener en window y necesita saber cuándo soltarlo: si no, cada
-      // captura deja uno vivo y a la tercera partida la barra se para sola con
-      // cualquier tecla.
-      this.actual.dispatchEvent(new CustomEvent('pantalla:desmontada'));
-      this.actual.parentNode?.removeChild(this.actual);
-    }
+    const saliente = this.actual;
     this.actual = null;
+    if (!saliente) return;
+
+    saliente.dispatchEvent(new CustomEvent('pantalla:desmontada'));
+
+    const quitar = () => saliente.parentNode?.removeChild(saliente);
+
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      quitar();
+      return;
+    }
+
+    saliente.classList.add('pantalla--sale');
+    saliente.addEventListener('animationend', quitar, { once: true });
+    // Cinturón: si la pestaña está en segundo plano el navegador no dispara
+    // `animationend`, y sin esto la pantalla vieja se queda en el árbol para
+    // siempre. Con margen sobre los 280 ms de la animación.
+    setTimeout(quitar, 450);
   }
 
   // -------------------------------------------------------------------------

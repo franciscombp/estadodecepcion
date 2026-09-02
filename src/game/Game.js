@@ -771,12 +771,21 @@ export class Game {
     this.audio.cambioEscenario();
 
     this.controles.activar();
+    // EL ZUMBIDO DEL PERSEGUIDOR. Es lo único que puede acabar la partida y
+    // hasta ahora solo se veía en una barra del HUD; ahora también se oye, y
+    // crece desde lejos. Se arranca AQUÍ y no al pulsar JUGAR: durante la
+    // cinemática todavía no te persigue nadie.
+    this.audio.arrancarTension();
     this.relojAnterior = performance.now();
     this._establecerEstado('jugando');
   }
 
   pausar() {
     if (this.estado !== 'jugando') return;
+    // El zumbido se calla en la pausa. Con el juego parado sigue siendo cierto
+    // que los tienes encima, pero un zumbido de amenaza debajo de un menú de
+    // ajustes no dice nada: dice que algo va mal con el sonido.
+    this.audio.actualizarTension(0);
     this._establecerEstado('pausa');
   }
 
@@ -811,6 +820,7 @@ export class Game {
     if (this.estado !== 'pausa' && this.estado !== 'jugando') return;
 
     this.controles.desactivar();
+    this.audio.pararTension();
     this.bifurcacion.abortarViraje();
     this.jugador.giroCinematico = 0;
     this._asentarGiroMundo();
@@ -857,6 +867,10 @@ export class Game {
     this.fotoArresto = null;
     this.perseguidor.atrapar();
     this.controles.desactivar();
+    // El zumbido se para ANTES del sonido de captura: si sigue sonando por
+    // debajo, el corro se cierra sobre una nota que ya no significa nada —lo
+    // que anunciaba acaba de pasar—.
+    this.audio.pararTension();
     this.audio.captura();
 
     this.cerco.iniciar(this.jugador.x);
@@ -1712,6 +1726,9 @@ export class Game {
     // no llegaban a dibujarse. El anillo se queda donde estaba porque es otra
     // cosa —una onda que se abre alrededor de quien corre, no algo que sale de
     // la mano— y a esa altura no lo tapa nadie.
+    // ESTABA MUDO, y es lo único que cambia las reglas durante diez segundos.
+    // Se veía —anillo y estallido— y no se oía.
+    this.audio.potenciador();
     this.particulas.fogonazo(this.jugador.x, this.jugador.y + ATRAPE.y, ATRAPE.z, {
       color: def.color ?? 0x39d98a, cantidad: 6, tam: 1.2, vida: 0.2,
       arrastre: this.velocidad,
@@ -2227,6 +2244,35 @@ export class Game {
 
     this.jugador.actualizar(dt, velocidadEfectiva);
 
+    // ---- Aterrizaje -------------------------------------------------------
+    // El salto sonaba al despegar y NADA al caer. Un salto sin golpe abajo se
+    // siente flotando: el cuerpo baja pero no llega a ninguna parte.
+    if (this.jugador.impactoAterrizaje > 0) {
+      const f = Math.min(1, this.jugador.impactoAterrizaje);
+      this.audio.aterrizar(f);
+
+      // El polvo de la pisada, A LA ALTURA DE LA CINTURA y no en los pies. Es
+      // la misma lección que dejó la estela (ver _emitirEstela): la cámara
+      // está a cuatro metros de alto y el borde inferior del cuadro corta el
+      // asfalto dos metros por detrás del corredor, así que todo lo que se
+      // emite pegado al suelo se sale de cuadro en una décima de segundo.
+      // Sale hacia los lados y casi sin subir, que es como se abre el polvo
+      // cuando alguien planta los dos pies.
+      this.particulas.estallido(this.jugador.x, this.jugador.y + 0.55, 0.5, {
+        color: 0xd8cdb4,
+        cantidad: Math.round(5 + f * 9),
+        fuerza: 1.6 + f * 1.8,
+        tam: 0.30, vida: 0.4, gravedad: 2.2, roce: 3.4, subida: 0.25,
+      });
+
+      // Y una sacudida de cámara CHICA. La del golpe es 0.5; esta llega a
+      // 0.11 en el peor aterrizaje, o sea la quinta parte: se nota en el
+      // cuerpo y no se confunde con haber chocado, que es lo que pasaría si
+      // fueran parecidas. Por debajo de medio impacto no se sacude nada:
+      // bajarse de un bordillo no mueve ninguna cámara.
+      if (f > 0.5) this.sacudida = Math.max(this.sacudida, 0.05 + f * 0.06);
+    }
+
     if (this.tramite.activo) {
       // Se quedan a la puerta del túnel, esperando a que salgas. Y sin pista
       // que esquivar: durante el trámite no hay obstáculos generándose.
@@ -2365,6 +2411,62 @@ export class Game {
     const golpe = this.jugador.volando
       ? null
       : this.obstaculos.comprobarColision(this.jugador);
+
+    // ---- Roces ------------------------------------------------------------
+    // Pasar a un palmo de algo sin tocarlo. El juego no decía NADA cuando
+    // esquivabas por poco, y esquivar por poco es la mitad de lo que se hace
+    // aquí: pasar a un dedo y pasar por el carril de al lado se sentían igual.
+    //
+    // No da papeles ni toca el marcador: es un acuse de recibo, no una
+    // recompensa. Meterle economía convertiría el roce en algo que hay que
+    // buscar, y buscar roces es la manera más rápida de chocar.
+    //
+    // EL UMBRAL SON 30 cm, y el número no es redondo por casualidad: sale de
+    // medir los tres tipos de obstáculo con las cotas de balance.js.
+    //
+    //   carril de al lado      1,09 m   fijo, nunca es un roce
+    //   colarse por debajo     0,35 m   FIJO TAMBIÉN: el obstáculo alto empieza
+    //                                   a 1,25 y agachado mides 0,90, así que
+    //                                   el hueco es el mismo SIEMPRE
+    //   saltar justo            0..1,05  depende de cuándo saltaste
+    //   a medio cambio de carril 0..1,09 depende de dónde te pilló
+    //
+    // La línea de en medio es la que fija el umbral. Agacharse deja 35 cm
+    // exactos todas las veces: con el umbral en 45 sonaría en CADA agachada,
+    // y un aviso que suena siempre deja de avisar de nada —pasaría de «uf, por
+    // poco» a «has pulsado abajo»—. Por debajo de 30 solo entran las dos que
+    // dependen de lo que hiciste.
+    if (!golpe && !this.jugador.volando) {
+      const roce = this.obstaculos.roceMasCerrado(this.jugador);
+      if (roce && roce.margen < 0.30) {
+        this.audio.rozar();
+
+        // Y unas chispas POR DONDE PASÓ, que es lo que convierte el aviso en
+        // información: te enteras de por dónde estuvo cerca sin tener que
+        // reconstruirlo. Se saca del propio obstáculo, no de la posición del
+        // jugador —de dónde estabas TÚ no se deduce por dónde te pasó—.
+        const o = roce.obstaculo;
+        const porEncima = this.jugador.y > o.centroY;
+        if (porEncima) {
+          // Le pasaste por encima: la raspadura va bajo los pies y sale hacia
+          // atrás, como cuando la suela toca el borde de algo.
+          this.particulas.chorro(this.jugador.x, this.jugador.y + 0.1, 0.45, {
+            color: 0xffffff, cantidad: 3, dispersion: 0.35,
+            empuje: { x: 0, y: 1.1, z: 2.6 },
+            tam: 0.2, vida: 0.26, gravedad: 1.6, roce: 3,
+          });
+        } else {
+          // Te pasó de lado: al costado, y hacia el lado por el que vino.
+          const lado = Math.sign(o.x - this.jugador.x) || 1;
+          this.particulas.chorro(this.jugador.x + lado * 0.45, this.jugador.y + 1.0, 0.45, {
+            color: 0xffffff, cantidad: 3, dispersion: 0.3,
+            empuje: { x: lado * 1.4, y: 0.6, z: 2.2 },
+            tam: 0.2, vida: 0.26, gravedad: 1.2, roce: 3,
+          });
+        }
+      }
+    }
+
     if (golpe && this.jugador.recibirGolpe(golpe)) {
       this.audio.golpe();
       this.sacudida = CAMARA.SACUDIDA_GOLPE;
@@ -2447,11 +2549,19 @@ export class Game {
    * antes de llegar al final y también necesita pintar.
    */
   _publicarHUD(velocidadEfectiva) {
+    const cercania = this.perseguidor.cercania();
+    // El zumbido se actualiza AQUÍ y no en el bucle, y no es por comodidad:
+    // este método es el único al que llegan los dos caminos —la corrida normal
+    // y el trámite, que se sale del bucle antes de llegar al final—. Puesto en
+    // el bucle, el zumbido se quedaba congelado en su último valor durante los
+    // trescientos cuarenta metros del pasillo.
+    this.audio.actualizarTension(cercania);
+
     this.alActualizarHUD({
       papeles: this.evidenciaPartida,
       distancia: Math.floor(this.distanciaTotal),
       velocidad: velocidadEfectiva,
-      cercania: this.perseguidor.cercania(),
+      cercania,
       golpesRestantes: JUGADOR.GOLPES_MAXIMOS - this.jugador.golpes,
       combo: this.combo,
       // El récord de siempre, tercera línea de la columna. Es la cifra que la
@@ -2811,6 +2921,11 @@ export class Game {
   /** Vuelve al menú principal. */
   volverAlMenu() {
     this.controles.desactivar();
+    // El cinturón de seguridad del zumbido: aquí llegan todos los caminos de
+    // vuelta a la portada, incluidos los que no pasan por la captura ni por
+    // abandonar. Es idempotente, así que pararlo dos veces no cuesta nada;
+    // dejarlo sonando en la portada, sí.
+    this.audio.pararTension();
     this.jugador.reiniciar();
     this.obstaculos.reiniciar();
     this.evidencia.reiniciar();

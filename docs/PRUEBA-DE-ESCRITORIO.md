@@ -2297,6 +2297,113 @@ fajo que se suelta, y eso se reparte en todas direcciones.
 Comprobado que no hay regresión en el estallido: ya tocaba el tope de 160 px
 antes del cambio, al pasar junto a la cámara, y ahora lo toca 0,03 s antes.
 
+### 6.44 · Lo que el juego no decía: sonido, roces y salidas de pantalla
+
+Se pidió seguir haciéndolo más gustoso —efectos, sonidos, destellos,
+transiciones—. Lo que sigue no son adornos elegidos a gusto: cada uno tapa un
+hueco que se puede señalar.
+
+**El audio saturaba.** No es una impresión: los sonidos se suman en la salida y
+aquí se solapan de tres en tres. Un papel con racha son dos tonos a 0,14 y 0,08;
+si en el mismo fotograma hay un golpe (ruido 0,4 + sierra 0,3) y todavía suena
+el arpegio de un archivo (cuatro tonos a 0,2), la suma pasa de 1 y el navegador
+recorta a lo bruto. Eso era el chasquido al chocar mientras recogías. Ahora hay
+un limitador maestro: umbral −14 dB, ratio 12, ataque 3 ms.
+
+**Y sonaba seco**, o sea dentro de la cabeza en vez de en un sitio. La partida
+pasa en una calle con paredes a los dos lados. Se le puso un retardo corto con
+realimentación y un filtro que se come los agudos en cada vuelta —tres nodos
+para todo el juego, no uno por sonido—: 0,085 s es el ida y vuelta de unos
+catorce metros, que es una calle con sus fachadas. Al 18 %: más y cada papel
+deja una cola que se pisa con el siguiente, y son cien papeles por partida.
+
+**Cuatro cosas no sonaban:**
+
+| | Por qué faltaba |
+|---|---|
+| Aterrizar | Sonaba al despegar y nada al caer. Un salto sin golpe abajo se siente flotando: el cuerpo baja pero no llega a ninguna parte |
+| Activar un potenciador | Lo único que cambia las reglas durante diez segundos, y estaba MUDO. Se veía —anillo y estallido— y no se oía |
+| Rozar | Esquivar por poco es la mitad de lo que se hace aquí, y pasar a un dedo sonaba igual que pasar por el carril de al lado |
+| El perseguidor | Lo único que puede acabar la partida, y solo se veía en una barra del HUD |
+
+El aterrizaje escala con el impacto real —la velocidad vertical del último
+fotograma, normalizada contra la del salto— así que dejarse caer de un bordillo
+y caer de la tarima alta suenan distinto sin que haya dos sonidos.
+
+El del potenciador es un **acorde**, no un arpegio, y eso es deliberado: los
+tres premios del juego pasan en la misma partida y hay que saber cuál sonó. El
+archivo es un arpegio que sube, el sobre es ese mismo arpegio una octava arriba,
+y este son las tres notas a la vez. Un acorde no se confunde con un arpegio.
+
+**El zumbido del perseguidor** es dos sierras a 47 Hz desafinadas ocho milésimas
+—dos sierras casi iguales laten entre ellas, y ese latido lento es lo que hace
+que un zumbido suene amenazante y no averiado—. El volumen va **al cuadrado**
+de la cercanía: lineal, estaría a medio volumen cuando el perseguidor va por la
+mitad de su recorrido, o sea casi siempre, y dejaría de significar nada. Se para
+en la captura (antes del sonido de captura), en la pausa, al abandonar y al
+volver al menú.
+
+### El roce, que costó medir
+
+Un roce es pasar a un palmo sin tocar. La primera versión miraba **solo el eje
+horizontal**, y con los números de este juego eso casi nunca dispara:
+
+| | Margen | |
+|---|---|---|
+| Carril de al lado | 1,09 m | fijo: obstáculo de 1,92 + jugador de 0,70 sobre 2,40 de carril |
+| Colarse por debajo | 0,35 m | **fijo también**: el obstáculo alto empieza a 1,25 y agachado mides 0,90 |
+| Saltar justo | 0 – 1,05 m | depende de cuándo saltaste |
+| A medio cambio de carril | 0 – 1,09 m | depende de dónde te pilló |
+
+O sea que el roce lateral **solo existe a medio cambio de carril**, y mirando
+solo ese eje se perdían los dos que más se sienten: saltar un obstáculo bajo
+pasándole por encima de un palmo y colarse por debajo de uno alto.
+
+La corrección es una línea: **dos cajas no chocan si se separan en al menos un
+eje, y el margen por el que te salvaste es el MAYOR de las separaciones, no el
+menor.** Si te salva la altura, da igual lo pegado que pasara de lado.
+
+Y el umbral son **30 cm**, que sale de la segunda fila de la tabla. Agacharse
+deja 35 cm exactos todas las veces: con el umbral en 45 sonaría en cada
+agachada, y un aviso que suena siempre deja de avisar —pasaría de «uf, por
+poco» a «has pulsado abajo»—.
+
+Se comprueba **solo el fotograma en que el obstáculo cruza** de z ≤ 0 a z > 0,
+que a veinte metros por segundo ocurre una vez por obstáculo; por distancia
+daría el mismo aviso en cada uno de los veinte fotogramas que tarda en pasar de
+largo. Hay una prueba de lógica en `scratchpad/cine/roce.mjs`: diez casos, sin
+navegador, porque lo único que tiene esto es aritmética.
+
+El roce **no da papeles ni toca el marcador**. Es un acuse de recibo, no una
+recompensa: meterle economía convertiría el roce en algo que hay que buscar, y
+buscar roces es la manera más rápida de chocar.
+
+### Las pantallas salían de golpe
+
+Entrar estaba animado —`pantalla-entra`, de 0,98 y transparente a su tamaño y
+opaca— y salir era un `removeChild` en el mismo fotograma. Esa asimetría se ve
+en cada cambio, y aquí las cadenas son largas: al perder se pasa de la primera
+plana al sobre, del sobre al expediente y del expediente a la tabla. Con la
+salida seca, entre página y página había un fotograma sin ninguna, o sea un
+parpadeo del juego al fondo entre dos hojas de periódico.
+
+Ahora conviven un cuarto de segundo. No se ve el hueco porque las dos son casi
+opacas: mientras una baja de opacidad la otra sube. La entrante crece de 0,98 y
+la saliente sigue creciendo hasta 1,012, las dos en la misma dirección, así que
+se lee como pasar de hoja hacia adelante.
+
+Tres cuidados, los tres aprendidos aquí:
+
+1. **El aviso de desmontaje se dispara ya**, no al terminar la animación. El
+   medidor de escape engancha un listener en `window` y necesita soltarlo en el
+   acto; si espera, hay un cuarto de segundo con dos pantallas escuchando el
+   teclado.
+2. **La saliente deja de recibir toques** y baja a z 49. Sin eso, un toque en
+   los primeros milisegundos de la pantalla nueva se lo come la vieja.
+3. **Con movimiento reducido se quita en el acto.** Esa preferencia apaga la
+   animación de `.pantalla`, y sin animación no hay `animationend` ni
+   `forwards`: la saliente se quedaría quieta y entera encima de la nueva.
+
 ---
 
 ## 7 · Cómo se prueba cada pantalla sin jugar

@@ -350,6 +350,11 @@ export class ObstacleManager {
     // Mover y reciclar.
     for (let i = this.activos.length - 1; i >= 0; i--) {
       const o = this.activos[i];
+      // Dónde estaba antes de moverse. Lo usa `roceMasCerrado()` para saber
+      // cuáles han CRUZADO al jugador en este fotograma; sin el valor anterior
+      // no hay forma de distinguir «acaba de pasar» de «lleva medio segundo
+      // detrás», y el roce sonaría veinte veces seguidas por el mismo camión.
+      o.zAntes = o.z;
       o.z += avance;
       o.malla.position.z = o.z;
 
@@ -430,6 +435,74 @@ export class ObstacleManager {
     }
 
     return null;
+  }
+
+  /**
+   * ROZAR: pasar a un palmo de algo sin tocarlo.
+   *
+   * Devuelve el hueco más apretado, en metros, de todo lo que ha CRUZADO al
+   * jugador en este fotograma sin darle; o `null` si no cruzó nada o si lo que
+   * cruzó pasó lejos.
+   *
+   * Esquivar por poco es la mitad de lo que se hace en este juego y no lo
+   * acusaba nada: pasar a un dedo y pasar por el carril de al lado se sentían
+   * igual. Esto no da papeles ni toca el marcador —no es una recompensa, es un
+   * acuse de recibo— pero es lo que convierte un carril libre en un hueco.
+   *
+   * SOLO EL FOTOGRAMA EN QUE CRUZA. La condición es que el obstáculo pasara de
+   * estar por delante del jugador (z ≤ 0) a estar por detrás (z > 0) entre el
+   * fotograma anterior y este, que a veinte metros por segundo ocurre una sola
+   * vez por obstáculo. Comprobarlo por distancia daría el mismo aviso en cada
+   * uno de los veinte fotogramas que tarda en pasar de largo.
+   *
+   * Y SOLO EN EL PLANO HORIZONTAL. Un obstáculo bajo que se ha saltado pasa
+   * literalmente por debajo de los pies, y a nadie le parece un roce que le
+   * pase el suelo por debajo: si el jugador está en el aire y la cosa le cabe
+   * por abajo, no cuenta.
+   *
+   * @returns {{margen:number, obstaculo:object}|null} El margen en metros y
+   *   por quién fue. Devuelve el obstáculo —igual que `comprobarColision`—
+   *   porque quien pinta el efecto necesita saber POR DÓNDE pasó: un roce de
+   *   lado y uno por encima no se dibujan en el mismo sitio.
+   */
+  roceMasCerrado(jugador) {
+    const caja = jugador.obtenerCaja();
+    const medioJugador = caja.ancho / 2;
+    const pies = jugador.y;
+    const coronilla = pies + caja.alto;
+    let margen = null;
+    let culpable = null;
+
+    for (const o of this.activos) {
+      if (o.yaGolpeo) continue;
+      if (!(o.zAntes <= 0 && o.z > 0)) continue;
+
+      // DOS CAJAS NO CHOCAN SI SE SEPARAN EN AL MENOS UN EJE, y el margen por
+      // el que te salvaste es el MAYOR de las separaciones, no el menor: si te
+      // salva la altura, da igual lo pegado que pasara de lado.
+      //
+      // Esta línea es la que costó ver. La primera versión miraba solo el eje
+      // horizontal, y con los números de este juego eso casi nunca dispara: un
+      // obstáculo de un carril mide 1,92 de ancho y el jugador 0,70, así que
+      // desde el carril de al lado —2,40— el hueco es de 1,09 m fijos. O sea
+      // que el roce lateral solo existe A MEDIO CAMBIO DE CARRIL, y con eso se
+      // perdían los dos que más se sienten: saltar un obstáculo bajo pasándole
+      // por encima de un palmo, y colarse por debajo de uno alto.
+      const separacionX = Math.abs(o.x - caja.x) - (o.anchoCaja / 2 + medioJugador);
+      const techo = o.centroY + o.altoCaja / 2;
+      const suelo = o.centroY - o.altoCaja / 2;
+      // Por encima (lo saltaste) o por debajo (te colaste). Si las cajas se
+      // solapan en vertical las dos salen negativas y manda la horizontal.
+      const separacionY = Math.max(pies - techo, suelo - coronilla);
+
+      const d = Math.max(separacionX, separacionY);
+      // Negativo es solape en los dos ejes: eso no es un roce, es un choque
+      // que no llegó a contarse (o algo que pasa por otro sitio en Z).
+      if (d < 0) continue;
+      if (margen === null || d < margen) { margen = d; culpable = o; }
+    }
+
+    return culpable ? { margen, obstaculo: culpable } : null;
   }
 
   /**
