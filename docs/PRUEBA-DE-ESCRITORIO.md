@@ -2220,6 +2220,83 @@ una página y aquí la raíz es `.pantalla`, que gana. Se deja para otro empujó
 propósito: son dos cambios visibles sin forma de comprobarlos, y juntos en un
 commit dejan sin saber cuál rompió qué.
 
+### 6.43 · El brillo de recoger nacía dentro del personaje
+
+Se pidió que *«cuando tomo un archivo el brillo se ponga frente al personaje,
+como que se note que lo atrapé»*.
+
+El estallido salía en `(jugador.y + 1.05, z 0.2)`. El cuerpo del jugador ocupa
+de z −0,35 a +0,35, o sea que **0,2 cae dentro**: la mitad de las chispas nacían
+DENTRO del personaje, y como las partículas leen el búfer de profundidad, esa
+mitad no llegaba a dibujarse. Lo que quedaba era medio estallido asomando por
+los lados, que se lee como un aura alrededor y no como una mano que se cierra.
+
+**El punto de atrape es (y + 1,40, z 0,65)**, y los dos números salen de
+proyectar contra la cámara de carrera —(0, 4,3, 5,5) mirando a (0, 0,9, −6),
+FOV 56 en 393×852— pidiendo tres cosas a la vez:
+
+| | |
+|---|---|
+| Por delante del cuerpo | la cara delantera está a 5,80 m de cámara; el atrape a 5,47 → un tercio de metro despejado |
+| Sobre el torso en pantalla | cadera −0,513, cabeza −0,278; el atrape cae en −0,483, a la altura de las manos |
+| Donde va la mano | de los puntos que cumplen lo anterior, el más cercano a 0,55 m por delante y 1,25 de alto |
+
+La segunda hay que **calcularla, no estimarla**. La cámara mira desde arriba,
+así que acercar un punto a la cámara lo BAJA en pantalla aunque no cambie de
+altura: subir z de 0,2 a 0,65 sin tocar y habría dejado el brillo a la altura de
+las rodillas.
+
+**Y las chispas salen hacia fuera, no en esfera.** `estallido()` dispersaba en
+esfera a propósito —*«un cono apuntando siempre al mismo sitio delata que el
+efecto es un adorno pegado encima»*— y ese argumento vale cuando el efecto sale
+del objeto recogido, que aparece por cualquier lado. Pero este sale de la MANO,
+que está siempre en el mismo punto de la pantalla, y ahí la esfera manda la
+mitad del reparto contra el cuerpo. Se le añadió `sesgo`, un vector que se suma
+a la dirección al azar antes de normalizar: con módulo 0 no cambia nada —los
+demás llamantes siguen igual— y con módulo 1 el reparto se abre en un cono de
+unos noventa grados. Sigue habiendo dispersión completa, solo que empujada.
+
+**El fogonazo dice CUÁNDO.** El estallido tarda medio segundo en desplegarse, y
+medio segundo a 20 m/s son diez metros de calle: el efecto se acababa de leer
+cuando el papel ya había quedado atrás. Se añadió `fogonazo()` —tres o cuatro
+chispas grandes, casi quietas, 0,16 s— que es el pico de luz del primer
+fotograma.
+
+**Y el fogonazo NO viaja con el mundo**, que es la única excepción de la clase.
+Todo lo demás sí —el polvo de las pisadas se quedaría flotando mientras la calle
+pasa por debajo— pero el polvo pertenece a la calle y esto pertenece al
+personaje. No es un capricho: simulado con la aritmética de `actualizar()`,
+
+| | z final | Distancia mínima a la cámara | Pico en pantalla |
+|---|---|---|---|
+| Sin anclar, 15 m/s | 3,65 | 2,84 m | 105 px |
+| **Sin anclar, 32 m/s** | **7,05** | **−0,15 m** | **160 px (el tope)** |
+| Anclado, cualquier velocidad | 0,65 | 5,47 m | 105 px, en el primer fotograma |
+
+A velocidad máxima el fogonazo **le pasaba a la cámara por dentro**, y lo que se
+veía justo cuando debería estar apagándose era un disco creciendo hasta comerse
+un quinto de la pantalla. Se ancla pasándole `arrastre` —la velocidad del
+mundo— que se resta de la componente Z; como `actualizar()` le suma esa misma
+velocidad por dt, las dos se cancelan exactas. El roce va a cero: con roce, la
+resta se apagaría y la chispa empezaría a derivar a media vida.
+
+**Un archivo no es un papel más.** Hasta ahora se recogía igual —el mismo
+estallido del color de la racha— y solo cambiaba el sonido, que únicamente
+llega si estás oyendo el juego. Son las cinco o seis piezas de las que va la
+partida entera frente a los cientos de papeles sueltos. Ahora lleva su propio
+fogonazo, más grande y en el **naranja de la propia cápsula** —el mismo
+`pideLuz` que la ilumina en la calle— con su estallido a juego.
+
+**Los otros dos estallidos del personaje tenían el mismo problema** y se
+corrigieron igual: el del potenciador (z 0,2, dentro del cuerpo) pasa al punto
+de atrape con su fogonazo; el del choque (z 0,3, también dentro) sube a
+(1,35, 0,55), que sí está por delante —5,58 m contra los 5,80 de la cara
+delantera— pero **sin sesgo**, porque ahí no hay una mano que se cierra sino un
+fajo que se suelta, y eso se reparte en todas direcciones.
+
+Comprobado que no hay regresión en el estallido: ya tocaba el tope de 160 px
+antes del cambio, al pasar junto a la cámara, y ahora lo toca 0,03 s antes.
+
 ---
 
 ## 7 · Cómo se prueba cada pantalla sin jugar

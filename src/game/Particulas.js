@@ -194,10 +194,23 @@ export class Particulas {
    * porque el papel se recoge de frente y de lado indistintamente, y un cono
    * apuntando siempre al mismo sitio delata que el efecto es un adorno pegado
    * encima en vez de algo que sale del objeto.
+   *
+   * …SALVO CUANDO SÍ SALE SIEMPRE DEL MISMO SITIO. El estallido de recoger no
+   * sale del papel: sale de la mano del personaje, que está siempre en el
+   * mismo punto de la pantalla. Ahí la esfera es un problema y no una virtud,
+   * porque la mitad de las chispas nacen HACIA DENTRO del cuerpo y el búfer de
+   * profundidad se las come: se pierde la mitad del efecto y lo que queda se
+   * lee como un aura alrededor, no como algo que se acaba de atrapar.
+   *
+   * `sesgo` es un vector que se suma a la dirección al azar antes de
+   * normalizar. Con módulo 0 no cambia nada —la esfera de siempre— y con
+   * módulo 1 el reparto se abre en un cono de unos noventa grados hacia donde
+   * apunte. No es un cono clavado: sigue habiendo dispersión completa, solo
+   * que empujada.
    */
   estallido(x, y, z, {
     color = 0xffcf3f, cantidad = 14, fuerza = 3.4, tam = 0.30,
-    vida = 0.5, gravedad = 5.5, roce = 2.2, subida = 1.2,
+    vida = 0.5, gravedad = 5.5, roce = 2.2, subida = 1.2, sesgo = null,
   } = {}) {
     if (!this.activo) return;
 
@@ -210,15 +223,82 @@ export class Particulas {
       const s = fuerza * (0.45 + Math.random() * 0.55);
       const jitter = 0.6 + Math.random() * 0.8;
 
+      let dx = Math.sin(b) * Math.cos(a);
+      let dy = Math.cos(b);
+      let dz = Math.sin(b) * Math.sin(a);
+      if (sesgo) {
+        dx += sesgo.x ?? 0;
+        dy += sesgo.y ?? 0;
+        dz += sesgo.z ?? 0;
+        const m = Math.hypot(dx, dy, dz) || 1;
+        dx /= m; dy /= m; dz /= m;
+      }
+
       this._encender(
         x, y, z,
-        Math.sin(b) * Math.cos(a) * s,
-        Math.cos(b) * s + subida,
-        Math.sin(b) * Math.sin(a) * s,
+        dx * s,
+        dy * s + subida,
+        dz * s,
         color,
         tam * jitter,
         vida * (0.7 + Math.random() * 0.6),
         gravedad, roce,
+      );
+    }
+  }
+
+  /**
+   * FOGONAZO: el golpe de luz del instante en que algo se atrapa.
+   *
+   * Son tres o cuatro chispas GRANDES, casi quietas y que duran un suspiro.
+   * No es decoración del estallido: es la parte que dice CUÁNDO. El estallido
+   * tarda medio segundo en desplegarse, y en medio segundo a veinte metros por
+   * segundo el jugador ha recorrido diez metros; sin un pico de luz en el
+   * primer fotograma, el efecto empieza a leerse cuando la acción ya pasó.
+   *
+   * ESTE NO VIAJA CON EL MUNDO, y es la única excepción de la clase. Todo lo
+   * demás sí —el polvo de las pisadas se quedaría flotando mientras la calle
+   * pasa por debajo— pero el polvo pertenece a la CALLE y este fogonazo
+   * pertenece al PERSONAJE: marca el instante en que su mano se cierra, y una
+   * mano no se queda atrás.
+   *
+   * No es un capricho de encuadre, es aritmética. A 32 m/s —la velocidad
+   * máxima— una chispa suelta en el punto de atrape recorre cinco metros en
+   * 0,16 s, y el punto de atrape está a 5,47 m de la cámara: o sea que le
+   * pasaría por dentro. El shader tiene su guarda (por debajo de 0,6 m no
+   * dibuja) y su tope de 160 px, así que no reventaría, pero lo que se vería
+   * sería un disco blanco creciendo hasta comerse un quinto de la pantalla
+   * justo cuando el fogonazo debería estar apagándose.
+   *
+   * Se ancla pasándole `arrastre`: la velocidad del mundo, en metros por
+   * segundo, que se le resta a la componente Z. Como `actualizar()` le suma
+   * `avance` —que es esa misma velocidad por dt— las dos se cancelan EXACTAS y
+   * la chispa se queda donde nació. Por eso el roce va a cero: con roce, la
+   * resta se iría apagando y la chispa empezaría a derivar a media vida.
+   */
+  fogonazo(x, y, z, {
+    color = 0xffffff, cantidad = 4, tam = 0.9, vida = 0.16, dispersion = 0.14,
+    arrastre = 0,
+  } = {}) {
+    if (!this.activo) return;
+
+    for (let i = 0; i < cantidad; i++) {
+      this._encender(
+        x + (Math.random() - 0.5) * dispersion,
+        y + (Math.random() - 0.5) * dispersion,
+        z + (Math.random() - 0.5) * dispersion,
+        // Casi quietas: lo que hace el fogonazo es aparecer, no viajar. Los
+        // medio metro por segundo de temblor son para que las cuatro no salgan
+        // clavadas en el mismo punto.
+        (Math.random() - 0.5) * 0.6,
+        (Math.random() - 0.5) * 0.6,
+        -arrastre + (Math.random() - 0.5) * 0.6,
+        color,
+        tam * (0.75 + Math.random() * 0.5),
+        vida * (0.8 + Math.random() * 0.4),
+        // Sin gravedad —en dieciséis centésimas la caída no se ve— y sin roce,
+        // que es lo que mantiene el anclaje exacto.
+        0, 0,
       );
     }
   }

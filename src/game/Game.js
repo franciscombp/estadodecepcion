@@ -63,7 +63,7 @@ import {
   VELOCIDAD, TRAMO, CAMARA, JUGADOR, CARRILES, CERCO, EVIDENCIA,
   POTENCIADORES, SENTENCIAS, TRAMITE, RACHA, tramoRacha,
 } from '../config/balance.js';
-import { BLOOM, CALIDAD } from '../config/estilo.js';
+import { BLOOM, CALIDAD, COLOR3D } from '../config/estilo.js';
 import { VigilanteRendimiento } from '../utils/calidad.js';
 
 // Tope de delta time. Si la pestaña estuvo en segundo plano, dt puede valer
@@ -79,6 +79,38 @@ const DISTANCIA_RETIRAR_SENAL = 50;
 // resto del viraje se corre ya recto por la calle nueva, que es lo que separa
 // «doblé una esquina» de «el escenario no termina de asentarse».
 const FIN_GIRO_MUNDO = 0.62;
+
+// DÓNDE SE ATRAPA. El punto del que sale el brillo al recoger algo, en
+// coordenadas del jugador: 0,65 m por delante y 1,40 de alto.
+//
+// Estaba en (y + 1.05, z 0.2) y ahí no se veía atrapar nada. El cuerpo del
+// jugador ocupa de z −0,35 a +0,35, o sea que 0,2 cae DENTRO: la mitad de las
+// chispas nacían dentro del personaje, y como las partículas leen el búfer de
+// profundidad, esa mitad no se dibujaba. Lo que quedaba era medio estallido
+// asomando por los lados, que se lee como un aura y no como una mano que se
+// cierra.
+//
+// Los dos números salen de proyectar contra la cámara de carrera (0, 4,3, 5,5
+// mirando a 0, 0,9, −6, FOV 56 en 393×852) y pedir tres cosas a la vez:
+//
+//   · POR DELANTE DEL CUERPO con holgura. La cara delantera del jugador está a
+//     5,80 m de la cámara; el punto de atrape queda a 5,47, o sea un tercio de
+//     metro despejado. Nada lo tapa.
+//   · SOBRE EL TORSO EN PANTALLA. En NDC vertical la cadera cae en −0,513 y la
+//     cabeza en −0,278; el punto de atrape cae en −0,483, o sea a la altura de
+//     las manos. Esto hay que calcularlo y no estimarlo: la cámara mira desde
+//     arriba, así que acercar un punto a la cámara lo BAJA en pantalla aunque
+//     no cambie de altura. Subir z de 0,2 a 0,65 sin tocar y lo habría dejado
+//     a la altura de las rodillas.
+//   · A LA ALTURA DE LA MANO. De los puntos que cumplen las dos anteriores,
+//     este es el más cercano a donde va la mano de alguien que corre.
+const ATRAPE = { y: 1.40, z: 0.65 };
+
+// Y HACIA DÓNDE SALEN LAS CHISPAS: hacia la cámara y un poco arriba, en vez de
+// en esfera. Con el estallido pegado al cuerpo, todo lo que salga hacia −Z se
+// mete en el personaje y desaparece. Módulo 1, que abre un cono de unos
+// noventa grados: sigue habiendo dispersión, solo que empujada hacia fuera.
+const SESGO_ATRAPE = { x: 0, y: 0.35, z: 0.95 };
 
 export class Game {
   /**
@@ -1675,8 +1707,18 @@ export class Game {
     this.particulas.anillo(this.jugador.x, this.jugador.y + 0.9, 0.2, {
       color: def.color ?? 0x39d98a, cantidad: 34, radio: 7.5, vida: 0.62, tam: 0.4,
     });
-    this.particulas.estallido(this.jugador.x, this.jugador.y + 1.1, 0.2, {
+    // El estallido sale del PUNTO DE ATRAPE, igual que el del papel y por el
+    // mismo motivo: a z 0,2 nacía dentro del cuerpo y la mitad de las chispas
+    // no llegaban a dibujarse. El anillo se queda donde estaba porque es otra
+    // cosa —una onda que se abre alrededor de quien corre, no algo que sale de
+    // la mano— y a esa altura no lo tapa nadie.
+    this.particulas.fogonazo(this.jugador.x, this.jugador.y + ATRAPE.y, ATRAPE.z, {
+      color: def.color ?? 0x39d98a, cantidad: 6, tam: 1.2, vida: 0.2,
+      arrastre: this.velocidad,
+    });
+    this.particulas.estallido(this.jugador.x, this.jugador.y + ATRAPE.y, ATRAPE.z, {
       color: def.color ?? 0x39d98a, cantidad: 24, fuerza: 4.6, tam: 0.42, vida: 0.62,
+      sesgo: SESGO_ATRAPE,
     });
 
   }
@@ -2210,18 +2252,37 @@ export class Game {
       this.temporizadorCombo = RACHA.CADUCIDAD;
       this.audio.papel(this.combo);
 
-      // El estallido, del color del escalón de racha en el que vas. Es toda la
+      // El brillo, del color del escalón de racha en el que vas. Es toda la
       // recompensa que da la racha —no toca el marcador— y por eso tiene que
       // verse: sale donde está el jugador, no donde estaba el papel, porque lo
-      // que se celebra es que lo cogiste tú.
+      // que se celebra es que lo cogiste TÚ.
+      //
+      // Y sale DELANTE de él, no encima. Ver ATRAPE: el punto viejo caía dentro
+      // del cuerpo y media recogida no se dibujaba.
       const t = tramoRacha(this.combo);
-      this.particulas.estallido(this.jugador.x, this.jugador.y + 1.05, 0.2, {
+      const atrapeY = this.jugador.y + ATRAPE.y;
+
+      // Primero el fogonazo, que es el que dice CUÁNDO. El estallido tarda
+      // medio segundo en desplegarse y a veinte metros por segundo eso son
+      // diez metros de calle: sin un pico de luz en el primer fotograma, el
+      // efecto se lee cuando el papel ya quedó atrás.
+      this.particulas.fogonazo(this.jugador.x, atrapeY, ATRAPE.z, {
+        color: t.color,
+        // Anclado al personaje: ver Particulas.fogonazo. Sin esto, a velocidad
+        // máxima el fogonazo le pasa a la cámara por dentro.
+        arrastre: velocidadEfectiva,
+      });
+      this.particulas.estallido(this.jugador.x, atrapeY, ATRAPE.z, {
         color: t.color,
         cantidad: t.chispas,
         fuerza: 3.0 + this.combo * 0.03,
+        sesgo: SESGO_ATRAPE,
       });
       if (this.combo === t.desde && t.nombre) {
         // Solo en el fotograma en que se sube de escalón, no en cada papel.
+        // El anillo sí se queda a la altura de la cintura y en el eje del
+        // cuerpo: es una onda que se abre en horizontal alrededor de quien
+        // corre, no algo que salga de la mano.
         this.particulas.anillo(this.jugador.x, this.jugador.y + 0.9, 0.2, {
           color: t.color, cantidad: 30, radio: 6.5,
         });
@@ -2239,6 +2300,30 @@ export class Game {
         this.pruebasPartida.push(ev.nombre);
       }
       this.audio.evidencia();
+
+      // UN ARCHIVO NO ES UN PAPEL MÁS, y hasta ahora se recogía igual: el
+      // mismo estallido del color de la racha y un sonido distinto. El sonido
+      // solo llega si estás oyendo el juego, y estos son las cinco o seis
+      // piezas de las que va la partida entera —lo que se publica al día
+      // siguiente— frente a los cientos de papeles sueltos.
+      //
+      // Se distingue por COLOR y por FORMA, no por tamaño: el naranja es el de
+      // la propia cápsula que acabas de atrapar —el mismo `pideLuz` que la
+      // ilumina en la calle— y el anillo lo separa del estallido del papel,
+      // que es esfera. Anillo Y estallido a la vez es lo que hace un
+      // potenciador, y aquí no hace falta tanto: basta con que el fogonazo sea
+      // más grande y venga en el color del archivo.
+      this.particulas.fogonazo(this.jugador.x, this.jugador.y + ATRAPE.y, ATRAPE.z, {
+        color: COLOR3D.naranja, cantidad: 6, tam: 1.15, vida: 0.2,
+        arrastre: velocidadEfectiva,
+      });
+      this.particulas.estallido(this.jugador.x, this.jugador.y + ATRAPE.y, ATRAPE.z, {
+        color: COLOR3D.naranja,
+        cantidad: 16,
+        fuerza: 4.2,
+        tam: 0.36,
+        sesgo: SESGO_ATRAPE,
+      });
     }
 
     // El combo caduca si dejas de recoger.
@@ -2297,7 +2382,13 @@ export class Game {
       // Al chocar, los papeles salen volando. Es literal —el estallido va en el
       // dorado del papel y hacia arriba y atrás— y remata la deformación del
       // personaje: el golpe se lee en el cuerpo y en lo que se le cae.
-      this.particulas.estallido(this.jugador.x, this.jugador.y + 1.0, 0.3, {
+      //
+      // También sale por delante, como el de recoger, pero MÁS ARRIBA y sin
+      // sesgo: aquí no hay ninguna mano que se cierre, hay un fajo que se
+      // suelta, y eso se reparte en todas direcciones. Lo único que se corrige
+      // es que la mitad se dibujaba dentro del cuerpo: a z 0,3 el estallido
+      // nacía dentro de la caja del jugador, que va de −0,35 a 0,35.
+      this.particulas.estallido(this.jugador.x, this.jugador.y + 1.35, 0.55, {
         color: 0xf0e2b0, cantidad: 22, fuerza: 5.2, tam: 0.38,
         vida: 0.75, gravedad: 8, subida: 2.4,
       });
