@@ -344,8 +344,53 @@ export class Game {
     // información de juego, que el borde del cuadro se estire no lo es.
     fov = Math.max(fov, CAMARA.FOV_MINIMO);
 
+    // Este es el SUELO, no el valor final: encima se le suma el empuje de la
+    // velocidad (ver _empujarFov). Guardarlo aparte es lo que hace que las
+    // cotas de este método —el ancho mínimo, el techo de ojo de pez, el suelo
+    // vertical— sigan protegiendo aunque el angular se abra al correr.
+    this.fovBase = fov;
+    this._aplicarFov();
+  }
+
+  /** Escribe el FOV de verdad: el suelo del encuadre más el empuje. */
+  _aplicarFov() {
+    // El suelo lo pone `_ajustarEncuadre`, que corre en el constructor y en
+    // cada redimensionado. La guarda es por si algún día alguien mueve el
+    // orden: sin ella, un `undefined + 0` deja el FOV en NaN y la escena
+    // desaparece entera, que es un fallo caro de diagnosticar por lo mudo.
+    if (!this.fovBase) return;
+    const fov = this.fovBase + (this.empujeFov ?? 0);
+    // Solo se toca la matriz si el valor CAMBIÓ de verdad. `updateProjectionMatrix`
+    // es barato pero no gratis, y con el suavizado lento del empuje la mayoría
+    // de los fotogramas piden el mismo grado que el anterior: una centésima de
+    // grado es el umbral por debajo del cual nadie ve nada.
+    if (Math.abs(fov - (this.camara.fov ?? 0)) < 0.01) return;
     this.camara.fov = fov;
     this.camara.updateProjectionMatrix();
+  }
+
+  /**
+   * Abre el angular con la velocidad, y lo cierra al parar.
+   *
+   * Ver CAMARA.EMPUJE_FOV para el porqué de los tres grados. Aquí solo queda
+   * decir por qué el objetivo es cero fuera de la carrera: la cinemática, el
+   * menú y el cerco tienen sus encuadres MEDIDOS a FOV 56 —el sitio de llegada
+   * de los perseguidores, el corro de policías, el punto de atrape— y un
+   * angular abierto los descuadraría todos. La velocidad no se pone a cero al
+   * capturar, así que sin esta condición el cerco se vería con el angular de
+   * la carrera.
+   */
+  _empujarFov(dt) {
+    const enCarrera = this.estado === 'jugando';
+    const t = enCarrera
+      ? THREE.MathUtils.clamp(
+        (this.velocidad - VELOCIDAD.INICIAL) / (VELOCIDAD.MAXIMA - VELOCIDAD.INICIAL), 0, 1,
+      )
+      : 0;
+    const objetivo = t * CAMARA.EMPUJE_FOV;
+    const k = 1 - Math.exp(-dt / CAMARA.EMPUJE_FOV_SUAVIZADO);
+    this.empujeFov = (this.empujeFov ?? 0) + (objetivo - (this.empujeFov ?? 0)) * k;
+    this._aplicarFov();
   }
 
   /**
@@ -2611,6 +2656,13 @@ export class Game {
   // -------------------------------------------------------------------------
 
   _actualizarCamara(dt) {
+    // El angular, antes que nada y para TODOS los estados: la cinemática y el
+    // cerco lo quieren en su valor de diseño, y quien se encarga de devolverlo
+    // ahí es esta llamada. Si sólo se empujara dentro de la carrera, al ser
+    // capturado el corro se vería con el angular de los treinta metros por
+    // segundo, que es donde estaba la velocidad el fotograma anterior.
+    this._empujarFov(dt);
+
     // El cerco tiene su propio plano: la cámara se sale de la espalda del
     // jugador y da la vuelta para enseñar el corro.
     if (this.estado === 'cerco') {

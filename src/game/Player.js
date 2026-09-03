@@ -103,6 +103,7 @@ export class Player {
     // Si pulsas saltar poco antes de aterrizar, el salto se guarda y se ejecuta
     // en cuanto tocas el suelo. Sin esto, el juego se siente injusto.
     this.bufferSalto = 0;
+    this.coyote = 0;
     // La agachada usa una petición que dura todo el vuelo en vez de un buffer
     // con caducidad (ver agachar()), más la bandera de caída rápida.
     this.agacharAlAterrizar = false;
@@ -158,7 +159,17 @@ export class Player {
 
     if (this.volando) return false;
 
-    if (!this.estaEnElAire) {
+    // SE PUEDE SALTAR UN INSTANTE DESPUÉS DE QUEDARSE SIN SUELO. `coyote` es
+    // el resto de esa ventana; mientras quede algo, el salto sale igual que
+    // desde el suelo. Ver SALTO.COYOTE para el porqué del número.
+    //
+    // La condición es «no estoy en el aire O me acabo de quedar sin suelo», y
+    // el orden importa: quien está pisando no consume coyote ninguno.
+    if (!this.estaEnElAire || this.coyote > 0) {
+      // Se gasta al usarse. Sin esto, la ventana permitiría un segundo salto
+      // en el aire durante sus doce centésimas, que es otra cosa muy distinta
+      // y no es la que se pidió.
+      this.coyote = 0;
       // Salta desde donde esté: el impulso es el mismo arriba de una tarima
       // que en la calle, así que la altura ganada también.
       this.velocidadY = SALTO.VELOCIDAD_INICIAL * this.multiplicadorSalto;
@@ -246,6 +257,10 @@ export class Player {
     // que pasa, y así nadie tiene que acordarse de limpiarlo.
     this.impactoAterrizaje = 0;
 
+    // La ventana del coyote corre sola. Se abre al quedarse sin suelo (más
+    // abajo) y se cierra sola aunque nadie salte.
+    if (this.coyote > 0) this.coyote -= dt;
+
     // ---- Salto y gravedad -------------------------------------------------
     if (this.estaEnElAire) {
       // La caída rápida multiplica la gravedad de forma CONTINUA mientras
@@ -291,6 +306,7 @@ export class Player {
       this.velocidadY = SALTO.VELOCIDAD_INICIAL * (this.multiplicadorSalto ?? 1);
           this.estaEnElAire = true;
           this.bufferSalto = 0;
+          this.coyote = 0;
           this.agacharAlAterrizar = false;
         } else if (this.agacharAlAterrizar) {
           this.estaAgachado = true;
@@ -305,9 +321,15 @@ export class Player {
     // Salirse de una tarima por el borde: el suelo desaparece bajo los pies y
     // se empieza a caer, sin salto y sin impulso. Es la penalización natural
     // de correr por arriba y no bajarse a tiempo.
+    //
+    // …PERO SE ABRE LA VENTANA DEL COYOTE. La penalización sigue en pie —el
+    // que se pasa de largo se cae— y lo que cambia es que ya no se cobra por
+    // un fotograma de puntería: el borde de la tarima llega a veinte metros
+    // por segundo, así que el instante en que dejas de pisar dura 33 ms.
     if (!this.volando && !this.estaEnElAire && this.y > this.alturaSuelo + 0.01) {
       this.estaEnElAire = true;
       this.velocidadY = 0;
+      this.coyote = SALTO.COYOTE;
     }
     // Y al revés: si el suelo SUBE de golpe (rampa, o una tarima que aparece
     // bajo un jugador que corre a ras) se le pega al suelo nuevo en vez de
@@ -640,6 +662,7 @@ export class Player {
       this.temporizadorAgachado = 0;
       this.agacharAlAterrizar = false;
       this.bufferSalto = 0;
+      this.coyote = 0;
     } else {
       // Al terminar, se cae. Con la caída normal, no de golpe.
       this.estaEnElAire = true;
@@ -670,6 +693,7 @@ export class Player {
     this.temporizadorAgachado = 0;
     this.factorAgachado = 0;
     this.bufferSalto = 0;
+    this.coyote = 0;
     this.agacharAlAterrizar = false;
     this.caidaRapida = false;
     this.golpes = 0;
@@ -711,6 +735,7 @@ export class Player {
     this.temporizadorAgachado = 0;
     this.factorAgachado = 0;
     this.bufferSalto = 0;
+    this.coyote = 0;
     this.agacharAlAterrizar = false;
     this.caidaRapida = false;
 

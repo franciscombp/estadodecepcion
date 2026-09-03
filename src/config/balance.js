@@ -85,6 +85,32 @@ export const SALTO = {
   // Ventana de "input anticipado": si presionas saltar hasta 0.15 s antes de
   // tocar suelo, el salto se ejecuta igual. Sin esto el juego se siente injusto.
   BUFFER_ENTRADA: 0.15,
+
+  // …Y LA VENTANA DEL OTRO LADO, que faltaba entera.
+  //
+  // El buffer perdona llegar PRONTO. Esto perdona llegar TARDE: durante estos
+  // 0,12 s después de que el suelo desaparezca bajo los pies, el salto sigue
+  // saliendo como si estuvieras pisando. Es el «coyote time» de toda la vida y
+  // se llama así porque el coyote de los dibujos sigue corriendo un momento
+  // sobre el aire antes de darse cuenta.
+  //
+  // POR QUÉ HACÍA FALTA AQUÍ EN CONCRETO. El juego tiene una capa elevada —las
+  // tarimas del Elevado— y salirse por el borde te deja cayendo «sin salto y
+  // sin impulso», que es la penalización que quiso quien lo escribió. Pero esa
+  // penalización se cobraba también cuando NO era culpa tuya: el borde de una
+  // tarima llega a 20 m/s, o sea que el fotograma en el que dejas de pisar
+  // dura 33 ms y cubre 66 cm de tarima. Pulsar dentro de esa ventana es
+  // puntería de fotograma, no habilidad.
+  //
+  // 0,12 s son 2,4 m a la velocidad de crucero y 3,8 a la máxima. Suena mucho
+  // dicho en metros y es poco dicho en tiempo, que es como lo vive quien
+  // juega: siete fotogramas. La referencia del género anda entre 0,08 y 0,15;
+  // se toma el medio, y del lado generoso, porque aquí la caída no te mata —te
+  // deja abajo— y perdonar de más se siente bien.
+  //
+  // NO se acumula con el buffer ni sirve para saltar dos veces: en cuanto se
+  // usa, se gasta (ver Player.saltar).
+  COYOTE: 0.12,
   // Multiplicador de gravedad mientras cae con la caída rápida activa.
   // Se aplica de forma CONTINUA, no como un empujón por pulsación: así el
   // descenso se acelera de verdad en vez de dar tirones.
@@ -1025,6 +1051,44 @@ export const CAMARA = {
   // el techo de arriba cerraba el vertical a 45,18° y los pies del personaje
   // caían en 1,044 de pantalla, o sea fuera. Ver Game._ajustarEncuadre().
   FOV_MINIMO: 52,
+
+  // ══ EL FOV EMPUJA CON LA VELOCIDAD ═══════════════════════════════════════
+  //
+  // No lo hacía. El objetivo se calculaba UNA VEZ a partir del aspecto —ver
+  // Game._ajustarEncuadre— y no volvía a moverse en toda la partida, así que
+  // ir a 15 m/s y a 32 se veían con el mismo encuadre exacto: entre la
+  // velocidad de arranque y el doble de esa velocidad, lo único que cambiaba
+  // en pantalla era que la calle pasaba más rápido.
+  //
+  // Abrir el angular con la velocidad es el recurso más viejo del género y
+  // funciona porque exagera la perspectiva: los bordes del cuadro se estiran y
+  // el mundo parece pasar más deprisa de lo que pasa. Cuesta CERO —es un
+  // número en la matriz de proyección— y es de las pocas cosas que se sienten
+  // en el cuerpo sin que nadie las lea.
+  //
+  // TRES GRADOS, y el número está acotado por los dos lados:
+  //
+  // · Por arriba lo limita el tamaño del personaje. Medido proyectando su caja
+  //   contra la cámara de carrera en 393×852: a FOV 56 ocupa el 29,7 % del
+  //   alto del cuadro y a 59 el 27,9 %. Un 6 % más pequeño en el pico de
+  //   velocidad es el precio, y se paga; a 62 ya baja al 26,3 % y el muñeco
+  //   empieza a perderse, que es justo lo contrario de lo que se busca.
+  // · Por abajo, menos de dos grados no se nota. Si no se va a notar, no se
+  //   añade: es una escritura por fotograma que no compra nada.
+  //
+  // Y ABRE, NUNCA CIERRA. Es la dirección segura: cerrar el angular empuja al
+  // jugador del carril exterior hacia el borde —el problema que resuelven
+  // SEMIANGULO_HORIZONTAL y FOV_MINIMO— y abrirlo le da margen. Por eso el
+  // empuje se SUMA al FOV que calcula `_ajustarEncuadre` en vez de sustituirlo:
+  // todas las cotas que ese método protege siguen siendo suelos.
+  EMPUJE_FOV: 3,
+
+  // Cuánto tarda el empuje en alcanzar a la velocidad. Va DESPACIO a
+  // propósito: el jugador acelera de 15 a 32 en unos 190 segundos, así que el
+  // angular tiene que moverse a esa escala y no a la de un frenazo. Con una
+  // constante rápida, cada choque —que resta velocidad de golpe— daría un
+  // tirón de zoom, y un tirón de zoom se lee como un fallo del juego.
+  EMPUJE_FOV_SUAVIZADO: 0.8,
   // La cámara sigue el desplazamiento lateral del jugador con retraso, lo que
   // da sensación de peso sin marear.
   //

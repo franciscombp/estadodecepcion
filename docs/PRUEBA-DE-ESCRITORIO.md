@@ -2469,6 +2469,82 @@ papeles del choque (crema), las chispas del roce (blancas), el archivo (naranja,
 breve y a la altura del pecho) y el tinte de peligro del HUD, que es una viñeta
 de bordes y no una mancha: transparente en el centro, roja en el marco.
 
+### 6.46 · Dos cosas que un runner hace y este no hacía
+
+Encargo abierto: *«aún no tiene lo especial y lindo de Subway Surfers»*. Lo
+primero fue buscar qué hace el género que aquí no se hace, y salieron dos
+ausencias que no son de gusto: **no existía coyote time** y **la cámara no se
+enteraba de la velocidad**.
+
+#### El coyote
+
+`SALTO.BUFFER_ENTRADA` perdona llegar PRONTO: pulsar hasta 0,15 s antes de
+tocar suelo y que el salto salga igual. No había nada que perdonara llegar
+TARDE.
+
+Importa aquí en concreto porque el juego tiene capa elevada, y salirse de una
+tarima por el borde deja cayendo «sin salto y sin impulso» — la penalización
+que quiso quien lo escribió, y está bien. El problema es que se cobraba también
+cuando no era culpa de nadie:
+
+| Velocidad | Ventana sin coyote (1 fotograma) | Con coyote |
+|---|---|---|
+| 15 m/s | 25 cm de tarima | 1,80 m |
+| 20 m/s | 33 cm | 2,40 m |
+| 26 m/s | 43 cm | 3,12 m |
+| 32 m/s | 53 cm | 3,84 m |
+
+Pulsar dentro de 33 centímetros de tarima que pasan a veinte metros por segundo
+es puntería de fotograma, no habilidad.
+
+**0,12 s** son siete fotogramas a 60 Hz. Suena a mucho dicho en metros y a poco
+dicho en tiempo, que es como lo vive quien juega. La referencia del género anda
+entre 0,08 y 0,15; se toma el medio y del lado generoso, porque aquí caerse no
+mata —te deja abajo— y perdonar de más se siente bien.
+
+No se acumula con el buffer ni sirve para saltar dos veces: se gasta al usarse.
+Prueba de lógica en `scratchpad/coyote-prueba.mjs`, cinco casos sin navegador:
+salta dentro de la ventana, no salta fuera, no hay doble salto, saltar pisando
+también la cierra, y se cierra sola.
+
+#### El angular
+
+`_ajustarEncuadre()` calculaba el FOV **una vez** a partir del aspecto y no
+volvía a tocarlo. Entre 15 y 32 m/s —el doble de velocidad— lo único que
+cambiaba en pantalla era que la calle pasaba más rápido.
+
+Abrir el angular con la velocidad exagera la perspectiva: los bordes se estiran
+y el mundo parece pasar más deprisa de lo que pasa. Cuesta cero — es un número
+en la matriz de proyección.
+
+**Tres grados**, acotados por los dos lados. Medido proyectando la caja del
+personaje contra la cámara de carrera en 393×852:
+
+| FOV | Alto del personaje en el cuadro |
+|---|---|
+| 56 | 29,7 % |
+| 59 | 27,9 % |
+| 62 | 26,3 % |
+
+Un 6 % más pequeño en el pico de velocidad es el precio y se paga; a 62 el
+muñeco empieza a perderse, que es lo contrario de lo que se busca. Y por abajo,
+menos de dos grados no se nota: si no se va a notar, no se añade.
+
+**Abre, nunca cierra**, y eso es la garantía de seguridad. Cerrar el angular
+empuja al jugador del carril exterior hacia el borde —el problema que resuelven
+`SEMIANGULO_HORIZONTAL` y `FOV_MINIMO`—; abrirlo le da margen. Por eso el
+empuje se SUMA a lo que calcula `_ajustarEncuadre` en vez de sustituirlo: todas
+las cotas que ese método protege siguen siendo suelos. Se comprobó además que
+el punto de atrape (§6.43) sigue cayendo entre la cadera y la cabeza a 56, 57,
+58, 59, 60 y 62 grados.
+
+El suavizado es lento a propósito —0,8 s—: el jugador acelera de 15 a 32 en
+unos 190 segundos, así que el angular tiene que moverse a esa escala. Con una
+constante rápida, cada choque —que resta velocidad de golpe— daría un tirón de
+zoom, y un tirón de zoom se lee como un fallo. Y el objetivo es **cero fuera de
+la carrera**: la cinemática, el menú y el cerco tienen sus encuadres medidos a
+FOV 56, y la velocidad no se pone a cero al capturar.
+
 ---
 
 ## 7 · Cómo se prueba cada pantalla sin jugar
