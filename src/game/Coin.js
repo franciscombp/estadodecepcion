@@ -16,6 +16,12 @@ import { crearEvidencia, crearPrueba, ajustarBrilloEvidencia } from '../models/p
 import { crearCaja, hayColisionPlana, distanciaHorizontal } from '../utils/collision.js';
 import { HUECO } from './Luces.js';
 
+// Lo que devuelve `generarHilera` cuando no llega a haber hilera. Es un objeto
+// y no un array vacío porque quien lo recibe le pregunta `carrilEn(z)`, y una
+// rama que devolviera otra forma reventaría en el sitio más tonto: la
+// generación de pista, en mitad de una partida.
+const SIN_HILERA = { ocupados: [], carrilEn: () => null };
+
 export class CoinManager {
   constructor(escena, camara = null) {
     // La cámara, para encarar el halo de las pruebas. Ver el bucle de reposo.
@@ -113,15 +119,23 @@ export class CoinManager {
    * @param {number} zGrupo           Z del grupo de obstáculos de referencia
    * @param {number} gap              Distancia hasta el siguiente grupo
    * @param {boolean} enArco          Si va elevada (acompañando un salto)
-   * @returns {number|null} El carril que ocupó la hilera, para que quien
-   *          coloque ítems después no se lo pise. Una hilera de papeles tapa
-   *          por completo lo que tenga detrás en el mismo carril.
+   * @returns {{ocupados: number[], carrilEn: (z:number)=>number|null}}
+   *   Los carriles que ocupó y, más fino, cuál ocupa A UNA Z CONCRETA.
+   *
+   *   Hace falta lo segundo desde que la hilera puede cruzar de carril. La
+   *   regla de antes era «una hilera tapa por completo lo que tenga detrás en
+   *   el mismo carril», y con hileras rectas bastaba con excluir su carril.
+   *   Con una que cruza, excluir los DOS extremos deja sin sitio al
+   *   potenciador en el caso más común —un obstáculo bloquea un carril y
+   *   quedan dos libres—, o sea que cruzar habría costado casi todos los
+   *   potenciadores del juego. Y no hacía falta: lo que tapa es dónde está la
+   *   hilera EN ESE PUNTO, no dónde estuvo cien metros antes.
    */
   generarHilera(carrilesLibres, zGrupo, gap, enArco = false) {
-    if (!carrilesLibres || carrilesLibres.length === 0) return null;
-    if (this.generadosEsteTramo >= this.maximoPorTramo) return null;
+    if (!carrilesLibres || carrilesLibres.length === 0) return SIN_HILERA;
+    if (this.generadosEsteTramo >= this.maximoPorTramo) return SIN_HILERA;
     // La densidad del escenario decide si esta hilera llega a existir.
-    if (Math.random() > this.densidad) return null;
+    if (Math.random() > this.densidad) return SIN_HILERA;
 
     const carril = carrilesLibres[Math.floor(Math.random() * carrilesLibres.length)];
     const x = CARRILES.POSICIONES[carril];
@@ -141,20 +155,80 @@ export class CoinManager {
     // La fase de giro de esta hilera. Que cada cinta arranque en un ángulo
     // distinto es lo que evita que dos hileras seguidas se vean calcadas.
     const faseHilera = Math.random() * Math.PI * 2;
-    if (largo < 1) return null;
+    if (largo < 1) return SIN_HILERA;
+
+    // ══ LA HILERA CRUZA DE CARRIL ══════════════════════════════════════════
+    //
+    // Hasta aquí una hilera era una línea RECTA, PLANA y en UN SOLO CARRIL: la
+    // misma x y la misma y en todas sus piezas. Y eso, medido contra la cámara
+    // de carrera, no dibuja nada. Proyectando una hilera con la separación de
+    // hoy —7 m— y con la curvatura del mundo puesta:
+    //
+    //     papel 0 (a los pies)   ndc y −0,429
+    //     papel 1 (a 7 m)        ndc y  0,069   ← medio cuadro de salto
+    //     papel 2 (a 14 m)              0,217
+    //     papel 3 (a 21 m)              0,284
+    //     papel 4 (a 28 m)              0,319
+    //     …del cuarto en adelante los saltos bajan de 0,035 y se apelotonan
+    //
+    // O sea: dos puntos separados por medio cuadro y un montón pegado al
+    // horizonte. No es una línea, son dos puntos y una mancha.
+    //
+    // NO SE TOCA LA SEPARACIÓN. Quien la puso a 7,0 probó 2,2, 4,0 y 6,0
+    // MIRÁNDOLAS —está escrito en el comentario de EVIDENCIA.SEPARACION— y la
+    // decisión es de ojo, no de aritmética. Lo que sí se puede arreglar sin
+    // pelearse con eso es que la hilera tenga FORMA.
+    //
+    // Cruzar de carril es la forma que importa, porque además dice algo: la
+    // hilera deja de ser una fila de puntos y pasa a ser una RUTA. Enseña el
+    // cambio de carril antes de que haya que hacerlo, que es exactamente para
+    // lo que sirve una línea de monedas en este género — no para apuntarle a
+    // cada pieza, sino para saber por dónde ir.
+    //
+    // Y ES SEGURO POR CONSTRUCCIÓN: los dos extremos salen de `carrilesLibres`,
+    // o sea de los carriles que el generador de obstáculos dejó pasables para
+    // este grupo. Ningún papel puede acabar dentro de un muro porque no hay
+    // ninguna x fuera del segmento entre dos carriles que ya eran buenos.
+    //
+    // TRES CONDICIONES, y las tres tienen motivo:
+    //
+    // · Hacen falta DOS carriles libres. Con uno no hay a dónde cruzar.
+    // · Y CUATRO PAPELES. Con tres, la diagonal son dos saltos laterales de
+    //   1,2 m y eso no se lee como una línea que cruza: se lee como que los
+    //   papeles están descolocados.
+    // · NUNCA A LA VEZ QUE EL ARCO. El arco sobre un hueco ya está diciendo
+    //   «salta aquí»; cruzarlo de carril al mismo tiempo son dos órdenes
+    //   encima de la misma hilera y no se entiende ninguna.
+    let carrilFinal = carril;
+    if (!enArco && largo >= 4 && carrilesLibres.length >= 2 && Math.random() < 0.45) {
+      const otros = carrilesLibres.filter((c) => c !== carril);
+      carrilFinal = otros[Math.floor(Math.random() * otros.length)];
+    }
+    const xFinal = CARRILES.POSICIONES[carrilFinal];
 
     for (let i = 0; i < largo; i++) {
       if (this.generadosEsteTramo >= this.maximoPorTramo) break;
 
       const zEvidencia = z - i * EVIDENCIA.SEPARACION;
+      const t = i / Math.max(1, largo - 1);
 
       // En arco, la hilera describe una parábola que coincide con la
       // trayectoria del salto. Es la señal visual de "salta aquí".
       let y = EVIDENCIA.ALTURA;
       if (enArco) {
-        const t = i / Math.max(1, largo - 1);
         y = EVIDENCIA.ALTURA + Math.sin(t * Math.PI) * (EVIDENCIA.ALTURA_ARCO - EVIDENCIA.ALTURA);
       }
+
+      // Y la x cruza de un carril al otro, con la misma curva suave que usa el
+      // resto del juego. SUAVE Y NO RECTA a propósito: una diagonal recta
+      // reparte el cruce por igual entre todos los papeles, y entonces los dos
+      // extremos de la hilera ya no están en un carril sino a un tercio de
+      // camino. Con la curva, los primeros y los últimos se quedan pegados a su
+      // carril y el cruce ocurre en el medio, que es también como lo hace el
+      // jugador: se lanza de golpe, no se desliza en diagonal todo el rato.
+      const xEvidencia = carrilFinal === carril
+        ? x
+        : x + (xFinal - x) * (t * t * (3 - 2 * t));
       // SIN ONDULACIÓN DE ALTURA. Subía y bajaba ±0.14 con periodo de 5.5
       // índices, y las hileras reales tienen entre tres y cinco piezas: no
       // completaba ni un ciclo, así que no se leía como onda sino como
@@ -163,12 +237,12 @@ export class CoinManager {
 
       const malla = this._obtenerEvidencia();
       malla.visible = true;
-      malla.position.set(x, y, zEvidencia);
+      malla.position.set(xEvidencia, y, zEvidencia);
 
       this.activos.push({
         malla,
         tipo: 'evidencia',
-        x,
+        x: xEvidencia,
         y,
         z: zEvidencia,
         // Una fase por hilera y 60° entre vecinas: desfase legible dentro de
@@ -205,7 +279,25 @@ export class CoinManager {
       });
     }
 
-    return carril;
+    const zPrimero = z;
+    const zUltimo = z - (largo - 1) * EVIDENCIA.SEPARACION;
+
+    return {
+      ocupados: carrilFinal === carril ? [carril] : [carril, carrilFinal],
+      /**
+       * Qué carril tapa la hilera a esta Z. `null` si la hilera no llega ahí,
+       * y entonces no tapa nada. Se redondea al carril más cercano porque la
+       * hilera en mitad del cruce está ENTRE dos, y lo que se quiere saber es
+       * a cuál le quita la vista.
+       */
+      carrilEn: (zPunto) => {
+        if (zPunto > zPrimero || zPunto < zUltimo) return null;
+        if (carrilFinal === carril) return carril;
+        const t = (zPrimero - zPunto) / Math.max(0.001, zPrimero - zUltimo);
+        const suave = t * t * (3 - 2 * t);
+        return Math.round(carril + (carrilFinal - carril) * suave);
+      },
+    };
   }
 
   /**

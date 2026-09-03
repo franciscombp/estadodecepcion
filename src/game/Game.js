@@ -623,19 +623,28 @@ export class Game {
     if (!grupo) return;
 
     // La hilera va en arco (sobre un salto) una de cada tres veces.
-    const carrilEvidencia = this.evidencia.generarHilera(
+    // La hilera puede cruzar de carril (ver Coin.generarHilera), así que lo
+    // que devuelve no es un carril sino con qué preguntarle qué tapa y dónde.
+    const carrilesEvidencia = this.evidencia.generarHilera(
       grupo.carrilesLibres,
       grupo.z,
       grupo.gap,
       Math.random() < 0.33,
     );
 
-    const libres = grupo.carrilesLibres.filter((c) => c !== carrilEvidencia);
-    if (libres.length === 0) return;
-
     // Lo único que se ofrece en el hueco es un potenciador. Antes competía
     // con la comida, y la comida se fue: ver CATALOGO_POTENCIADORES.
     const zHueco = grupo.z - grupo.gap / 2;
+
+    // SE LE PREGUNTA A LA HILERA QUÉ TAPA AQUÍ, no qué carriles usó en total.
+    // Con hileras rectas daba igual, pero una que cruza toca dos carriles y
+    // excluirlos los dos deja sin sitio al potenciador en el caso más común
+    // —un obstáculo bloquea un carril, quedan dos libres—, o sea que cruzar
+    // habría costado casi todos los potenciadores del juego.
+    const tapado = carrilesEvidencia.carrilEn(zHueco);
+    const libres = grupo.carrilesLibres.filter((c) => c !== tapado);
+    if (libres.length === 0) return;
+
     this.potenciadores.intentarGenerar(libres, zHueco);
   }
 

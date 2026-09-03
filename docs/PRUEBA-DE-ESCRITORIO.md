@@ -2545,6 +2545,77 @@ zoom, y un tirón de zoom se lee como un fallo. Y el objetivo es **cero fuera de
 la carrera**: la cinemática, el menú y el cerco tienen sus encuadres medidos a
 FOV 56, y la velocidad no se pone a cero al capturar.
 
+### 6.47 · La hilera de papeles no dibujaba nada
+
+La línea de monedas es la firma del género: no está para apuntarle a cada
+pieza, está para **enseñar por dónde ir** antes de que lo pienses. Aquí la
+hilera era una línea recta, plana y en un solo carril — la misma x y la misma y
+en todas sus piezas.
+
+Proyectada contra la cámara de carrera, con la curvatura del mundo puesta:
+
+| Papel | Distancia | NDC vertical | Salto respecto al anterior |
+|---|---|---|---|
+| 0 | a los pies | −0,429 | |
+| 1 | 7 m | 0,069 | **0,498 — medio cuadro** |
+| 2 | 14 m | 0,217 | 0,148 |
+| 3 | 21 m | 0,284 | 0,067 |
+| 4 | 28 m | 0,319 | 0,035 |
+| 5+ | 35 m y más | 0,338… | por debajo de 0,02: se apelotonan |
+
+Dos puntos separados por medio cuadro y un montón pegado al horizonte. No es
+una línea: son dos puntos y una mancha.
+
+**No se toca la separación**, y conviene decir por qué. `EVIDENCIA.SEPARACION`
+está en 7,0 con un comentario que cuenta que se probaron 2,2 (se leían como una
+cinta), 4,0 (seguían leyéndose como una tira) y 6,0. Esa decisión se tomó
+MIRÁNDOLAS, y aquí no hay navegador: cambiarla sería sustituir el ojo de quien
+la tomó por mi aritmética, en una pregunta que es de ojo.
+
+Lo que sí se puede arreglar sin pelearse con eso es que la hilera **tenga
+forma**. Ahora cruza de carril: empieza en uno de los carriles libres y termina
+en otro.
+
+| | Barrido horizontal en pantalla |
+|---|---|
+| Hilera recta (antes) | 0,000 |
+| Cruzada, 5 papeles | 0,297 |
+| Cruzada, 8 papeles | 0,184 |
+
+Y dice algo, que es lo importante: la hilera deja de ser una fila de puntos y
+pasa a ser una **ruta**.
+
+**Es seguro por construcción.** Los dos extremos salen de `carrilesLibres`, o
+sea de los carriles que el generador de obstáculos dejó pasables para ese
+grupo: ningún papel puede acabar dentro de un muro porque no hay ninguna x
+fuera del segmento entre dos carriles que ya eran buenos.
+
+Tres condiciones, las tres con motivo: hacen falta **dos carriles libres** (con
+uno no hay a dónde cruzar), **cuatro papeles** (con tres, la diagonal son dos
+saltos laterales y se lee como desorden, no como línea), y **nunca a la vez que
+el arco** — el arco sobre un hueco ya dice «salta aquí», y cruzarlo de carril
+al mismo tiempo son dos órdenes encima de la misma hilera.
+
+La curva del cruce es suave y no recta: con una diagonal recta los dos extremos
+de la hilera ya no están en un carril sino a un tercio de camino. Con la curva
+los primeros y los últimos se quedan pegados a su carril y el cruce ocurre en
+el medio — que es también como lo hace el jugador, que se lanza de golpe.
+
+**Y casi cuesta todos los potenciadores del juego.** La regla vieja era «una
+hilera tapa por completo lo que tenga detrás en el mismo carril», y con hileras
+rectas bastaba con excluir su carril. Excluyendo los DOS extremos de una que
+cruza, el caso más común —un obstáculo bloquea un carril, quedan dos libres—
+se queda sin ningún carril donde poner el potenciador. No hacía falta: lo que
+tapa es dónde está la hilera EN ESE PUNTO, no dónde estuvo cien metros antes.
+`generarHilera` devuelve ahora un `carrilEn(z)` y el hueco pregunta por su
+propia Z.
+
+Prueba de lógica en `scratchpad/hilera.mjs`, 900 hileras generadas sin
+navegador: ningún papel fuera del segmento entre carriles libres, los dos
+extremos siempre clavados en un carril, 38 % de hileras cruzadas, **cero veces**
+que el potenciador se quedara sin sitio, nunca cruza en arco y nunca cruza con
+un solo carril libre.
+
 ---
 
 ## 7 · Cómo se prueba cada pantalla sin jugar
