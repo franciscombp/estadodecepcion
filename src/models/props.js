@@ -816,6 +816,20 @@ export function vestirObstaculo(g, tipo, esc, colores) {
       return;
     }
     if (tipo === 'esquivar') {
+      // DOS COSAS BLOQUEAN CARRIL EN ELECCIONES, no una. El guion pedía la
+      // segunda desde el principio —«pandilleros armados que apoyan al
+      // gobierno, como variante del bloqueo de carril»— y no estaba.
+      //
+      // Que sean dos y no una es lo que hace que el barrio no se aprenda de
+      // memoria: con un solo modelo por mecánica, a los tres tramos ya sabes
+      // qué vas a ver antes de verlo, y entonces el obstáculo deja de leerse y
+      // pasa a recordarse. Una de cada tres, que es bastante para que sorprenda
+      // y poco para que el cartón siga siendo la imagen del barrio.
+      if (Math.random() < 0.34) {
+        _pandillerosDeCampana(g, colores);
+        return;
+      }
+
       // Cartón del candidato: silueta plana de tamaño natural, y su fan
       // revolcándose al pie. El cartón es lo que bloquea; la fan es el chiste.
       const zc = (g.userData.fondo ?? 1.5) / 2 + 0.14;
@@ -852,6 +866,80 @@ export function vestirObstaculo(g, tipo, esc, colores) {
       g.userData.fan = fan;
       return;
     }
+  }
+}
+
+/**
+ * PANDILLEROS DE CAMPAÑA. La variante del bloqueo de carril en Elecciones.
+ *
+ * Son DOS figuras hombro con hombro, no una. La diferencia con el militar de
+ * la Bahía —que va solo— es el chiste entero: al militar lo manda alguien y
+ * está ahí de servicio; estos se han puesto ahí ellos, y por eso van en grupo
+ * y con la gorra del partido. Lo que bloquea no es el Estado, es gente con
+ * camiseta de campaña haciéndole el trabajo.
+ *
+ * DOS REGLAS QUE NO SE ROMPEN, y las dos son editoriales:
+ *
+ * · El arma va CRUZADA AL PECHO, nunca apuntando. Es la misma convención que
+ *   ya usa `_figuraDeUniforme` para el militar, y aquí importa más: esto es
+ *   sátira sobre quién bloquea la calle, no una escena de amenaza. Una figura
+ *   apuntando al jugador cambia lo que el juego está diciendo.
+ * · Sin cara y sin sangre. Son siluetas: cuerpo, gorra y bulto. Lo que tiene
+ *   que leerse a treinta metros es «hay dos personas ahí y no se pasa».
+ *
+ * La silueta base no se toca —la regla de vestirObstaculo— así que sigue
+ * siendo un bloque macizo con su franja roja arriba: lo que cambia es lo que
+ * hay pegado a la cara delantera.
+ */
+function _pandillerosDeCampana(g, colores) {
+  // Medido contra el militar de la Bahía, que es la figura que ya existía: con
+  // 0.26 la visera de la gorra sacaba la caja 5 cm más que él. No es peligroso
+  // —el cartón del candidato saca 50— pero no hay motivo para que una pieza
+  // nueva sobresalga más que la vieja, así que se retrasa el conjunto.
+  const z = (g.userData.fondo ?? 1.5) / 2 + 0.21;
+  const acento = colores?.acento ?? 0xff5fa2;
+
+  // El bloque de detrás se reteñe a masa oscura, igual que con el militar: es
+  // el fondo contra el que se recortan las dos figuras.
+  if (g.userData.cuerpo) {
+    g.userData.cuerpo.material = mat(0x20242e, 0.03, 0.9);
+  }
+
+  // Hombro con hombro y ligeramente desiguales de alto: dos siluetas idénticas
+  // se leen como un objeto simétrico —una valla— y no como dos personas.
+  for (const [sx, alto] of [[-0.42, 1.0], [0.42, 0.92]]) {
+    const torso = new THREE.Mesh(
+      caja(0.62, alto, 0.38),
+      // Camiseta de campaña: el acento del barrio, que es el color del cartón
+      // del candidato y el de las vallas. Ahí está dicho de quién son.
+      mat(acento, 0.16, 0.72),
+    );
+    torso.position.set(sx, 1.22 + (alto - 1.0) / 2, z);
+    g.add(torso);
+
+    const piernas = new THREE.Mesh(caja(0.5, 0.86, 0.34), mat(0x2b2f3a, 0.05, 0.85));
+    piernas.position.set(sx, 0.43, z);
+    g.add(piernas);
+
+    const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.24, 7, 6), mat(0x8a6244, 0.1, 0.7));
+    cabeza.position.set(sx, 1.88 + (alto - 1.0), z);
+    g.add(cabeza);
+
+    // La gorra, en el color del partido y con visera: es la pieza que dice a
+    // quién apoyan sin escribirlo en ninguna parte.
+    const gorra = new THREE.Mesh(caja(0.42, 0.16, 0.42), mat(acento, 0.22, 0.6));
+    gorra.position.set(sx, 2.06 + (alto - 1.0), z);
+    g.add(gorra);
+    const visera = new THREE.Mesh(caja(0.4, 0.05, 0.2), mat(acento, 0.22, 0.6));
+    visera.position.set(sx, 2.0 + (alto - 1.0), z + 0.28);
+    g.add(visera);
+
+    // El bulto cruzado al pecho. Ni se levanta ni apunta: cuelga en diagonal,
+    // que es como cuelga un arma que nadie está usando.
+    const bulto = new THREE.Mesh(caja(0.66, 0.09, 0.09), mat(0x16181f, 0.04, 0.85));
+    bulto.position.set(sx, 1.14, z + 0.22);
+    bulto.rotation.z = sx > 0 ? -0.42 : 0.42;
+    g.add(bulto);
   }
 }
 

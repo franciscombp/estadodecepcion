@@ -1242,18 +1242,21 @@ encima de 16,6 ms a **6** sobre 9.286, con el peor en 54 ms.
 
 ---
 
-### 6.21 · Del guion, sigue sin implementarse — **abierto**
+### 6.21 · Del guion, sigue sin implementarse — **las dos que importaban, hechas**
 
-Cuatro cosas listadas en `docs/GUION.md` y todavía no en el juego:
+Cuatro cosas listadas en `docs/GUION.md` y no estaban en el juego. Las dos
+primeras eran las únicas que cambiaban cómo se JUEGA un barrio concreto, y ya
+están (ver §6.48):
 
-- **Gas lacrimógeno** en el Centro histórico, como atmósfera que estorba la
-  vista y no como obstáculo con colisión.
-- **Pandilleros armados** como variante del bloqueo de carril en Elecciones.
+- ~~**Gas lacrimógeno** en el Centro histórico, como atmósfera que estorba la
+  vista y no como obstáculo con colisión.~~ **Hecho.**
+- ~~**Pandilleros armados** como variante del bloqueo de carril en
+  Elecciones.~~ **Hecho.**
 - **Locales cerrados** con persianas bajadas como decorado propio de la Bahía.
 - **Voces de calle** al recoger evidencia, con un tono distinto por barrio.
 
-Las dos primeras son las que más aportarían: son las únicas que cambiarían cómo
-se juega un barrio concreto.
+Las dos que quedan son decorado y sonido: aportan, pero no cambian una
+decisión de nadie.
 
 ---
 
@@ -2615,6 +2618,99 @@ navegador: ningún papel fuera del segmento entre carriles libres, los dos
 extremos siempre clavados en un carril, 38 % de hileras cruzadas, **cero veces**
 que el potenciador se quedara sin sitio, nunca cruza en arco y nunca cruza con
 un solo carril libre.
+
+### 6.48 · Los dos barrios que no se jugaban distinto
+
+Los cuatro barrios se VEÍAN distintos —cada obstáculo va vestido según la
+escena— y se JUGABAN igual: las mismas cuatro mecánicas con otra ropa. Las dos
+cosas del guion que cambiaban eso llevaban desde §6.21 sin construirse.
+
+#### Gas lacrimógeno · Centro histórico
+
+El guion es preciso: *«no es un obstáculo con caja de colisión, es atmósfera
+—bocanadas que cruzan la vía y estorban la vista»*.
+
+**Ya había humo, y no es esto.** `CarondeletScene` monta catorce planos
+semitransparentes a opacidad 0,055–0,115 repartidos por 140 metros. Eso es un
+velo constante, y está bien que lo sea: es ambiente. Lo que faltaba es el
+EVENTO — una bocanada densa que entra por un lado, cruza la calzada y se va.
+
+**Hasta dónde puede tapar** es la única decisión difícil, y es de diseño, no de
+código. Una bocanada que tape del todo convierte el barrio en una lotería: los
+obstáculos aparecen a 220 m y se leen durante varios segundos, y quitarle al
+jugador el que tiene delante en el último medio segundo no es dificultad, es
+tramposo.
+
+Así que tapa **a medias**: 0,42 en el núcleo. A través de eso las siluetas se
+siguen leyendo —que es lo que hace falta para decidir— pero se leen sucias. El
+barrio pasa de «ves y esquivas» a «ves peor y te acuerdas de lo que viste».
+
+Medido, con la aritmética del propio efecto:
+
+| Velocidad | Vida de la bocanada | Una cada | Travesía lateral |
+|---|---|---|---|
+| 15 m/s | 6,3 s | 6,3 s | 25 m |
+| 20 m/s | 4,7 s | 4,8 s | 19 m |
+| 26 m/s | 3,6 s | 3,7 s | 14 m |
+| 32 m/s | 2,9 s | 3,0 s | 12 m |
+
+La calzada mide 7,2 m: a cualquier velocidad la cruza entera y le sobra, o sea
+que **ningún carril la aguanta todo el rato**. Y hay **una viva de media** —el
+recorrido son 94 m y sale una cada 95—. Con la primera cifra que probé, 70 m,
+salían 1,34 a la vez y a máxima velocidad una cada 2,2 s: eso deja de ser un
+evento y vuelve a ser un velo, que es justo lo que este efecto no es.
+
+Se suelta por **metros recorridos y no por segundos**. Con un reloj, a 15 m/s
+saldría una cada 1050 metros y a 32 una cada 2240: el barrio se volvería más
+limpio cuanto más rápido fueras, que es al revés de lo que tiene que pasar.
+
+Cuesta nueve cuadriláteros transparentes en total —tres bocanadas de tres
+planos cruzados—. Uno solo se lee como un cartel plano en cuanto se mueve de
+lado; tres cruzados dan volumen por el mismo precio.
+
+**No lo he podido ver.** No hay navegador en esta tarea, y esto es lo único de
+la tanda cuyo número clave —cuánto tapa— sólo se puede ajustar mirándolo. Está
+aislado en una constante, `NUCLEO`, y no toca nada más.
+
+#### Pandilleros de campaña · Elecciones
+
+*«Pandilleros armados que apoyan al gobierno, como variante del bloqueo de
+carril.»* El bloqueo de carril de Elecciones era siempre el cartón del
+candidato con su fan al pie. Ahora una de cada tres es otra cosa.
+
+Que sean dos y no una es lo que hace que el barrio no se aprenda de memoria:
+con un solo modelo por mecánica, a los tres tramos ya sabes qué vas a ver antes
+de verlo, y el obstáculo deja de leerse y pasa a recordarse.
+
+Son **dos figuras hombro con hombro**, y la diferencia con el militar de la
+Bahía —que va solo— es el chiste entero: al militar lo manda alguien y está de
+servicio; estos se han puesto ahí ellos, y por eso van en grupo y con la gorra
+del partido en el color del acento del barrio. Lo que bloquea la calle no es el
+Estado, es gente con camiseta de campaña haciéndole el trabajo.
+
+**Dos reglas editoriales que no se rompen:** el arma va cruzada al pecho y
+nunca apuntando —es la convención que ya usaba `_figuraDeUniforme`, y aquí
+importa más, porque esto es sátira sobre quién bloquea la calle y no una escena
+de amenaza—; y sin cara y sin sangre, son siluetas.
+
+Comprobado construyendo 300 obstáculos en node (`scratchpad/barrio.mjs`), con
+un `<canvas>` de mentira para las texturas procedurales, midiendo la caja
+envolvente contra la del militar de la Bahía, que es la figura que ya existía:
+
+| | Ancho | Alto | Fondo |
+|---|---|---|---|
+| Militar de la Bahía (referencia) | 1,03 | 2,60 | 1,36 |
+| Cartón del candidato | 1,03 | 2,60 | 1,86 |
+| Pandilleros | 1,03 | 2,60 | 1,36 |
+
+La primera versión sacaba 1,41 de fondo —la visera de la gorra— y se retrasó el
+conjunto 5 cm. No era peligroso (el cartón saca 50) pero no hay motivo para que
+una pieza nueva sobresalga más que la vieja.
+
+De paso, la medida destapó algo que **ya estaba y no es de esta tanda**: el
+bloque base sobresale 7 cm por lado de su propia caja de colisión (1,03 contra
+0,96 de media caja). Se queda anotado aquí; no se toca, porque es de todos los
+barrios y lleva así desde siempre.
 
 ---
 
