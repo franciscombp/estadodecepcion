@@ -73,6 +73,14 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* SIN ZOOM POR DOBLE TOQUE. Al tocar rápido el mismo botón, el móvil
+   acercaba la página y no había forma de volver. `manipulation` quita solo
+   el doble toque: el pellizco sigue, que es accesibilidad, y por eso no va
+   `user-scalable=no` en el viewport. Con `:where(*)` la regla no pesa nada,
+   así que el lienzo del exportador, que se pone `touch-action: none`, se
+   queda con lo suyo. */
+:where(*) { touch-action: manipulation; }
+
 body {
   background: var(--papel);
   color: var(--tinta);

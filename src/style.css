@@ -106,6 +106,17 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* SIN ZOOM POR DOBLE TOQUE, la misma regla que mal-ds 1.0.18. Aquí hoy lo
+   frena el `touch-action: none` de html y body (el `user-scalable=no` del
+   viewport no cuenta: iOS lo ignora), pero si un día se afloja, que lo que
+   queda debajo no vuelva a acercar la pantalla al tocar rápido un botón.
+   `manipulation` quita solo el doble toque y deja el pellizco. Con
+   `:where(*)` la regla no pesa nada: html, body y cualquier lienzo que pida
+   `touch-action: none` se quedan con lo suyo. */
+:where(*) {
+  touch-action: manipulation;
+}
+
 html, body {
   width: 100%;
   height: 100%;
